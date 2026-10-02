@@ -1,0 +1,288 @@
+/*
+ * Print / offline export stylesheet — WBS 6.5, FR-039, SDD US-013 AC-4, US-014 AC-3.
+ *
+ * THE DESIGN DECISION THAT MATTERS: there is no separate print renderer, no separate
+ * query and no separate component tree. Printing renders the SAME DOM the screen
+ * rendered, resolved through the SAME repository call, with the interactive chrome
+ * hidden. TAD §8: "an export that leaks a column the screen hides would be a
+ * disclosure, not an accessibility defect." The only way to guarantee the export cannot
+ * be wider than the screen is for it to be the screen.
+ *
+ * This is asserted, not just intended: src/dataverse/repository.test.ts pins the column
+ * allow-lists, and src/styles/print.test.ts asserts this file contains no rule that
+ * REVEALS anything hidden on screen.
+ *
+ * Targets `data-print` attributes rather than class names, because CSS Module class
+ * names are hashed at build time.
+ */
+
+@media print {
+  /* Anything the trustee interacts with rather than reads. */
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /*
+   * Reviewer item 1, Revision 9 (2026-09-01, wbs:6.9) — A DISTRIBUTION'S DATA TABLE PRINTS
+   * WHETHER OR NOT THE TRUSTEE OPENED IT ON SCREEN.
+   *
+   * `components/DistributionChart.tsx` now clips its table to `.srOnly`'s 1px box by default
+   * (the reviewer asked to see the chart alone; the table stays in the DOM and in the
+   * accessibility tree — that file's Revision 9 header carries the reasoning). On PAPER the
+   * opposite is true: the printed pack is the durable record of what a board saw (TAD §6.4),
+   * and the same argument print.css already makes for the chart bars — "the print output is
+   * the trustee-accessibility fallback rather than a brochure" — applies with more force to
+   * the figures themselves. A board pack of pictures with no numbers is not a board pack.
+   *
+   * `!important` on every declaration, deliberately: `.srOnly` is a CSS-Module class at the
+   * same (0,1,0) specificity as this attribute selector, so without it the winner would be
+   * decided by which stylesheet the bundler happens to emit last — the same build-order
+   * hazard `.errorBox`'s comment in app.module.css names. This mirrors `[data-print="hide"]`
+   * below, which is `!important` for the same reason.
+   */
+  [data-print="datatable"] {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+    clip-path: none !important;
+    white-space: normal !important;
+  }
+
+  /* Reading order and heading hierarchy are the DOM's, unchanged. Nothing here
+     reorders content, so what is read aloud and what is printed are the same
+     sequence (WCAG 1.3.2). */
+  html,
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+  }
+
+  /* Full width on paper: the on-screen max-width would waste a third of the page. */
+  [data-print="page"] {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* Multi-line narrative and score breakdown must not be clipped at a page break. */
+  [data-print="block"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* A bordered panel prints as a rule, not a box — cheaper on toner and clearer. */
+  [data-print="block"] {
+    border: none;
+    border-top: 1pt solid #000;
+    padding: 6pt 0 0;
+    margin: 10pt 0 0;
+  }
+
+  /* The withheld-narrative state must print as prominently as it displays. A trustee
+     working from paper has to be able to see that a narrative was withheld rather than
+     absent by accident. */
+  [data-print="state"] {
+    border: 1pt solid #000;
+    border-left: 3pt solid #000;
+    padding: 6pt 8pt;
+    background: none;
+  }
+
+  /* Tables print with visible rules and repeat their header on each page. */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  th,
+  td {
+    border-bottom: 0.5pt solid #000;
+    padding: 3pt 4pt;
+  }
+
+  /* A sort control is a button on screen and a plain heading on paper. Its label still
+     prints, so the reader knows which column is which. */
+  th button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: bold;
+  }
+
+  /* A row's "open" control is a button on screen; on paper the reference must still
+     read as text rather than disappear with the chrome. */
+  td button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: bold;
+    text-decoration: none;
+    color: #000;
+  }
+
+  /* Avoid orphaned headings. */
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /*
+   * THE LOGO PRINTS. Decided in this pass (NFR-026); nothing in the TAD names either way.
+   *
+   * The argument for hiding it is this file's own stated position — "the print output is the
+   * trustee-accessibility fallback rather than a brochure" — which is why chart bars print
+   * black. That reasoning does not carry across, for two reasons. The chart rule is about
+   * CONTRAST as much as ink: a mid-brand fill can render on a monochrome printer as a pale
+   * grey that reads as an empty bar, i.e. as WRONG DATA. A logo carries no data and has no
+   * contrast threshold to miss, so the failure mode it would prevent does not exist.
+   * And §8.2/TAD §6.4 make the printed pack the only durable record of the figures a board
+   * actually saw — a record of a funding decision that leaves the portal is better for
+   * naming the organisation that made it than for saving a few square centimetres of toner.
+   *
+   * Bounded rather than unbounded: 24pt tall is roughly 8mm, about a fifth of the on-screen
+   * height, so the ink cost this file cares about stays small. No colour override — a
+   * monochrome printer renders it as greys, which is fine for a logo and wrong for a bar.
+   *
+   * Its own attribute rather than reusing `data-print="hide"`/`"block"`: those two are
+   * documented here as "what the trustee interacts with" and "a bordered panel", and a
+   * branding graphic is neither. A future decision to drop it from paper is then one rule.
+   */
+  [data-print="brand"] {
+    height: 24pt;
+    width: auto;
+    max-width: 100%;
+  }
+
+  /* ----------------------------------------------------------------------------------- *
+   * The landing screen — WBS 6.9, FR-039, TAD §8.2.
+   *
+   * Two obligations from §8.2, and one of them is load-bearing rather than cosmetic:
+   * "the print output MUST carry `computedOn`", because under the live design nothing is
+   * persisted server-side and a printed pack is the only durable record of the figures a
+   * board actually saw (TAD §6.4). So neither freshness stamp is print-hidden, and both
+   * are pinned to the block they describe.
+   * ----------------------------------------------------------------------------------- */
+
+  /* Both freshness statements. Kept with their own figures across a page break, and left
+     visually distinct on paper the way they are on screen — one describes figures that
+     were seconds old, the other figures a person typed on some cadence, and a reader must
+     not take one line as covering both (§8.3). */
+  [data-print="stamp"] {
+    font-style: italic;
+    break-after: avoid;
+    page-break-after: avoid;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /*
+   * Chart bars print as solid black, not as a brand colour.
+   *
+   * Three reasons, in the order §8.2 gives them: ink cost; contrast on a monochrome
+   * printer, where a mid-brand blue can render as a pale grey that reads as an empty bar;
+   * and the fact that the print output is the trustee-accessibility fallback rather than a
+   * brochure. Nothing is revealed by this rule — the chart is visible on screen too, and
+   * every value it depicts is already text in the table beside it.
+   */
+  [data-print="chart"] rect {
+    fill: #000;
+  }
+
+  /*
+   * Fix 3 (2026-08-27) — Recharts (`components/RoundStatisticsCharts.tsx`) draws every
+   * bar AND every pie slice as an SVG `<path>`, not a `<rect>`: the rule above alone does
+   * not reach them. Same reasoning as that rule, extended to the shape Recharts actually
+   * emits. The pie's white 2px slice separator is a `stroke`, untouched by a `fill` rule,
+   * so slices stay visually distinct even once every fill is black.
+   */
+  [data-print="chart"] path {
+    fill: #000;
+  }
+
+  /* A chart must not spill off the page, and must not be split across two of them. */
+  [data-print="chart"] {
+    max-width: 100%;
+    max-height: 200pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* ----------------------------------------------------------------------------------- *
+   * Card-layout detail screen — THIS APP ONLY (Design 2.0, WI-0073, TAD trustee-portal-
+   * design-2 ADR-055..059). This file is on the parity gate's allow-list for these rules.
+   *
+   * The screen's cards, tiles, chips, pills and receipt print as plain black on white: no
+   * gradient, no shadow, and any border at 1px #000. `!important` on each declaration for the
+   * reason `[data-print="datatable"]` above gives: the screen rules are CSS-Module classes at
+   * the same (0,1,0) specificity as these attribute selectors, so without it the winner would
+   * be whichever stylesheet the bundler emitted last. Nothing here reveals anything the screen
+   * hides except the scale's text value, which the screen shows as colour (below).
+   * ----------------------------------------------------------------------------------- */
+  [data-print="block"],
+  [data-print="frame"] {
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  [data-print="tile"],
+  [data-print="answer"],
+  [data-print="receipt"] {
+    background: none !important;
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    color: #000 !important;
+  }
+
+  /* The eyebrows and the score track are decorative and carry `data-print="hide"` already. */
+
+  /* The 0-10 scale prints its value AS TEXT (README non-negotiable 7, WI-0065 clause 2): the
+     filled point is colour, which a monochrome printer or a "no background graphics" setting
+     loses. Its sentence ("Answer: N out of 10") is in the DOM on screen, visually hidden and
+     `aria-hidden` (the points' own `aria-label` already says it to a screen reader); on paper
+     it is unclipped, exactly the way `[data-print="datatable"]` unclips a chart's table. It
+     reveals nothing the screen does not already show: the same value is the filled point. */
+  [data-print="scale-value"] {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+    clip-path: none !important;
+    white-space: normal !important;
+    font-weight: bold;
+  }
+
+  [data-print="scale-points"] span {
+    background: none !important;
+    border: 1px solid #000 !important;
+    color: #000 !important;
+  }
+  /* ----------------------------------------------------------------------------------- *
+   * Card-layout OTHER SCREENS — THIS APP ONLY (Design 2.0 Revision 2, TAD §13). The round
+   * overview's HTML chart marks print as solid black, as the first app's SVG bars do (the rule
+   * for `rect`/`path` above), so a monochrome printer never reads a pale fill as an empty bar.
+   * The table beside each chart is the record; the marks are the picture.
+   * ----------------------------------------------------------------------------------- */
+  [data-print="chart"] [data-chart-mark] {
+    background: #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* The stamp pill prints as plain text, still distinct as its own line. */
+  [data-print="stamp"] {
+    background: none !important;
+    box-shadow: none !important;
+  }
+}

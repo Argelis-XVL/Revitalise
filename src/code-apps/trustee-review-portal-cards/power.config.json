@@ -1,0 +1,65 @@
+{
+  "version": "1.0",
+  "appId": "b0483396-a875-4c1f-8580-296d433edb4a",
+  "appDisplayName": "REV Trustee Review Portal (Card layout)",
+  "region": "prod",
+  "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
+  "description": "Design 2.0 card-layout variant of the trustee review portal, for side-by-side comparison (TAD trustee-portal-design-2, ADR-055). One of the two apps is retired when the business chooses.",
+  "buildPath": "./dist",
+  "buildEntryPoint": "index.html",
+  "localAppUrl": "http://localhost:3000",
+  "logoPath": "Default",
+  "connectionReferences": {
+    "1b8b6c8a-35cb-44c8-9c9a-3a0d50ec1311": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+      "displayName": "Microsoft Dataverse",
+      "dataSources": [
+        "commondataserviceforapps"
+      ],
+      "authenticationType": "Oauth",
+      "dataSets": {}
+    }
+  },
+  "databaseReferences": {
+    "default.cds": {
+      "dataSources": {
+        "applications": {
+          "entitySetName": "rev_applications",
+          "logicalName": "rev_application",
+          "isHidden": false
+        },
+        "reviews": {
+          "entitySetName": "rev_reviews",
+          "logicalName": "rev_review",
+          "isHidden": false
+        },
+        "applicants": {
+          "entitySetName": "rev_applicants",
+          "logicalName": "rev_applicant",
+          "isHidden": false
+        },
+        "users": {
+          "entitySetName": "systemusers",
+          "logicalName": "systemuser",
+          "isHidden": false
+        },
+        "roundfinances": {
+          "entitySetName": "rev_roundfinances",
+          "logicalName": "rev_roundfinance",
+          "isHidden": false
+        },
+        "roundstatisticsrequests": {
+          "entitySetName": "rev_roundstatisticsrequests",
+          "logicalName": "rev_roundstatisticsrequest",
+          "isHidden": false
+        },
+        "roundstatisticsresults": {
+          "entitySetName": "rev_roundstatisticsresults",
+          "logicalName": "rev_roundstatisticsresult",
+          "isHidden": false
+        }
+      },
+      "environmentVariableName": ""
+    }
+  }
+}

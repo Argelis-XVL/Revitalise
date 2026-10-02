@@ -1346,6 +1346,26 @@ Describe 'Build gate: no-secured-columns-in-code-app' {
     }
 }
 
+# ── no-secured-columns-in-code-app-cards (TAD trustee-portal-design-2 §5.1, wbs:6.3 unbilled) ─────
+# The SAME script as the step above, over the card-layout app. Registered by its own step name so
+# the duplicate is proven able to fail on its own, and proven to pass over the real second app.
+Describe 'Build gate: no-secured-columns-in-code-app-cards' {
+    BeforeAll {
+        $script:FsProfileCards = Join-Path $script:Solution 'Other/FieldSecurityProfiles.xml'
+        $script:CodeAppCards   = Join-Path $script:RepoRoot 'src/code-apps/trustee-review-portal-cards'
+    }
+    It "'no-secured-columns-in-code-app-cards' fails when the app names a column security hides (FR-036, ADR-002)" {
+        Invoke-Python 'verify-code-app-column-bindings.py' @(
+            (Join-Path $script:Fixtures 'no-secured-columns-in-code-app'), $script:FsProfileCards
+        ) | Should -Not -Be 0
+    }
+    It "'no-secured-columns-in-code-app-cards' passes against the real card-layout app source" {
+        Invoke-Python 'verify-code-app-column-bindings.py' @(
+            $script:CodeAppCards, $script:FsProfileCards
+        ) | Should -Be 0
+    }
+}
+
 # ── flow-definition-reread (IMP-0956, IMP-0959) ─────────────────────────────────────────────────
 # A PIPELINE gate (dev post_deploy), not a build step: it reads live Dataverse through the pac
 # profile, so it cannot run in a build. C-TECH-057 still applies to it. Its own --selftest

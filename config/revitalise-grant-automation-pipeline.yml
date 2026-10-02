@@ -690,18 +690,27 @@ environments:
           one (TAD risk R-G05). Read the ACL back afterwards; do not trust the set call's
           exit code (IMP-0013's class).
         script: manual   # BLOCKED — see below. ensure-site.ps1 takes only -Env; -LibraryOnly does not exist
-        blocked_on_asserted: 2026-09-18   # re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
+        blocked_on_asserted: 2026-10-01   # re-tested 2026-10-01 (pipeline-agent): repo ls/grep, `pac env fetch` READ of DEV rev_SpoSiteUrl / rev_SpoSignedAcceptanceUrl, one unauthenticated HTTP GET. Site/library/ACL NOT probed (needs reviewer-held PROVISION_APP_ID / PROVISION_CERT_THUMBPRINT).
+        # Prior assertion, retained as history (IMP-0764 evidence needle): re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
         # DISCHARGE: `ls provisioning/sharepoint/templates/` lists a PnP template declaring the
-        # library (it held README.md only on 2026-09-03), AND ensure-site.ps1 accepts a
-        # library-scoped parameter. Both are repository facts — re-test by grep, not by query.
+        # library (README.md only on 2026-10-01), AND ensure-site.ps1 accepts a library-scoped
+        # parameter, AND a PnP read of the DEV site confirms the library and its broken-inheritance
+        # ACL (Contribute for REV Admins + REV Service Accounts only). Re-test by ls/grep and the
+        # reviewer-run read-only probe, not by assumption.
         blocked_on: >
-          Three things are missing and none is a one-liner. (1) A PnP site template under
-          provisioning/sharepoint/templates/ declaring the library — that folder holds only a
-          README, and ensure-site.ps1 treats the template as the source of truth for libraries,
-          content types and columns. (2) A dev SharePoint settings block: Get-ProvisioningSettings
-          -Env dev deliberately throws, which several scripts rely on. (3) PnP/Graph permission on
-          the designated site for the provisioning app. Until these exist the library is created by
-          hand or not at all, and assumption A-G03 stays OPEN. IMP-0046.
+          Re-tested 2026-10-01. CLEARED: former item (2), the dev settings block — dev-settings.json
+          is tracked and Get-ProvisioningSettings -Env dev no longer throws; and DEV
+          rev_SpoSiteUrl now HAS a current value (set 2026-09-08), as does
+          rev_SpoSignedAcceptanceUrl. STILL MISSING: (1) a PnP site template under
+          provisioning/sharepoint/templates/ declaring the library — the folder still holds only
+          README.md, and ensure-site.ps1 takes only -Env (no library-scoped parameter).
+          (2) That dev-settings.json has no `sharepoint` block (readme: omitted deliberately), which
+          ensure-site.ps1 and verify-sharepoint.ps1 need. (3) UNVERIFIED, not cleared: whether the
+          site exists, whether the library exists, and its permissions. DEV rev_SpoSiteUrl is
+          https://revitalise212.sharepoint.com/sites, which is the tenant /sites root and not a
+          site collection URL; an unauthenticated GET returns 401, which proves nothing. Also
+          Sites.Selected on the provisioning app is decommissioned (2026-09-19), so how the app is
+          granted the site is an open architecture record. Assumption A-G03 stays OPEN. IMP-0046.
       - description: >
           MANUAL — record written evidence of the SharePoint site's UK region and retain
           it with the Deployment Summary. NFR-009 and DPIA action A5 are OPEN; this slice
@@ -1177,6 +1186,44 @@ environments:
           CLOSED for the CanView/ACC pairing specifically; whether Set-AdminPowerAppRoleAssignment
           itself accepts a Code App's appId programmatically remains unconfirmed by any tool run
           from this project, and is not re-opened by this entry.
+      # ══ -cards: the Design 2.0 card-layout Code App (TAD docs/architecture/trustee-portal-design-2-
+      # architecture.md §9.1-§9.2, ADR-055; wbs:6.3 unbilled; WI-0079). DEV ONLY — no TST/ACC or PRD
+      # entry is added (TAD §9.3): the business chooses one app and the other is removed in DEV
+      # BEFORE the first promotion export. A-TR-17 (managed-upgrade removal of a Code App
+      # downstream, never observed) is avoided only while that ordering holds. Retiring either app deletes these two entries (§9.4).
+      - description: >
+          -cards — Publish the card-layout trustee Code App to DEV, from
+          src/code-apps/trustee-review-portal-cards after `npm run build` has produced its dist/
+          (packaged by the build as the `code-app-cards` artifact). NOT the first app's folder:
+          each app is pushed from its own folder, and the first app's push above is unchanged.
+          FIRST PUSH ONLY (A-TR-14): power.config.json carries `"appId": null` on purpose, never
+          a copy of the first app's id — a copied id would make this push OVERWRITE the live
+          first app (TAD R-D2-1; the parity gate's check P3 fails the build on it). Run
+          `pa app init` in the folder first if the CLI asks for one, then
+          `pac code push --solutionName RevitaliseGrantAutomation`, then READ BACK the assigned
+          appId (`pac code list` must show TWO apps with different ids) and commit it to that
+          folder's power.config.json in the same change — never an invented id (C-TECH-051).
+          THEN VERIFY SOLUTION MEMBERSHIP (A-TR-15, never observed on this project): a
+          `solutioncomponents` read for RevitaliseGrantAutomation, componenttype 300, must return
+          TWO rows, one per appId. If the new app is absent, add it through the maker portal's
+          "Add existing component" (knowledge/technology/code-apps.md fallback) and re-read.
+          wbs:6.3 unbilled.
+        operation: code-app-push   # check 13 matches this key, never the prose (IMP-0182)
+        script: manual   # live environment write — pipeline-agent's, not development-agent's (WI-0079)
+        owner: pipeline-agent (a session holding the DEV pac profile), or the reviewer
+      - description: >
+          -cards — Share the card-layout trustee Code App with the SAME REV Trustees group team
+          the first app is shared with, CanView, by Entra-group-backed group team, never by
+          individual user (C-TECH-040). Same shape as the first app's share above, and closed
+          the same way: share-apps.ps1's code-app branch cannot run on this Mac (IMP-0186 cert-drive
+          failure) and `pa app share` is scoped to users and service principals, so the share is
+          made in the maker portal / admin centre and checked there by a human (A-TR-16). After
+          the real appId is read back, add its `dataverse.apps` entry (type code, shareWith the
+          trustee group) to provisioning/deploymentSettings/dev-settings.json — only then, never
+          with an invented id (TAD §12). Then V4: a trustee opens BOTH apps and reads the same
+          application in each, so the business can choose (reviewer R1/R5). wbs:6.3 unbilled.
+        script: manual   # human V4 check in the admin centre, as for the first app
+        owner: reviewer (or a session holding admin-centre access), after the -cards push above
       - description: >
           Create/verify the REV Trustees Dataverse group team and bind the REV Trustee role to
           it. Roles are looked up BY NAME because role GUIDs differ per environment

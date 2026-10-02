@@ -1,0 +1,23 @@
+{
+  "_why": "Declared byte budget for the built bundle, checked by scripts/verify-code-app-bundle-budget.py at the code-app-bundle-budget build step (C-TECH-055). Vite's chunk-size warning text is IDENTICAL at 558 kB and at 1,204 kB, so the warning's wording is not evidence that nothing changed (IMP-0573, seventh instance of untriaged-tool-warning). This file is the machine-readable half of the triage: raising a figure here is a deliberate, reviewable act that must carry a reason and a triaged_in. CARD-LAYOUT APP (TAD trustee-portal-design-2 ADR-056): this is the second app's own budget, measured on its own first build; it is on the parity gate's allow-list because the two bundles are different sizes.",
+  "_headroom": "Each max_bytes sits ~3% above the figure measured on 2026-09-01. Pinned to the exact byte, the gate would go red on routine churn and be routed around; at 3% it still blocks a library-scale addition (recharts was +117%). The gate SOFT-warns above 25% headroom, so a budget left far too loose reports itself.",
+  "_units": "Bytes. Vite prints decimal kB (bytes/1000), so 1,204,716 bytes is the 1204.72 kB it reports. gzip figures are advisory only \u2014 python's gzip and rollup's reporter disagree by ~0.06% \u2014 so only max_bytes blocks a build.",
+  "assets": [
+    {
+      "glob": "dist/assets/*.js",
+      "max_bytes": 871100,
+      "measured_bytes": 845809,
+      "measured_on": "2026-10-01",
+      "reason": "Revision 3 (fidelity audit): the filters' Fluent Select is replaced by the kit's native select, so @fluentui/react-select drops out (Revision 2 measured 857,471). Revision 2: the card app no longer imports recharts \u2014 its Round overview draws the design kit's HTML bars, columns, grouped columns and donut (src/cards/charts.tsx, src/components/CategoryBars.tsx), so recharts@3.10.1 drops out of the bundle (Revision 1 measured 1,223,788 bytes). package.json is unchanged and still lists recharts, because the first app draws with it and package.json is contract. Fluent UI v9 is the dominant contributor.",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L484"
+    },
+    {
+      "glob": "dist/assets/*.css",
+      "max_bytes": 152800,
+      "measured_bytes": 148639,
+      "measured_on": "2026-10-01",
+      "reason": "Revision 3 (fidelity audit): +37,434 bytes is the kit's own logo without the strapline (src/cards/assets/revitalise-logo.png, 26,532 bytes) inlined as a base64 data URI by `?inline` in app.module.css's .logo rule, for App.tsx's A-BRAND-1 reason (no runtime asset URL in the Power Apps host). Revision 2: the card styles for every screen, on top of the two base64-inlined Playfair Display faces and the design-system CSS.",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L484"
+    }
+  ]
+}

@@ -30,6 +30,10 @@ artifacts:
     path: provisioning/
   - type: code-app
     path: code-app/
+  # The card-layout app's dist/ (TAD trustee-portal-design-2 ADR-055, wbs:6.3 unbilled). Its own
+  # directory, or the second copy would overwrite the first; deleted with the app it belongs to.
+  - type: code-app
+    path: code-app-cards/
   # NEW 2026-08-12 (C-TECH-014). The Pester result file and the JaCoCo coverage report,
   # so the coverage figure is evidence in the build record rather than a line in a log
   # that scrolls away — the same reasoning revision 0.5 applied to package contents.
@@ -408,6 +412,12 @@ steps:
   - name: tad-coverage
     command: python3 scripts/verify-tad-coverage.py
 
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # the same gate over the second app's source, because assertion (e) reads the status values the
+  # APP synthesises and `--app-src` defaults to the first app only.
+  - name: tad-coverage-cards
+    command: python3 scripts/verify-tad-coverage.py --app-src src/code-apps/trustee-review-portal-cards/src
+
   # Every entity folder's FormXml/ and SavedQueries/ content must be reachable through a matching
   # marker element in that entity's Entity.xml. Without it `pac solution pack` drops the folder's
   # content SILENTLY — 0 warnings, 0 errors — and the component never reaches the target.
@@ -730,6 +740,12 @@ steps:
   - name: code-app-install
     command: npm --prefix src/code-apps/trustee-review-portal ci
 
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # every per-app step runs once per app, and every duplicate's name ends in `-cards`, so retiring
+  # either app is one grep over `-cards` (TAD §9.4 step 3).
+  - name: code-app-install-cards
+    command: npm --prefix src/code-apps/trustee-review-portal-cards ci
+
   # HARD — C-TECH-074, the advisory half. The lockfile-drift half needs no step: `code-app-install`
   # above runs `npm ci`, which fails by design when package.json and package-lock.json disagree.
   # *** RESIDUAL, and why C-TECH-022's licence half STAYS RETIRED: `npm audit` reports what the registry
@@ -739,6 +755,12 @@ steps:
   # History: docs/development/revitalise-grant-automation-build-config-history.md#code-app-audit
   - name: code-app-audit
     command: npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high
+
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # package.json/package-lock.json are byte-identical to the first app's (parity gate), so the
+  # advisory set is the same; the step still runs, because it installs from its own lockfile copy.
+  - name: code-app-audit-cards
+    command: npm --prefix src/code-apps/trustee-review-portal-cards audit --audit-level=high
 
   # ADR-032's field catalogue, DERIVED not hand-typed. FR-078 renders the eleven REV_TrusteeRestricted
   # "Group B" columns as a restricted state WITHOUT ever binding them, because the process owner IS a
@@ -769,6 +791,32 @@ steps:
       src/code-apps/trustee-review-portal
       src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml
 
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # THE ANONYMISATION CONTROL over the second app. NOT OPTIONAL (TAD §5.1): the same code runs
+  # for the process owner, who is a profile member, in both apps.
+  - name: no-secured-columns-in-code-app-cards
+    command: >
+      python3 scripts/verify-code-app-column-bindings.py
+      src/code-apps/trustee-review-portal-cards
+      src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml
+
+  # HARD — ADR-056 as amended by ADR-060 (TAD trustee-portal-design-2 §5.3). The card-layout app is a
+  # full COPY of the first app. config/code-app-variant-parity.json classifies every file as CONTRACT
+  # (byte-identical: data access, domain logic, the shell's markup, the ds components, the verdict
+  # path, the tokens, and every test not authorised otherwise) or PRESENTATION (may differ): P1 every
+  # contract file has the same sha256, P2 a file in one app only is presentation, P3 same data sources
+  # and connectors and DIFFERENT appIds (a copied power.config.json would push over the live first
+  # app, R-D2-1), P4 every entry names an ADR and matches a file, P5 every file is in exactly one list.
+  # A VALUE COMPARISON over hashes and listings; the only escape is a committed classification entry.
+  # Placed straight after the second no-secured-columns run, per TAD §5.1, and before typecheck, so
+  # a shared-code fix that reached one folder fails here by name.
+  - name: code-app-variant-parity
+    command: >
+      python3 scripts/verify-code-app-variant-parity.py
+      src/code-apps/trustee-review-portal
+      src/code-apps/trustee-review-portal-cards
+      --config config/code-app-variant-parity.json
+
   # HARD. Check A: every non-module stylesheet under the app's src/ is side-effect imported by
   # src/main.tsx. Check B: src/test/harness.tsx renders the same theme object main.tsx renders.
   # WHY A GATE AND NOT A TEST: every token assertion in ds-tokens.test.ts reads the stylesheet OFF DISK,
@@ -794,6 +842,13 @@ steps:
     command: >
       python3 scripts/verify-code-app-data-sources.py
       src/code-apps/trustee-review-portal
+
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # same READ_SERVICES → dataSourcesInfo check over the second app.
+  - name: code-app-data-sources-cards
+    command: >
+      python3 scripts/verify-code-app-data-sources.py
+      src/code-apps/trustee-review-portal-cards
 
   # C-TECH-075 (HARD). A supplied design drop is intake'd by full directory enumeration, not by the
   # first folder found: any subdirectory of `Designsystem/` whose name matches a deliverable under
@@ -828,8 +883,14 @@ steps:
   - name: code-app-typecheck
     command: npm --prefix src/code-apps/trustee-review-portal run typecheck
 
+  - name: code-app-typecheck-cards
+    command: npm --prefix src/code-apps/trustee-review-portal-cards run typecheck
+
   - name: code-app-lint
     command: npm --prefix src/code-apps/trustee-review-portal run lint
+
+  - name: code-app-lint-cards
+    command: npm --prefix src/code-apps/trustee-review-portal-cards run lint
 
   # Vitest + React Testing Library against a mocked repository module. ⚠ WHAT THIS DOES NOT
   # PROVE, stated so a green step is not over-read: every test mocks the Dataverse boundary,
@@ -840,6 +901,11 @@ steps:
   # no members at all and every principal reads those columns as empty.
   - name: code-app-unit-tests
     command: npm --prefix src/code-apps/trustee-review-portal run coverage
+
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # the same caveat as above: every test mocks the Dataverse boundary (V1/V2 evidence only).
+  - name: code-app-unit-tests-cards
+    command: npm --prefix src/code-apps/trustee-review-portal-cards run coverage
 
   # HARD — C-TECH-078. THE ONE THING THE STEP ABOVE STRUCTURALLY CANNOT SEE.
   # `code-app-unit-tests` runs under jsdom, which computes NO layout and NO SVG font metrics:
@@ -865,8 +931,17 @@ steps:
   - name: code-app-visual-tests
     command: npm --prefix src/code-apps/trustee-review-portal run test:visual:install && npm --prefix src/code-apps/trustee-review-portal run test:visual
 
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # measures the new blocks at 320/390/1280px. Both apps' playwright.config.ts (under parity) use
+  # port 4173 with reuseExistingServer off in CI; the two steps are sequential, so they never share it.
+  - name: code-app-visual-tests-cards
+    command: npm --prefix src/code-apps/trustee-review-portal-cards run test:visual:install && npm --prefix src/code-apps/trustee-review-portal-cards run test:visual
+
   - name: code-app-build
     command: npm --prefix src/code-apps/trustee-review-portal run build
+
+  - name: code-app-build-cards
+    command: npm --prefix src/code-apps/trustee-review-portal-cards run build
 
   # HARD — C-TECH-055, the MAGNITUDE half. Runs immediately after `code-app-build` because it
   # measures that step's output (dist/), and BEFORE `package-code-app` so an over-budget bundle
@@ -888,11 +963,21 @@ steps:
   - name: code-app-bundle-budget
     command: python3 scripts/verify-code-app-bundle-budget.py src/code-apps/trustee-review-portal
 
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # its own bundle-budget.json, measured on its own first build (2026-09-30).
+  - name: code-app-bundle-budget-cards
+    command: python3 scripts/verify-code-app-bundle-budget.py src/code-apps/trustee-review-portal-cards
+
   # dist/ is what `pac code push` uploads, so it belongs in the artifact for the same reason
   # the packed solution zip does: the deployed bundle must be reproducible from the build
   # record. dist/ is gitignored, so this copy is the only durable copy.
   - name: package-code-app
     command: mkdir -p "$ARTIFACT_DIR"/code-app && cp -R src/code-apps/trustee-review-portal/dist/. "$ARTIFACT_DIR"/code-app/
+
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # its own artifact directory. It MUST differ from `code-app`, or the second copy overwrites the first.
+  - name: package-code-app-cards
+    command: mkdir -p "$ARTIFACT_DIR"/code-app-cards && cp -R src/code-apps/trustee-review-portal-cards/dist/. "$ARTIFACT_DIR"/code-app-cards/
 
   # C-TECH-014 (HARD). The suite: contract tests over the provisioning scripts, unit tests, behavioural
   # tests against mocked Graph and Dataverse Web API calls, invariant tests over the deploymentSettings

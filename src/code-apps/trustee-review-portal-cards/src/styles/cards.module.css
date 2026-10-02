@@ -1,0 +1,771 @@
+/*
+ * Card-only presentation primitives — CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2
+ * §13). ADR-060: presentation. Every value is the design kit's
+ * (`Designsystem/Revitalise Design System (1)/ui_kits/trustee-review-portal/`), cited as
+ * `File.jsx:line`; deviations are marked `DEVIATION (a|b|c)` as in `app.module.css`.
+ *
+ * Chart marks are `aria-hidden` decorations beside tables that stay the accessible content
+ * (ADR-029). Their fills are `categoricalColor` (contract, `domain/charts.ts`), set inline from the
+ * data, never the kit's palette — DEVIATION (a), TAD §8.3 rows 7-8 and Appendix B #27.
+ */
+
+.hero,
+.categoryBars,
+.columns,
+.grouped,
+.donut {
+  --rv-shadow-card: 0 1px 2px rgba(43, 43, 43, 0.04), 0 6px 20px rgba(43, 43, 43, 0.07);
+  --rv-shadow-badge: 0 6px 20px rgba(73, 52, 91, 0.14);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Labelled horizontal bars — RoundOverview.jsx:65-83 (WI-0085, ADR-063).
+ * ------------------------------------------------------------------------------------- */
+.categoryBars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.categoryBar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.categoryBarLine {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: normal;
+}
+
+.categoryBarLabel {
+  color: var(--ink-900);
+  font-weight: var(--weight-bold);
+  min-width: 0;
+}
+
+.categoryBarValue {
+  color: var(--ink-700); /* no nowrap: the kit's value wraps when narrow (RoundOverview.jsx:74-76) */
+}
+
+.categoryBarValue strong {
+  color: var(--ink-900);
+}
+
+.categoryBarTrack {
+  display: block;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--grey-100);
+  overflow: hidden;
+}
+
+.categoryBarFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  min-width: 12px;
+}
+
+.categoryBarFill[data-width="0"] {
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Vertical columns — RoundOverview.jsx:119-138 (WI-0086).
+ * ------------------------------------------------------------------------------------- */
+.columns,
+.grouped {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.grouped {
+  gap: var(--space-3);
+}
+
+.columnsPlot,
+.groupedPlot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1.5px solid var(--grey-200);
+  /* Gridlines every quarter of the plot height; the size is set inline from the height. */
+  background-image: linear-gradient(to top, var(--grey-100) 0 1px, transparent 1px);
+  background-repeat: repeat;
+  background-position: bottom;
+}
+
+.columnsPlot {
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.column {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
+}
+
+.columnBar {
+  width: 100%;
+  max-width: 44px;
+  min-height: 4px;
+  border-radius: 8px 8px 3px 3px;
+  transition: opacity var(--duration-fast);
+}
+
+.columnBar[data-empty="true"] {
+  min-height: 0;
+}
+
+.columnBar[data-dimmed="true"] {
+  opacity: 0.55;
+}
+
+.columnTip {
+  position: absolute;
+  z-index: 2;
+  background: var(--ink-900);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: var(--weight-bold);
+  line-height: normal;
+  padding: 4px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.columnLabels,
+.groupedLabels {
+  display: flex;
+}
+
+.columnLabels {
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.groupedLabels {
+  gap: 14px;
+  padding: 0 4px;
+}
+
+.columnLabel {
+  /* RoundOverview.jsx:134, :153: flex 1 and nothing else, so labels break only at spaces. */
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--ink-700);
+}
+
+/* DEVIATION (c), WCAG 1.4.10: below 370px the kit's unbreakable labels ("Strongly Agree", "Not
+   sure") push the grouped-columns chart past the viewport. Measured on the harness with the
+   rule above alone, page overflow is 48px at 320, 28px at 340, 8px at 360 and 0 from 370 up.
+   Under 370px only, the labels may shrink and break inside a word; at 370px and above they
+   break at spaces exactly as the kit's do. */
+@media (max-width: 369.98px) {
+  .columnLabel {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Grouped columns — RoundOverview.jsx:140-160 (WI-0087).
+ * ------------------------------------------------------------------------------------- */
+.groupedPlot {
+  gap: 14px;
+  padding: 0 4px;
+}
+
+.groupedCategory {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.groupedBar {
+  flex: 1;
+  max-width: 18px;
+  min-height: 4px;
+  border-radius: 6px 6px 2px 2px;
+}
+
+.groupedBar[data-empty="true"] {
+  min-height: 0;
+}
+
+.groupedLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legendPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  line-height: normal;
+  color: var(--ink-700);
+  background: var(--grey-50);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px 4px 8px;
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-circle);
+  flex: none;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Donut — RoundOverview.jsx:162-184 (WI-0088).
+ * ------------------------------------------------------------------------------------- */
+.donut {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.donutRing {
+  width: 160px;
+  height: 160px;
+  border-radius: var(--radius-circle);
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--grey-100);
+}
+
+.donutCentre {
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-circle);
+  background: var(--white);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  box-shadow: inset 0 1px 4px rgba(43, 43, 43, 0.06);
+}
+
+.donutCount {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--ink-900);
+}
+
+.donutCaption {
+  font-size: 11px;
+  color: var(--ink-600);
+}
+
+.donutLegend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1 1 200px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.donutLegendRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.donutSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-circle);
+  flex: none;
+  transform: translateY(1px);
+}
+
+.donutShare {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: normal;
+  color: var(--ink-900);
+  min-width: 56px;
+}
+
+.donutLabel {
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Hero band — RoundOverview.jsx:21-49 (RoundHero) and Shared.jsx:31-49 (HeroBand) (WI-0081,
+ * WI-0097).
+ * ------------------------------------------------------------------------------------- */
+.hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-8);
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--lavender-100) 0%, var(--pink-50) 100%);
+  box-shadow: var(--rv-shadow-card);
+  min-width: 0;
+}
+
+/* HeroBand (group detail) wraps rather than using a two-column grid (Shared.jsx:33). */
+.heroWrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.heroWrap .heroText {
+  flex: 1 1 320px;
+}
+
+.heroBadge {
+  width: 120px;
+  height: 120px;
+  margin: 0;
+  border-radius: var(--radius-circle);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-badge);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  flex: none;
+}
+
+.heroBadgeGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heroBadgeLabel {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rev-color-secondary);
+}
+
+/* The group badge's label: generated content with an EMPTY alternative text, so the visible
+   "Members" is not a second copy of the chip's in the DOM or the accessibility tree. */
+.heroBadgeLabelMembers::before {
+  content: "Members" / "";
+}
+
+.heroBadgeValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 52px; /* RoundOverview.jsx:29 — the group badge uses 46px (Shared.jsx:37) */
+  line-height: 1;
+  /* Large text (52px): #e6027f passes the 3:1 floor (4.49:1, TAD §8.3 last row). */
+  color: var(--pink-600);
+}
+
+.heroBadgeValueLong {
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.heroBadgeValueGroup {
+  font-size: 46px;
+  line-height: 1.05;
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.heroHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.heroHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+}
+
+.heroBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* The ADR-065 application-share bar, in the kit's close-date bar's own shape
+   (RoundOverview.jsx:38-40): 10px, rgba(255,255,255,.8) track, purple-to-pink fill. */
+.shareTrack {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+}
+
+.shareFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--rev-color-secondary) 0%, var(--pink-600) 100%);
+}
+
+.shareLines {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+/* Opened / Closed — RoundOverview.jsx:41-44: 15px ink-700, the term bold ink-900. */
+.heroDates {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.heroDate {
+  min-width: 0;
+}
+
+/* RoundOverview.jsx:42-43: a bold word, a normal inline space, the date — as inline text. */
+.heroDate dt,
+.heroDate dd {
+  display: inline;
+  margin: 0;
+}
+
+.heroDate dt {
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.heroDate dt::after {
+  content: " ";
+}
+
+/* Fact chips — Shared.jsx:51-62. */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  padding: 8px 14px;
+  box-shadow: 0 1px 3px rgba(73, 52, 91, 0.08);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chipLabel {
+  font-size: 12px;
+  line-height: normal;
+  color: var(--ink-600);
+}
+
+.chipValue {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Status pill and score chip — Shared.jsx:64-82 (WI-0094).
+ * ------------------------------------------------------------------------------------- */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-pill);
+  padding: 4px 12px 4px 10px;
+  font-size: var(--text-xs);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+  background: var(--grey-100);
+  color: var(--ink-700);
+  --rv-status-dot: var(--ink-400);
+}
+
+.statusPill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-circle);
+  background: var(--rv-status-dot);
+  flex: none;
+}
+
+.statusPill[data-tone="eligible"] {
+  background: var(--pink-50);
+  color: var(--pink-800);
+  --rv-status-dot: var(--pink-600);
+}
+
+.statusPill[data-tone="review"] {
+  background: var(--lavender-100);
+  color: var(--rev-color-secondary);
+  --rv-status-dot: var(--rev-color-secondary);
+}
+
+.statusPill[data-tone="borderline"] {
+  background: #e7f6f8;
+  color: #00505a;
+  --rv-status-dot: var(--rev-color-accent);
+}
+
+.scoreChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.scoreTrack {
+  width: 56px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--grey-100);
+  overflow: hidden;
+}
+
+.scoreFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--rev-color-secondary), var(--pink-600));
+}
+
+.scoreValue {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: normal;
+  color: var(--ink-900);
+  min-width: 24px;
+  text-align: right;
+}
+
+.scoreAbsent {
+  font-style: italic;
+  color: var(--ink-600);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Groups table cells — GroupScreens.jsx:29-42 (WI-0096).
+ * ------------------------------------------------------------------------------------- */
+.groupCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.groupAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--lavender-100), var(--pink-50));
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  /* Decorative (`aria-hidden`) and large-ish Playfair; the kit's #e6027f, kept. */
+  color: var(--pink-600);
+  /* No flex rule, as the kit's tile (GroupScreens.jsx:31): it gives up width at 390/320. */
+}
+
+.memberCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.memberDots {
+  display: inline-flex;
+}
+
+.memberDot {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-circle);
+  border: 2px solid var(--white);
+  flex: none;
+}
+
+.memberDot + .memberDot {
+  margin-left: -7px;
+}
+
+.memberCount {
+  color: var(--ink-900);
+}
+
+.groupTotal {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: normal;
+  color: var(--ink-900);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * The verdict dialog — Shared.jsx:141-160 (WI-0104). `VerdictDialog` is CONTRACT, so its Fluent
+ * surface is styled here by Fluent's own public slot class names (pinned
+ * @fluentui/react-components 9.74.6), each at (0,1,1) or above so it wins over Fluent's atomic
+ * (0,1,0) classes whatever order the stylesheets load in.
+ *
+ * A-CRD-3: that `.fui-DialogSurface`, `.fui-DialogSurface__backdrop`, `.fui-DialogTitle`,
+ * `.fui-RadioGroup`, `.fui-Radio__label` and `.fui-Textarea` are the rendered slot classes, and that
+ * the Power Apps player's browser honours generated-content alternative text (`content: "…" / ""`),
+ * are read from Fluent's slot naming and a Chromium render of the harness, not from the Power Apps
+ * host itself. The dialog renders in a portal outside the page, hence
+ * global selectors.
+ * ------------------------------------------------------------------------------------- */
+:global(body) :global(.fui-DialogSurface) {
+  /* The portal sits outside `.page`, so the kit's `normal` line-height is set again here rather
+     than inheriting FluentProvider's fixed 22px. */
+  line-height: normal;
+  border: none; /* Fluent's 1px transparent border narrows the content by 2px; the kit has none */
+  border-radius: 20px;
+  padding: var(--space-6);
+  /* The kit's overlay has a 16px padding on every side (Shared.jsx:143), so the surface is never
+     wider than the viewport less 32px and always floats clear of the edges. Fluent's own
+     max-width: 100vw under 480px is overridden for the same reason. */
+  width: min(520px, calc(100% - 32px));
+  max-width: calc(100vw - 32px);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (forced-colors: active) {
+  :global(body) :global(.fui-DialogSurface) {
+    border: 1px solid CanvasText; /* the boundary Fluent's transparent border gave in forced colours */
+  }
+}
+
+:global(body) :global(.fui-DialogSurface__backdrop) {
+  background: rgba(20, 10, 30, 0.45);
+}
+
+/* The eyebrow "Record verdict" above the title (ADR-062 A). The title is contract markup, so the
+   eyebrow is generated content with an EMPTY alternative text, which keeps it out of the
+   accessibility tree exactly as `aria-hidden` would. DEVIATION (c): expressed as generated
+   content because the contract component takes no child here. */
+:global(.fui-DialogSurface) :global(.fui-DialogTitle)::before {
+  content: "Record verdict" / "";
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-2);
+  padding-left: 16px;
+  font-family: var(--font-body);
+  font-size: var(--text-xs); /* 13px — the global Eyebrow the kit renders (RoundOverview.jsx:5-7) */
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pink-700);
+  background: radial-gradient(circle at 4px 50%, var(--pink-600) 4px, transparent 4.5px);
+}
+
+:global(.fui-DialogSurface) :global(.fui-DialogTitle) {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+/* Inside the dialog the verdict section is not a card of its own. */
+:global(.fui-DialogSurface) section[data-print="block"] {
+  padding: 0;
+  box-shadow: none;
+  background: none;
+  transform: none;
+}
+
+/* The dialog body is the kit's flex column with a 16px gap between every block (Shared.jsx:145).
+   Fluent's DialogBody is a grid with its own 8px gap; DialogContent carries a hairline padding. */
+:global(body) :global(.fui-DialogSurface) :global(.fui-DialogBody) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+:global(body) :global(.fui-DialogSurface) :global(.fui-DialogContent) {
+  margin: 0; /* Fluent pulls the content up 2px */
+  padding: 0;
+  line-height: normal; /* Fluent sets its body1 line-height here */
+}
+
+/* The kit's ActionRow: left-aligned, wrapping, 12px gap (Shared.jsx:135, :153-156). Fluent's
+   DialogActions is right-aligned and goes full-width column under 480px; both are reset.
+   DEVIATION (c): Close stays in a row of its own beneath Save verdict — the two buttons live in
+   different CONTRACT components (VerdictForm.tsx renders Save, VerdictDialog.tsx renders Close),
+   so no stylesheet can put them in one flex row; see Dev Summary §11 "Verdict dialog". */
+:global(body) :global(.fui-DialogSurface) :global(.fui-DialogActions) {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  justify-self: start;
+  gap: var(--space-3);
+  width: auto;
+}
+
+:global(body) :global(.fui-DialogSurface) :global(.fui-DialogActions) > * {
+  width: auto;
+}

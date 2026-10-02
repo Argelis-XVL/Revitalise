@@ -1,0 +1,186 @@
+/**
+ * The print stylesheet — WBS 6.5, FR-039, TAD §8.
+ *
+ * TAD §8: "an export that leaks a column the screen hides would be a disclosure, not an
+ * accessibility defect." The guarantee is structural — printing renders the same DOM
+ * through the same repository call — and these assertions pin the two ways that
+ * guarantee could be broken later:
+ *
+ *   1. a print rule that REVEALS something hidden on screen, and
+ *   2. a second query or a print-only data path anywhere in the app.
+ */
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const APP_ROOT = resolve(__dirname, "..", "..");
+const PRINT_CSS = readFileSync(join(__dirname, "print.css"), "utf8");
+
+function sourceFiles(directory: string, found: string[] = []): string[] {
+  for (const entry of readdirSync(directory)) {
+    const full = join(directory, entry);
+    if (statSync(full).isDirectory()) {
+      if (["generated", "node_modules", "dist", "coverage"].includes(entry)) continue;
+      sourceFiles(full, found);
+      continue;
+    }
+    if (entry.endsWith(".ts") || entry.endsWith(".tsx")) found.push(full);
+  }
+  return found;
+}
+
+describe("print.css", () => {
+  it("scopes every rule to @media print", () => {
+    // A rule outside the print block would change the screen, which is not what a print
+    // stylesheet is for.
+    const withoutComments = PRINT_CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+    const firstBrace = withoutComments.indexOf("{");
+    expect(withoutComments.slice(0, firstBrace)).toContain("@media print");
+  });
+
+  it("hides interactive chrome and reveals nothing", () => {
+    expect(PRINT_CSS).toContain('[data-print="hide"]');
+    expect(PRINT_CSS).toMatch(/\[data-print="hide"\]\s*\{\s*display:\s*none/);
+    // The dangerous direction: no rule may turn a hidden element back on.
+    expect(PRINT_CSS).not.toMatch(/display:\s*(block|inline|flex|table|inline-block)\s*!important/);
+    expect(PRINT_CSS).not.toMatch(/visibility:\s*visible/);
+    expect(PRINT_CSS).not.toMatch(/content:\s*attr\(/);
+  });
+
+  it("keeps the heading hierarchy and the table header on every page", () => {
+    // WCAG 1.3.1 / 1.3.2 in print: headings stay with their content and a multi-page
+    // table still says which column is which.
+    expect(PRINT_CSS).toMatch(/thead\s*\{\s*display:\s*table-header-group/);
+    expect(PRINT_CSS).toMatch(/h1,\s*\n?\s*h2,\s*\n?\s*h3/);
+  });
+
+  it("prints the withheld-narrative state as prominently as it displays", () => {
+    // A trustee working from paper must be able to see that a narrative was withheld
+    // rather than missing by accident.
+    expect(PRINT_CSS).toContain('[data-print="state"]');
+  });
+
+  it("keeps a sort header and a row's reference readable as text on paper", () => {
+    expect(PRINT_CSS).toMatch(/th button/);
+    expect(PRINT_CSS).toMatch(/td button/);
+  });
+
+  it("prints both freshness statements, so a pack carries the computedOn stamp (FR-039)", () => {
+    // TAD §8.2 states this as a requirement, not a nicety: under the live design nothing
+    // is persisted server-side, so a printed pack is the ONLY durable record of the
+    // figures a board actually saw (TAD §6.4). A rule that hid this would destroy the
+    // audit trail rather than tidy the page.
+    expect(PRINT_CSS).toContain('[data-print="stamp"]');
+    expect(PRINT_CSS).not.toMatch(/\[data-print="stamp"\][^{]*\{[^}]*display:\s*none/);
+  });
+
+  it("prints chart bars in black rather than in a brand colour (TAD §8.2)", () => {
+    // Ink cost, contrast on a monochrome printer where a mid-brand blue can render as a
+    // pale grey that reads as an empty bar, and the fact that the print output is the
+    // trustee-accessibility fallback rather than a brochure.
+    expect(PRINT_CSS).toMatch(/\[data-print="chart"\] rect \{\s*fill:\s*#000/);
+  });
+
+  it("keeps a chart inside the page and off a page break", () => {
+    expect(PRINT_CSS).toMatch(/\[data-print="chart"\][\s\S]*max-width:\s*100%/);
+    expect(PRINT_CSS).toMatch(/\[data-print="chart"\][\s\S]*break-inside:\s*avoid/);
+  });
+
+  it("prints the charity's logo, bounded in size (NFR-026)", () => {
+    // A decision this stylesheet makes rather than inherits — see the rule's own comment for
+    // why the chart-bars-print-black reasoning does not carry across to a logo. Two halves:
+    // it is not hidden, and its printed height is capped so the ink cost stays small.
+    expect(PRINT_CSS).toContain('[data-print="brand"]');
+    expect(PRINT_CSS).not.toMatch(/\[data-print="brand"\][^{]*\{[^}]*display:\s*none/);
+    expect(PRINT_CSS).toMatch(/\[data-print="brand"\][^{]*\{[^}]*height:\s*\d+pt/);
+  });
+
+  /*
+   * Card-layout app only (Design 2.0, WI-0073). The tiles print as plain black on white — no
+   * gradients, no shadows, 1px #000 borders — and the 0-10 scale prints its value as text.
+   */
+  it("prints the card-layout blocks as plain black on white (WI-0073)", () => {
+    const rule = (selector: string): string => {
+      const at = PRINT_CSS.indexOf(selector);
+      expect(at, `${selector} has a print rule`).toBeGreaterThanOrEqual(0);
+      return PRINT_CSS.slice(at, PRINT_CSS.indexOf("}", at));
+    };
+    const tiles = rule('[data-print="tile"],');
+    expect(tiles).toMatch(/background:\s*none\s*!important/);
+    expect(tiles).toMatch(/box-shadow:\s*none\s*!important/);
+    expect(tiles).toMatch(/border:\s*1px solid #000\s*!important/);
+    for (const selector of ['[data-print="answer"]', '[data-print="receipt"]']) {
+      expect(PRINT_CSS).toContain(selector);
+    }
+    const blocks = rule('[data-print="block"],\n  [data-print="frame"]');
+    expect(blocks).toMatch(/background:\s*none\s*!important/);
+    expect(blocks).toMatch(/box-shadow:\s*none\s*!important/);
+  });
+
+  it("prints the 0-10 scale's value as text, by unclipping it rather than displaying it (WI-0065, WI-0073)", () => {
+    const at = PRINT_CSS.indexOf('[data-print="scale-value"] {');
+    expect(at).toBeGreaterThanOrEqual(0);
+    const body = PRINT_CSS.slice(at, PRINT_CSS.indexOf("}", at));
+    expect(body).toMatch(/clip:\s*auto\s*!important/);
+    expect(body).toMatch(/position:\s*static\s*!important/);
+    expect(body).not.toMatch(/display:/);
+  });
+
+  it("prints the round overview's HTML chart marks as solid black (Revision 2, TAD §13.2)", () => {
+    expect(PRINT_CSS).toMatch(/\[data-print="chart"\] \[data-chart-mark\] \{\s*background:\s*#000/);
+  });
+
+  it("does not reorder content, so print order equals reading order", () => {
+    expect(PRINT_CSS).not.toMatch(/\border:\s*-?\d/);
+    expect(PRINT_CSS).not.toContain("flex-direction: column-reverse");
+    expect(PRINT_CSS).not.toContain("direction: rtl");
+  });
+});
+
+describe("there is no print-only data path", () => {
+  const files = sourceFiles(join(APP_ROOT, "src"));
+
+  it("found the source to scan", () => {
+    expect(files.length).toBeGreaterThan(10);
+  });
+
+  it("uses the browser's own print, with no export or download route", () => {
+    // An export built by hand is a second projection of the data, and a second chance to
+    // include a column the screen hides. `window.print()` cannot widen the query.
+    //
+    // IMP-0883: this invariant is about CODE (an import/call that pulls in an export
+    // library), not about a comment that happens to cite a source document's filename —
+    // e.g. `docs/Import/FeedbackDeployment_20-09-2026.xlsx`. Comments are stripped before
+    // scanning so a citation's literal ".xlsx" extension cannot trip the same check that
+    // looks for an actual XLSX/jspdf/pdfmake import.
+    const offences: string[] = [];
+    for (const file of files) {
+      const content = readFileSync(file, "utf8");
+      if (file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
+      const withoutComments = content
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "");
+      for (const pattern of [
+        /createObjectURL/,
+        /download\s*=/,
+        /new Blob\(/,
+        /toCSV|toCsv|buildCsv/,
+        /XLSX|jspdf|pdfmake/i,
+      ]) {
+        if (pattern.test(withoutComments)) offences.push(`${file} matches ${String(pattern)}`);
+      }
+    }
+    expect(offences).toEqual([]);
+  });
+
+  it("declares exactly one column allow-list per read, shared by screen and print", () => {
+    // If a print path existed it would need its own allow-list. There is only one place
+    // per read function where `select` is built from the caller's request, and schema.ts
+    // is the only place columns are named. (Was literal `$select:` when reads went through
+    // the generic connector's raw OData parameters; the typed per-table services take a
+    // plain `select` array and build `$select=` internally — IMP-0208/IMP-0209/IMP-0224.)
+    const clientSource = readFileSync(join(APP_ROOT, "src", "dataverse", "client.ts"), "utf8");
+    // Two: one in listRecords, one in getRecord. A third would be a new read path.
+    expect(clientSource.match(/select: \[\.\.\.request\.select\]/g)?.length).toBe(2);
+  });
+});

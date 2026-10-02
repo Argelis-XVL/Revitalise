@@ -1,0 +1,909 @@
+/*
+ * The card-layout Application detail screen — Design 2.0, wbs:6.3 (unbilled).
+ * TAD `docs/architecture/trustee-portal-design-2-architecture.md` §8.2, ADR-055..059.
+ * Presentation spec: `Designsystem/Design-2.0/design_handoff_application_detail/README.md`
+ * (read by development-agent, never imported: nothing here resolves a path into Designsystem/).
+ *
+ * WHY A FILE OF ITS OWN. `app.module.css`, `ds-tokens.css` and `brand.css` are held
+ * byte-identical to the first app by `scripts/verify-code-app-variant-parity.py`, so every rule
+ * that exists only in this app lives here, and this file is on the gate's allow-list. It styles
+ * the detail screen and nothing else.
+ *
+ * TOKENS. Every colour, spacing step and type size the design names already exists in
+ * `ds-tokens.css` / `brand.css` and is read through `var()` (TAD §8.2, measured 2026-09-30):
+ * the purple is `--rev-color-secondary` (#49345b), the teal dot `--rev-color-accent`. The values
+ * the token files do NOT carry — the Borderline tint and ink, the four radii, the two shadows and
+ * the two gradients' translucent stops — are declared ONCE below as local custom properties on
+ * this file's root blocks, so no token file changes and each literal appears in one place.
+ *
+ * CONTRAST (TAD §8.2). Two of the README's pairings fail 4.5:1 as designed — the Verdict
+ * eyebrow (12px bold #e6027f on white, 4.49:1) and the C2 selected circle (13px bold white on
+ * #e6027f, 4.49:1). Both use `--pink-700` (#c4006c, 5.89:1): ADR-037 correction 1, the
+ * correction the parent TAD already made for this exact pair. The hero score keeps the brand
+ * pink because 30-46px is large text, whose floor is 3:1. No text uses `--text-muted` (ADR-037).
+ *
+ * GRIDS (C-TECH-076 check B). The README's `repeat(auto-fill, minmax(220px, 1fr))` and
+ * `minmax(280px, 1fr)` floors are purely absolute, so they can never cap a column count and at
+ * 320px a 280px track plus padding overflows. Each floor below is container-relative instead —
+ * `min(100%, max(<design floor>, (100% - (N-1) * gap) / N))` — which keeps the design's minimum
+ * track, caps the count at N, and can never be wider than its container.
+ *
+ * HOVER LIFT: ON, under a reduced-motion guard. Revision 1 turned it off per TAD §7; the
+ * reviewer's fidelity mandate of 2026-09-30 ("hover and transition states") restores the kit's
+ * `.rv-card.rv-lift:hover` (index.html:10) on every panel card. The hero bands carry `.rv-card`
+ * without `.rv-lift` in the kit, so they do not lift.
+ *
+ * PRINT. `styles/print.css` keys on the `data-print` attributes these blocks carry, never on a
+ * class name here (CSS Module names are hashed).
+ */
+
+/* ------------------------------------------------------------------------------------- *
+ * Local values. Declared on every root block so the harness (which mounts sections without
+ * the page wrapper) resolves them too.
+ * ------------------------------------------------------------------------------------- */
+.detailBlocks,
+.card,
+.hero,
+.frame {
+  --d2-teal-tint: #e7f6f8;
+  --d2-teal-ink: #00505a;
+  --d2-radius-chip: 12px;
+  --d2-radius-tile: 14px;
+  --d2-radius-panel: 16px;
+  --d2-radius-hero: 20px;
+  --d2-shadow-panel: 0 1px 2px rgba(43, 43, 43, 0.04), 0 6px 20px rgba(43, 43, 43, 0.07);
+  --d2-shadow-badge: 0 6px 20px rgba(73, 52, 91, 0.14);
+  --d2-shadow-chip: 0 1px 3px rgba(73, 52, 91, 0.08);
+  --d2-chip-fill: rgba(255, 255, 255, 0.85);
+  --d2-answer-fill: linear-gradient(135deg, rgba(237, 232, 241, 0.45), rgba(253, 241, 248, 0.45));
+  --d2-hero-fill: linear-gradient(135deg, var(--lavender-100) 0%, var(--pink-50) 100%);
+  --d2-eyebrow-size: 12px;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Page (WI-0071): the blocks in order, 24px apart, on the grey-50 page.
+ * ------------------------------------------------------------------------------------- */
+.detailBlocks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin: var(--space-8) 0;
+}
+
+/*
+ * The page background. The detail page renders inside the shell, which this app shares
+ * byte-for-byte with the first one, so the grey reaches the whole page by `:has()` from here
+ * rather than by a change to `App.tsx` or `app.module.css`. FluentProvider paints its own root
+ * white, so both it and `body` are named. Only while this screen is mounted.
+ */
+:global(body):has(.detailBlocks),
+:global(.fui-FluentProvider):has(.detailBlocks) {
+  background: var(--grey-50);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Panel card (WI-0068) and its heading (WI-0069).
+ * ------------------------------------------------------------------------------------- */
+.card {
+  background: var(--white);
+  border-radius: var(--d2-radius-panel);
+  padding: var(--space-8);
+  box-shadow: var(--d2-shadow-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cardHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: normal;
+  /* Bold: the kit's global h1-h4 rule (tokens/effects.css:14), which the Revision 1 build missed. */
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* WI-0064 clause 0 / WI-0008: Current Circumstances' blocks are a whole sub-section step apart. */
+.spacious {
+  gap: var(--space-8);
+}
+
+/* The eyebrow: decorative, `aria-hidden`, never the heading. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-xs); /* 13px: the global Eyebrow the kit renders (RoundOverview.jsx:5-7) */
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rev-color-secondary);
+}
+
+.eyebrowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-circle);
+  background: currentColor;
+  flex: none;
+}
+
+/* "Your decision": brand pink, at the ADR-037 corrected shade (4.49:1 → 5.89:1). */
+.eyebrow[data-tone="brand"] {
+  color: var(--pink-700);
+}
+
+/* The dot is a graphic: the kit's #e6027f clears 3:1, so it keeps the kit colour. */
+.eyebrow[data-tone="brand"] .eyebrowDot {
+  background: var(--pink-600);
+}
+
+/* A layout group (one of the spec's `DetailGroup`s) and a display group inside it. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* A group carrying a Pack sub-heading: 12px between the heading and its content. */
+.groupHeaded {
+  gap: var(--space-3);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.subHeading {
+  margin: 0;
+  /* Playfair, as the kit RENDERS it: its SubHeading (ApplicationDetail.jsx:8-10) sets no family,
+     so the global h3 rule (tokens/effects.css:14) makes it Playfair Display. The README's
+     "Nunito Sans 15px" line describes the intent; the rendered design is what is matched. */
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wide);
+  color: var(--ink-700);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Shared small parts.
+ * ------------------------------------------------------------------------------------- */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: normal;
+}
+
+.pillDot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-circle);
+  background: currentColor;
+  flex: none;
+}
+
+/* Every definition list here resets the browser's `dd` indent. */
+.hero dl,
+.card dl {
+  margin: 0;
+}
+
+.hero dd,
+.card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Summary hero (WI-0057, WI-0058, WI-0059).
+ * ------------------------------------------------------------------------------------- */
+.hero {
+  border-radius: var(--d2-radius-hero);
+  padding: var(--space-8);
+  background: var(--d2-hero-fill);
+  box-shadow: var(--d2-shadow-panel);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  align-items: center;
+  min-width: 0;
+}
+
+.badge {
+  width: 120px;
+  height: 120px;
+  flex: none;
+  border-radius: var(--radius-circle);
+  background: var(--white);
+  box-shadow: var(--d2-shadow-badge);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.badgeGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.badgeLabel {
+  font-size: var(--d2-eyebrow-size);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rev-color-secondary);
+}
+
+.badgeValue {
+  font-family: var(--font-display);
+  font-size: 46px;
+  line-height: 1.05;
+  color: var(--pink-600);
+}
+
+.badgeValueLong {
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.heroText {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.heroHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.heroHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+/* FactChips (Shared.jsx:53): flex-wrap with a gap and the default stretch, so chips on one line
+   share the tallest chip's height. */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+/* The row that holds the pill and the first chip block (ApplicationDetail.jsx:120): centred. */
+.heroRowOne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* The status pill's own list: one flex item beside the chip block (ApplicationDetail.jsx:121). */
+.pillList {
+  display: flex;
+  margin: 0;
+}
+
+.chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--d2-chip-fill);
+  border-radius: var(--d2-radius-chip);
+  padding: var(--space-2) 14px;
+  box-shadow: var(--d2-shadow-chip);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chipLabel {
+  font-size: var(--d2-eyebrow-size);
+  line-height: normal;
+  color: var(--ink-600);
+}
+
+.chipValue {
+  font-size: var(--text-sm);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  padding: 4px 12px 4px 10px;
+  font-size: var(--text-xs);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  background: var(--grey-100);
+  color: var(--ink-700);
+  white-space: nowrap; /* Shared.jsx:72 */
+  --d2-status-dot: var(--ink-400);
+}
+
+.statusPill dd {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-circle);
+  background: var(--d2-status-dot);
+  flex: none;
+}
+
+.statusPill[data-tone="eligible"] {
+  background: var(--pink-50);
+  color: var(--pink-800);
+  --d2-status-dot: var(--pink-600);
+}
+
+.statusPill[data-tone="review"] {
+  background: var(--lavender-100);
+  color: var(--rev-color-secondary);
+  --d2-status-dot: var(--rev-color-secondary);
+}
+
+.statusPill[data-tone="borderline"] {
+  background: var(--d2-teal-tint);
+  color: var(--d2-teal-ink);
+  --d2-status-dot: var(--rev-color-accent);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Fact tiles (WI-0060) and the A3 condition chips (WI-0061).
+ * ------------------------------------------------------------------------------------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(220px, (100% - 3 * var(--space-3)) / 4)), 1fr)
+  );
+  gap: var(--space-3);
+}
+
+.tile {
+  border-radius: var(--d2-radius-tile);
+  padding: var(--space-4) var(--space-5);
+  background: var(--grey-50);
+  border: 1.5px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.tile dt {
+  font-size: var(--text-sm);
+  line-height: normal;
+  color: var(--ink-700);
+}
+
+.tile dd {
+  font-size: var(--text-base);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.tile[data-absent="true"] {
+  background: transparent;
+  border: 1.5px dashed var(--grey-200);
+}
+
+.tile[data-absent="true"] dd {
+  font-style: italic;
+  font-weight: var(--weight-regular);
+  color: var(--ink-600);
+}
+
+.conditionGroups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: 2px;
+}
+
+.conditionOwner {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  color: var(--ink-700);
+  margin-bottom: var(--space-1);
+}
+
+.conditionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.conditionChip {
+  background: var(--white);
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  font-size: var(--text-xs);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Cost receipt (WI-0062).
+ * ------------------------------------------------------------------------------------- */
+.receipt {
+  background: var(--grey-50);
+  border-radius: var(--d2-radius-tile);
+  padding: var(--space-2) var(--space-5);
+}
+
+.receiptLine {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 10px 0;
+  border-top: 1px solid var(--grey-100);
+}
+
+/* The kit draws the first line's top rule too, pulled 1px up into the receipt's padding by its
+   wrapper's marginTop -1px (ApplicationDetail.jsx:32, :39). */
+.receiptLine:first-child {
+  margin-top: -1px;
+}
+
+.receiptLine dt {
+  color: var(--ink-700);
+  min-width: 0;
+  /* "Accommodation" alone is wider than the 320px label column once the amount takes its share. */
+  overflow-wrap: anywhere;
+}
+
+.receiptLine dd {
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+  overflow-wrap: normal;
+}
+
+.receiptTotal {
+  border-top: 2px solid var(--grey-200);
+}
+
+.receiptTotal dt {
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.receiptLine dd[data-absent="true"] {
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Answer cards (WI-0063).
+ * ------------------------------------------------------------------------------------- */
+.answers {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(280px, (100% - 2 * var(--space-3)) / 3)), 1fr)
+  );
+  gap: var(--space-3);
+}
+
+.answerCard {
+  border-radius: var(--d2-radius-tile);
+  border: 1.5px dashed var(--lavender-200);
+  background: var(--d2-answer-fill);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.answerCard[data-state="released-empty"] {
+  border: 1.5px solid var(--grey-200);
+  background: var(--white);
+}
+
+.answerCard[data-state="released"] {
+  border: 1.5px solid var(--grey-200);
+  background: var(--white);
+}
+
+.answerQuestion {
+  font-size: var(--text-sm);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+  text-wrap: pretty;
+}
+
+.answerNote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.answerPill {
+  padding: 3px 10px;
+  background: var(--white);
+  color: var(--rev-color-secondary);
+}
+
+.answerNote[data-tone="quiet"] .answerPill {
+  background: var(--grey-100);
+  color: var(--ink-700);
+}
+
+.answerExplanation {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: normal;
+  color: var(--ink-700);
+}
+
+/* Released text: 17px ink-600, and `.preserveLines` (app.module.css) keeps pre-wrap and 75ch. */
+.answerText {
+  font-size: var(--text-base);
+  color: var(--ink-600);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Current Circumstances: score bar (WI-0064), 0-10 scale (WI-0065), answer list (WI-0066).
+ * ------------------------------------------------------------------------------------- */
+.scoreBar {
+  position: relative;
+  background: var(--grey-50);
+  border-radius: var(--d2-radius-tile);
+  /* The 10px track sits in the bottom padding: 16px + 12px gap + 10px track. */
+  padding: var(--space-4) var(--space-5) calc(var(--space-4) + var(--space-3) + 10px);
+}
+
+.scoreBarLine {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.scoreBarLine dt {
+  font-size: var(--text-sm);
+  line-height: normal;
+  color: var(--ink-700);
+  min-width: 0;
+}
+
+.scoreBarValue {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: normal;
+  color: var(--ink-900);
+}
+
+.scoreBarValue[data-absent="true"] {
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.track {
+  display: block;
+  position: absolute;
+  left: var(--space-5);
+  right: var(--space-5);
+  bottom: var(--space-4);
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--grey-100);
+  overflow: hidden;
+}
+
+.trackFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--rev-color-secondary), var(--pink-600));
+}
+
+.scale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.scaleQuestion {
+  font-size: var(--text-base);
+  line-height: normal;
+  color: var(--ink-600);
+}
+
+.scaleDots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scalePoint {
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  border-radius: var(--radius-circle);
+  display: grid;
+  place-items: center;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  background: var(--grey-50);
+  border: 1px solid var(--grey-200);
+  color: var(--ink-600);
+}
+
+/* The answered point: white on the ADR-037 corrected pink (4.49:1 → 5.89:1). */
+.scalePoint[data-selected="true"] {
+  background: var(--pink-700);
+  border-color: var(--pink-700);
+  color: var(--white);
+}
+
+.absentText {
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.answerList {
+  display: flex;
+  flex-direction: column;
+}
+
+.answerRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--grey-100);
+}
+
+.answerRow:first-child {
+  border-top: none;
+}
+
+.answerRow dt {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: var(--text-base);
+  line-height: normal;
+  color: var(--ink-600);
+}
+
+.answerRow dd {
+  max-width: 100%;
+}
+
+.likertPill {
+  padding: 4px 12px;
+  background: var(--lavender-100);
+  color: var(--rev-color-secondary);
+  white-space: nowrap;
+}
+
+.likertPill[data-absent="true"] {
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Restricted list (WI-0067).
+ * ------------------------------------------------------------------------------------- */
+.restrictedList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.restrictedRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  border-radius: var(--d2-radius-chip);
+  border: 1.5px dashed var(--grey-200);
+  padding: 10px var(--space-4);
+}
+
+.restrictedRow dt {
+  flex: 1 1 240px;
+  min-width: 0;
+  font-size: var(--text-sm);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.restrictedPill {
+  padding: 4px 12px;
+  background: var(--grey-100);
+  color: var(--ink-700);
+}
+
+.restrictedNote {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: normal;
+  color: var(--ink-700);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * A frame around a panel this app renders through a shared component (the Verdict, whose
+ * `VerdictSection`/`VerdictForm` are under parity and cannot take a class). The frame is the
+ * card; the shared `<section>` inside it keeps its landmark, `<h2>` and `data-print="block"`
+ * and loses only its own box. Specificity (0,1,1) beats the shared `.panel` (0,1,0) whatever
+ * order the bundler emits the two modules in.
+ * ------------------------------------------------------------------------------------- */
+.frame {
+  background: var(--white);
+  border-radius: var(--d2-radius-panel);
+  padding: var(--space-8);
+  box-shadow: var(--d2-shadow-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.frame > section,
+.frame > section:hover {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+
+/* The shared Panel inside the frame lays its own header out; give it the card's gap. */
+.frame > section > div:first-child {
+  gap: var(--space-2);
+}
+
+.frame h2 {
+  margin: 0 0 var(--space-5);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+/*
+ * WI-0070 clause 1 — the notes textarea. Fluent's `Textarea` renders a `.fui-Textarea` wrapper
+ * (the visible box) around a `.fui-Textarea__textarea`; its own rules are single atomic classes,
+ * so these (0,2,0) selectors win. The class names are Fluent's public slot names for the pinned
+ * @fluentui/react-components 9.74.6.
+ * A-CRD-2: that `.fui-Textarea` / `.fui-Textarea__textarea` are the rendered slot classes, and that
+ * the wrapper (not the inner element) draws the visible border, is read from Fluent's documented
+ * slot naming, not from a rendered DOM; the unit tests do not render the verdict form here.
+ */
+.frame :global(.fui-Textarea) {
+  border-radius: var(--d2-radius-chip);
+  border: 1.5px solid var(--grey-200);
+  background: var(--grey-50);
+}
+
+.frame :global(.fui-Textarea__textarea) {
+  padding: var(--space-3) 14px;
+  background: transparent;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Responsive (WI-0076): below 480px the hero stacks with the badge above the text, and the
+ * panels' padding drops to 20px. Everything else reflows through the grids and wrapping flex.
+ * ------------------------------------------------------------------------------------- */
+@media (max-width: 479.98px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--space-5);
+    gap: var(--space-5);
+  }
+
+  .heroText {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .card,
+  .frame {
+    padding: var(--space-5);
+  }
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * The panel hover lift — index.html:9-10 (.rv-card transition, .rv-card.rv-lift:hover).
+ * ------------------------------------------------------------------------------------- */
+.card,
+.frame {
+  transition:
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+
+.card:hover,
+.frame:hover {
+  box-shadow: 0 2px 4px rgba(43, 43, 43, 0.05), 0 16px 40px rgba(43, 43, 43, 0.12);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .frame,
+  .card:hover,
+  .frame:hover {
+    transition: none;
+    transform: none;
+  }
+}

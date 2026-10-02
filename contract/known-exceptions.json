@@ -79,6 +79,18 @@
       "expires": "2026-09-25",
       "expiry_rationale": "Same Phase 1 due date as EX-006 — automation #3 is Phase 1 work per contract/wbs.json.",
       "_risk_acceptance_note": "This is a risk acceptance of building in DEV ahead of the client's contracted licence being confirmed, not a finding that the milestone is unnecessary. Nothing here authorises promoting automation #3 past DEV until 'DocuSign licence' is independently confirmed satisfied."
+    },
+    {
+      "id": "EX-008",
+      "gate": "none - not a gate violation. Standing record of a reviewer decision that work under a contracted task is UNBILLED; see _gate_scope_note. No gate observes it (IMP-0982: the work-item ledger has no billing field).",
+      "matches": "UNBILLED by reviewer decision - feature trustee-portal-design-2, items WI-0054..WI-0105, wbs:6.3",
+      "reason": "Reviewer verbatim (logs/routing.log 2026-09-30 20:30): \"This is on me, to deliver a better looking and more modern product which I can use for showcasing after the project. So commercial agent doesn't have to make an offer that needs to be signed.\" The Design 2.0 redesign of the Application detail screen (a separate Code App) goes beyond the contracted wbs:6.3 deliverable and is delivered without a change order. Recording it here was confirmed by the reviewer: \"3. Yes record it\" (relayed by lead-agent). Extended 2026-09-30 to the other screens (WI-0080..WI-0105) on the reviewer's instruction \"Check for the designs of the other screens and develop those too\" (relayed by lead-agent); the unbilled decision covers them, same wbs:6.3, no change order.",
+      "finding": "IMP-0982",
+      "owner": "Anna Southern",
+      "clears_when": "Commercial-agent proposes no billable hours and logs no worklog session against WBS 6.3 for trustee-portal-design-2 or WI-0054..WI-0105. Revisit if the reviewer decides to bill any of it (then a change order per C-COM-002 is required first), or if the ledger gains a billing field (IMP-0982), at which point the items are marked there and this entry is closed.",
+      "expires": "2026-12-31",
+      "expiry_rationale": "Covers Phase 3 (due 2026-11-27) and the closing invoice after it; re-confirm before the final invoice is prepared so the decision is not silently carried past the project.",
+      "_risk_acceptance_note": "Commercial-agent is not blocked by anything in code: verify-wbs-chain and verify-worklog would accept hours logged against 6.3, which is a contracted task. This entry and commercial-events CE-0012 and CE-0013 are the record commercial-agent reads; the control is that record, not a gate."
     }
   ],
   "_closed_exceptions": [

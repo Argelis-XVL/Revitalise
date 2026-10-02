@@ -1,0 +1,177 @@
+{
+  "feature": "trustee-portal-design-2",
+  "wbs": [
+    "6.3"
+  ],
+  "items": [
+    "WI-0055",
+    "WI-0056",
+    "WI-0057",
+    "WI-0058",
+    "WI-0059",
+    "WI-0060",
+    "WI-0061",
+    "WI-0062",
+    "WI-0063",
+    "WI-0064",
+    "WI-0065",
+    "WI-0066",
+    "WI-0067",
+    "WI-0068",
+    "WI-0069",
+    "WI-0070",
+    "WI-0071",
+    "WI-0072",
+    "WI-0073",
+    "WI-0074",
+    "WI-0075",
+    "WI-0076",
+    "WI-0077",
+    "WI-0078",
+    "WI-0079",
+    "WI-0080",
+    "WI-0081",
+    "WI-0082",
+    "WI-0083",
+    "WI-0084",
+    "WI-0085",
+    "WI-0086",
+    "WI-0087",
+    "WI-0088",
+    "WI-0089",
+    "WI-0090",
+    "WI-0091",
+    "WI-0092",
+    "WI-0093",
+    "WI-0094",
+    "WI-0095",
+    "WI-0096",
+    "WI-0097",
+    "WI-0098",
+    "WI-0099",
+    "WI-0100",
+    "WI-0101",
+    "WI-0102",
+    "WI-0103",
+    "WI-0104",
+    "WI-0105"
+  ],
+  "build_date": "2026-10-01",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/trustee-portal-design-2-20261001-2/",
+  "source_commit": "4eb731ee2a444cf168d888d5690b99ef4e360434",
+  "source_commit_at_pack_time": "4eb731ee2a444cf168d888d5690b99ef4e360434",
+  "source_tree_dirty_paths": 14,
+  "source_commit_note": "Built from a working tree with 14 uncommitted paths under src/, provisioning/ and config/; source_commit does not describe the artifact.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5); vite 7.3.6",
+  "build_os": "Darwin 27.0.0 arm64 (macOS)",
+  "constraint_check": "PASS",
+  "preflight": "PASS \u2014 100 steps declared, 99 executed (1 out-of-context), all gates green, run via scripts/run-build.py",
+  "verification_level": "V2 \u2014 packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "component-shape-packed",
+    "role-privilege-ownership",
+    "tad-coverage",
+    "tad-coverage-cards",
+    "forms-and-views-reachable",
+    "domain-invariants",
+    "no-special-category-data-in-scoring",
+    "receivesbenefits-scoped-to-income-flag",
+    "no-hardcoded-environment-values",
+    "flow-definition-language",
+    "no-hardcoded-thresholds",
+    "flow-reads-no-trigger-body",
+    "metadata-write-verbs",
+    "no-trustee-in-column-security-profile",
+    "no-secured-columns-in-code-app",
+    "no-secured-columns-in-code-app-cards",
+    "code-app-data-sources",
+    "code-app-data-sources-cards",
+    "code-app-bundle-budget",
+    "code-app-bundle-budget-cards",
+    "code-app-variant-parity",
+    "lint (pac solution check)"
+  ],
+  "warnings": {
+    "total": 6,
+    "resolved": 0,
+    "accepted": 6,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L489"
+    },
+    {
+      "step": "code-app-install-cards",
+      "signature": "npm warn deprecated glob@10.5.0",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L485"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. FIGURES COMPARED: this run JS 1,210.18 kB / CSS 77.64 kB, row states 1,210,181 / 77,641 bytes; bundle-budget PASSED",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L490"
+    },
+    {
+      "step": "code-app-build-cards",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. FIGURES COMPARED: this run JS 845.81 kB / CSS 148.64 kB, row states 845,809 / 148,639 bytes; bundle-budget PASSED",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L484"
+    },
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations. FIGURES COMPARED: this run 17 entries, row states 17",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L491"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations. FIGURES COMPARED: this run 17 entries, row states 17",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L491"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 169,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 0,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 7,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 4,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 61,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context \u2014 when: ci, needs GitHub OIDC token vars not present on a local run",
+      "level_not_established": "n/a \u2014 declared boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": [
+    "IMP-1006"
+  ],
+  "drift": {
+    "build_config_sha_start": "a4e5f99e783aba3a9eca2ea1bfc14d184e5783ee0d05a5d34bd767c954d89b52",
+    "build_config_sha_at_manifest": "a4e5f99e783aba3a9eca2ea1bfc14d184e5783ee0d05a5d34bd767c954d89b52",
+    "improvement_log_start": "280 NEW, 27 unread, 0 deploy-open",
+    "improvement_log_at_manifest": "280 NEW, 28 unread, 0 deploy-open; 1 governance blocker IMP-0934 open (not a build input)"
+  },
+  "status": "SUCCESS"
+}

@@ -1,0 +1,1284 @@
+/*
+ * Layout and shell styles — CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.1-§13.5).
+ *
+ * ADR-060 classes this file PRESENTATION: it may differ from the first app's `app.module.css`, and
+ * it does — every visual value here is taken from the design kit
+ * `Designsystem/Revitalise Design System (1)/ui_kits/trustee-review-portal/` (the JSX inline styles
+ * and the `<style>` block of its `index.html`, whose `.rv-card`, `.rv-table`, `.rv-nav` and `.rv-btn`
+ * rules are cross-screen), with the kit's `var(--…)` tokens resolved from that folder's
+ * `styles.css` and `tokens/`. Each rule cites its source as `File.jsx:line`. The Dev Summary's
+ * Revision 2 STYLE INVENTORY lists every value, design side and built side, and every deviation.
+ *
+ * THE ONLY PERMITTED DEVIATIONS (reviewer's fidelity mandate, 2026-09-30), each marked
+ * `DEVIATION (a|b|c)` beside the rule it changes:
+ *   (a) a contrast substitution the TAD §8.2/§8.3 records — brand pink as TEXT or as a text
+ *       background becomes `--pink-700` (#c4006c, 5.89:1); `--text-muted` text becomes
+ *       `--ink-600`; the black focus ring and the strong control border stay (ADR-037
+ *       corrections 3 and 4); 44px targets stay (TAD §8.1);
+ *   (b) content ADR-061 and Appendix B keep from the current source;
+ *   (c) what the Code App cannot express, with the evidence.
+ *
+ * WHAT THE CONTRACT TESTS STILL READ HERE. `ApplicationFilters.test.tsx` (contract) reads
+ * `.filterSelect`: a 44px floor, the strong border, no `--border-default`, vertical padding only.
+ * `ds-tokens.test.ts` (contract) reads `ds.module.css`, not this file. The card app's own
+ * `layout.test.ts` (presentation, ADR-061) pins this file's layout values and the accessibility
+ * properties the first app's copy holds.
+ *
+ * Print rules stay in `print.css`, keyed on `data-print` attributes, never on these hashed names.
+ */
+
+/* ------------------------------------------------------------------------------------- *
+ * Local values the token files do not carry, declared once on the page root.
+ * ------------------------------------------------------------------------------------- */
+/* The kit's own values, on the page AND on the dialog surface: Fluent renders the dialog in a
+   portal outside `.page`, so a variable defined only on `.page` is undefined there (the verdict
+   choice cards lost their 14px radius that way). */
+.page,
+:global(.fui-DialogSurface) {
+  /* .rv-card shadow — index.html:9 */
+  --rv-shadow-card: 0 1px 2px rgba(43, 43, 43, 0.04), 0 6px 20px rgba(43, 43, 43, 0.07);
+  /* .rv-card.rv-lift:hover — index.html:10 */
+  --rv-shadow-lift: 0 2px 4px rgba(43, 43, 43, 0.05), 0 16px 40px rgba(43, 43, 43, 0.12);
+  /* header — AppFrame.jsx:12 */
+  --rv-shadow-header: 0 1px 0 rgba(43, 43, 43, 0.05), 0 4px 16px rgba(43, 43, 43, 0.06);
+  /* the teal tint — Shared.jsx:12 RV.tealTint */
+  --rv-teal-tint: #e7f6f8;
+  --rv-radius-tile: 14px;
+  --rv-radius-card: 16px;
+  --rv-radius-hero: 20px;
+  --rv-page-pad: clamp(16px, 4vw, 48px); /* AppFrame.jsx:12, :16 */
+  /* The kit's --text-heading is --ink-900 #2b2b2b (tokens/colors.css:34). The app's contract
+     token file sets it to navy #002060 (ds-tokens.css, the first app's ADR-035/OQ-040), which
+     every ds component reads (notice titles, stat-tile values, card titles, input labels). Card
+     app only, so it is overridden here, at the card app's root and on the dialog portal. */
+  --text-heading: var(--ink-900);
+  /* The kit's body text rendering (tokens/effects.css:13). */
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  /* The kit's global `*{box-sizing:border-box}` (styles.css:4 → tokens/effects.css) scoped to the
+     app, so every width and padding below means what it means in the kit. */
+  box-sizing: border-box;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: var(--grey-50); /* AppFrame.jsx:11 */
+  color: var(--text-body);
+  font-family: var(--font-body);
+  /* The kit's body sets no line-height (tokens/effects.css:13), so its text sits at `normal`.
+     FluentProvider's root sets a fixed 22px (theme.ts REV_BODY_LINE_HEIGHT); this resets it
+     for everything inside the page. Every rule below that sets `line-height: normal` does so
+     because the kit element sets none; the only numeric values left are the kit's own
+     (1, 1.05, 1.15, 1.2, 1.25). */
+  line-height: normal;
+}
+
+/* The kit's `body{margin:0;background:var(--grey-50)}` (index.html:8). The body sits outside the
+   app's markup, so it is reached through `:has()` while the app is mounted.
+   A-CRD-4: that the Power Apps player hosts the app in a browser with `:has()` (Chromium 105+,
+   Safari 15.4+) and paints the body the app sits in; measured in Chromium only. */
+:global(body):has(.page) {
+  margin: 0;
+  background: var(--grey-50);
+}
+
+.page *,
+.page *::before,
+.page *::after,
+:global(.fui-DialogSurface) *,
+:global(.fui-DialogSurface) *::before,
+:global(.fui-DialogSurface) *::after {
+  box-sizing: border-box;
+}
+
+/* Headings: the kit's global h1-h4 rule (tokens/effects.css:14) — Playfair, bold, ink-900, no
+   margin. `brand.css` (contract) already sets the family and the <h1>'s size. */
+.page h1,
+.page h2,
+.page h3,
+.page h4 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+  margin: 0;
+}
+
+.skipLink {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  border-radius: var(--radius-sm);
+  z-index: 100;
+}
+
+.skipLink:focus {
+  left: var(--space-2);
+  top: var(--space-2);
+  outline: 2px solid var(--colorStrokeFocus2);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Header — AppFrame.jsx:12-15 (WI-0099).
+ * ------------------------------------------------------------------------------------- */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--rv-page-pad);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-header);
+}
+
+.brandLockup {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  height: 44px; /* AppFrame.jsx:13 */
+  width: auto;
+  max-width: 100%;
+  /* The kit's logo file, WITHOUT the strapline (AppFrame.jsx:13 →
+     assets/logo/revitalise-logo.png, 1705×530; copied byte-identical into this app's own
+     presentation assets). App.tsx is CONTRACT and imports the first app's strapline logo, so the
+     image is replaced here: `content: url()` on a replaced element swaps the painted image and
+     keeps the <img>'s alt text. `?inline` embeds it as a data URI at build time — never a
+     runtime URL, for the reason App.tsx's A-BRAND-1 note records.
+     A-CRD-5: that the Power Apps player's browser paints `content: url()` on an <img>, honours
+     `accent-color` on the verdict radios and the `lh` unit on the notes box (all three measured
+     in Chromium only). */
+  content: url("../cards/assets/revitalise-logo.png?inline");
+  aspect-ratio: 1705 / 530;
+}
+
+.signedInAs {
+  margin: 0;
+  font-size: var(--text-sm); /* AppFrame.jsx:14 */
+  /* DEVIATION (a): the kit's --text-muted (#8a8a8a, 3.45:1) — TAD §8.3, ADR-037 correction 2. */
+  color: var(--ink-600);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Main column — AppFrame.jsx:16 (WI-0101): 32px top/bottom, the fluid side gutter, 1200px wide,
+ * one flex column with 24px between blocks. Every block's own outer margin is therefore 0.
+ * ------------------------------------------------------------------------------------- */
+.page > main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--rv-page-pad);
+}
+
+.page > main > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Nav bar — AppFrame.jsx:2-6, :17-22 and index.html:15-16, :23 (WI-0100).
+ * ------------------------------------------------------------------------------------- */
+.viewNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-card);
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.viewNavButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-900);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.viewNavButton:not([aria-current]):hover {
+  background: var(--grey-50); /* index.html:16 */
+}
+
+.viewNavButton:focus-visible {
+  outline: 2px solid var(--focus-ring); /* DEVIATION (a): black ring, ADR-037 correction 3 */
+  outline-offset: 2px;
+}
+
+.viewNavButtonSelected {
+  /* DEVIATION (a): the kit fills with --brand-primary #e6027f; white 15px bold on it is 4.49:1.
+     TAD §8.3 row 1: --pink-700 (5.89:1). The shadow is the kit's (index.html:23). */
+  background: var(--pink-700);
+  color: var(--white);
+  box-shadow: 0 2px 6px rgba(230, 2, 127, 0.18);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Screen heads — Shared.jsx:131-136 (PageTitle, ActionRow); RoundOverview.jsx:207-214;
+ * ApplicationsList.jsx:102-104 (WI-0080, WI-0091, WI-0095).
+ * ------------------------------------------------------------------------------------- */
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.titleIntro {
+  margin: 0;
+  color: var(--text-body);
+}
+
+.actionRow,
+.landingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.landingNav,
+.refreshBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.refreshBar {
+  align-items: center;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+}
+
+.cardNote {
+  margin: 0;
+  font-size: var(--text-sm); /* RoundOverview.jsx:237 */
+  color: var(--ink-600);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Cards — Shared.jsx:18-28 (Panel), RoundOverview.jsx:9-19 (Card), index.html:9-10
+ * (.rv-card, .rv-lift) (WI-0068, WI-0083).
+ * ------------------------------------------------------------------------------------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+  padding: var(--space-8);
+  border-radius: var(--rv-radius-card);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-card);
+  min-width: 0;
+  transition:
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+
+/* The hover lift (index.html:10). The kit makes it unconditional; the design README makes it
+   optional and says it is off under prefers-reduced-motion, which is what this does. TAD §7 had
+   turned it off; the reviewer's fidelity mandate ("hover and transition states") restores it. */
+.panel:hover {
+  box-shadow: var(--rv-shadow-lift);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .panel:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+.panelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.panelHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl); /* Shared.jsx:9 h2Style */
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.panelBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* The eyebrow — RoundOverview.jsx:5-7. index.html loads RoundOverview.jsx after Shared.jsx, and
+   its top-level `function Eyebrow` replaces the global one, so the 13px version
+   (`var(--text-xs, 12px)`, tokens/typography.css:2) is what renders on EVERY kit screen —
+   measured with getComputedStyle on the kit render: 13px on all six screens. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  /* DEVIATION (a): the kit's default --brand-primary text is 4.49:1 on white and 4.20:1 on the
+     grey page (TAD §8.3 rows 3-4): --pink-700. */
+  color: var(--pink-700);
+}
+
+.eyebrow[data-tone="purple"] {
+  color: var(--rev-color-secondary);
+}
+
+.eyebrow[data-tone="ink"] {
+  color: var(--ink-600); /* RoundOverview.jsx:281, :288 */
+}
+
+.eyebrowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-circle);
+  background: currentColor;
+  flex: none;
+}
+
+/* The dot takes the kit's own colour: it is a graphic (3:1 applies), and #e6027f clears 3:1 on
+   white and on grey-50, so only the TEXT needs the pink-700 substitution. */
+.eyebrow:not([data-tone]) .eyebrowDot,
+.eyebrow[data-tone="brand"] .eyebrowDot {
+  background: var(--pink-600);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Round overview — "Figures of this round" header row and the stamp pill
+ * (RoundOverview.jsx:218-221, WI-0082).
+ * ------------------------------------------------------------------------------------- */
+.statisticsRegion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin: 0;
+}
+
+.figuresHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.figuresHeading {
+  font-size: var(--text-2xl);
+  line-height: normal;
+}
+
+.stampPill {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+  background: var(--white);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  box-shadow: 0 1px 3px rgba(43, 43, 43, 0.08);
+}
+
+.stampDenominator {
+  margin: calc(-1 * var(--space-4)) 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+}
+
+/* The financial position's pill — RoundOverview.jsx:276-279 (WI-0090). */
+.handEntered {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.handEnteredPill {
+  background: var(--lavender-100);
+  color: var(--rev-color-secondary);
+  font-weight: var(--weight-bold);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+}
+
+.tileGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Tiles — Definitions (Shared.jsx:83-97), ProgressTiles (RoundOverview.jsx:51-63),
+ * MoneyTiles (RoundOverview.jsx:186-200), StatTileRow (Shared.jsx:124-130) (WI-0105).
+ * Grids use container-relative floors (css-arithmetic check B): the kit's floor, capped at N.
+ * ------------------------------------------------------------------------------------- */
+.definitions {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(220px, (100% - 3 * var(--space-3)) / 4)), 1fr)
+  );
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.definitionTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--rv-radius-tile);
+  background: var(--grey-50);
+  border: 1.5px solid transparent;
+  min-width: 0;
+}
+
+.definitionTile[data-absent="true"] {
+  background: transparent;
+  border: 1.5px dashed var(--grey-200);
+}
+
+.definitionTile dt {
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.definitionValue,
+.definitionValueAbsent {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: normal;
+  overflow-wrap: anywhere;
+}
+
+.definitionValue {
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.definitionValueAbsent {
+  font-weight: var(--weight-regular);
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.progressTiles {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, max(180px, (100% - 2 * var(--space-4)) / 3)), 1fr)
+  );
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.progressTile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-radius: var(--rv-radius-tile);
+  background: var(--pink-50);
+  min-width: 0;
+  --rv-tile-bar: var(--pink-600);
+}
+
+/* The 28x6px bar above the value. */
+.progressTile::before {
+  content: "";
+  display: block;
+  width: 28px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--rv-tile-bar);
+}
+
+.progressTile[data-tone="1"] {
+  background: var(--lavender-100);
+  --rv-tile-bar: var(--rev-color-secondary);
+}
+
+.progressTile[data-tone="2"] {
+  background: var(--rv-teal-tint);
+  --rv-tile-bar: var(--rev-color-accent);
+}
+
+.progressTileValue,
+.progressTileValueAbsent {
+  order: -1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The bar stays first: the value is drawn after it and before the label, as the kit does. */
+.progressTile::before {
+  order: -2;
+}
+
+.progressTileValue {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1.05;
+  color: var(--ink-900);
+}
+
+.progressTileValueAbsent {
+  font-size: var(--text-base);
+  line-height: normal;
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.progressTileLabel {
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.moneyTiles {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(200px, (100% - 3 * var(--space-3)) / 4)), 1fr)
+  );
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.moneyTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--rv-radius-tile);
+  background: var(--grey-50);
+  border: 1.5px solid transparent;
+  min-width: 0;
+}
+
+.moneyTile[data-absent="true"] {
+  background: transparent;
+  border: 1.5px dashed var(--grey-200);
+}
+
+.moneyTileLabel {
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.moneyTileValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+}
+
+.moneyTileValueAbsent {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: normal;
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.statTiles {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(200px, (100% - 3 * var(--space-4)) / 4)), 1fr)
+  );
+  gap: var(--space-4);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * State messages — Shared.jsx:98-105 (WI-0105). `muted` is the kit's dashed lavender card;
+ * `quiet` keeps §8.5 point 1's second, visibly different state.
+ * ------------------------------------------------------------------------------------- */
+.stateMessage,
+.stateMessageQuiet {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--rv-radius-tile);
+}
+
+.stateMessage {
+  border: 1.5px dashed var(--lavender-200);
+  background: linear-gradient(135deg, rgba(237, 232, 241, 0.5), rgba(253, 241, 248, 0.5));
+}
+
+.stateMessageQuiet {
+  border: 1.5px solid var(--grey-200);
+  background: var(--white);
+}
+
+.stateHeading {
+  margin: 0;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.stateExplanation {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+  text-wrap: pretty;
+}
+
+.errorBox {
+  border: var(--border-width) solid var(--colorPaletteRedBorder2);
+  border-left: var(--space-1) solid var(--colorPaletteRedBorder2);
+}
+
+.preserveLines {
+  max-width: 75ch;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  margin: 0;
+  font: inherit;
+}
+
+.notAvailable {
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.tallTarget {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Filters card — ApplicationsList.jsx:11-37 (WI-0092).
+ * ------------------------------------------------------------------------------------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-end;
+  margin: 0;
+}
+
+.filterCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--rv-radius-card);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-card);
+}
+
+/* Each field is its own wrap item at the kit's FIXED width — 200px, 120px for the scores, 260px
+   for the reference (ApplicationsList.jsx:10, :30-32) — so at 320px they stack exactly as the
+   kit's do. max-width keeps a 260px field inside a narrower card. */
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: none;
+  width: 200px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--text-sm);
+  color: var(--ink-900);
+}
+
+.filterField label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  line-height: normal;
+  color: var(--ink-900);
+}
+
+.filterFieldWide {
+  width: 260px;
+}
+
+.filterFieldScore {
+  width: 120px;
+}
+
+.filterControl {
+  width: 100%;
+}
+
+.filterSelect {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding-top: 0; /* the kit's `0 14px` (ApplicationsList.jsx:12); min-height sets the box */
+  padding-bottom: 0;
+  line-height: normal;
+  /* DEVIATION (a): the kit's 1.5px --grey-200 control border — ADR-037 correction 4, TAD §8.3. */
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-lg); /* 12px, ApplicationsList.jsx:12 */
+  background: var(--grey-50);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--ink-900);
+}
+
+/* The kit's native select (ApplicationsList.jsx:12, :25, :28): 0 14px inline padding and the
+   browser's own chevron. Set apart from `.filterSelect`, whose vertical-only padding the contract
+   test ApplicationFilters.test.tsx pins. */
+.filterField select.filterSelect {
+  padding-inline: 14px;
+  background: var(--grey-50);
+  border-radius: var(--radius-lg);
+  color: var(--ink-900);
+}
+
+.filterSelect:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Tables — ApplicationsList.jsx:39-81, GroupScreens.jsx:15-47, index.html:11-14 (WI-0093,
+ * WI-0096, WI-0103). The card holds the horizontal scroll, so the page never scrolls sideways.
+ * ------------------------------------------------------------------------------------- */
+.tableScroll {
+  position: relative;
+  overflow-x: auto;
+}
+
+.tableCard {
+  /* The containing block for the sort buttons' visually hidden hints (`.srOnly` is absolutely
+     positioned): without it they escape the scroll container and widen the PAGE at 320px. */
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: var(--rv-radius-card);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-card);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--text-base);
+}
+
+.table caption {
+  text-align: left;
+  color: var(--ink-700);
+  font-size: var(--text-sm);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  background: var(--white);
+}
+
+.table thead tr,
+.table tbody tr {
+  border-bottom: var(--border-width) solid var(--border-default);
+}
+
+.table tbody tr {
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.table tbody tr:hover {
+  background: var(--grey-50);
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table thead th {
+  padding: 0;
+  text-align: left;
+  vertical-align: bottom;
+  background: var(--grey-50);
+  font-family: var(--font-body);
+  font-weight: var(--weight-bold);
+  font-size: 12px;
+  line-height: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-700);
+}
+
+.table thead th.numeric {
+  text-align: right;
+}
+
+/* No font-family here: the kit's tdStyle sets none (ApplicationsList.jsx:40), so cells inherit the
+   page's body font and a cell that sets its own — the Playfair group total — keeps it. */
+.table tbody th,
+.table tbody td {
+  padding: var(--space-4);
+  vertical-align: middle;
+}
+
+.table tbody th {
+  text-align: left;
+  font-weight: var(--weight-bold);
+}
+
+.table th .sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* DEVIATION (a): the kit's bare header button has no floor; 44px targets stay (TAD §8.1). */
+  min-height: 44px;
+  padding: var(--space-4);
+  background: none;
+  border: none;
+  /* `font: inherit` as the kit's header button has (ApplicationsList.jsx:57). It does NOT inherit
+     the header's uppercase or letter-spacing — a <button>'s own UA style resets both — so the
+     sortable labels render in mixed case in the kit, and do here. Only "Decision", a plain
+     header, is uppercase. */
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  color: inherit;
+  cursor: pointer;
+}
+
+.table th.numeric .sortButton {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.table th .sortButton:focus-visible,
+.rowLink:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.table th .plainHeader {
+  display: block;
+  padding: var(--space-4);
+}
+
+/* Group detail's unsortable headers: the kit renders them as the same inert header button, so
+   mixed case and normal tracking (a button resets both), at the sort button's padding. */
+.table th .staticHeader {
+  /* The kit's header <button> (ApplicationsList.jsx:57-58): inline-flex, 6px gap before an
+     always-present empty glyph span, and a button's UA text-align: center, so a two-line label
+     centres its lines. Positioned in the cell by the <th>'s own text-align. */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-4);
+  text-align: center;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.sortIndicator {
+  font-size: 10px;
+  color: var(--pink-600);
+}
+
+/* Right-aligned, proportional figures: the kit sets no font-variant-numeric on any numeric cell
+   (GroupScreens.jsx:35, :41; ApplicationsList.jsx:70; RoundOverview.jsx:108-109). */
+.numeric {
+  text-align: right;
+}
+
+/* RowLink — Shared.jsx:137-139. */
+.rowLink {
+  min-height: 44px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+  cursor: pointer;
+  /* DEVIATION (a): the kit's --link-default is #e6027f (4.49:1 as text); the app's --link-default
+     is ADR-037's corrected #cc0078 (5.47:1). */
+  color: var(--link-default);
+}
+
+.rowLink:hover {
+  color: var(--link-hover);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.mutedCell {
+  color: var(--ink-600); /* ApplicationsList.jsx:71 */
+}
+
+.strongCell {
+  color: var(--ink-900);
+}
+
+/* Round-statistics tables (RoundOverview.jsx:100-113): 15px, a 1px rule under the header and
+   a hairline under each row, 6px 8px cells. */
+.chartBlock .table,
+.statTable {
+  font-size: var(--text-sm);
+}
+
+.chartBlock .table thead tr,
+.statTable thead tr {
+  border-bottom: var(--border-width) solid var(--border-default);
+}
+
+.chartBlock .table tbody tr,
+.statTable tbody tr {
+  border-bottom: var(--border-width) solid var(--grey-100);
+}
+
+.chartBlock .table tbody tr:hover,
+.statTable tbody tr:hover {
+  background: transparent;
+}
+
+.chartBlock .table thead th,
+.statTable thead th {
+  background: transparent;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--text-sm);
+  color: var(--ink-900);
+}
+
+.table th.plainHeaderCell {
+  padding: 6px 8px;
+  text-align: left;
+}
+
+/* The kit right-aligns the header of every numeric column over its right-aligned cells
+   (RoundOverview.jsx:103-104). */
+.table th.plainHeaderCell.numeric {
+  text-align: right;
+}
+
+.table th.categoryCell {
+  padding: 6px 8px;
+  font-weight: var(--weight-regular);
+  text-align: left;
+  min-width: 14ch;
+}
+
+.chartBlock .table td,
+.statTable td {
+  padding: 6px 8px;
+  text-align: right;
+}
+
+/* Type of break (kept content, Appendix B) in the kit's round-statistics table style: the
+   caption is the kit's "Counted over" line (RoundOverview.jsx:87-89) — 15px ink-600, no inset —
+   and the header row is transparent with --text-heading labels (RoundOverview.jsx:101-105). */
+.table.statTable tbody th,
+.table.statTable tbody td {
+  padding: 6px 8px; /* (0,2,2): above `.table tbody td`'s 16px list-table padding */
+}
+
+.statTable caption {
+  text-align: start; /* the kit's <p> default */
+  padding: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+  background: transparent;
+}
+
+.statTable thead th.plainHeaderCell {
+  font-weight: var(--weight-bold);
+}
+
+.tableCaption {
+  text-align: left;
+  padding-bottom: var(--space-2);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Chart blocks — RoundOverview.jsx:91-117 (ChartBlock) and :244, :261 (the two-up grid)
+ * (WI-0084, WI-0089).
+ * ------------------------------------------------------------------------------------- */
+.chartBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  min-width: 0;
+}
+
+.fieldHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.chartBlock .hint {
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+}
+
+/* "Show the data table" — the kit's RowLink (Shared.jsx:137-139), left-aligned. */
+.dataTableToggle {
+  display: inline-flex;
+  align-self: flex-start;
+  margin: 0;
+}
+
+.chartLayoutStacked {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.applicantGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); /* RoundOverview.jsx:244 */
+  gap: var(--space-8) var(--space-10);
+  align-items: start;
+}
+
+.chartLegend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.chartLegendItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.chartLegendSwatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex: none;
+  margin-top: 5px;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Verdict — Shared.jsx:106-160 (VerdictChoices, VerdictDialog) and ApplicationDetail.jsx's
+ * "Your verdict" panel (WI-0104). `VerdictForm`, `VerdictSection` and `VerdictDialog` are
+ * CONTRACT (ADR-060), so their look changes here only: the choices become cards through
+ * `:has(:checked)`, and the notes box matches the detail screen's.
+ * ------------------------------------------------------------------------------------- */
+.verdictForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.verdictForm .hint {
+  font-size: var(--text-sm);
+  color: var(--text-body);
+}
+
+.verdictForm .filterField {
+  flex: 1 1 auto;
+  width: auto; /* the notes field spans the form, as the kit's label does (Shared.jsx:149) */
+  max-width: none;
+}
+
+/* The radio group lays the three choices out as the kit's card grid. */
+.verdictForm :global(.fui-RadioGroup) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: var(--space-3);
+}
+
+/* Each choice (Fluent `Radio`, carrying `.tallTarget`) as a card. */
+.verdictForm .tallTarget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 14px 16px;
+  border-radius: var(--rv-radius-tile);
+  background: var(--grey-50);
+  border: 2px solid transparent;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.verdictForm .tallTarget:has(:checked) {
+  background: var(--white);
+  border-color: var(--pink-600);
+  box-shadow: 0 4px 14px rgba(43, 43, 43, 0.08);
+}
+
+.verdictForm .tallTarget:nth-child(3):has(:checked) {
+  border-color: var(--rev-color-secondary); /* Defer — Shared.jsx:107 VERDICT_TONES */
+}
+
+.verdictForm .tallTarget:nth-child(4):has(:checked) {
+  border-color: var(--ink-600); /* Reject */
+}
+
+/* Fluent colours the label from `input:enabled:not(:checked) ~ label` at (0,4,0); the doubled
+   class lifts this rule to (0,5,0) so ink-900 holds in every state, as in the kit. */
+.verdictForm.verdictForm .tallTarget :global(.fui-Radio__input) ~ :global(.fui-Radio__label) {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  font-weight: var(--weight-bold);
+  line-height: normal;
+  color: var(--ink-900);
+  cursor: pointer;
+}
+
+/* The kit's choice is a NATIVE 18px radio tinted with accent-color (Shared.jsx:115). Fluent
+   renders its own indicator over an invisible, absolutely-positioned input; here the input is
+   put back in the flow and shown, and Fluent's indicator is hidden. Selectors at (0,3,0) beat
+   Fluent's atomic (0,1,0) classes in any load order. */
+.verdictForm .tallTarget :global(.fui-Radio__input) {
+  position: static;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  opacity: 1;
+  cursor: pointer;
+  accent-color: var(--pink-600); /* Approve — Shared.jsx:107; a graphic, 4.49:1 > 3:1 */
+}
+
+.verdictForm .tallTarget:nth-child(3) :global(.fui-Radio__input) {
+  accent-color: var(--rev-color-secondary); /* Defer — #49345b */
+}
+
+.verdictForm .tallTarget:nth-child(4) :global(.fui-Radio__input) {
+  accent-color: var(--ink-600); /* Reject */
+}
+
+.verdictForm .tallTarget :global(.fui-Radio__input):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.verdictForm .tallTarget :global(.fui-Radio__indicator) {
+  display: none;
+}
+
+/* The kit's notes label: 15px, --text-heading (ink-900), 6px above its control
+   (Shared.jsx:149). "Your verdict" is the contract's required Field label and takes the same
+   treatment — DEVIATION (c), see Dev Summary §11. */
+.verdictForm :global(.fui-Field) {
+  row-gap: 6px;
+}
+
+.verdictForm :global(.fui-Field) :global(.fui-Field__label) {
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  line-height: normal;
+  color: var(--ink-900);
+}
+
+/* The kit's textarea is the bordered box itself, full width (Shared.jsx:151). Fluent's wrapper
+   is inline-flex with a 2px bottom padding for its focus underline; both reset. */
+.verdictForm :global(.fui-Textarea) {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  border-radius: 12px;
+  border: 1.5px solid var(--grey-200);
+  background: var(--grey-50);
+}
+
+/* rows={3} (Shared.jsx:151): three line boxes plus the 12px + 12px padding. The fixed 96px is the
+   fallback for a browser without the `lh` unit. */
+.verdictForm :global(.fui-Textarea__textarea) {
+  min-height: 96px;
+  min-height: calc(3lh + 24px);
+  padding: 12px 14px;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: normal;
+}
+
+/* Inside the dialog the verdict section's own "Your verdict" heading is not drawn: the kit's
+   dialog has one heading (Shared.jsx:146). The heading stays in the accessibility tree, since
+   VerdictSection (CONTRACT) labels its section with it. */
+:global(.fui-DialogSurface) .panelHeader {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.verdictActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin: 0;
+}

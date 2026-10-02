@@ -1,0 +1,531 @@
+/**
+ * The repository, with the connector mocked out.
+ *
+ * What this proves: the repository asks for the columns it is allowed to ask for, drops
+ * anything the fail-closed conjunction excludes, and writes exactly two columns chosen
+ * by slot.
+ *
+ * What it does NOT prove: anything about what the Dataverse connector actually returns
+ * or accepts. The mock answers whatever this file tells it to. Every platform contract
+ * involved is in the assumptions register instead of being asserted here — a test
+ * written from the same guess as the code locks the guess in (`IMP-0111`).
+ */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const listRecords = vi.fn();
+const getRecord = vi.fn();
+const updateRecord = vi.fn();
+const fetchRoundStatistics = vi.fn();
+
+vi.mock("./client", () => ({
+  listRecords: (...args: unknown[]) => listRecords(...args) as unknown,
+  getRecord: (...args: unknown[]) => getRecord(...args) as unknown,
+  updateRecord: (...args: unknown[]) => updateRecord(...args) as unknown,
+  MAX_ROWS: 500,
+}));
+
+// getRoundStatistics delegates whole to roundStatistics.ts's fetchRoundStatistics — its
+// own write-then-poll cycle (against rev_roundstatisticsrequest, IMP-0359/IMP-0365) is
+// roundStatistics.test.ts's to prove, including the fake-timer handling a real poll loop
+// needs. This file only needs to prove the repository delegates with no arguments and
+// reads no OTHER Dataverse row of its own.
+vi.mock("./roundStatistics", () => ({
+  fetchRoundStatistics: (...args: unknown[]) => fetchRoundStatistics(...args) as unknown,
+}));
+
+vi.mock("./identity", () => ({
+  resolveCurrentUser: () =>
+    Promise.resolve({
+      systemUserId: null,
+      fullName: null,
+      entraObjectId: null,
+      unresolvedReason: "mocked",
+    }),
+}));
+
+const { dataverseRepository, TruncatedListError } = await import("./repository");
+const { VERDICT_VALUES, VERDICT_NOTES_MAX_LENGTH } = await import("./schema");
+
+const APPLICATION_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const REVIEW_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+interface ListCall {
+  entityName: string;
+  select: readonly string[];
+  filter?: string;
+  orderBy?: string;
+}
+
+function lastListCall(): ListCall {
+  const call = listRecords.mock.calls.at(-1);
+  if (call === undefined) throw new Error("listRecords was never called");
+  return call[0] as ListCall;
+}
+
+beforeEach(() => {
+  listRecords.mockReset();
+  getRecord.mockReset();
+  updateRecord.mockReset();
+  fetchRoundStatistics.mockReset();
+});
+
+describe("listApplicationsForReview", () => {
+  it("asks the server for eligible rows only, by affirmative equality", () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    return dataverseRepository.listApplicationsForReview().then(() => {
+      const call = lastListCall();
+      expect(call.entityName).toBe("rev_applications");
+      expect(call.filter).toBe("rev_eligibleforround eq true");
+      // `ne false` would let a null through. This asserts the shape, not just the intent.
+      expect(call.filter).not.toContain("ne false");
+    });
+  });
+
+  it("always names its columns — there is no select-everything path", () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    return dataverseRepository.listApplicationsForReview().then(() => {
+      const call = lastListCall();
+      expect(call.select.length).toBeGreaterThan(0);
+      expect(call.select).toContain("rev_circumstancescore");
+    });
+  });
+
+  it("drops a row the SERVER returned that is not affirmatively eligible", async () => {
+    // The client-side half of the conjunction, tested by making the server lie. This is
+    // the case a wrong `$filter` would produce, and it must not reach the screen.
+    listRecords.mockResolvedValue({
+      rows: [
+        { rev_applicationid: APPLICATION_ID, rev_name: "GOOD", rev_eligibleforround: true },
+        {
+          rev_applicationid: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          rev_name: "BAD-FALSE",
+          rev_eligibleforround: false,
+        },
+        { rev_applicationid: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", rev_name: "BAD-MISSING" },
+        {
+          rev_applicationid: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          rev_name: "BAD-NULL",
+          rev_eligibleforround: null,
+        },
+      ],
+      truncated: false,
+    });
+    const rows = await dataverseRepository.listApplicationsForReview();
+    expect(rows.map((r) => r.reference)).toEqual(["GOOD"]);
+  });
+
+  it("drops a row with no id rather than rendering an unopenable case", async () => {
+    listRecords.mockResolvedValue({
+      rows: [{ rev_name: "NO-ID", rev_eligibleforround: true }],
+      truncated: false,
+    });
+    expect(await dataverseRepository.listApplicationsForReview()).toEqual([]);
+  });
+
+  it("reports a truncated list as an error instead of showing a partial round", async () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: true });
+    await expect(dataverseRepository.listApplicationsForReview()).rejects.toBeInstanceOf(
+      TruncatedListError,
+    );
+  });
+
+  it("reports a redaction flag that is absent as not released", async () => {
+    listRecords.mockResolvedValue({
+      rows: [{ rev_applicationid: APPLICATION_ID, rev_name: "X", rev_eligibleforround: true }],
+      truncated: false,
+    });
+    const rows = await dataverseRepository.listApplicationsForReview();
+    expect(rows[0]?.redactionReleased).toBe(false);
+  });
+});
+
+describe("getApplication", () => {
+  it("returns null for a case that is not eligible, even when its id is known", async () => {
+    // FR-038 on the direct-read path: knowing an id must not be a way around the round.
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: false,
+      rev_narrativeredacted: "should never be reachable",
+    });
+    expect(await dataverseRepository.getApplication(APPLICATION_ID)).toBeNull();
+  });
+
+  it("returns null when the row is absent", async () => {
+    getRecord.mockResolvedValue(null);
+    expect(await dataverseRepository.getApplication(APPLICATION_ID)).toBeNull();
+  });
+
+  it("maps the narrative when the case is eligible", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+      rev_redactionreleased: true,
+      rev_narrativeredacted: "Redacted text.",
+      rev_circumstancescore: 42,
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.redactedNarrative).toBe("Redacted text.");
+    expect(detail?.circumstanceScore).toBe(42);
+  });
+
+  it("refuses an id that is not a guid rather than sending it to the connector", async () => {
+    await expect(dataverseRepository.getApplication("' or 1 eq 1")).rejects.toThrow(/Not a GUID/);
+    expect(getRecord).not.toHaveBeenCalled();
+  });
+
+  it("maps the redacted care-support description (TAD §3.2.1; its two siblings were removed by WI-0005's review)", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+      rev_redactionreleased: true,
+      rev_caresupportdescriptionredacted: "Description text.",
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.redactedCareSupportDescription).toBe("Description text.");
+  });
+
+  it("maps Amendment A-05's Group A structured facts, unconditionally", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+      rev_redactionreleased: false, // released false — these fields must still populate.
+      rev_incomeband: 4,
+      rev_savingsover6000: true,
+      rev_conditionprofile: "1,7",
+      rev_supportrecipientconditionprofile: [3],
+      rev_helperdeclarationconsent: false,
+      rev_helperdeclarationconsentdate: "2026-07-01T00:00:00Z",
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.incomeBand).toBe(4);
+    expect(detail?.savingsOver6000).toBe(true);
+    expect(detail?.conditionProfile).toEqual([1, 7]);
+    expect(detail?.supportRecipientConditionProfile).toEqual([3]);
+    // Genuine "No", not absent — asNullableBoolean must not collapse this to null.
+    expect(detail?.helperDeclarationConsent).toBe(false);
+    expect(detail?.helperDeclarationConsentDate).toBe("2026-07-01T00:00:00Z");
+  });
+
+  it("reports Amendment A-05's Group A tri-state booleans as null when the column is absent", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.savingsOver6000).toBeNull();
+    expect(detail?.helperDeclarationConsent).toBeNull();
+  });
+
+  it("maps the further redacted columns the screen renders, including the care-costs twin (ADR-031, WI-0005)", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+      rev_redactionreleased: true,
+      rev_unabletofundexplanationredacted: "Financial explanation.",
+      rev_otherconditionredacted: "Other condition.",
+      rev_supportrecipientotherconditionredacted: "Recipient condition.",
+      rev_otherexceptionalcircumstanceredacted: "Circumstance detail.",
+      rev_carecostsexplanationredacted: "Care costs.",
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.redactedUnableToFundExplanation).toBe("Financial explanation.");
+    expect(detail?.redactedOtherCondition).toBe("Other condition.");
+    expect(detail?.redactedSupportRecipientOtherCondition).toBe("Recipient condition.");
+    expect(detail?.redactedOtherExceptionalCircumstance).toBe("Circumstance detail.");
+    expect(detail?.redactedCareCostsExplanation).toBe("Care costs.");
+  });
+});
+
+describe("getReviewForApplication", () => {
+  it("filters by the application lookup's OData value form", () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    return dataverseRepository.getReviewForApplication(APPLICATION_ID).then(() => {
+      const call = lastListCall();
+      expect(call.entityName).toBe("rev_reviews");
+      expect(call.filter).toContain(`_rev_applicationid_value eq ${APPLICATION_ID}`);
+    });
+  });
+
+  it("returns null when no review row exists — a first-class state, not an error", async () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    expect(await dataverseRepository.getReviewForApplication(APPLICATION_ID)).toBeNull();
+  });
+
+  it("maps both trustee lookups and both verdict slots", async () => {
+    listRecords.mockResolvedValue({
+      rows: [
+        {
+          rev_reviewid: REVIEW_ID,
+          rev_name: "REV-R-00001",
+          _rev_trustee1_value: "11111111-1111-4111-8111-111111111111",
+          _rev_trustee2_value: "22222222-2222-4222-8222-222222222222",
+          rev_verdict1: 1,
+          rev_notes2: "Second trustee note.",
+          rev_staffrecommendation: "Support.",
+        },
+      ],
+      truncated: false,
+    });
+    const review = await dataverseRepository.getReviewForApplication(APPLICATION_ID);
+    expect(review?.trustee1Id).toBe("11111111-1111-4111-8111-111111111111");
+    expect(review?.trustee2Id).toBe("22222222-2222-4222-8222-222222222222");
+    expect(review?.verdict1).toBe(1);
+    expect(review?.verdict2).toBeNull();
+    expect(review?.notes2).toBe("Second trustee note.");
+  });
+});
+
+describe("saveVerdict", () => {
+  it("writes exactly the two columns of the trustee-1 slot", async () => {
+    updateRecord.mockResolvedValue(undefined);
+    await dataverseRepository.saveVerdict({
+      reviewId: REVIEW_ID,
+      slot: "trustee1",
+      verdict: VERDICT_VALUES.approve,
+      notes: "  Support.  ",
+    });
+    expect(updateRecord).toHaveBeenCalledTimes(1);
+    const request = updateRecord.mock.calls[0]?.[0] as {
+      entityName: string;
+      recordId: string;
+      item: Record<string, unknown>;
+    };
+    expect(request.entityName).toBe("rev_reviews");
+    expect(request.recordId).toBe(REVIEW_ID);
+    expect(Object.keys(request.item).sort()).toEqual(["rev_notes1", "rev_verdict1"]);
+    expect(request.item.rev_verdict1).toBe(VERDICT_VALUES.approve);
+    expect(request.item.rev_notes1).toBe("Support.");
+  });
+
+  it("writes the trustee-2 columns for the trustee-2 slot, and nothing of trustee 1", async () => {
+    updateRecord.mockResolvedValue(undefined);
+    await dataverseRepository.saveVerdict({
+      reviewId: REVIEW_ID,
+      slot: "trustee2",
+      verdict: VERDICT_VALUES.reject,
+      notes: "",
+    });
+    const request = updateRecord.mock.calls[0]?.[0] as { item: Record<string, unknown> };
+    expect(Object.keys(request.item).sort()).toEqual(["rev_notes2", "rev_verdict2"]);
+    expect(request.item.rev_verdict2).toBe(VERDICT_VALUES.reject);
+    // Empty notes clear the column rather than storing an empty string.
+    expect(request.item.rev_notes2).toBeNull();
+  });
+
+  it("never writes any other column on the review row", async () => {
+    updateRecord.mockResolvedValue(undefined);
+    await dataverseRepository.saveVerdict({
+      reviewId: REVIEW_ID,
+      slot: "trustee1",
+      verdict: VERDICT_VALUES.defer,
+      notes: "x",
+    });
+    const request = updateRecord.mock.calls[0]?.[0] as { item: Record<string, unknown> };
+    for (const forbidden of [
+      "rev_outcome",
+      "rev_finalisedon",
+      "rev_staffrecommendation",
+      "rev_trustee1",
+      "rev_trustee2",
+      "rev_nonqualificationreason",
+      "rev_paneldate",
+    ]) {
+      expect(request.item).not.toHaveProperty(forbidden);
+    }
+  });
+
+  it("stops over-length notes before the round trip", async () => {
+    await expect(
+      dataverseRepository.saveVerdict({
+        reviewId: REVIEW_ID,
+        slot: "trustee1",
+        verdict: VERDICT_VALUES.approve,
+        notes: "x".repeat(VERDICT_NOTES_MAX_LENGTH + 1),
+      }),
+    ).rejects.toThrow(new RegExp(String(VERDICT_NOTES_MAX_LENGTH)));
+    expect(updateRecord).not.toHaveBeenCalled();
+  });
+
+  it("refuses a review id that is not a guid", async () => {
+    await expect(
+      dataverseRepository.saveVerdict({
+        reviewId: "not-a-guid",
+        slot: "trustee1",
+        verdict: 1,
+        notes: "",
+      }),
+    ).rejects.toThrow(/Not a GUID/);
+    expect(updateRecord).not.toHaveBeenCalled();
+  });
+});
+
+describe("the app has no create or delete path at all", () => {
+  // Asserted against the REAL client.ts on disk, not against the mock above. Importing
+  // the module here would resolve to the mock and the assertion would describe the
+  // fixture rather than the app — a gate that cannot fail.
+  const source = readFileSync(join(__dirname, "client.ts"), "utf8");
+
+  it("read the real client source", () => {
+    expect(source).toContain("export async function listRecords");
+  });
+
+  it("declares no create operation", () => {
+    // The REV Trustee role holds no prvCreaterev_review by design. The app must not have
+    // a create call to reach for by accident, so the client surface omits one entirely.
+    expect(source).not.toMatch(/export (async )?function \w*[Cc]reate/);
+    expect(source).not.toContain('operationName: "CreateRecord"');
+  });
+
+  it("declares no delete operation", () => {
+    expect(source).not.toMatch(/export (async )?function \w*[Dd]elete/);
+    expect(source).not.toContain('operationName: "DeleteRecord"');
+  });
+
+  it("uses the update-only connector operation, not the upsert", () => {
+    // `UpdateRecord` is documented as an upsert. Using it would make "never create a
+    // review row" depend on a privilege being absent instead of on the request.
+    // `UpdateOnlyRecordWithOrganization`, not the plain `UpdateOnlyRecord`, since IMP-0359+1:
+    // the plain operation resolves its organisation through the per-user OAuth connection,
+    // which came back null for a real signed-in trustee.
+    expect(source).toContain('operationName: "UpdateOnlyRecordWithOrganization"');
+    expect(source).not.toContain('operationName: "UpdateRecord"');
+  });
+});
+
+describe("getOpenRound — the direct read (WBS 6.9, TAD §5.4 step 1)", () => {
+  it("asks rev_roundfinances for the open round with an explicit column list and top 2", async () => {
+    listRecords.mockResolvedValue({ rows: [{ rev_name: "2026-Q4" }], truncated: false });
+    await dataverseRepository.getOpenRound();
+    const call = lastListCall() as ListCall & { top?: number };
+    expect(call.entityName).toBe("rev_roundfinances");
+    expect(call.filter).toBe("rev_isopen eq true");
+    expect(call.top).toBe(2);
+    // An affirmative equality, never `ne false`, which would let a null through.
+    expect(call.filter).not.toContain("ne false");
+  });
+
+  it("names all thirteen TAD §3.5 columns and NOT the primary key", async () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    await dataverseRepository.getOpenRound();
+    const select = lastListCall().select;
+    for (const column of [
+      "rev_name",
+      "rev_isopen",
+      "rev_roundopenedon",
+      "rev_roundclosedon",
+      "rev_amountcommitted",
+      "rev_peoplesupported",
+      "rev_individualssupported",
+      "rev_peoplereachedbygroupgrants",
+      "rev_grantgivingcapacity",
+      "rev_suggestedmaximumspend",
+      "rev_monthlydisbursement",
+      "rev_remaininglegacyfund",
+      "rev_figuresasat",
+    ]) {
+      expect(select).toContain(column);
+    }
+    // Nothing on this screen opens, links to or writes a round record, so asking for its id
+    // would widen a read for no reader.
+    expect(select).not.toContain("rev_roundfinanceid");
+    expect(select).toHaveLength(13);
+  });
+
+  it("reports the row count as the answer rather than throwing on zero or many", async () => {
+    // FR-057 asserts exactly one open round. TAD §5.1 point 4: an invariant a requirement
+    // asserts should be asserted in code, not assumed.
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    expect(await dataverseRepository.getOpenRound()).toEqual({ kind: "none" });
+
+    listRecords.mockResolvedValue({ rows: [{ rev_name: "A" }, { rev_name: "B" }], truncated: false });
+    expect(await dataverseRepository.getOpenRound()).toEqual({ kind: "ambiguous", count: 2 });
+  });
+
+  it("maps every measure, reporting an unset column as null rather than as zero", async () => {
+    listRecords.mockResolvedValue({
+      rows: [
+        {
+          rev_name: "2026-Q4",
+          rev_isopen: true,
+          rev_roundopenedon: "2026-08-01T00:00:00Z",
+          rev_amountcommitted: 41000,
+          rev_peoplesupported: 128,
+          // Everything else absent: nobody has typed it yet, which is a different fact
+          // about a charity's finances from "it is zero".
+        },
+      ],
+      truncated: false,
+    });
+    const result = await dataverseRepository.getOpenRound();
+    if (result.kind !== "one") throw new Error("expected one round");
+    expect(result.round.roundKey).toBe("2026-Q4");
+    expect(result.round.isOpen).toBe(true);
+    expect(result.round.amountCommitted).toBe(41000);
+    expect(result.round.peopleSupported).toBe(128);
+    expect(result.round.remainingLegacyFund).toBeNull();
+    expect(result.round.grantGivingCapacity).toBeNull();
+    expect(result.round.figuresAsAt).toBeNull();
+  });
+
+  it("treats a non-affirmative rev_isopen as false, the same way visibility does", async () => {
+    listRecords.mockResolvedValue({ rows: [{ rev_name: "X", rev_isopen: "yes" }], truncated: false });
+    const result = await dataverseRepository.getOpenRound();
+    if (result.kind !== "one") throw new Error("expected one round");
+    expect(result.round.isOpen).toBe(false);
+  });
+
+  it("lets a failed read reject, so the screen can say the round could not be READ", async () => {
+    // Distinct from "no round is open". Collapsing the two would tell a trustee the charity
+    // has no open round when in fact the portal could not look.
+    listRecords.mockRejectedValue(new Error("Privilege check failed."));
+    await expect(dataverseRepository.getOpenRound()).rejects.toThrow("Privilege check failed.");
+  });
+});
+
+describe("getRoundStatistics — delegation to roundStatistics.ts (WBS 6.9, IMP-0359/IMP-0365)", () => {
+  it("delegates whole to fetchRoundStatistics with no arguments", async () => {
+    fetchRoundStatistics.mockResolvedValue({
+      status: "ok",
+      roundKey: "2026-Q4",
+      computedOn: "2026-08-27T12:00:00.000Z",
+      staleAfterSeconds: null,
+      populationReceived: 434,
+      metrics: {} as never,
+    });
+    const response = await dataverseRepository.getRoundStatistics();
+    expect(fetchRoundStatistics).toHaveBeenCalledWith();
+    expect(response.status).toBe("ok");
+  });
+
+  it("reads no OTHER Dataverse row of its own", async () => {
+    // roundStatistics.ts's own request/response row (rev_roundstatisticsrequest) is its
+    // concern, mocked away above — this asserts the repository layer itself adds no
+    // second read on top of the delegation.
+    fetchRoundStatistics.mockResolvedValue({
+      status: "ok",
+      roundKey: null,
+      computedOn: null,
+      staleAfterSeconds: null,
+      populationReceived: null,
+      metrics: {} as never,
+    });
+    await dataverseRepository.getRoundStatistics();
+    expect(listRecords).not.toHaveBeenCalled();
+    expect(getRecord).not.toHaveBeenCalled();
+  });
+
+  it("propagates a rejection from fetchRoundStatistics unchanged", async () => {
+    fetchRoundStatistics.mockRejectedValue(new Error("flow reported an error"));
+    await expect(dataverseRepository.getRoundStatistics()).rejects.toThrow(
+      /flow reported an error/,
+    );
+  });
+});

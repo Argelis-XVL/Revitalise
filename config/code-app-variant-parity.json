@@ -1,0 +1,39 @@
+{
+  "_why": "Classification for scripts/verify-code-app-variant-parity.py (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.3, ADR-056 as amended by ADR-060). Every file under the two apps is CONTRACT (byte-identical in both) or PRESENTATION (may differ), by glob; a file in neither list or in both fails (P5). Every entry names the ADR that decides it; an entry that matches no file fails (P4). Adding or moving an entry is a reviewed, committed change: moving a contract TEST to presentation needs an ADR that authorises the behaviour change it pins (ADR-060 rule 2), never a red build (rule 3). Retiring either app deletes this file (TAD §9.4 step 4).",
+  "pair": ["src/code-apps/trustee-review-portal", "src/code-apps/trustee-review-portal-cards"],
+  "contract": [
+    {"glob": "src/domain/**", "except": ["src/domain/applicationDetailDisplay.ts", "src/domain/applicationDetailDisplay.test.ts"], "adr": "ADR-060", "reason": "Data shaping, redaction, visibility, field catalogue, formatting, chart labels (WI-0013) and colours (categoricalColor), list, group and slot logic."},
+    {"glob": "src/dataverse/**", "adr": "ADR-060", "reason": "The only data access: schema, client, repository, the round-statistics parser (ADR-065 changes it in both apps together)."},
+    {"glob": "src/generated/**", "adr": "ADR-060", "reason": "CLI-generated services and the build-derived restricted-field catalogue."},
+    {"glob": "src/hooks/**", "adr": "ADR-060", "reason": "Queries and page titles: no new state in the card app."},
+    {"glob": "src/app/**", "adr": "ADR-060", "reason": "Repository context and toasts."},
+    {"glob": ".power/**", "adr": "ADR-056", "reason": "Generated per data source; the same 7 tables in both apps."},
+    {"glob": "src/{App,main,PowerProvider,theme}.tsx", "adr": "ADR-060", "reason": "The shell's markup, nav order (WI-0052), skip link and composition root. The shell is restyled through CSS only (§13.1)."},
+    {"glob": "src/theme.ts", "adr": "ADR-060", "reason": "The Fluent theme and its ADR-037 ramp."},
+    {"glob": "src/components/ds/**", "adr": "ADR-060", "reason": "The design-system components' markup and their tests: 44px targets, focus handling, label binding."},
+    {"glob": "src/components/{VerdictForm,VerdictSection,VerdictDialog}.tsx", "adr": "ADR-060", "reason": "The only write path; EF-05's mandatory note; Fluent's modal focus management."},
+    {"glob": "src/styles/{ds-tokens,brand}.css", "adr": "ADR-060", "reason": "Tokens, ADR-037's contrast corrections, ADR-036/042 fonts. New values go in card-only stylesheets."},
+    {"glob": "src/assets/**", "adr": "ADR-060", "reason": "The logo and the self-hosted Playfair Display faces."},
+    {"glob": "src/**/*.test.{ts,tsx}", "except": ["src/components/ds/**", "src/domain/**", "src/dataverse/**", "src/pages/ApplicationDetailPage.test.tsx", "src/components/CasePanels.test.tsx", "src/styles/print.test.ts", "src/pages/LandingPage.freshness.test.tsx", "src/cards/**", "src/components/CategoryBars.test.tsx"], "adr": "ADR-060", "reason": "Every test not listed under presentation: the first app's tests pin the card app's content and behaviour (headings, captions, nav order, WI-0013, WI-0053, EF-05, ADR-037's token corrections). Includes src/styles/layout.test.ts, rewritten in both apps under TAD §5.3 rule 1 (Revision 3.2) to assert only accessibility properties."},
+    {"glob": "{package.json,package-lock.json,tsconfig.json,vite.config.ts,vitest.config.ts,eslint.config.js,playwright.config.ts,.gitignore}", "adr": "ADR-060", "reason": "One dependency set, one toolchain and one test setup."},
+    {"glob": "src/test/{harness,detail-harness-app}.tsx", "adr": "ADR-060", "reason": "The unit-test harness, and the detail harness that mounts the layout spec unchanged."},
+    {"glob": "src/test/setup.ts", "adr": "ADR-060", "reason": "Test setup."}
+  ],
+  "presentation": [
+    {"glob": "src/pages/*.tsx", "except": ["src/pages/*.test.tsx"], "adr": "ADR-060", "reason": "Page layout."},
+    {"glob": "src/components/*.tsx", "except": ["src/components/*.test.tsx", "src/components/{VerdictForm,VerdictSection,VerdictDialog}.tsx"], "adr": "ADR-060", "reason": "Panels, tables, charts, filters, finance panel, distribution chart."},
+    {"glob": "src/components/detail/**", "adr": "ADR-058", "reason": "Revision 1's card detail components."},
+    {"glob": "src/cards/**", "adr": "ADR-060", "reason": "Card-only presentation modules and their tests: the shared status-tone map, the computed sentences (ADR-062, §13.7), the application-share bar (ADR-065), the HTML chart shapes and CategoryBars (ADR-063)."},
+    {"glob": "src/domain/applicationDetailDisplay.{ts,test.ts}", "adr": "ADR-058", "reason": "The card app's row-to-display map and its test."},
+    {"glob": "src/styles/*.css", "except": ["src/styles/{ds-tokens,brand}.css"], "adr": "ADR-060", "reason": "app.module.css, ds.module.css, detail.module.css, print.css and any card-only module: the look."},
+    {"glob": "src/test/visual/**", "adr": "ADR-060", "reason": "Visual specs measure each app's own geometry."},
+    {"glob": "src/test/{visual-harness-app,app-harness-app}.tsx", "adr": "ADR-060", "reason": "Visual harnesses."},
+    {"glob": "*.html", "adr": "ADR-060", "reason": "index.html (static title) and the harness entries."},
+    {"glob": "src/pages/ApplicationDetailPage.test.tsx", "adr": "ADR-057", "reason": "The order-within-display-group contract (reviewer R1)."},
+    {"glob": "src/components/CasePanels.test.tsx", "adr": "ADR-057", "reason": "The card displays and the three redaction states in their new look."},
+    {"glob": "src/styles/print.test.ts", "adr": "ADR-059", "reason": "Pins the card blocks' print rules."},
+    {"glob": "src/pages/LandingPage.freshness.test.tsx", "adr": "ADR-066", "reason": "The card app's stamp and hand-entered wording (R11, R12); split out of LandingPage.test.tsx in both apps."},
+    {"glob": "src/components/CategoryBars.test.tsx", "adr": "ADR-063", "reason": "The design bars' positive properties: labelled, one per category in series order, proportional. The negative half stays in the two contract WI-0053 tests."},
+    {"glob": "{power.config.json,bundle-budget.json}", "adr": "ADR-056", "reason": "Per-app identity (P3 still compares data sources, connectors and appIds) and per-app byte budget. A-TR-14: the new appId is null until the first push assigns one. A-CRD-1: the connectionReferences block, key included, is copied from the first app on the assumption that a second app in the same environment may reuse the same connection reference; the first push confirms or replaces it."}
+  ]
+}
