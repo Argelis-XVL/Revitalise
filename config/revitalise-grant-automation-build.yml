@@ -44,6 +44,14 @@ artifacts:
 # Executed in order. Any non-zero exit halts the build and reports FAILED.
 # `pac solution check` and `pac solution pack` both require an authenticated pac
 # profile against DEV; step `auth` creates it from CI secrets (never echoed).
+#
+# CHANGE SCOPING (`paths:`). Read ONLY by `scripts/run-build.py --changed-since <ref>|last-green`;
+# without that flag, and always in CI (run-config-steps.sh ignores the key), every step runs.
+# A step with `paths:` is skipped when no file changed since the base matches its globs
+# (gitignore-style, last match wins). Only the four slow groups are scoped — each code app's
+# npm chain, the Pester suite, and solution pack + checker; the sub-second gates stay always-on.
+# A scoped run is a DEV inner-loop build, never a release artifact: promotion takes a full run.
+# Every step in a group shares one anchor, so a producer and its consumers can never disagree.
 steps:
   # HARD, ~1s, pure Python, no network. RUNS BEFORE EVERYTHING, INCLUDING THE OTHER
   # PREFLIGHTS: instance.yaml (Phase 3) is what tells the rest of this repo where
@@ -758,12 +766,14 @@ steps:
   # that an app naming a secured column fails on THAT, not on a compile error that hides it.
   # History: docs/development/revitalise-grant-automation-build-config-history.md#code-app-install
   - name: code-app-install
+    paths: &paths_app [src/code-apps/trustee-review-portal/**]
     command: npm --prefix src/code-apps/trustee-review-portal ci
 
   # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
   # every per-app step runs once per app, and every duplicate's name ends in `-cards`, so retiring
   # either app is one grep over `-cards` (TAD §9.4 step 3).
   - name: code-app-install-cards
+    paths: &paths_cards [src/code-apps/trustee-review-portal-cards/**]
     command: npm --prefix src/code-apps/trustee-review-portal-cards ci
 
   # HARD — C-TECH-074, the advisory half. The lockfile-drift half needs no step: `code-app-install`
@@ -774,12 +784,14 @@ steps:
   # app only — no other manifest exists in this repository.
   # History: docs/development/revitalise-grant-automation-build-config-history.md#code-app-audit
   - name: code-app-audit
+    paths: *paths_app
     command: npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high
 
   # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
   # package.json/package-lock.json are byte-identical to the first app's (parity gate), so the
   # advisory set is the same; the step still runs, because it installs from its own lockfile copy.
   - name: code-app-audit-cards
+    paths: *paths_cards
     command: npm --prefix src/code-apps/trustee-review-portal-cards audit --audit-level=high
 
   # ADR-032's field catalogue, DERIVED not hand-typed. FR-078 renders the eleven REV_TrusteeRestricted
@@ -901,15 +913,19 @@ steps:
   # src/code-apps/trustee-review-portal/src/dataverse/README.md, not a lint exemption of
   # convenience. The file stays committed as ground truth.
   - name: code-app-typecheck
+    paths: *paths_app
     command: npm --prefix src/code-apps/trustee-review-portal run typecheck
 
   - name: code-app-typecheck-cards
+    paths: *paths_cards
     command: npm --prefix src/code-apps/trustee-review-portal-cards run typecheck
 
   - name: code-app-lint
+    paths: *paths_app
     command: npm --prefix src/code-apps/trustee-review-portal run lint
 
   - name: code-app-lint-cards
+    paths: *paths_cards
     command: npm --prefix src/code-apps/trustee-review-portal-cards run lint
 
   # Vitest + React Testing Library against a mocked repository module. ⚠ WHAT THIS DOES NOT
@@ -920,11 +936,13 @@ steps:
   # ONLY the trustee role — and that needs a positive control, because in DEV the profile has
   # no members at all and every principal reads those columns as empty.
   - name: code-app-unit-tests
+    paths: *paths_app
     command: npm --prefix src/code-apps/trustee-review-portal run coverage
 
   # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
   # the same caveat as above: every test mocks the Dataverse boundary (V1/V2 evidence only).
   - name: code-app-unit-tests-cards
+    paths: *paths_cards
     command: npm --prefix src/code-apps/trustee-review-portal-cards run coverage
 
   # HARD — C-TECH-078. THE ONE THING THE STEP ABOVE STRUCTURALLY CANNOT SEE.
@@ -949,18 +967,22 @@ steps:
   # a no-op once the browser is cached; leaving it to the workflow is how a build step acquires
   # an undeclared dependency that passes locally and fails on a fresh runner image.
   - name: code-app-visual-tests
+    paths: *paths_app
     command: npm --prefix src/code-apps/trustee-review-portal run test:visual:install && npm --prefix src/code-apps/trustee-review-portal run test:visual
 
   # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
   # measures the new blocks at 320/390/1280px. Both apps' playwright.config.ts (under parity) use
   # port 4173 with reuseExistingServer off in CI; the two steps are sequential, so they never share it.
   - name: code-app-visual-tests-cards
+    paths: *paths_cards
     command: npm --prefix src/code-apps/trustee-review-portal-cards run test:visual:install && npm --prefix src/code-apps/trustee-review-portal-cards run test:visual
 
   - name: code-app-build
+    paths: *paths_app
     command: npm --prefix src/code-apps/trustee-review-portal run build
 
   - name: code-app-build-cards
+    paths: *paths_cards
     command: npm --prefix src/code-apps/trustee-review-portal-cards run build
 
   # HARD — C-TECH-055, the MAGNITUDE half. Runs immediately after `code-app-build` because it
@@ -981,22 +1003,26 @@ steps:
   # *** gzip figures are ADVISORY ONLY — python's gzip and rollup's reporter disagree by ~0.06%,
   # so only `max_bytes` blocks. Raw bytes are exact and reproducible.
   - name: code-app-bundle-budget
+    paths: *paths_app
     command: python3 scripts/verify-code-app-bundle-budget.py src/code-apps/trustee-review-portal
 
   # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
   # its own bundle-budget.json, measured on its own first build (2026-09-30).
   - name: code-app-bundle-budget-cards
+    paths: *paths_cards
     command: python3 scripts/verify-code-app-bundle-budget.py src/code-apps/trustee-review-portal-cards
 
   # dist/ is what `pac code push` uploads, so it belongs in the artifact for the same reason
   # the packed solution zip does: the deployed bundle must be reproducible from the build
   # record. dist/ is gitignored, so this copy is the only durable copy.
   - name: package-code-app
+    paths: *paths_app
     command: mkdir -p "$ARTIFACT_DIR"/code-app && cp -R src/code-apps/trustee-review-portal/dist/. "$ARTIFACT_DIR"/code-app/
 
   # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
   # its own artifact directory. It MUST differ from `code-app`, or the second copy overwrites the first.
   - name: package-code-app-cards
+    paths: *paths_cards
     command: mkdir -p "$ARTIFACT_DIR"/code-app-cards && cp -R src/code-apps/trustee-review-portal-cards/dist/. "$ARTIFACT_DIR"/code-app-cards/
 
   # C-TECH-014 (HARD). The suite: contract tests over the provisioning scripts, unit tests, behavioural
@@ -1013,6 +1039,7 @@ steps:
   # yields a bash syntax error. `preflight-build-config` shell-parses every command with `bash -n`.
   # History: docs/development/revitalise-grant-automation-build-config-history.md#unit-tests
   - name: unit-tests
+    paths: &paths_pester ["**", "!src/code-apps/**", "!Designsystem/**", "!logs/**", "logs/known-failure-modes.md"]
     command: >
       pwsh -NoProfile -Command 'Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop' &&
       pwsh -NoProfile -File src/tests/Invoke-Tests.ps1
@@ -1028,6 +1055,7 @@ steps:
   # and on a report that measures nothing.
   # History: docs/development/revitalise-grant-automation-build-config-history.md#coverage-threshold
   - name: coverage-threshold
+    paths: *paths_pester
     command: >
       python3 scripts/verify-coverage-threshold.py
       "$ARTIFACT_DIR"/test-results/coverage.xml
@@ -1035,9 +1063,11 @@ steps:
       --exclusions config/coverage-exclusions.json
 
   - name: pack-managed
+    paths: &paths_solution [src/solutions/**]
     command: pac solution pack --zipfile "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Managed --errorlevel Info
 
   - name: pack-unmanaged
+    paths: *paths_solution
     command: pac solution pack --zipfile "$ARTIFACT_DIR"/RevitaliseGrantAutomation.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged --errorlevel Info
 
   # IMP-0874, blocker. `pac solution pack` derives the packed customizations.xml <forms type>
@@ -1052,6 +1082,7 @@ steps:
   # exist) — placed here rather than after `lint` so a form-type regression fails before the
   # slower solution-checker network round trip runs on an artifact already known bad.
   - name: component-shape-packed
+    paths: *paths_solution
     command: >
       python3 scripts/verify-packed-form-types.py
       src/solutions/RevitaliseGrantAutomation
@@ -1071,6 +1102,7 @@ steps:
   # a slow-but-working check completes while a stall fails fast. Exit 124 means "timed out".
   # History: docs/development/revitalise-grant-automation-build-config-history.md#lint
   - name: lint
+    paths: *paths_solution
     command: >
       set -o pipefail &&
       mkdir -p "$ARTIFACT_DIR"/solution-checker &&
