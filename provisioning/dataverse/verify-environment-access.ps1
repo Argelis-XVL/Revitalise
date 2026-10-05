@@ -116,7 +116,10 @@ catch {
     Exit-Provisioning
 }
 
-if (-not $who -or -not $who.UserId) {
+# StrictMode Latest throws on a property that is absent, so presence is tested before value:
+# without this the 'no UserId' branch was unreachable for a response lacking the property
+# (found by VerifyEnvironmentAccess.Tests.ps1, IMP-0439).
+if (-not $who -or -not $who.PSObject.Properties['UserId'] -or -not $who.UserId) {
     Write-CheckResult -Status 'FAIL' -Check "WhoAmI against $envUrl" -Detail (
         'the call succeeded but returned no UserId, so the caller could not be resolved.')
     Exit-Provisioning

@@ -816,10 +816,10 @@ Describe 'REV | Acceptance | Create Envelope and Reminders & Escalation — no p
         (@($a['runtimeConfiguration']['secureData']['properties']) -join ',') | Should -Be 'inputs,outputs'
     }
 
-    It 'List_overdue_grants selects no personal column and is deliberately left readable' {
+    It 'List_overdue_grants selects no personal column and is secured anyway (reviewer decision 2026-10-05: "Yes secure that step", EX-004)' {
         $a = ($script:Flows['REVAcceptanceRemindersEscalation'].Entries | Where-Object Name -eq 'List_overdue_grants').Action
         foreach ($c in $script:PersonalColumns) { $a['inputs']['parameters']['$select'] | Should -Not -Match $c }
-        $a.Contains('runtimeConfiguration') | Should -BeFalse
+        (@($a['runtimeConfiguration']['secureData']['properties']) -join ',') | Should -Be 'inputs,outputs'
     }
 
     It 'no action that cannot carry the setting carries it (If, Scope, Switch, Terminate, variables, Foreach)' {

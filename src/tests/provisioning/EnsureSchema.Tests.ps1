@@ -765,14 +765,27 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
 # 2. BEHAVIOURAL TESTS — mocked Dataverse Web API via the shared harness
 # ═══════════════════════════════════════════════════════════════════════════════════════
 
-Describe 'ensure-schema.ps1 — DEV-only guard' {
+Describe 'ensure-schema.ps1 — settings resolution per environment (IMP-0649, IMP-1056)' {
     BeforeEach { . $script:InitFakeApi }
 
-    It 'rejects every -Env value except dev, before making any Dataverse call' {
-        foreach ($otherEnv in @('test', 'acc', 'prd')) {
-            { & $script:EnsureSchema -Env $otherEnv } | Should -Throw '*DEV*'
-        }
+    It 'fails fast for -Env acc, which has no settings file (ADR-006), before any Dataverse call' {
+        { & $script:EnsureSchema -Env acc } | Should -Throw '*acc-settings.json*'
         @(Get-FakeDataverseCalls).Count | Should -Be 0
+    }
+
+    It 'resolves a non-dev -Env through Get-ProvisioningSettings, not the DEV-only file' {
+        # The acc fixture is the one value no real file exists for, so this cannot collide with
+        # a tracked settings file; the schema is then run against the fake API and must target
+        # the fixture's environment URL, which proves the settings came from <env>-settings.json.
+        $fixture = New-SettingsFixture -Env acc
+        try {
+            Register-RevEverythingAbsent
+            & $script:EnsureSchema -Env acc | Out-Null
+            $LASTEXITCODE | Should -Be 0
+            @(Get-FakeDataverseCalls | Where-Object { $_.Uri -like 'https://rev-fixture.crm11.dynamics.com/*' }).Count |
+                Should -BeGreaterThan 0
+        }
+        finally { Remove-Item $fixture -Force -ErrorAction SilentlyContinue }
     }
 }
 

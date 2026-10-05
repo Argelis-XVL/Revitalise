@@ -1,0 +1,28 @@
+{
+  "_fixture": "KNOWN-BAD. Check 11 of scripts/verify-flow-definition-language.py (EX-004, IMP-0951). A Dataverse ListRecords whose $select names rev_refereeemail and rev_fullname (both on the reviewer's personal-data list, config/personal-data-columns.json) and carries NO runtimeConfiguration.secureData, so every row it reads is recorded in the flow's run history. The second action selects only a non-personal column and must NOT be flagged. Not shipped, not packed: this file lives under src/tests/fixtures/known-bad/ and no build gate scans that tree.",
+  "properties": {
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "triggers": {},
+      "actions": {
+        "Get_the_application": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": { "connectionName": "shared_commondataserviceforapps", "operationId": "ListRecords" },
+            "parameters": { "entityName": "rev_applications", "$select": "rev_name,rev_refereeemail,rev_fullname" }
+          },
+          "runAfter": {}
+        },
+        "Get_a_setting": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": { "connectionName": "shared_commondataserviceforapps", "operationId": "ListRecords" },
+            "parameters": { "entityName": "rev_settings", "$select": "rev_name,rev_value" }
+          },
+          "runAfter": { "Get_the_application": ["Succeeded"] }
+        }
+      }
+    }
+  }
+}

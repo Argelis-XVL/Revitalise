@@ -508,9 +508,9 @@ tenant_prerequisites:
         svc_grantapplications@revitalise.org.uk.
         THE NOTE'S RECORDING OBLIGATION WAS ALREADY MET, and this run corroborates it rather
         than adding anything: that same environment id and URL are already tracked in
-        dev-schema-settings.json, dev-auditing-settings.json, dev-scoring-settings.json and
-        dev-access-test-settings.json, and the organization id in the Deployment Summary
-        against this environment's name. All four values matched the live result exactly.
+        dev-schema-settings.json, dev-auditing-settings.json and dev-scoring-settings.json
+        (dev-access-test-settings.json was deleted 2026-10-05, IMP-0439), and the organization
+        id in the Deployment Summary against this environment's name. All four values matched the live result exactly.
         ENV_URL_DEV is already declared in required_env_vars above and consumed at
         `env_url: $ENV_URL_DEV` below. ENV_ID_DEV is deliberately NOT added: no step in this
         file references it, and this file's own rule is that required_env_vars declares the
@@ -1575,8 +1575,10 @@ environments:
       # IMP-0153 is the same defect caught in an instruction before it shipped).
       #
       # RUN IT IMMEDIATELY BEFORE THE HAND-OFF, not at deploy time. It is a moment-in-time
-      # read and nothing stops a grant being added after it passes. Read-only: every call is
-      # a GET, and the remedy for a FAIL is a maker-portal removal by a human.
+      # read and nothing stops a grant being added after it passes. It is a HUMAN check since
+      # 2026-10-05 (IMP-0439: the script that did it was deleted), done in the maker portal by
+      # the named owner, who is also the person who removes any route found. Owner: Xander
+      # Lykopoulos (reviewer, 2026-10-05).
       - level: V3
         description: >
           Confirm LIVE that the access test below can produce evidence at all: the declared
@@ -1586,11 +1588,15 @@ environments:
           them so an empty result can be told apart from an absent control (IMP-0110,
           IMP-0221), and the two identities are not the same person (IMP-0228). The profile
           list is enumerated live rather than named here, so a profile added later is still
-          checked. Identities and the permitted role set are declared in
-          provisioning/deploymentSettings/dev-access-test-settings.json.
-          A non-zero exit means the V4 step below MUST NOT be handed to its named human:
-          its result would not be evidence either way.
-        script: pwsh provisioning/dataverse/verify-access-test-identity.ps1 -Env dev
+          checked.
+          REVIEWER DECISION 2026-10-05 (IMP-0439): the executable that used to do this was
+          deleted — it could never run (it assigned the read-only automatic variable $pid) and
+          had no test. Until a repaired, tested replacement exists this precondition is a
+          HUMAN check done by the same named person immediately before the V4 step; if any
+          route cannot be confirmed absent, the V4 step MUST NOT be handed over, because its
+          result would not be evidence either way.
+        owner: Xander Lykopoulos
+        script: manual
       - level: V4
         description: >
           NAMED HUMAN STEP, AND THE POINT OF THE WHOLE FEATURE (C-TECH-053, WBS 6.5). A named
@@ -1618,13 +1624,15 @@ environments:
           than as passed — an empty result is not evidence of a control until the same query
           has been seen returning a value for a case you know should succeed (IMP-0110).
 
-          THE CONTROLS ARE NO LONGER CHECKED BY READING THIS PARAGRAPH. The step above is an
-          executable precondition and it must exit 0 within minutes of you signing in. Two
+          THE CONTROLS ARE NOT TO BE CHECKED BY READING THIS PARAGRAPH. The step above is a
+          precondition and it must be confirmed within minutes of you signing in. Two
           prose warnings used to stand here, telling whoever staged this to confirm membership
           live and add an identity; both were read, and on 2026-08-23 the account that was
           added was the trustee's own test account — the one account that must never be a
           member (IMP-0228). A third warning was the wrong altitude, so they were replaced by
-          a check (C-TECH-068, improvement review 18).
+          a precondition (C-TECH-068, improvement review 18). That precondition is a human
+          check since 2026-10-05 (the script that did it was deleted, IMP-0439), done by its
+          named owner, Xander Lykopoulos; it is not an executable gate.
         owner: TBC — name the person in the Deployment Summary
         script: manual
       - level: V5
@@ -1992,6 +2000,18 @@ environments:
           before an acceptance session (TAD §9.1.1).
         script: manual
       - description: >
+          Run the schema provisioner BEFORE the solution import (C-TECH-050, IMP-0649,
+          IMP-1056). Unmanaged/managed solution import cannot be relied on to add a
+          FieldPermission to an EXISTING Field Security Profile — it failed twice against DEV
+          with a generic null-reference — and this script's direct POST to
+          api/data/v9.2/fieldpermissions is the route that worked. Check-before-create:
+          re-running against an environment that already holds the schema reports EXISTS.
+          This is the TST/ACC half of check 14; `-Env test` is the single TST/ACC environment
+          (ADR-006). EVIDENCE (IMP-1057 return condition): the reviewer stated on 2026-10-05
+          that he ran this script manually with -Env test before the ACC import; the
+          declaration makes that the pipeline's shape rather than a remembered act.
+        script: provisioning/dataverse/ensure-schema.ps1 -Env test
+      - description: >
           Capture every cloud flow's statecode BEFORE promotion, so the
           post_deploy diff below can report which flows the import actually
           deactivated rather than a guess (IMP-0136: two consecutive DEV imports
@@ -2210,10 +2230,10 @@ environments:
           "I did those actions myself because we couldn't get the permissions right without a
           global administrator approving the permission in EntraID. Don't throw these away,
           park these for now."
-          SCOPE: this note is the gate for the six -Env prd provisioning steps behind it —
-          bind-roles-to-groups.ps1, ensure-column-security-profile-members.ps1,
-          ensure-auditing.ps1, ensure-bulk-delete-jobs.ps1, seed-settings.ps1,
-          share-apps.ps1. They stay declared here as the pipeline's real shape, executed by a
+          SCOPE: this note is the gate for the seven -Env prd provisioning steps behind it —
+          ensure-schema.ps1 (pre_deploy, added 2026-10-05), bind-roles-to-groups.ps1,
+          ensure-column-security-profile-members.ps1, ensure-auditing.ps1,
+          ensure-bulk-delete-jobs.ps1, seed-settings.ps1, share-apps.ps1. They stay declared here as the pipeline's real shape, executed by a
           named human today, because Power Platform Pipelines (ADR-007) replaces only the
           solution-import hop and none of these six.
           CLEARS WHEN: a Global Administrator grants admin consent for $PROVISION_APP_ID
@@ -2248,6 +2268,16 @@ environments:
           no fixed-in-flight entry lacks a review or a reviewer's deferral. Exit 1 names each id
           and the review it waits on; earlier environments are never held by this step.
         script: python3 scripts/verify-improvement-log.py --check --target-env prd
+      - description: >
+          Run the schema provisioner BEFORE the solution import (C-TECH-050, IMP-0649,
+          IMP-1056) — same reason as the tst_acc pre_deploy step. PRD has had NO solution import
+          yet and the reviewer has not run this against PRD (PRD is clean, 2026-10-05).
+          EXECUTED BY A NAMED HUMAN, NOT BY THE SERVICE PRINCIPAL, exactly like the six other
+          -Env prd provisioning steps: the environment_prerequisites note above ($PROVISION_APP_ID
+          lacks Global Administrator consent and has no PRD application user) is the gate for
+          this step too, and the reviewer performs PRD provisioning as an administrator until it
+          clears.
+        script: provisioning/dataverse/ensure-schema.ps1 -Env prd
       - description: >
           Confirm the three DPO decisions SDD OQ-004, OQ-005 and OQ-006 are
           recorded, and that the DPIA is concluded (Art. 35). ADR-002 is adopted

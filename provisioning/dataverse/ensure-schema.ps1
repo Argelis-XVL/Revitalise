@@ -208,15 +208,14 @@
         payload that targets a calculated column.
 
 .PARAMETER Env
-    Accepts the same four-value set every provisioning script does (provisioning/README.md
-    Script Contract rule 4), but this script only ever RUNS against dev: the schema is
-    created once, by hand-triggered run, in DEV, and Power Platform Pipelines (TAD ADR-007)
-    promotes it to TST/ACC and PRD as part of the managed solution from then on — there is
-    no dev-settings.json in this repository yet (config/revitalise-grant-automation-
-    pipeline.yml's tenant_prerequisites block records `rev-grantautomation-deploy-dev` as
-    "created by the manual DEV step" for the same reason: DEV is provisioned by hand). A
-    value other than 'dev' is rejected immediately with a clear error instead of being
-    silently accepted and pointed at the wrong environment.
+    The same four-value set every provisioning script accepts (provisioning/README.md Script
+    Contract rule 4). `dev` reads dev-schema-settings.json. `test` (the single TST/ACC
+    environment, ADR-006) and `prd` read provisioning/deploymentSettings/<env>-settings.json —
+    widened 2026-10-05 (IMP-0649, IMP-1056): Power Platform Pipelines (TAD ADR-007) promotes the
+    schema as part of the managed solution, but a FieldPermission added to an EXISTING Field
+    Security Profile has failed to arrive by solution import, and this script's direct POST is
+    the only route that has worked, so check 14 of scripts/verify-pipeline-config.py requires
+    it declared in every environment's pre_deploy. `acc` has no settings file and fails fast.
 
 .NOTES
     Authentication: app-only Dataverse Web API token via PROVISION_APP_ID + certificate
@@ -247,11 +246,15 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..' 'common' 'provisioning-common.ps1')
 Import-Module (Join-Path $PSScriptRoot 'ensure-schema-helpers.psm1') -Force
 
-if ($Env -ne 'dev') {
-    throw ("ensure-schema.ps1 creates the Phase 1 schema ONCE, in DEV only, and Power " +
-           "Platform Pipelines promotes it from there (TAD ADR-007; see the 'alm' block of " +
-           "config/revitalise-grant-automation-pipeline.yml). Re-run with -Env dev.")
-}
+# DEV reads its own dedicated file (see the comment on $devSchemaSettingsPath below). TST/ACC
+# (-Env test) and PRD (-Env prd) read the ordinary <env>-settings.json via
+# Get-ProvisioningSettings — widened 2026-10-05 (IMP-0649, IMP-1056) because check 14 of
+# scripts/verify-pipeline-config.py requires this script, the ONLY reliable route for adding a
+# FieldPermission to an existing Field Security Profile, to be declared in every environment's
+# pre_deploy, and a step that throws on declaration is not a route. -Env acc has no settings file
+# (ADR-006: Test and Acceptance are one environment, `test`) and so fails fast, naming the file.
+# Every operation below is check-before-create, so a re-run against an environment that already
+# holds the schema reports EXISTS and writes nothing.
 
 # The solution every component created below is associated with, via the
 # MSCRM.SolutionUniqueName header (see this script's header for what that header is
@@ -271,6 +274,10 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
 # this script must not disturb it. This script reads its own, separately-named file
 # instead, so `dev-settings.json` itself continues not to exist and every other script's
 # "-Env dev is unsupported" behaviour is unaffected.
+if ($Env -ne 'dev' -and -not $SettingsPath) {
+    $settings = Get-ProvisioningSettings -Env $Env   # throws, naming the file, when it is absent
+}
+else {
 $devSchemaSettingsPath = if ($SettingsPath) { $SettingsPath } else {
     Join-Path $repoRoot 'provisioning' 'deploymentSettings' 'dev-schema-settings.json'
 }
@@ -281,6 +288,7 @@ if (-not (Test-Path -Path $devSchemaSettingsPath -PathType Leaf)) {
            "dev-schema-settings.json and replace every {{PLACEHOLDER}}.")
 }
 $settings = Get-Content -Path $devSchemaSettingsPath -Raw | ConvertFrom-Json
+}
 $auth     = Get-ProvisioningAuthContext -Settings $settings
 $envUrl   = Get-Setting -Settings $settings -Path 'dataverse.environmentUrl'
 $token    = Get-DataverseAccessToken -Auth $auth -EnvironmentUrl $envUrl

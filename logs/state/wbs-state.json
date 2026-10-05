@@ -7,10 +7,10 @@
     "tasks": 61
   },
   "derived_counts": {
-    "complete": 26,
+    "complete": 27,
     "complete_pending_manual": 6,
     "manual_only": 20,
-    "not_started": 9
+    "not_started": 8
   },
   "tasks_without_a_rule": [],
   "unrecognised_claim_values": [],
@@ -98,6 +98,18 @@
       "missing": [],
       "found": [
         "workflow REVAcceptanceReminder: present"
+      ]
+    },
+    {
+      "id": "5.1",
+      "task": "Define free-text redaction rules",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "path docs/development/revitalise-redaction-rules.md: present"
       ]
     },
     {
@@ -1386,10 +1398,10 @@
       "hours_high": 4.0,
       "depends_on": [],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -1397,8 +1409,8 @@
             "kind": "path",
             "value": "docs/development/revitalise-redaction-rules.md"
           },
-          "ok": false,
-          "note": "path docs/development/revitalise-redaction-rules.md: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
+          "ok": true,
+          "note": "path docs/development/revitalise-redaction-rules.md: present"
         }
       ]
     },

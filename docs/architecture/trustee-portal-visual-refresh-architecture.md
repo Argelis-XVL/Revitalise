@@ -1565,7 +1565,10 @@ screen.
 
 ```jsonc
 {
-  "status": "ok",            // ok | no-open-round | ambiguous-round | truncated | threshold-unset
+  "status": "ok",            // ok | no-open-round | ambiguous-round | truncated | error | pending
+                             // flow-authored (the five the flow composes): ok, no-open-round, ambiguous-round,
+                             //   truncated, error
+                             // app-synthesised (never in this document; poll timeout, §5.3 row 4): pending
   "roundKey": "<rev_roundfinance.rev_name>",
   "computedOn": "2026-08-25T13:05:11Z",   // utcNow() captured ONCE, before the first read
   "staleAfterSeconds": 120,                // REVISION 5, ADR-038 — the age at which this document stops
@@ -1648,6 +1651,15 @@ screen.
   }
 }
 ```
+
+> **Correction within Revision 10 (2026-10-05, `IMP-0454`, `IMP-0481`; no design change) — the `status` enumeration above now lists every value the system
+> produces.** `error` is **flow-authored**: the failure path composes `"status":"error"` in `Compose_error_document`,
+> and the app's type guard treats `status` as a bare string with a real fallback so the flow may emit a value a build
+> has never heard of. `pending` is **app-synthesised** (timeout, never in a document) and is listed so the enumeration is complete. **`threshold-unset` is removed:**
+> nothing in this repository emits it (no flow composes it, no app file synthesises it), so a consumer was being told
+> to handle a value that cannot arrive.
+> Section 6.3.3's V5 key-set assertion is written against this list. The renumbering of `A-FLOW-13` to its registered id `A-FLOW-15` (`IMP-0792`)
+> in §5.1.3, §12.2, A-R60 and ADR-049 is the same correction: the id was already allocated in the Dev Summary §10 register.
 
 **Eight properties of that contract are load-bearing** — five from Revision 2, two added by ADR-038, one by
 ADR-039:
@@ -2334,7 +2346,7 @@ shape** around an already-proven building block.
 
 **One part of the mechanism is a new platform contract, and it is not the counting step — `range()`,
 `addToTime()`, and a bare `'yyyy'`/`'MM'` `formatDateTime()` extraction have never executed on this tenant
-(`A-FLOW-13`, NEW, OPEN).** Grepped across every flow in this solution (`grep -rl "range(\|addToTime("
+(`A-FLOW-15`, OPEN).** Grepped across every flow in this solution (`grep -rl "range(\|addToTime("
 src/solutions/RevitaliseGrantAutomation/Workflows/*.json`): zero hits for either function, and zero hits
 for a `formatDateTime()` call extracting only the year or only the month component. `range()` is a
 documented math function (A-FLOW-08's own list names it) and `addToTime()` is a documented date-time
@@ -4355,7 +4367,7 @@ seeded them renders a defined, fail-safe state rather than an error (§5.1.3 poi
 a reviewer or a future maintainer reading the flow definition must recognise that asymmetry rather than
 assume every action shares the round-key filter. The month-list construction is a genuinely new platform
 contract — `range()` over a run-time-computed count and `addToTime()` over a `Date`-only value have never
-executed on this tenant (**A-FLOW-13**, NEW, OPEN, §5.1.3, §12.2) — separate from the per-month counting
+executed on this tenant (**A-FLOW-15**, OPEN, §5.1.3, §12.2) — separate from the per-month counting
 step, which introduces none. Iteration count is unbounded across the life of the
 solution — not unsafe by the argument above, but not literally free either, and §11's new risk row states
 the review trigger.
@@ -4422,7 +4434,7 @@ reviewer answer.
 *Positive, part (2)* — no new connector, table, component type, or unverified platform contract of any
 kind; the mechanism composes entirely from functions and an action type this exact flow already executes
 today, which is a stronger property than `ADR-049` itself achieved (part (1) of that ADR still opened
-`A-FLOW-13` for `range()`/`addToTime()`). The six-variable shift is a fixed, bounded cost per iteration —
+`A-FLOW-15` for `range()`/`addToTime()`). The six-variable shift is a fixed, bounded cost per iteration —
 six `Set variable` actions — so it does not change the iteration-count argument `ADR-049` already made for
 why this loop scales with elapsed time, not application volume.
 
@@ -4664,7 +4676,7 @@ source** (`C-TECH-052`), and an `OPEN` row blocks deployment into an environment
 | **`A-RED-1` — a 42-character attribute logical name is accepted by `CreateAttribute`** (`rev_supportrecipientotherconditionredacted`, ADR-031) | Yes, in `Entity.xml` | **E2, measured not assumed.** Microsoft documents `LogicalName` as `MaxLength` 128 and `SchemaName`'s limit only as *"different length requirements depending on its use"*. Measured live 2026-08-27: this org **stores** attribute logical names to **56** chars, longest custom-derived is **40**. 42 is under both, and under the 50 the maker UI enforces | `EntityDefinitions(LogicalName='rev_application')/Attributes?$select=LogicalName` after the prerequisite run; confirm all five names present and unmodified | Nothing — the name is author-chosen and echoed back | First DEV prerequisite run. **Residual (`C-TECH-053`): the 56 is a name the PLATFORM created; no custom create call at 42 has been executed in this org, so this is stored-proven, not create-proven** |
 | **The 5 new counterpart columns' shape** (`ntext`/`textarea`/4000/`IsSecured=0`) | Yes, in `Entity.xml` | **E1** — the identical shape is proven live: `rev_narrativeredacted` and ADR-027's three counterparts all exist in DEV, confirmed by query 2026-08-27 | Already ground truth. Re-confirm the five by name in the post-run sweep | Attribute ids | Closed on the pattern; the five instances at first DEV prerequisite run |
 | **The eleven Group B columns are withheld from a trustee and populated for the process owner** — the premise ADR-032 turns on | No | **E1 for the membership half**, live 2026-08-27: `REV_TrusteeRestricted` (id `5fd58153-…`, matching source exactly) has exactly one team member, `REV-PP-GrantApplications-Service-DEV`; `REV-PP-GrantApplications-Trustees-DEV` is **not** a member. **GUESS for the process-owner half** — `REV Admins` has no group team in DEV yet | Add the admin group team, then read the same screen as both personas. ADR-032 makes this **non-blocking**: the app selects no secured column either way, so the screen is identical regardless of the answer | — | Not required for this design — which is the point of ADR-032 |
-| **`range()` with a run-time-computed count, `addToTime()` over a `Date`-only value, and `formatDateTime()` extracting a bare `'yyyy'`/`'MM'` component** *(Revision 9, ADR-049, §5.1.3)* | Yes, in the workflow JSON | **GUESS — pattern E1-adjacent (both are documented functions used elsewhere in the function reference), instance unverified.** Grepped zero hits for `range(`, `addToTime(`, or a bare-component `formatDateTime()` across every flow in this solution today (`A-FLOW-13`, NEW, OPEN) | (1) **V2** — designer save without a validation error (§12.3-equivalent step for this flow). (2) **V4/V5** — one live run with `RoundStatisticsHistoryStartDate` seeded several months in the past, then read `historicApplicationsByMonth.months` and assert its length equals a hand-counted month span and its first/last `month` keys match the expected boundary — the same "provoke, do not wait for" discipline A-FLOW-11's `NaN` case uses, because a silently wrong month range is a wrong-number risk this table's fail-loud argument (§5.1.3) does not, by itself, rule out for an off-by-one in the boundary arithmetic | — | **DEV, with the first observed-effect run for `wbs:6.10`, before TST/ACC** |
+| **`range()` with a run-time-computed count, `addToTime()` over a `Date`-only value, and `formatDateTime()` extracting a bare `'yyyy'`/`'MM'` component** *(Revision 9, ADR-049, §5.1.3)* | Yes, in the workflow JSON | **GUESS — pattern E1-adjacent (both are documented functions used elsewhere in the function reference), instance unverified.** Grepped zero hits for `range(`, `addToTime(`, or a bare-component `formatDateTime()` across every flow in this solution today (`A-FLOW-15`, OPEN) | (1) **V2** — designer save without a validation error (§12.3-equivalent step for this flow). (2) **V4/V5** — one live run with `RoundStatisticsHistoryStartDate` seeded several months in the past, then read `historicApplicationsByMonth.months` and assert its length equals a hand-counted month span and its first/last `month` keys match the expected boundary — the same "provoke, do not wait for" discipline A-FLOW-11's `NaN` case uses, because a silently wrong month range is a wrong-number risk this table's fail-loud argument (§5.1.3) does not, by itself, rule out for an off-by-one in the boundary arithmetic | — | **DEV, with the first observed-effect run for `wbs:6.10`, before TST/ACC** |
 | **The `Trailing1`…`Trailing6` left-shift preserves the correct chronological order across six or more iterations** *(Revision 10, ADR-050, §5.1.3 part 3, A-R61)* | Yes, in the workflow JSON (six ordered `Set variable` actions) | **Not a platform-contract GUESS — every function and action type is already proven on this tenant (§5.1.3's grep). This is a correctness check on author-composed logic, the same class ADR-039's own table already distinguishes ("nothing to verify — every value is author-composed")** | **V2** — designer save without a validation error. **V4/V5, and this one must be *provoked*, not waited for (A-R61's own argument):** seed DEV with six or more consecutive months of known, distinct application counts, read `historicApplicationsByMonth.months`, hand-compute the trailing six-month mean for the seventh month onward, and assert `anomaly` matches on every one — including at least one month engineered to sit exactly on the threshold boundary (`deviationPercent` within 1 of `50`) to catch a `greater` vs `greaterOrEquals` mismatch, and one trailing window containing at least one zero-count month to exercise §5.1.3 part 3's zero-mean branch | — | **DEV, with the first observed-effect run for `wbs:6.10`, before TST/ACC** |
 
 **If no environment exists for a row above, that row is the development-agent's Unvalidated Assumptions

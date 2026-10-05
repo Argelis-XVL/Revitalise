@@ -1,0 +1,18 @@
+{
+  "_purpose": "The reviewer's list of Dataverse columns that are PERSONAL DATA for the purpose of Secure Outputs on a flow read (C-DOM-004, NFR-012). Read by check 11 of scripts/verify-flow-definition-language.py: a ListRecords/GetItem action whose $select names one of these columns must carry runtimeConfiguration.secureData with `outputs`, or the row is recorded in the flow's run history outside Dataverse's column security.",
+  "_decision": {
+    "authorised_by": "Xander Lykopoulos (reviewer)",
+    "date": "2026-09-30",
+    "ruling": "Referee-related columns are personal; the applicant's full name and email are personal. rev_breaktype and rev_breaklocation are NOT personal. Ids, references and dates are not personal.",
+    "finding": "IMP-0951, EX-004"
+  },
+  "_relocation_note": "improvement review 2026-09-30 designed this list as constraints/domain/personal-data-columns.yml. That file does not exist and `constraints/` is improvement-agent's to write, so the list lives here as instance data until that review's row 3 is applied; move it then and repoint PERSONAL_COLUMNS_PATH in the wrapper.",
+  "personal": [
+    { "table": "rev_application", "column": "rev_refereename" },
+    { "table": "rev_application", "column": "rev_refereeemail" },
+    { "table": "rev_application", "column": "rev_refereephone" },
+    { "table": "rev_applicant", "column": "rev_fullname" },
+    { "table": "rev_applicant", "column": "rev_email" }
+  ],
+  "not_personal": ["rev_breaktype", "rev_breaklocation"]
+}

@@ -38,8 +38,13 @@ BeforeAll {
         param(
             [Parameter(Mandatory)][scriptblock]$Mutate
         )
-        $text = Get-Content $script:RealConfig -Raw
-        $text = & $Mutate $text
+        $original = Get-Content $script:RealConfig -Raw
+        $text = & $Mutate $original
+        # A mutation that matches nothing tests the UNMUTATED config and can pass silently
+        # (IMP-1060, review 2026-10-05-3 row 6). Every caller is covered here, not one by one.
+        if ([string]$text -ceq [string]$original) {
+            throw "New-MutatedConfig: the mutation left the config unchanged, so this test would run against the real config. Fix the caller's -replace pattern."
+        }
         $path = Join-Path ([System.IO.Path]::GetTempPath()) ("build-cfg-" + [guid]::NewGuid() + ".yml")
         Set-Content -Path $path -Value $text -NoNewline
         return $path
@@ -183,8 +188,14 @@ Describe 'verify-build-config: reconstruction of defect IMP-0025 (unrunnable she
         # because no build had ever gone through scripts/ci/run-config-steps.sh.
         $cfg = New-MutatedConfig -Mutate {
             param($t)
-            $t -replace "(?m)^  - name: unit-tests\r?\n    command: >",
-                        "  - name: unit-tests`n    command: |`n      pwsh -NoProfile -Command 'Install-Module Pester'`n      && pwsh -NoProfile -File src/tests/Invoke-Tests.ps1`n`n  - name: unit-tests-orig`n    command: >"
+            # The optional `paths:` line (change scoping) is carried over, so its YAML anchor
+            # still resolves for the steps that alias it.
+            $t -replace "(?m)^  - name: unit-tests\r?\n((?:    paths: [^\r\n]*\r?\n)?)    command: >",
+                        "  - name: unit-tests`n`$1    command: |`n      pwsh -NoProfile -Command 'Install-Module Pester'`n      && pwsh -NoProfile -File src/tests/Invoke-Tests.ps1`n`n  - name: unit-tests-orig`n    command: >"
+        }
+        if ((Get-Content $cfg -Raw) -notmatch 'unit-tests-orig') {
+            Remove-Item $cfg -Force
+            throw 'mutation did not apply — the unit-tests step no longer has the shape this test rewrites'
         }
         try {
             $r = Invoke-Checker -ConfigPath $cfg

@@ -161,6 +161,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Escalate_each_overdue_grant": {

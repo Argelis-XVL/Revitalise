@@ -1050,8 +1050,17 @@ def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
         # forward watch. On an APPLIED entry the same absence is a false claim.
         if status == "NEW":
             return []
+        # Three causes produce this one symptom, and only one of them is a false claim. The
+        # message used to name only that one, so a file deleted on a reviewer's instruction read
+        # as an unevidenced APPLIED (IMP-1059, review 2026-10-05-3 row 2). Message text only:
+        # what passes and what fails is unchanged.
         return [f"{ident}: evidence_grep names '{target}', which does not exist. The entry "
-                f"claims APPLIED against a file that is not there."]
+                f"claims APPLIED against a file that is not there. Three causes look identical "
+                f"here: the file MOVED (re-point the needle at its new path), it was DELETED BY "
+                f"A LATER AUTHORISED DECISION, or it was never written (the APPLIED claim is "
+                f"false). For a deliberate deletion, improvement-agent re-points the needle to "
+                f"the surviving half of the change or to the record of that decision, adds a "
+                f"needle_repoint_note naming who decided it, and keeps the status APPLIED."]
 
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -2798,6 +2807,12 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
                 evidence_grep={"file": "scripts/x.py", "contains": "the fix"})],
         {"scripts/x.py": "nothing here yet\n"}, False, 1,
         "The file exists; the substance does not"),
+    # IMP-1059: a needle file deleted by a later authorised decision. Still an error (the
+    # needle must be re-pointed), but the message must name that cause and its route.
+    "APPLIED-evidence-file-deleted-names-the-route": (
+        [_entry(status="APPLIED", applied_by="scripts/x.py",
+                evidence_grep={"file": "scripts/x.py", "contains": "the fix"})],
+        {}, False, 1, "DELETED BY A LATER AUTHORISED DECISION"),
     "REJECTED-evidence-grep-still-refused": (
         [_entry(status="REJECTED", rejected_reason="no",
                 evidence_grep={"file": "scripts/x.py", "contains": "the fix"})],
@@ -3306,7 +3321,49 @@ _MUST_NOT_CONTAIN: dict[str, str] = {
     "lane-e2-awaiting-governance-blocker-is-a-note": "in the DEPLOY lane",
     # The precedence fix: a valid stamp must never surface as the already-fixed error.
     "fif-a2-valid-stamp-is-not-already-fixed": "appears to have shipped",
+    # A WARNING rung: rc is 0 whether the list resolves or not. Measured by mutation at apply
+    # time (review 2026-10-05-3 row 4): forcing "not an entry" on every target left this
+    # fixture passing until this row existed (IMP-1055).
+    "corrects-as-a-list-resolves-every-target": "not an entry in this log",
 }
+
+
+# The other half of the table above (IMP-1055, review 2026-10-05-3 row 4). A fixture expecting
+# exit 0 with no expected text asserts something ONLY where the rung it targets is an ERROR rung,
+# so that the rung over-firing turns rc 0 into rc 1. Each name below was sorted by mutation at
+# apply time: its rung was forced to fire unconditionally and the fixture failed. A fixture
+# expecting rc 0 with no text must be listed here or in _MUST_NOT_CONTAIN, and the selftest
+# refuses one listed in neither. The listing is the author's declaration; the selftest forces it
+# to be made and cannot check it is right. Mutation is the check.
+_RC_IS_THE_ASSERTION: frozenset[str] = frozenset({
+    "NEW-evidence-not-yet-shipped-must-pass",
+    "APPLIED-evidence-present-must-pass",
+    "R1-post-cutoff-blocker-with-observable_at-passes",
+    "R1-pre-cutoff-blocker-without-observable_at-passes",
+    "R1-on-the-cutoff-date-itself-is-not-bound",
+    "R1-post-cutoff-friction-without-observable_at-passes",
+    "R2-runtime-defect-with-reobserved-passes",
+    "R2-documentation-defect-closes-on-prose-needle-passes",
+    "R2-runtime-defect-closed-on-executable-needle-passes",
+    "R2-post-cutoff-refusal-with-context-passes",
+    "R2-pre-cutoff-refusal-without-context-passes",
+    "R2-other-class-needs-no-context",
+    "R3-post-cutoff-both-targets-accounted-passes",
+    "R3-pre-cutoff-partial-closure-passes",
+    "R3-prose-target-must-not-warn",
+    "R3-single-target-unaffected",
+})
+
+
+def _unasserted_fixtures() -> list[str]:
+    """Fixtures expecting rc 0 with no text that neither table declares (IMP-1055), plus any
+    name in either table that no longer names a fixture."""
+    bad = [n for n, (_r, _f, _c, rc, text) in _CASES.items()
+           if rc == 0 and not text and n not in _MUST_NOT_CONTAIN
+           and n not in _RC_IS_THE_ASSERTION]
+    bad += [f"{n} (listed, but no such fixture)"
+            for n in sorted(set(_MUST_NOT_CONTAIN) | _RC_IS_THE_ASSERTION) if n not in _CASES]
+    return bad
 
 
 # PRODUCTION GUARD fixtures (improvement review 2026-09-26-7, WS-V). (rows, files, target_env,
@@ -3348,6 +3405,13 @@ _TARGET_ENV_CASES: dict = {
 
 def selftest() -> int:
     failures: list[str] = []
+    # The fixture table's own shape, before any fixture runs (IMP-1055): a fixture that cannot
+    # fail is reported here by name, not discovered later by a mutation that changed nothing.
+    for name in _unasserted_fixtures():
+        print(f"  {'DID NOT BEHAVE':16} fixture-table-shape → {name}: expects exit 0 with no "
+              f"text, and is in neither _MUST_NOT_CONTAIN (a warning rung: name the banned "
+              f"text) nor _RC_IS_THE_ASSERTION (an error rung: prove it by mutation)")
+        failures.append(f"fixture-table-shape:{name}")
     with tempfile.TemporaryDirectory() as tmp:
         for name, (rows, files, check, want_rc, want_text) in _CASES.items():
             root = Path(tmp) / name

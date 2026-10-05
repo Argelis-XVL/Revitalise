@@ -327,7 +327,7 @@ reviewer's instruction was that the flow accepts **this** payload.
 | YESNO | "Yes"/"No" (case-insensitive) -> true/false, else null | yes, naming the value |
 | MONEY | strip `£` and spaces, then `isFloat(x,'en-GB')` -> `float(x,'en-GB')` | yes, naming the value |
 | INT | `isInt(x)` and 0 <= x <= 10 -> `int(x)` (life satisfaction only) | yes, naming the value |
-| JOIN | the five helper-name parts, in order, skipping empties, into `rev_helpername` | - |
+| JOIN | the three helper-name parts (prefix, first, last), in order, skipping empties, into `rev_helpername`. Middle name and suffix are no longer read (reviewer instruction 2026-10-05, wbs:4.2/4.3); the trigger schema no longer declares `helpers_name_middle` or `helpers_name_suffix`, and the website may still send them empty | - |
 | MULTI | the array as sent; a lone string is wrapped into a one-item array | per unmatched label |
 
 **Every expression is total under both readings of `if()`.** This repository records both "if()
@@ -441,7 +441,7 @@ All close in one DEV run replaying the fixture and its variants; none is claimed
 ### ~~Test Report 2026-09-27-1 revision — D-03: every text answer is cut to its column, and the cut is noted~~ (SUPERSEDED by TAD rev 13, above)
 
 **What failed.** No text answer was length-checked before the write. `rev_provisionaldate` is 200
-characters behind an uncapped free-text field, `rev_helpername` (100) joins five name parts, and the
+characters behind an uncapped free-text field, `rev_helpername` (100) joined five name parts (three since 2026-10-05), and the
 same was true of every other text column written from `Normalise_payload` (35 answers in all). An
 over-long answer failed `Create_application` or `Create_new_applicant`, the run returned 500, the
 failure alert fired, and **the application was lost** - the one outcome ADR-051 item 6 and FR-010
