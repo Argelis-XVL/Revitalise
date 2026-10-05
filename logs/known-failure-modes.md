@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (1050 entries, 1032 distinct lessons)
+Source: `logs/improvement-log.jsonl` (1051 entries, 1033 distinct lessons)
 Generated: 2026-10-05
 
 <a id="kfm-how-to-use"></a>
@@ -43,7 +43,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | Count | Class | Defended by | Renders in | Findings |
 |---|---|---|---|---|
 | **x79** | `platform-contract-guessed-not-groundtruthed` | **scripts/verify-component-shape.py — HARD, one gate reading one reference table. Adding a component type is a BLOCK IN THAT TABLE, never another script: skills/how-to-promote-a-finding.md section 2 forbids an instance gate on the second instance of a class, and a duplicate was authored and retired the same day for want of this row (IMP-0868)**<br>Covers: a HAND-AUTHORED solution component file under src/solutions/<Name>/ whose ELEMENT SHAPE differs from the one the platform accepts, for the three component types declared in constraints/technology/component-shapes.yml and no others -- measured 2026-09-24 as 56 files: environmentvariabledefinitions/*/environmentvariabledefinition.xml (nothing may precede the root element), OptionSets/*.xml (optionset-level Descriptions and displaynames present), Entities/*/FormXml/*/*.xml (root <forms type> one of main/mobile/quickCreate/quick). Values are read off the PARSED XML, never text-matched, so a correction quoting the withdrawn value in a comment cannot score worse than the defect it replaced<br>NOT covered: ALMOST ALL OF THIS CLASS, which is the largest in the digest at 65 instances -- do not read this row as 'the class is defended'. The gate settles the WRAPPER of three declared file types and nothing else. NOT covered: the BODY of any component (which controls a form carries, whether a lookup resolves, whether a maker can save it -- only a live import and a human in the designer settle those, which is what IMP-0866 stays deferred on); every component type with no block in the shapes file; every non-XML contract (a flow's connector operation ids, a Dataverse column's behaviour, an API's response shape); and any value the platform accepts today and rejects tomorrow. The vocabulary is a FIXED SET by design -- if Microsoft adds a fifth form type this gate rejects it as unknown until the table is updated, which is the correct failure direction for a fail-closed check and still a real cost. A shape block added from documentation or memory rather than from ground truth re-creates the exact defect the file closes, which is why every block carries its own ground_truth field<br>Prove it green: `python3 scripts/verify-component-shape.py src/solutions/RevitaliseGrantAutomation --shapes constraints/technology/component-shapes.yml` | `before-authoring` ×71, `Capabilities` ×8 | IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026 (+73 earlier — see appendix) |
-| **x54** | `gate-cannot-fail` | — | `before-build` ×53, `Capabilities` | IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036 (+48 earlier — see appendix) |
+| **x55** | `gate-cannot-fail` | — | `before-build` ×54, `Capabilities` | IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055 (+49 earlier — see appendix) |
 | **x47** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | — | `Unrouted` ×39, `before-build` ×8 | IMP-0840, IMP-0856, IMP-0904, IMP-0925, IMP-1045, IMP-1048 (+41 earlier — see appendix) |
 | **x43** | `approved-document-internally-inconsistent` | — | `Unrouted` ×43 | IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945 (+37 earlier — see appendix) |
 | **x40** | `declared-policy-not-mechanically-enforced` | — | `Unrouted` ×39, `Capabilities` | IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966 (+34 earlier — see appendix) |
@@ -134,7 +134,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 <a id="kfm-before-build"></a>
 ## Before you execute a build config
 
-*129 lessons from 129 findings.*
+*130 lessons from 130 findings.*
 
 - C-TECH-058 (an OPEN assumption closeable in an existing environment blocks deployment absent a recorded OVERRIDE) must be re-evaluated by test-agent every cycle against current pipeline.log and environment state, never carried forward as unchanged from a prior report once an actual import has occurred between test cycles -- the precondition (does the environment now exist) can change with no source edit to prompt a re-read.  
   <sub>IMP-0670</sub>
@@ -178,8 +178,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - A HARD constraint whose rule text is still a placeholder always PASSES and is therefore a gate that cannot fail. C-DOM-030 and C-DOM-031 are placeholders; report them as UNEVALUABLE rather than PASS, and note that skills/how-to-apply-constraints.md has no status for that outcome.  
   <sub>IMP-0035</sub>
 
-> **109 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`gate-cannot-fail`** (×42): IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036 (+36 earlier — see appendix)
+> **110 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`gate-cannot-fail`** (×43): IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055 (+37 earlier — see appendix)
 >   · **`gate-scope-mismatch`** (×30): IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054 (+24 earlier — see appendix)
 >   · **`two-invocation-paths-disagree`** (×17): IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053 (+11 earlier — see appendix)
 >   · **`gate-fires-on-nothing`** (×14): IMP-0557, IMP-0558, IMP-0645, IMP-0714, IMP-0825, IMP-1039 (+8 earlier — see appendix)

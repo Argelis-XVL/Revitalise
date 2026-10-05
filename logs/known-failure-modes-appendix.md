@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1050 entries)
+Source: `logs/improvement-log.jsonl` (1051 entries)
 Generated: 2026-10-05
 
 ## What this file is, and who reads it
@@ -24,7 +24,7 @@ every dispatch; it is not a judgement that what it hides is settled.
 The digest shows the 6 most recent ids per class. These are all of them, oldest first.
 
 - **`platform-contract-guessed-not-groundtruthed`** (×79): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026
-- **`gate-cannot-fail`** (×54): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036
+- **`gate-cannot-fail`** (×55): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055
 - **`hand-maintained-count-drifts-from-source`** (×47): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925, IMP-1045, IMP-1048
 - **`approved-document-internally-inconsistent`** (×43): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945
 - **`declared-policy-not-mechanically-enforced`** (×40): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966
@@ -56,7 +56,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you execute a build config — capped lessons
 
-*109 lesson(s) the digest does not render, in the same order it ranked them.*
+*110 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - In a YAML `>` folded scalar, keep every line at the SAME indentation and put `&&`/`||` at line END — a more-indented line keeps its newline and yields a shell syntax error. Preflight now runs `bash -n` on every step command.  
   <sub>IMP-0025 · `gate-cannot-fail`</sub>
@@ -66,18 +66,12 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
-- A file a step's command names is an input of that step, whatever its paths: says; derive that part of the scope from the command, do not hand-declare it.  
-  <sub>IMP-1054 · `gate-scope-mismatch`</sub>
-- When a consumer finds a file by path, the producer's instruction must name that exact path; a free-choice output location is two invocation paths that will disagree.  
-  <sub>IMP-1053 · `two-invocation-paths-disagree`</sub>
+- In verify-improvement-log.py's selftest, a must-not-warn fixture needs a _MUST_NOT_CONTAIN row; prove any new fixture by removing the fix and watching it fail.  
+  <sub>IMP-1055 · `gate-cannot-fail`</sub>
 - A build that can skip producers must say so in its result, and every consumer of the artifact must read that before acting on it.  
   <sub>IMP-1052 · `two-invocation-paths-disagree`</sub>
-- A generated file that is classified contract in code-app-variant-parity needs the generator to write every copy.  
-  <sub>IMP-1047 · `gate-scope-mismatch`</sub>
 - Run verify-tad-coverage.py (and any gate carrying dated baselines or deferrals) in the development-agent source-gate set; other baselines expire 2026-10-13 and 2026-10-14 (gate-baselines.json).  
   <sub>IMP-1046 · `gate-scope-mismatch`</sub>
-- A review is approved when any entry it processed gained a deferred_reason or a closure; count reviewer-accepted deferrals as evidence of the keyword, not only APPLIED and REJECTED.  
-  <sub>IMP-1039 · `gate-fires-on-nothing`</sub>
 - Do not offer an -Env value a script cannot run for; either narrow the ValidateSet to test, acc, prd or give DEV an intake block, so the DEV pipeline never appears to have a probe it lacks.  
   <sub>IMP-1018 · `gate-cannot-fail`</sub>
 - When two copies of a design drop share an inner layout, design-source-coverage's PASS cannot say which was read; cite the full path of the copy you intake'd and resolve the duplicate.  
@@ -106,6 +100,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0205 · `gate-cannot-fail`</sub>
 - A path-kind evidence rule only proves a directory or file exists, never that a specific named deliverable inside it is present. When a task's own description names multiple items (e.g. three security roles: admin, finance, trustee), give it a rule that checks each by name and reports partial when any are absent, instead of accepting the directory's mere existence as complete.  
   <sub>IMP-0152 · `gate-cannot-fail`</sub>
+- A file a step's command names is an input of that step, whatever its paths: says; derive that part of the scope from the command, do not hand-declare it.  
+  <sub>IMP-1054 · `gate-scope-mismatch`</sub>
+- When a consumer finds a file by path, the producer's instruction must name that exact path; a free-choice output location is two invocation paths that will disagree.  
+  <sub>IMP-1053 · `two-invocation-paths-disagree`</sub>
+- A generated file that is classified contract in code-app-variant-parity needs the generator to write every copy.  
+  <sub>IMP-1047 · `gate-scope-mismatch`</sub>
+- A review is approved when any entry it processed gained a deferred_reason or a closure; count reviewer-accepted deferrals as evidence of the keyword, not only APPLIED and REJECTED.  
+  <sub>IMP-1039 · `gate-fires-on-nothing`</sub>
 - Run a new gate against the DEFECTIVE version of the corpus (git archive of the pre-fix commit), not only the fixed one: here only that run showed Rule B could not fail. Measured candidate: counting only flow write payloads gives 5 findings on HEAD, all true, and 0 on the working tree.  
   <sub>IMP-1036 · `gate-cannot-fail`</sub>
 - After adding Unvalidated Assumptions rows, plant one orphan (point a row's Where at a file without its marker) and confirm verify-assumption-markers.py FAILS, because an id with a digit in its prefix or a Where naming a .css file in a code span is skipped without failing.  
@@ -862,16 +864,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
 - Cite the decision record whose scope names the thing (ADR-070 for the referee columns), not the change order raised the same day; a wrong CO number tells a reader the columns are unapproved.  
   <sub>IMP-1050 · `wrong-artefact-cited-as-evidence`</sub>
-- A test that pins the presence of a named deferral by literal id breaks the moment the deferral is legitimately closed; assert the columns are absent from source and not that a deferral id exists.  
-  <sub>IMP-1048 · `hand-maintained-count-drifts-from-source`</sub>
-- Assert existence (IndexOf -ge 0) before any positional comparison on a name; run src/tests/Invoke-Tests.ps1 whole after adding secured columns, not only the suites the brief names.  
-  <sub>IMP-1045 · `hand-maintained-count-drifts-from-source`</sub>
-- When reading hotfixed source for a TAD update, grep Entity.xml for columns the TAD or an ADR says do not exist, and check the two config catalogues (attribute-type-lock, trustee-restricted-field-catalogue) for them.  
-  <sub>IMP-1044 · `solution-source-edited-outside-dispatch`</sub>
-- After any edit to a flow's action list, run that flow's own Pester contract file (src/tests/solutions) before presenting it: run-source-gates.py cannot see it, and a stale suite halts the next build at unit-tests.  
-  <sub>IMP-1043 · `solution-source-edited-outside-dispatch`</sub>
-- A selector in approved instruction prose ('every entry whose X is Y') is a filter over data like any gate's: dump the corpus and count matches for the literal before drafting it, and name the false positives a looser form would admit.  
-  <sub>IMP-1042 · `approved-change-wording-assumes-a-field-that-does-not-exist`</sub>
 - Before treating a source fix as done, run verify-live-flow-definitions.py against the environment; a DIFFERS on the fixed flow means the fix is not live.  
   <sub>IMP-1041 · `live-definition-drifts-from-source`</sub>
 - When amending a parked review, re-measure every routed row and every deferral whose revisit_when names a live observation before writing the amendment note; a parked review ages with the environment, not with its own amendments.  
@@ -1164,6 +1156,16 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- A test that pins the presence of a named deferral by literal id breaks the moment the deferral is legitimately closed; assert the columns are absent from source and not that a deferral id exists.  
+  <sub>IMP-1048 · `hand-maintained-count-drifts-from-source`</sub>
+- Assert existence (IndexOf -ge 0) before any positional comparison on a name; run src/tests/Invoke-Tests.ps1 whole after adding secured columns, not only the suites the brief names.  
+  <sub>IMP-1045 · `hand-maintained-count-drifts-from-source`</sub>
+- When reading hotfixed source for a TAD update, grep Entity.xml for columns the TAD or an ADR says do not exist, and check the two config catalogues (attribute-type-lock, trustee-restricted-field-catalogue) for them.  
+  <sub>IMP-1044 · `solution-source-edited-outside-dispatch`</sub>
+- After any edit to a flow's action list, run that flow's own Pester contract file (src/tests/solutions) before presenting it: run-source-gates.py cannot see it, and a stale suite halts the next build at unit-tests.  
+  <sub>IMP-1043 · `solution-source-edited-outside-dispatch`</sub>
+- A selector in approved instruction prose ('every entry whose X is Y') is a filter over data like any gate's: dump the corpus and count matches for the literal before drafting it, and name the false positives a looser form would admit.  
+  <sub>IMP-1042 · `approved-change-wording-assumes-a-field-that-does-not-exist`</sub>
 - After removing a stray pac, re-run `scripts/run-with-timeout.sh 45 pac org who` before retrying the build: if it still hangs, look for the macOS Keychain prompt (IMP-0217) before any further attempt. The hint should print the Keychain check in both branches, and a build report must call a stray pac 'found', not 'the cause', until that probe has returned.  
   <sub>IMP-1032 · `gate-defect`</sub>
 - To record a Pester test-run with its exit code, use New-PesterConfiguration with Run.Exit = $true, not -CI, which writes the tracked testResults.xml.  

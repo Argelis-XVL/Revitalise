@@ -4,7 +4,7 @@
 `C-TECH-030` — pipeline-agent's pre-Stage-1 preflight. Run it against the directory a
 dispatch names as its deploy target, BEFORE any `deploy_command` or ALM stage executes.
 
-    python3 scripts/verify-artifact-provenance.py build/artifacts/<slug>-<YYYYMMDD>-<n>/
+    python3 scripts/verify-artifact-provenance.py build/artifacts/<slug>-<YYYYMMDD>-<n>/ --env <env>
 
 WHY THIS EXISTS
 ---------------
@@ -31,6 +31,12 @@ WHAT IT CHECKS (HARD — exit 1, deploy does not begin)
     empty or absent
   * some file under `docs/tests/` names this directory — test-agent's approval names the
     specific build it approved, and a build nobody tested is not a deploy candidate
+
+  * a CHANGE-SCOPED artifact (`scoped: true` in `manifest.json` or `run-build-result.json`) is
+    deployed only to the FIRST environment of `instance.yaml` → `environment_chain`, and only
+    with `--env <name>` saying where it is going (IMP-1052). A scoped build skipped producer
+    steps, so its directory is deliberately incomplete; whatever is promoted from the first
+    environment must come from a full run. Unscoped artifacts are unaffected by `--env`.
 
 AND ONE WARNING (exit 0, reported)
 ----------------------------------
@@ -187,7 +193,71 @@ def evaluate(name: str,
     return errors, warnings
 
 
-def check_dir(artifact_dir: Path, repo_root: Path) -> tuple[list[Finding], list[str]]:
+def environment_chain(repo_root: Path) -> list[str]:
+    """`instance.yaml` → `environment_chain`, in order. Empty when absent or unreadable."""
+    path = repo_root / "instance.yaml"
+    if not path.is_file():
+        return []
+    text = path.read_text(encoding="utf-8")
+    try:
+        import yaml  # type: ignore
+        doc = yaml.safe_load(text) or {}
+        chain = doc.get("environment_chain") if isinstance(doc, dict) else None
+        if isinstance(chain, list):
+            return [str(e).strip() for e in chain if str(e).strip()]
+    except Exception:  # noqa: BLE001 — fall back to the flow-style line below
+        pass
+    m = re.search(r"^environment_chain:\s*\[([^\]]*)\]", text, re.MULTILINE)
+    return [e.strip().strip("'\"") for e in m.group(1).split(",") if e.strip()] if m else []
+
+
+def evaluate_scope(scoped: bool, env: str | None, chain: list[str]) -> list[Finding]:
+    """Pure core of the IMP-1052 check. A change-scoped artifact goes to the first environment of
+    the chain and nowhere else; an unscoped one is not this check's business."""
+    if not scoped:
+        return []
+    if not env:
+        return [Finding(
+            "scoped-artifact-needs-env",
+            "this artifact is CHANGE-SCOPED (scoped: true): a run-build.py --changed-since run "
+            "skipped producer steps, so the directory is deliberately incomplete. Where it may "
+            "go depends on the target environment, and none was given.",
+            "re-run with --env <the environment this deploy targets>.",
+        )]
+    if not chain:
+        return [Finding(
+            "no-environment-chain",
+            "this artifact is CHANGE-SCOPED and instance.yaml declares no environment_chain, so "
+            "the first environment — the only one a scoped artifact may reach — is unknown.",
+            "declare environment_chain in instance.yaml, or deploy a full (unscoped) build.",
+        )]
+    if env != chain[0]:
+        return [Finding(
+            "scoped-artifact-beyond-first-environment",
+            f"this artifact is CHANGE-SCOPED and the target is '{env}', but a scoped artifact "
+            f"deploys only to '{chain[0]}' (the first of {chain}). Whatever is promoted from "
+            f"'{chain[0]}' must come from a full run (IMP-1052).",
+            "run build-agent WITHOUT --changed-since, deploy that artifact to the first "
+            "environment, and promote from there.",
+        )]
+    return []
+
+
+def _scoped_flag(artifact_dir: Path) -> bool:
+    for fname in ("manifest.json", "run-build-result.json"):
+        f = artifact_dir / fname
+        if f.is_file():
+            try:
+                doc = json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if isinstance(doc, dict) and doc.get("scoped") is True:
+                return True
+    return False
+
+
+def check_dir(artifact_dir: Path, repo_root: Path,
+              env: str | None = None) -> tuple[list[Finding], list[str]]:
     name = artifact_dir.name
     if not artifact_dir.is_dir():
         return [Finding(
@@ -215,7 +285,9 @@ def check_dir(artifact_dir: Path, repo_root: Path) -> tuple[list[Finding], list[
                 except OSError:
                     continue
 
-    return evaluate(name, manifest_raw, build_log, hits)
+    errors, warnings = evaluate(name, manifest_raw, build_log, hits)
+    errors += evaluate_scope(_scoped_flag(artifact_dir), env, environment_chain(repo_root))
+    return errors, warnings
 
 
 def selftest() -> int:
@@ -287,15 +359,43 @@ def selftest() -> int:
     if not any(f.kind == "manifest-unparseable" for f in e):
         failures.append(f"a truncated manifest must be caught, got {[f.kind for f in e]}")
 
+    # 10-13. IMP-1052: a change-scoped artifact goes to the first environment only.
+    chain = ["dev", "test", "prod"]
+    if evaluate_scope(True, "dev", chain):
+        failures.append("a scoped artifact to the FIRST environment must pass")
+    if [f.kind for f in evaluate_scope(True, "test", chain)] != [
+            "scoped-artifact-beyond-first-environment"]:
+        failures.append("a scoped artifact to a LATER environment must fail")
+    if [f.kind for f in evaluate_scope(True, None, chain)] != ["scoped-artifact-needs-env"]:
+        failures.append("a scoped artifact with NO --env must fail and say to pass it")
+    if evaluate_scope(False, "prod", chain) or evaluate_scope(False, None, chain):
+        failures.append("an unscoped artifact must be unaffected, with or without --env")
+
+    # 14. The flag is read from the directory: run-build-result.json alone is enough.
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        (d / "manifest.json").write_text(json.dumps({"status": "SUCCESS"}), encoding="utf-8")
+        if _scoped_flag(d):
+            failures.append("a manifest with no scoped flag must read as unscoped")
+        (d / "run-build-result.json").write_text(json.dumps({"scoped": True}), encoding="utf-8")
+        if not _scoped_flag(d):
+            failures.append("scoped: true in run-build-result.json must be read")
+        (d / "instance.yaml").write_text("environment_chain: [dev, stage, live]\n",
+                                         encoding="utf-8")
+        if environment_chain(d) != ["dev", "stage", "live"]:
+            failures.append(f"environment_chain not read: {environment_chain(d)}")
+
     if failures:
         print("verify-artifact-provenance --selftest: FAILED")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("verify-artifact-provenance --selftest: PASS — 9 fixtures (complete artifact; the "
+    print("verify-artifact-provenance --selftest: PASS — 14 fixtures (complete artifact; the "
           "IMP-0582 shape; manifest copied from a sibling; FAILED build; BLOCKED build; null "
           "status; missing build.log line WARNS and does not fail; DEPLOYED status with a "
-          "slashless artifact_path; truncated manifest)")
+          "slashless artifact_path; truncated manifest; scoped artifact to the first, a later "
+          "and no environment; unscoped unaffected; scoped flag and chain read from disk)")
     return 0
 
 
@@ -324,6 +424,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="report over every directory under build/artifacts (measurement only; "
                          "always exits 0)")
     ap.add_argument("--root", default=str(REPO_ROOT), help="repo root (for the tests)")
+    ap.add_argument("--env", default=None,
+                    help="the environment this deploy targets; required for a change-scoped "
+                         "artifact, which may reach only the first of instance.yaml's "
+                         "environment_chain (IMP-1052)")
     args = ap.parse_args(argv)
 
     repo_root = Path(args.root)
@@ -345,7 +449,7 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("an artifact directory is required (or --selftest / --corpus)")
 
     artifact_dir = Path(args.artifact_dir)
-    errors, warnings = check_dir(artifact_dir, repo_root)
+    errors, warnings = check_dir(artifact_dir, repo_root, args.env)
     return report(artifact_dir, errors, warnings)
 
 

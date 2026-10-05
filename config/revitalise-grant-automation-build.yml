@@ -48,8 +48,11 @@ artifacts:
 # CHANGE SCOPING (`paths:`). Read ONLY by `scripts/run-build.py --changed-since <ref>|last-green`;
 # without that flag, and always in CI (run-config-steps.sh ignores the key), every step runs.
 # A step with `paths:` is skipped when no file changed since the base matches its globs
-# (gitignore-style, last match wins). Only the four slow groups are scoped — each code app's
-# npm chain, the Pester suite, and solution pack + checker; the sub-second gates stay always-on.
+# (gitignore-style, last match wins), unless a repo file its own command names changed. Scoped:
+# each code app's npm chain, the Pester suite, and the solution checker (`lint`); the sub-second
+# gates stay always-on. The solution is ALWAYS packed, with its packed-form check: reviewer
+# decision D-1 of improvement review 2026-10-05-2 (+~11.5 s per scoped run), so every deploy
+# carries a fresh solution zip and the DEV import always runs and clears live drift (IMP-1052).
 # A scoped run is a DEV inner-loop build, never a release artifact: promotion takes a full run.
 # Every step in a group shares one anchor, so a producer and its consumers can never disagree.
 steps:
@@ -1063,11 +1066,9 @@ steps:
       --exclusions config/coverage-exclusions.json
 
   - name: pack-managed
-    paths: &paths_solution [src/solutions/**]
     command: pac solution pack --zipfile "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Managed --errorlevel Info
 
   - name: pack-unmanaged
-    paths: *paths_solution
     command: pac solution pack --zipfile "$ARTIFACT_DIR"/RevitaliseGrantAutomation.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged --errorlevel Info
 
   # IMP-0874, blocker. `pac solution pack` derives the packed customizations.xml <forms type>
@@ -1082,7 +1083,6 @@ steps:
   # exist) — placed here rather than after `lint` so a form-type regression fails before the
   # slower solution-checker network round trip runs on an artifact already known bad.
   - name: component-shape-packed
-    paths: *paths_solution
     command: >
       python3 scripts/verify-packed-form-types.py
       src/solutions/RevitaliseGrantAutomation
@@ -1102,7 +1102,7 @@ steps:
   # a slow-but-working check completes while a stall fails fast. Exit 124 means "timed out".
   # History: docs/development/revitalise-grant-automation-build-config-history.md#lint
   - name: lint
-    paths: *paths_solution
+    paths: &paths_solution [src/solutions/**]
     command: >
       set -o pipefail &&
       mkdir -p "$ARTIFACT_DIR"/solution-checker &&

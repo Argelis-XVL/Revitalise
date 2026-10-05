@@ -2471,9 +2471,17 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
 
     # Which reviews have CLOSED at least one entry, i.e. whose keyword was given. Same signal as
     # check_left_behind(): a count over this file's rows, never a reading of a document's prose.
+    #
+    # WIDENED 2026-10-05 (improvement review 2026-10-05-2, row 1; IMP-1039): a reviewer-accepted
+    # DEFERRAL is evidence of the keyword too. A review whose every entry was deferred closes
+    # nothing, so counting closures alone reported it as "still parked" for ever — IMP-0298's
+    # warning named 2026-08-28-improvement-review-2.md, applied weeks earlier. A deferral is
+    # written on the keyword exactly as a closure is. check_left_behind()'s sibling count is
+    # deliberately NOT widened: no measured instance there, and it is a second gate's output.
     closed_per_doc: dict[str, int] = {}
     for r in rows:
-        if str(r.get("status") or "").strip().upper() in ("APPLIED", "REJECTED"):
+        if (str(r.get("status") or "").strip().upper() in ("APPLIED", "REJECTED")
+                or str(r.get("deferred_reason") or "").strip()):
             for rel in reviewed_in_paths(r):
                 closed_per_doc[Path(rel).name] = closed_per_doc.get(Path(rel).name, 0) + 1
 
@@ -3072,6 +3080,15 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
                 rejected_reason="closed by the fixture review", reviewed_in=_REVIEW),
          _entry(id="IMP-9002", severity="friction", corrects="IMP-9001")],
         {_REVIEW: _REVIEW_BODY}, True, 0, ""),
+    # IMP-1039 (review 2026-10-05-2, row 1): a review that DEFERRED every entry it processed
+    # closed nothing, but its keyword was given all the same. It must not read as parked.
+    "all-deferral-review-is-not-parked": (
+        [_entry(severity="friction", reviewed_in=_REVIEW),
+         _entry(id="IMP-9003", severity="friction", reviewed_in=_REVIEW,
+                deferred_reason="reviewer accepted, out of scope", revisit_when="later"),
+         _entry(id="IMP-9002", severity="friction", corrects="IMP-9001", status="REJECTED",
+                rejected_reason="r")],
+        {_REVIEW: _REVIEW_BODY}, True, 0, ""),
     # A CLOSED correcting entry against a still-parked review: the remedy must not say "stamp".
     "closed-correction-remedy-says-do-not-stamp": (
         [_entry(severity="friction", reviewed_in=_REVIEW),
@@ -3269,6 +3286,7 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
 _MUST_NOT_CONTAIN: dict[str, str] = {
     # rc 0 would pass whether or not the rung fired, so the banned text is the assertion.
     "correction-after-its-review-was-applied-must-not-warn": "'corrects' naming it",
+    "all-deferral-review-is-not-parked": "which is still parked",   # IMP-1039
     "fixes-of-a-processed-finding-must-not-warn": "appended later",
     "deferral-table-citation-must-not-warn": "carries NO 'reviewed_in'",
     "prose-non-scope-declaration-must-not-warn": "carries NO 'reviewed_in'",
