@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1048 entries)
+Source: `logs/improvement-log.jsonl` (1050 entries)
 Generated: 2026-10-05
 
 ## What this file is, and who reads it
@@ -32,11 +32,11 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`no-assertion-on-shipped-content`** (×37): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049
 - **`gate-reassures-wrongly`** (×35): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798
 - **`finding-diagnosis-unverified`** (×34): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959
-- **`gate-scope-mismatch`** (×31): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047
+- **`gate-scope-mismatch`** (×32): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
 - **`stale-claim-contradicting-rechecked-source`** (×26): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015
 - **`untriaged-tool-warning`** (×21): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957, IMP-0961, IMP-0962, IMP-1006
-- **`two-invocation-paths-disagree`** (×19): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052
+- **`two-invocation-paths-disagree`** (×20): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053
 - **`platform-state-divergence`** (×17): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857
 - **`gate-fires-on-nothing`** (×16): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825, IMP-1039
 - **`harness-blocks-destructive-call`** (×16): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828
@@ -56,7 +56,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you execute a build config — capped lessons
 
-*107 lesson(s) the digest does not render, in the same order it ranked them.*
+*109 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - In a YAML `>` folded scalar, keep every line at the SAME indentation and put `&&`/`||` at line END — a more-indented line keeps its newline and yields a shell syntax error. Preflight now runs `bash -n` on every step command.  
   <sub>IMP-0025 · `gate-cannot-fail`</sub>
@@ -66,6 +66,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
+- A file a step's command names is an input of that step, whatever its paths: says; derive that part of the scope from the command, do not hand-declare it.  
+  <sub>IMP-1054 · `gate-scope-mismatch`</sub>
+- When a consumer finds a file by path, the producer's instruction must name that exact path; a free-choice output location is two invocation paths that will disagree.  
+  <sub>IMP-1053 · `two-invocation-paths-disagree`</sub>
 - A build that can skip producers must say so in its result, and every consumer of the artifact must read that before acting on it.  
   <sub>IMP-1052 · `two-invocation-paths-disagree`</sub>
 - A generated file that is classified contract in code-app-variant-parity needs the generator to write every copy.  

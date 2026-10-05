@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (1048 entries, 1030 distinct lessons)
+Source: `logs/improvement-log.jsonl` (1050 entries, 1032 distinct lessons)
 Generated: 2026-10-05
 
 <a id="kfm-how-to-use"></a>
@@ -51,11 +51,11 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x37** | `no-assertion-on-shipped-content` | — | `before-success` ×36, `Capabilities` | IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049 (+31 earlier — see appendix) |
 | **x35** | `gate-reassures-wrongly` | — | `Unrouted` ×35 | IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798 (+29 earlier — see appendix) |
 | **x34** | `finding-diagnosis-unverified` | — | `Unrouted` ×34 | IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959 (+28 earlier — see appendix) |
-| **x31** | `gate-scope-mismatch` | — | `before-build` ×31 | IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047 (+25 earlier — see appendix) |
+| **x32** | `gate-scope-mismatch` | — | `before-build` ×32 | IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054 (+26 earlier — see appendix) |
 | **x31** | `learning-substrate-destroyed` | — | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
 | **x26** | `stale-claim-contradicting-rechecked-source` | — | `Unrouted` ×24, `Capabilities` ×2 | IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015 (+20 earlier — see appendix) |
 | **x21** | `untriaged-tool-warning` | — | `Unrouted` ×21 | IMP-0861, IMP-0955, IMP-0957, IMP-0961, IMP-0962, IMP-1006 (+15 earlier — see appendix) |
-| **x19** | `two-invocation-paths-disagree` | — | `before-build` ×19 | IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052 (+13 earlier — see appendix) |
+| **x20** | `two-invocation-paths-disagree` | — | `before-build` ×20 | IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053 (+14 earlier — see appendix) |
 | **x17** | `platform-state-divergence` | — | `Unrouted` ×17 | IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857 (+11 earlier — see appendix) |
 | **x16** | `gate-fires-on-nothing` | — | `before-build` ×16 | IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825, IMP-1039 (+10 earlier — see appendix) |
 | **x16** | `harness-blocks-destructive-call` | — | `operating` ×13, `Capabilities` ×3 | IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828 (+10 earlier — see appendix) |
@@ -134,7 +134,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 <a id="kfm-before-build"></a>
 ## Before you execute a build config
 
-*127 lessons from 127 findings.*
+*129 lessons from 129 findings.*
 
 - C-TECH-058 (an OPEN assumption closeable in an existing environment blocks deployment absent a recorded OVERRIDE) must be re-evaluated by test-agent every cycle against current pipeline.log and environment state, never carried forward as unchanged from a prior report once an actual import has occurred between test cycles -- the precondition (does the environment now exist) can change with no source edit to prompt a re-read.  
   <sub>IMP-0670</sub>
@@ -178,10 +178,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - A HARD constraint whose rule text is still a placeholder always PASSES and is therefore a gate that cannot fail. C-DOM-030 and C-DOM-031 are placeholders; report them as UNEVALUABLE rather than PASS, and note that skills/how-to-apply-constraints.md has no status for that outcome.  
   <sub>IMP-0035</sub>
 
-> **107 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **109 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`gate-cannot-fail`** (×42): IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036 (+36 earlier — see appendix)
->   · **`gate-scope-mismatch`** (×29): IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047 (+23 earlier — see appendix)
->   · **`two-invocation-paths-disagree`** (×16): IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052 (+10 earlier — see appendix)
+>   · **`gate-scope-mismatch`** (×30): IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054 (+24 earlier — see appendix)
+>   · **`two-invocation-paths-disagree`** (×17): IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053 (+11 earlier — see appendix)
 >   · **`gate-fires-on-nothing`** (×14): IMP-0557, IMP-0558, IMP-0645, IMP-0714, IMP-0825, IMP-1039 (+8 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×6): IMP-0005, IMP-0039, IMP-0120, IMP-0235, IMP-0315, IMP-0416
 
