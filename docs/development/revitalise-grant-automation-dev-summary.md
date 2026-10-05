@@ -4608,7 +4608,7 @@ attribute conversions.
 | TAD §6 control | Implementation |
 |---|---|
 | `rev_employmentstatus`, `rev_consentexplanation`, `rev_intakereviewnote` secured | `FieldSecurityProfiles.xml` — 3 new `FieldPermission` entries in `REV_TrusteeRestricted` |
-| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (78, not 79 or more) |
+| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (88, not 89 or more) |
 | `rev_carername`, `rev_carersupport` permissions removed with their columns | 2 `FieldPermission` entries removed |
 
 `scripts/verify-field-security-coverage.py` and the equivalent Pester assertion in
@@ -4765,7 +4765,7 @@ by hand on 2026-08-16 for two different columns; this time the fix was performed
 | `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek` | `EntityDefinitions` query | **PicklistType**, all three |
 | `rev_applicant.rev_preferredcontactmethod` | `EntityDefinitions` query | **MultiSelectPicklistType** |
 | `rev_consentexplanation`, `rev_intakereviewnote` | `EntityDefinitions` query | **MemoType**, both, `IsSecured` confirmed via the field-permission check below |
-| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39** as at 2026-08-21 — exact against source on that date; source is **78** today, the difference being columns secured after this verification ran (drift tracked by `scripts/derived-counts-registry.json`) — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
+| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39** as at 2026-08-21 — exact against source on that date; source is **88** today, the difference being columns secured after this verification ran (drift tracked by `scripts/derived-counts-registry.json`) — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
 | Application main form | `systemforms` query, raw `formxml` | Contains `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek`, `rev_consentexplanation`, `rev_intakereviewnote`; does **not** contain `rev_currentlyworking`, `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` |
 | Applicant main form | `systemforms` query, raw `formxml` | Contains `rev_preferredcontactmethod` |
 | New `rev_setting` rows | `rev_settings` query, `rev_value` | Live JSON matches source byte-for-byte for all three label maps |
@@ -12570,3 +12570,57 @@ tab's `recipientId` with the `roleName` that `GetRecipientStatus` returns for it
 **Backfill for existing DEV rows (NOT run).** One-off PowerShell against DEV with the Dataverse Web API: GET `rev_applicants?$select=rev_applicantid,rev_firstname,rev_lastname,rev_fullname&$filter=rev_fullname eq null or rev_fullname eq ''`, then PATCH each with `rev_fullname = (firstname + ' ' + lastname).Trim()`. Run only with the reviewer's approval, `-WhatIf` first, log the row count. Not needed for rows whose applicant re-submits.
 
 **Verification.** V1 only: IntakeContract 157/157. Not packaged, imported or run. Other readers (Create Envelope, Reminders/Escalation) only read `rev_fullname` and are unaffected.
+
+---
+
+## Revision — hotfix route reconciled to the gates: envelope failure lookup, secure data restored, card, conversion text, counts, intake backfill script (wbs:3.2, 4.2, 4.3; improvement review 2026-10-05 R1-R5, D-2, D-3)
+
+**Configuration decision (IMP-0836).** This revision **amends** `config/revitalise-grant-automation-build.yml` and `config/revitalise-grant-automation-pipeline.yml` (same CI slug); it needs no configuration of its own. Build config: **no change** (every gate it touches is already wired). Pipeline config: one new reviewer-run `post_deploy` entry for DEV, `operation: intake-derived-columns-backfill`.
+
+**Dispatch carried no `items:`** (`ITEMS: none carried`).
+
+### 0. DEV was read before anything was touched (reviewer: "first check against DEV, cause its working now")
+
+Read-only, 2026-10-05, `svc_grantapplications@revitalise.org.uk` on `REV-GrantApplications-DEV`.
+
+| Check | Result |
+|---|---|
+| `verify-live-flow-definitions.py --env dev` | 10 flows read. **`REV \| Acceptance \| Create Envelope` equals source, definition and connectionReferences**, `modifiedon` 2026-10-04 07:24 UTC, the same minute as the latest completed import (07:24 UTC). Nothing wrote it after the import. |
+| Own canonical walk over all 10 flows | 9 flows: 0 differences. Intake: exactly one, `Create_application.inputs.parameters.item/rev_costs` present in source, absent live. That is the known, deliberate hotfix exclusion (D-3), not a designer edit. |
+| `flowrun` rows for Create Envelope | Two runs after the 07:24 import (4 Oct 07:38 and 07:39, times as rendered by `pac`, no zone marker), both `Succeeded`. The last `Failed` runs (`TabsNotFilled` 4 Oct 05:36; `DraftDoesNotMatchTemplate` 3 Oct 19:36 to 20:21) predate it. |
+| Verdict | **DEV is the working baseline and source already matches it.** No source change was needed to bring source in line with DEV. |
+
+### 1. What changed
+
+| Ref | File | Change | Runtime effect |
+|---|---|---|---|
+| R1, wbs:3.2 | `Workflows/REVAcceptanceCreateEnvelope-...E06.json` | `Describe_the_failure` gains three Switch cases, one per container `Find_the_failed_action` could not look inside: `Check_there_are_tabs_to_fill`, `Check_both_signers_are_bound`, `Fill_the_referee_company_tabs_if_any`. Each mirrors the four existing cases (Query on `result('<container>')`, then `failureDetail` set from the leaf). 6 new actions, names unique flow-wide (IMP-0804). The new Query actions are secured, like `Find_the_failed_action`. | **None on the success path.** Evaluated only when a run has already failed; it makes the alert name the failing leaf action instead of the wrapper "An action failed. No dependent actions succeeded." |
+| R2 / D-2, wbs:3.2 | same file | `secureData` newly set on **42 existing actions** (secured actions in the flow: 7 before, 52 after, counting the 3 new Query actions from R1): `Read_the_tabs` through `Select_unfilled_tab_ids` (the hotfix's removed range), all 7 `Fill_the_*` connector actions and the 7 `Select_the_*_array` builders, the 4 `Filter_*_tabs` splitters, `Select_referee_company_tab_array`, `Bind_the_applicant`, `Bind_the_referee`, `Require_referee_access_code`, `List_the_envelope_recipients`, `Read_the_signers_after_binding`, and the four signer `Filter_*` queries. 40 of the 42 take inputs+outputs. The other two are secured on **inputs only**: `Compose_acceptance_email_texts` (it substitutes `{applicantName}` into subject and body) and `Create_the_draft_envelope` (its input is that subject; its output, the envelope id, stays readable so a lost envelope can be found, TAD 5.8 C1). Connector actions carrying the setting: 17 of 24 (was 2). The 7 left readable read no personal value. | **Run history only.** `secureData` masks an action's inputs and outputs in the run-history panes; expressions, `runAfter`, `result()` and the alert text are unchanged. **The cost is diagnostic:** the tab values the hotfix opened for debugging are hidden again, so a future tab problem must be diagnosed from the error code and `failureDetail`, which name tabs and never values. The original removal was a diagnostic, not a design change (pipeline.log 2026-10-03 20:40). **DEV keeps the unsecured version until a gated build deploys this file.** |
+| R3 | `docs/development/cards/escalation-alert-card.json` | Two fact values aligned to the flow: `body('Get_the_applicant')?['value']` becomes `outputs('Get_the_applicant')?['body/value']`, and the same for `Get_the_application`. The flow's form is the shipped one (DEV runs it), so the readable file moved, not the flow. | None. `verify-shipped-content.py` was red; now green. |
+| R4, wbs:4.2/4.3 | `provisioning/dataverse/ensure-schema-helpers.psm1` (warning text), `provisioning/dataverse/ensure-schema.ps1` (header) | Both now say the intake flow writes `rev_fullname` and `rev_costs` today, so those two writes come out of the flow, and the flow is deployed, before either column is converted to calculated; the plain-column gate's Rule C fails the opposite order. | None (text). Both files parse. |
+| R5 | pipeline config (2 lines, 22 to 36), Dev Summary (2 lines, 78 to 88), `REV Trustee.xml` header (62 to 72), `docs/reference/supplied-assets.md` (131 to 285, dated) | Six drifted registered counts corrected to what `verify-derived-counts.py` derives. | None. Gate: 11 of 11 match. |
+| D-3 | `provisioning/dataverse/backfill-intake-derived-columns.ps1` (new), `provisioning/README.md` (inventory row), `src/tests/provisioning/DataverseScripts.Tests.ps1` (8 behavioural tests), pipeline config (one entry) | See section 2. **Not run.** | None until a human runs it with `-Apply`. |
+| tests | `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1` | Three secure-data tests moved to the current action names and the two inputs-only exceptions, plus an assertion that the company-tab fill (nested in an `If`) is secured. All three pass. | None. |
+
+### 2. The intake backfill (D-3, widened)
+
+**Confirmed in source:** `REVIntakeWordPressToDataverse` writes `item/rev_costs` in `Create_application` (sum of the present parts, null when none is) and `item/rev_fullname` in both `Create_new_applicant` and `Refresh_existing_applicant`; `IntakeContract.Tests.ps1` asserts both (158 of 158). **Live, DEV lacks only the `rev_costs` write**, so the backfill is only meaningful after pipeline-agent deploys the intake flow from source and `verify-live-flow-definitions.py` reports no difference.
+
+`backfill-intake-derived-columns.ps1 -Env <env> [-Apply]`: dry run by default. It fills `rev_applicant.rev_fullname` where NULL or empty (`trim(first + ' ' + last)`) and `rev_application.rev_costs` where NULL and at least one of the three cost parts is present (sum of the present parts). Idempotent: rows already filled are never read back or written, a re-run reports `EXISTS`. It skips the synthetic `seed-test-data.ps1` rows (the two markers `remove-test-data.ps1` uses). **Positive control:** the name columns are secured, so an identity without read access sees NULL; if applicants need filling but none returns a first or last name, the script reports `FAILED` and writes nothing. It prints row ids and counts only, never a name. Neither target column is audit-enabled, so the script's output is the only record.
+
+**Needs the reviewer:** a live write against DEV. The provisioning identity must also be a member of the `REV_TrusteeRestricted` profile to read and write the name columns (zero members as of IMP-0221, 2026-08-23; unverified since).
+
+### 3. Hours proposal (commercial-agent confirms; not a booking)
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 3.2 | 2.5 h | DEV read-back, R1 cases, R2 secure data, 3 test updates |
+| 4.2, 4.3 | 1.5 h | R4 text, backfill script and its 8 tests, pipeline entry |
+| system | 1.0 h | R3 card, R5 count corrections (tooling and documents, not what the client bought) |
+
+### 4. Verification (second run, after the last edit)
+
+**Highest level executed: V1** for source and scripts; **V5-read for DEV** in section 0 (read-only). Nothing was packaged, imported, published or written to DEV.
+`run-source-gates.py` **19 of 19**; `verify-flow-definition-language.py` OK (10 flows, no check-7 exception needed); `verify-shipped-content.py` OK; `verify-derived-counts.py` OK (11 of 11); provisioning Pester suite 786 of 786 (includes `ScriptContract.Tests.ps1`, 476 of 476, and the 8 new tests); `IntakeContract.Tests.ps1` 158 of 158; `verify-provisioning-test-presence.py` OK; `verify-audited-tables.py` OK.
+
+**Not green, and not caused by this revision:** `AcceptanceEnvelopeContract.Tests.ps1` has 35 failing tests (45 on the committed tree before this revision, 1 fixed by R1, 3 secure-data tests fixed here). They assert the rev 15 action list (`Fill_the_tabs`, one `UpdateEnvelopePrefillTabs` call, `body('Get_the_applicant')`) that the 3 October hotfixes replaced, and the hotfixes ran no gates. The `unit-tests` build step will halt on them. They need a rewrite against the hotfixed design, and the TAD (rev 15, section 5.8) needs to say what the hotfixes decided; that is architect-agent's and the reviewer's call, not a mechanical fix.

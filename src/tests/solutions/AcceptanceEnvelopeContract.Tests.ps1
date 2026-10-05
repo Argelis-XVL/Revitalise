@@ -601,6 +601,10 @@ Describe 'REV | Acceptance | Create Envelope and Reminders & Escalation — no p
             $action.Contains('runtimeConfiguration') | Should -BeTrue -Because "$name carries a personal value"
             $props = @($action['runtimeConfiguration']['secureData']['properties'])
             if ($action.type -in $script:InputsOnly) { $props | Should -Be @('inputs') -Because "$name is a $($action.type): Secure Inputs also hides its outputs" }
+            # Create_the_draft_envelope is the one connector action secured on INPUTS only, by design: its input carries the
+            # email subject (which can hold the applicant's name), but its output is the envelope id, which must stay readable
+            # so a lost envelope can be found (TAD 5.8 C1; reviewer decision D-2, 2026-10-05).
+            elseif ($name -eq 'Create_the_draft_envelope') { ($props -join ',') | Should -Be 'inputs' -Because $name }
             else { ($props -join ',') | Should -Be 'inputs,outputs' -Because $name }
         }
     }
@@ -612,7 +616,10 @@ Describe 'REV | Acceptance | Create Envelope and Reminders & Escalation — no p
         }
         foreach ($n in @('Select_referee_phone_digits', 'Compose_referee_phone_digits', 'Compose_access_code', 'Compose_tab_values',
                          'Bind_the_applicant', 'Bind_the_referee', 'Require_referee_access_code', 'Select_tab_matches',
-                         'Filter_tabs_to_fill', 'Filter_unmapped_tabs', 'Select_tab_array', 'Fill_the_tabs')) {
+                         'Filter_tabs_to_fill', 'Filter_unmapped_tabs', 'Select_tab_array',
+                         'Fill_the_prefill_tabs', 'Fill_the_prefill_tabs_with_enum', 'Fill_the_applicant_tabs',
+                         'Fill_the_applicant_tabs_as_read', 'Fill_the_referee_tabs', 'Fill_the_referee_tabs_as_read',
+                         'Fill_the_referee_company_tabs')) {
             $script:Flows['REVAcceptanceCreateEnvelope'].Closure.Contains($n) | Should -BeTrue -Because $n
         }
         foreach ($n in @('Notify_escalation_card', 'Notify_escalation')) {
@@ -623,7 +630,9 @@ Describe 'REV | Acceptance | Create Envelope and Reminders & Escalation — no p
     It 'TAD 5.8: the recipient, verification and tab calls (C2-C4, C6-C8) and every Select/Query after the draft are secured; C1, C5, C9, C10 stay readable' {
         $b = $script:Build
         foreach ($n in @('List_the_envelope_recipients', 'Bind_the_applicant', 'Bind_the_referee', 'Require_referee_access_code',
-                         'Read_the_tabs', 'Fill_the_tabs', 'Re_read_the_tabs')) {
+                         'Read_the_tabs', 'Fill_the_prefill_tabs', 'Fill_the_prefill_tabs_with_enum', 'Fill_the_applicant_tabs',
+                         'Fill_the_applicant_tabs_as_read', 'Fill_the_referee_tabs', 'Fill_the_referee_tabs_as_read',
+                         'Re_read_the_tabs', 'Read_the_signers_after_binding')) {
             (@($b[$n]['runtimeConfiguration']['secureData']['properties']) -join ',') | Should -Be 'inputs,outputs' -Because $n
         }
         $draftAt = [array]::IndexOf($script:Order, 'Create_the_draft_envelope')
@@ -632,7 +641,14 @@ Describe 'REV | Acceptance | Create Envelope and Reminders & Escalation — no p
                 (@($b[$n]['runtimeConfiguration']['secureData']['properties']) -join ',') | Should -Be 'inputs,outputs' -Because $n
             }
         }
-        foreach ($n in @('Create_the_draft_envelope', 'Find_the_document', 'Set_reminder_cadence', 'Send_the_envelope', 'Write_the_envelope_id_and_issue_date')) {
+        # C1 is secured on INPUTS only (the subject can carry the applicant's name); its output, the envelope id, stays readable.
+        (@($b['Create_the_draft_envelope']['runtimeConfiguration']['secureData']['properties']) -join ',') | Should -Be 'inputs'
+        # The company-tab fill sits inside an If, so it is not a top-level action of Build_the_envelope.
+        $company = $b['Fill_the_referee_company_tabs_if_any']['actions']
+        foreach ($n in @('Select_referee_company_tab_array', 'Fill_the_referee_company_tabs')) {
+            (@($company[$n]['runtimeConfiguration']['secureData']['properties']) -join ',') | Should -Be 'inputs,outputs' -Because $n
+        }
+        foreach ($n in @('Find_the_document', 'Set_reminder_cadence', 'Send_the_envelope', 'Write_the_envelope_id_and_issue_date')) {
             $b[$n].Contains('runtimeConfiguration') | Should -BeFalse -Because "$n reads no personal value and stays readable so a lost envelope can be found"
         }
     }

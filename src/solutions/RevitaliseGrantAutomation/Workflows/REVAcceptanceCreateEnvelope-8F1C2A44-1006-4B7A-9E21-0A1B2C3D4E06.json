@@ -331,6 +331,13 @@
                 "applicantBody": "@replace(replace(replace(replace(coalesce(json(coalesce(first(body('Filter_applicant_email_setting'))?['rev_value'], '{}'))?['body'], ''), '{grantReference}', coalesce(triggerOutputs()?['body/rev_name'], '')), '{applicationReference}', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_name'], '')), '{applicantName}', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))), '{refereeName}', if(empty(trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))), coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], ''), trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))))",
                 "refereeSubject": "@replace(replace(replace(replace(coalesce(json(coalesce(first(body('Filter_referee_email_setting'))?['rev_value'], '{}'))?['subject'], ''), '{grantReference}', coalesce(triggerOutputs()?['body/rev_name'], '')), '{applicationReference}', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_name'], '')), '{applicantName}', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))), '{refereeName}', if(empty(trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))), coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], ''), trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))))",
                 "refereeBody": "@replace(replace(replace(replace(coalesce(json(coalesce(first(body('Filter_referee_email_setting'))?['rev_value'], '{}'))?['body'], ''), '{grantReference}', coalesce(triggerOutputs()?['body/rev_name'], '')), '{applicationReference}', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_name'], '')), '{applicantName}', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))), '{refereeName}', if(empty(trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))), coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], ''), trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
               }
             },
             "Select_referee_phone_digits": {
@@ -797,6 +804,13 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
               }
             },
             "Set_draft_envelope_id": {
@@ -836,6 +850,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_the_applicant_signer": {
@@ -849,6 +871,14 @@
               "inputs": {
                 "from": "@body('List_the_envelope_recipients')?['signers']",
                 "where": "@equals(item()?['roleName'], 'Grant Acceptor')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_the_referee_signer": {
@@ -862,6 +892,14 @@
               "inputs": {
                 "from": "@body('List_the_envelope_recipients')?['signers']",
                 "where": "@equals(item()?['roleName'], 'Grant Referee')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Find_the_document": {
@@ -994,6 +1032,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Bind_the_referee": {
@@ -1027,6 +1073,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Require_referee_access_code": {
@@ -1057,6 +1111,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Read_the_tabs": {
@@ -1084,6 +1146,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_tabs_in_scope": {
@@ -1097,6 +1167,14 @@
               "inputs": {
                 "from": "@coalesce(body('Read_the_tabs')?['tabs'], json('[]'))",
                 "where": "@not(contains(outputs('Compose_connector_tab_types')?['neverSend'], string(coalesce(item()?['tabType'], ''))))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_tab_matches": {
@@ -1119,6 +1197,14 @@
                   "owner": "@if(equals(item()?['prefill'], true), 'prefill', if(contains(createArray(string(coalesce(first(body('Filter_the_referee_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_referee_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'referee', if(contains(createArray(string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'applicant', 'other')))",
                   "rawType": "@coalesce(outputs('Compose_connector_tab_types')?['canon']?[string(coalesce(item()?['tabType'], ''))], string(coalesce(item()?['tabType'], '')))"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_tabs_to_fill": {
@@ -1132,6 +1218,14 @@
               "inputs": {
                 "from": "@body('Select_tab_matches')",
                 "where": "@and(not(equals(item()?['id'], '')), not(equals(item()?['tabType'], '')))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_unmapped_tabs": {
@@ -1145,6 +1239,14 @@
               "inputs": {
                 "from": "@body('Select_tab_matches')",
                 "where": "@or(equals(item()?['id'], ''), equals(item()?['tabType'], ''))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_unmapped_tab_descriptions": {
@@ -1158,6 +1260,14 @@
               "inputs": {
                 "from": "@body('Filter_unmapped_tabs')",
                 "select": "@item()?['placeholder']"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_tab_array": {
@@ -1174,6 +1284,14 @@
                   "tabType": "@item()?['tabType']",
                   "tabId": "@item()?['tabId']",
                   "value": "@item()?['value']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -1202,6 +1320,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_re_read_values": {
@@ -1215,6 +1341,14 @@
               "inputs": {
                 "from": "@coalesce(body('Re_read_the_tabs')?['tabs'], json('[]'))",
                 "select": "@concat(string(coalesce(item()?['tabId'], '')), '|', if(equals(coalesce(outputs('Compose_connector_tab_types')?['canon']?[string(coalesce(item()?['tabType'], ''))], string(coalesce(item()?['tabType'], ''))), 'checkboxTabs'), toLower(string(coalesce(item()?['selected'], item()?['value'], ''))), string(coalesce(item()?['value'], ''))))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_found_tab_ids": {
@@ -1228,6 +1362,14 @@
               "inputs": {
                 "from": "@body('Filter_tabs_to_fill')",
                 "select": "@item()?['id']"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_missing_tabs": {
@@ -1257,6 +1399,14 @@
                   "r_phone"
                 ],
                 "where": "@not(contains(body('Select_found_tab_ids'), item()))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_unfilled_tabs": {
@@ -1270,6 +1420,14 @@
               "inputs": {
                 "from": "@body('Filter_tabs_to_fill')",
                 "where": "@not(contains(body('Select_re_read_values'), concat(string(coalesce(item()?['tabId'], '')), '|', string(coalesce(item()?['value'], '')))))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_unfilled_tab_ids": {
@@ -1283,6 +1441,14 @@
               "inputs": {
                 "from": "@body('Filter_unfilled_tabs')",
                 "select": "@item()?['id']"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Set_tab_fill_problem": {
@@ -1576,6 +1742,14 @@
               "inputs": {
                 "from": "@body('Filter_tabs_to_fill')",
                 "where": "@equals(item()?['owner'], 'prefill')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_applicant_tabs": {
@@ -1589,6 +1763,14 @@
               "inputs": {
                 "from": "@body('Filter_tabs_to_fill')",
                 "where": "@equals(item()?['owner'], 'applicant')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_referee_tabs": {
@@ -1602,6 +1784,14 @@
               "inputs": {
                 "from": "@body('Filter_tabs_to_fill')",
                 "where": "@equals(item()?['owner'], 'referee')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_the_prefill_tabs_array": {
@@ -1618,6 +1808,14 @@
                   "tabType": "@item()?['rawType']",
                   "tabId": "@item()?['tabId']",
                   "value": "@item()?['value']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -1647,6 +1845,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_the_prefill_tabs_with_enum_array": {
@@ -1663,6 +1869,14 @@
                   "tabType": "@item()?['tabType']",
                   "tabId": "@item()?['tabId']",
                   "value": "@item()?['value']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -1692,6 +1906,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_the_applicant_tabs_array": {
@@ -1709,6 +1931,14 @@
                   "tabType": "@item()?['tabType']",
                   "tabId": "@item()?['tabId']",
                   "value": "@item()?['value']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -1738,6 +1968,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_the_applicant_tabs_as_read_array": {
@@ -1754,6 +1992,14 @@
                   "tabType": "@item()?['rawType']",
                   "tabId": "@item()?['tabId']",
                   "value": "@item()?['value']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -1783,6 +2029,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_the_referee_tabs_array": {
@@ -1800,6 +2054,14 @@
                   "tabType": "@item()?['tabType']",
                   "tabId": "@item()?['tabId']",
                   "value": "@item()?['value']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -1829,6 +2091,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Select_the_referee_tabs_as_read_array": {
@@ -1845,6 +2115,14 @@
                   "tabType": "@item()?['rawType']",
                   "tabId": "@item()?['tabId']",
                   "value": "@item()?['value']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -1874,6 +2152,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Read_the_signers_after_binding": {
@@ -1900,6 +2186,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_the_bound_applicant": {
@@ -1913,6 +2207,14 @@
               "inputs": {
                 "from": "@coalesce(body('Read_the_signers_after_binding')?['signers'], json('[]'))",
                 "where": "@equals(string(item()?['recipientId']), string(first(body('Filter_the_applicant_signer'))?['recipientId']))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Filter_the_bound_referee": {
@@ -1926,6 +2228,14 @@
               "inputs": {
                 "from": "@coalesce(body('Read_the_signers_after_binding')?['signers'], json('[]'))",
                 "where": "@equals(string(item()?['recipientId']), string(first(body('Filter_the_referee_signer'))?['recipientId']))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Set_signer_binding_problem": {
@@ -2013,6 +2323,14 @@
               "inputs": {
                 "from": "@body('Filter_referee_tabs')",
                 "where": "@equals(item()?['rawType'], 'companyTabs')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Fill_the_referee_company_tabs_if_any": {
@@ -2045,6 +2363,14 @@
                       "tabId": "@item()?['tabId']",
                       "value": "@item()?['value']"
                     }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
                   }
                 },
                 "Fill_the_referee_company_tabs": {
@@ -2072,6 +2398,14 @@
                       "type": "exponential",
                       "count": 4,
                       "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
                     }
                   }
                 }
@@ -2218,6 +2552,111 @@
                   "inputs": {
                     "name": "failureDetail",
                     "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_tab_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_tab_check'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_tab_check'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              }
+            },
+            "Case_tabs_to_fill_check": {
+              "case": "Check_there_are_tabs_to_fill",
+              "actions": {
+                "Find_the_failed_step_inside_the_tabs_to_fill_check": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Check_there_are_tabs_to_fill is the failed child, so result() on it is safe (A-FLOW-13).",
+                  "inputs": {
+                    "from": "@result('Check_there_are_tabs_to_fill')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Set_failure_detail_from_the_tabs_to_fill_check": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_the_tabs_to_fill_check": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested container - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_tabs_to_fill_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_tabs_to_fill_check'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_tabs_to_fill_check'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              }
+            },
+            "Case_signer_binding_check": {
+              "case": "Check_both_signers_are_bound",
+              "actions": {
+                "Find_the_failed_step_inside_the_signer_binding_check": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Check_both_signers_are_bound is the failed child, so result() on it is safe (A-FLOW-13).",
+                  "inputs": {
+                    "from": "@result('Check_both_signers_are_bound')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Set_failure_detail_from_the_signer_binding_check": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_the_signer_binding_check": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested container - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_signer_binding_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_signer_binding_check'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_signer_binding_check'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              }
+            },
+            "Case_referee_company_tabs": {
+              "case": "Fill_the_referee_company_tabs_if_any",
+              "actions": {
+                "Find_the_failed_step_inside_the_referee_company_tabs": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Fill_the_referee_company_tabs_if_any is the failed child, so result() on it is safe (A-FLOW-13).",
+                  "inputs": {
+                    "from": "@result('Fill_the_referee_company_tabs_if_any')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Set_failure_detail_from_the_referee_company_tabs": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_the_referee_company_tabs": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested container - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_referee_company_tabs'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_referee_company_tabs'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_referee_company_tabs'))?['error']?['message'], 'no message supplied by the platform'))}"
                   }
                 }
               }

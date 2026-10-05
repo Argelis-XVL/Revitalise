@@ -577,7 +577,7 @@ tenant_prerequisites:
     # immediately above (rev_setting must exist before it can be seeded) and on the solution
     # import that creates rev_setting's alternate key rev_setting_name.
     - description: >
-        Seed the 22 rev_setting rows in DEV from provisioning/deploymentSettings/
+        Seed the 36 rev_setting rows in DEV from provisioning/deploymentSettings/
         dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
         seed-settings.ps1's own header explains why dev-settings.json must continue not to
         exist). Values are copied from test-settings.json, including the PROVISIONAL
@@ -1550,6 +1550,26 @@ environments:
           pwsh provisioning/entra/verify-intake-callback-url.ps1 -Env dev -Mode Compare
           -SnapshotPath intake-callback-dev-before.json
 
+      # ══ D-3 (improvement review 2026-10-05) — one-off backfill of intake-created rows ══
+      - description: >
+          REVIEWER-RUN, ONE-OFF, DRY RUN BY DEFAULT. Fill rev_applicant.rev_fullname and
+          rev_application.rev_costs on intake-created rows that hold NULL (wbs:4.2,4.3). Run it
+          ONLY after this deploy has put the intake flow live FROM SOURCE and the
+          `flow-definition-reread` step above reports no difference: until then the live intake
+          flow does not write rev_costs and new rows keep arriving without it. The command below
+          is the DRY RUN (reads, reports row ids and counts, writes nothing); the write is the same
+          command with `-Apply`, executed by the reviewer, who holds the provisioning credential
+          (agents/pipeline-agent.md -> Reviewer-Executed Operations). Re-runnable: rows already
+          filled are never read back or written. Neither target column is audit-enabled, so the
+          script's own output is the only record; keep it with the Deployment Summary.
+          Prove afterwards with `rev_applicants?$filter=rev_fullname eq null` and
+          `rev_applications?$filter=rev_costs eq null`; what remains must be rows with no source
+          values to derive from.
+        operation: intake-derived-columns-backfill
+        evidence: backfill-intake-derived-columns.ps1
+        script: pwsh provisioning/dataverse/backfill-intake-derived-columns.ps1 -Env dev
+        owner: reviewer (or a session holding live-write permission)
+
     # ── Verification — no stage may claim a level it did not execute ──────────
     verification:
       # ── WBS 6.5 access test — added 2026-08-21 ───────────────────────────────
@@ -2034,7 +2054,7 @@ environments:
           phase (C-DOM-003, ADR-004).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
-          Seed/upsert the 22 rev_setting rows — Likert point map, feeling-scale
+          Seed/upsert the 36 rev_setting rows — Likert point map, feeling-scale
           inversion, knockout threshold, borderline band lower and upper, income
           ceiling, income-band upper-bound map, age-band map, age-range label map,
           exceptional-circumstance/employment-status/care-hours-band label maps,

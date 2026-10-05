@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (1038 entries, 1020 distinct lessons)
+Source: `logs/improvement-log.jsonl` (1039 entries, 1021 distinct lessons)
 Generated: 2026-10-05
 
 <a id="kfm-how-to-use"></a>
@@ -94,6 +94,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x3** | `incorporated-document-version-mismatch` | — | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
 | **x3** | `pipeline-dispatch-stops-before-declared-post-deploy` | — | `Unrouted` ×3 | IMP-0879, IMP-0906, IMP-0971 |
 | **x3** | `routed-work-not-reverified-at-apply-time` | — | `Unrouted` ×3 | IMP-0517, IMP-0605, IMP-0630 |
+| **x3** | `solution-source-edited-outside-dispatch` | — | `Unrouted` ×3 | IMP-0981, IMP-1038, IMP-1043 |
 | **x3** | `supplied-design-asset-assumed-wcag-compliant` | — | `Unrouted` ×2, `Capabilities` | IMP-0385, IMP-0985, IMP-1001 |
 | **x3** | `tad-narrative-omits-an-already-existing-column` | — | `Unrouted` ×3 | IMP-0337, IMP-0338, IMP-0688 |
 | **x3** | `two-recorded-lessons-contradict-each-other` | — | `Unrouted` ×3 | IMP-0460, IMP-0932, IMP-0983 |
@@ -122,7 +123,6 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `repo-path-contains-spaces` | — | `operating` ×2 | IMP-0010, IMP-0079 |
 | **x2** | `rule-written-where-the-generator-drops-it` | — | `Unrouted` ×2 | IMP-0310, IMP-0683 |
 | **x2** | `sdd-mechanism-claim-not-ground-truthed` | — | `Unrouted` ×2 | IMP-0830, IMP-0897 |
-| **x2** | `solution-source-edited-outside-dispatch` | — | `Unrouted` ×2 | IMP-0981, IMP-1038 |
 | **x2** | `unflagged-platform-contract` | — | `Unrouted` ×2 | IMP-0790, IMP-0792 |
 
 > **Two class names describing one property are COUNTED as one row here.** `test-coupled-to-absolute-counts` → `hand-maintained-count-drifts-from-source`. The alias is in this table only: each lesson still renders in its own section below, and the two halves keep their own gates, because a test fixture and a figure in a document are checked by different tools. The count is merged because the altitude rule fires on the *second* instance of a class — and a property recorded under two names produces a weaker signal than its true instance count ever should (`IMP-0330`).
@@ -598,7 +598,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 <a id="kfm-unrouted"></a>
 ## Unrouted — no section assigned
 
-*575 lessons from 575 findings, across 207 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
+*576 lessons from 576 findings, across 207 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×43), `declared-policy-not-mechanically-enforced` (×39), `hand-maintained-count-drifts-from-source` (×37), `gate-reassures-wrongly` (×35), `finding-diagnosis-unverified` (×34), `stale-claim-contradicting-rechecked-source` (×24), `untriaged-tool-warning` (×21), `platform-state-divergence` (×17).
 

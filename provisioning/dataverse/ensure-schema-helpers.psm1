@@ -576,9 +576,14 @@ function ConvertTo-RevAttributeBody {
             'Web API shape for FormulaDefinition was never verified this session, and the ' +
             'customizations.xml SourceType/Formula form for it is confirmed BROKEN against ' +
             'a live import (see this column in the source XML for the full story). Created ' +
-            'here as a PLAIN writable column of the same type instead. Convert it to ' +
-            'calculated by hand in the maker portal and re-run this script — it will report ' +
-            'the column EXISTS and will not touch the calculated definition.')
+            'here as a PLAIN writable column of the same type instead. The intake flow ' +
+            '(REV | Intake | WordPress to Dataverse) WRITES this column today (item/' +
+            "$schemaName), so REMOVE that write from the flow, and deploy the flow, BEFORE " +
+            'converting the column to calculated: a calculated column cannot be written, and ' +
+            'scripts/verify-plain-column-not-claimed-calculated.py (Rule C) fails a flow ' +
+            'payload that targets one. Then convert it by hand in the maker portal and re-run ' +
+            'this script — it will report the column EXISTS and will not touch the calculated ' +
+            'definition.')
     }
 
     return [pscustomobject]@{ Body = $body; Warning = $warning; SchemaName = $schemaName }

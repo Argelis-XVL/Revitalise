@@ -200,6 +200,12 @@
         CREATED line's Detail — converting them to calculated is a manual, one-time step in
         the maker portal, and the source XML records the equivalent formula in each
         column's own <Formula> element for whoever does that.
+        ORDER MATTERS: the intake flow (REV | Intake | WordPress to Dataverse) WRITES both
+        columns today (item/rev_fullname on the applicant create and update, item/rev_costs on
+        the application create). Those two writes must come OUT of the flow, and the flow be
+        deployed, BEFORE either column is converted to calculated - a calculated column cannot
+        be written. scripts/verify-plain-column-not-claimed-calculated.py (Rule C) fails a flow
+        payload that targets a calculated column.
 
 .PARAMETER Env
     Accepts the same four-value set every provisioning script does (provisioning/README.md

@@ -43,3 +43,4 @@
 [2026-10-01 00:35] [PM] [trustee-portal-design-2] [ITEMS] — WI-0086, WI-0087 acceptance amended for R17 palette (TAD Revision 3.2); states untouched
 [2026-10-01 00:50] [PM] [trustee-portal-design-2] [ITEMS] — WI-0087 clause 0 teal #14adbb -> #009aa8 (R17, TAD §8.3); grep for 14adbb/categoricalColor over WI-0055..0105 reported, no other change
 [2026-10-02 00:00] [PM] [revitalise-grant-automation] [ITEMS] — 5 DocuSign feedback items WI-0107..0111 under epic WI-0106 (wbs:3.2); WI-0109 deferred pending architect finding
+[2026-10-05 13:25] [PM] [revitalise-grant-automation] [ITEMS] — relinked 62 items from operation:code-app-push to per-app label (IMP-0986 row 16): 11 (WI-0003..0053) -> @trustee-review-portal, 51 (WI-0055..0105) -> @trustee-review-portal-cards; 0 unresolved; WI-0052 retitle not done (awaits row 23)

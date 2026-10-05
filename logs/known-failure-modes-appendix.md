@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1038 entries)
+Source: `logs/improvement-log.jsonl` (1039 entries)
 Generated: 2026-10-05
 
 ## What this file is, and who reads it
@@ -650,7 +650,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*575 lesson(s), in the order the digest would have ranked them.*
+*576 lesson(s), in the order the digest would have ranked them.*
 
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
@@ -846,6 +846,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- After any edit to a flow's action list, run that flow's own Pester contract file (src/tests/solutions) before presenting it: run-source-gates.py cannot see it, and a stale suite halts the next build at unit-tests.  
+  <sub>IMP-1043 · `solution-source-edited-outside-dispatch`</sub>
 - A selector in approved instruction prose ('every entry whose X is Y') is a filter over data like any gate's: dump the corpus and count matches for the literal before drafting it, and name the false positives a looser form would admit.  
   <sub>IMP-1042 · `approved-change-wording-assumes-a-field-that-does-not-exist`</sub>
 - Before treating a source fix as done, run verify-live-flow-definitions.py against the environment; a DIFFERS on the fixed flow means the fix is not live.  

@@ -29,11 +29,11 @@
         },
         {
           "title": "Applicant",
-          "value": "@{coalesce(first(body('Get_the_applicant')?['value'])?['rev_fullname'], 'not on file')}"
+          "value": "@{coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], 'not on file')}"
         },
         {
           "title": "Referee",
-          "value": "@{coalesce(first(body('Get_the_application')?['value'])?['rev_refereename'], 'not on file')}"
+          "value": "@{coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], 'not on file')}"
         },
         {
           "title": "Days unsigned",

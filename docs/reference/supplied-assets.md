@@ -31,9 +31,9 @@ looking at when it was measured (`IMP-0549`).
 
 ## The measured answers for `Designsystem/`
 
-| Question | For `Designsystem/`, re-measured 2026-09-04 |
+| Question | For `Designsystem/`, count re-derived 2026-10-05, rest re-measured 2026-09-04 |
 |---|---|
-| **Tracked?** | **Yes.** 131 tracked files (`git ls-files Designsystem/`), added in commit `45dee74`; the working tree is clean. Not gitignored. Previously recorded *"**No.** 0 tracked files"* as verified 2026-08-28 — true then, and it was committed without anyone revisiting this row (`IMP-0549`). The figure is registered in `scripts/derived-counts-registry.json` as `designsystem-tracked-file-count`, so it cannot drift silently again |
+| **Tracked?** | **Yes.** 285 tracked files (`git ls-files Designsystem/`), added in commit `45dee74`; the working tree is clean. Not gitignored. Previously recorded *"**No.** 0 tracked files"* as verified 2026-08-28 — true then, and it was committed without anyone revisiting this row (`IMP-0549`). The figure is registered in `scripts/derived-counts-registry.json` as `designsystem-tracked-file-count`, so it cannot drift silently again |
 | **Does it ship?** | **No.** Nothing under it reaches a solution, an artifact or a bundle. Unchanged, and re-measured |
 | **Read by any build step?** | **Yes.** The wired HARD step `design-source-coverage` runs `scripts/verify-design-source-coverage.py`, which reads this directory: any subdirectory whose name matches a deliverable under `src/code-apps/` must be cited by a document in `docs/architecture/`. Previously recorded *"**No.** No `config/*.yml` step, workflow or script references it"* |
 | **Which agent owns intake?** | **`architect-agent`**, and its placement outside `src/` is `ADR-034` — an architecture decision, not an existing rule. Unchanged |
