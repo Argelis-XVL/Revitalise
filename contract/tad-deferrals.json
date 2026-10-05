@@ -7,27 +7,15 @@
   "_stale_entries_fail": "A deferral that matches no absent §3.1 column FAILS as a dead promise — either the columns shipped or the TAD changed. Delete the entry when it is satisfied; a deferral file that accumulates satisfied entries becomes a blanket nobody reads.",
   "deferrals": [
     {
-      "id": "TD-006",
-      "table": "rev_application",
-      "columns": ["rev_financialanswers"],
-      "reason": "TAD §3.1 groups it with `rev_wellbeinganswer1..n` and `rev_incomeband` as the score inputs (FR-013, FR-016). Source holds rev_wellbeinganswer1..rev_wellbeinganswer10 and rev_incomeband; nothing named rev_financialanswers exists, and the Phase 1 scoring engine shipped without reading it. Whether FR-013 needs a separate column at all, or is already satisfied by those eleven, is an architecture decision — and either answer needs a resolved WBS task before schema work, because automation #2's tasks are claimed complete (C-COM-002). Guessing a shape for a scoring input is exactly the class of invention this repository refuses (IMP-0011).",
-      "owner": "reviewer (Xander Lykopoulos)",
-      "clears_when": "architect-agent rules on FR-013's inputs. If the eleven existing columns satisfy it: TAD §3.1 drops the name and this entry is deleted. If a real column is needed: it resolves to an accepted task or a change order, is built, and this entry is deleted.",
-      "expires": "2026-10-03",
-      "expiry_rationale": "Short by design — a design ruling on an already-delivered automation, not new build work. It must resurface in four weeks rather than ride a phase date, because the scoring engine is live and every day it runs is a day it may be scoring on the wrong input set.",
-      "reviewer_extension": "Extended by the reviewer (Anna Southern) on 2026-09-19 from its lapsed 2026-09-18 expiry to 2026-10-03 (2 weeks, not the original 4 — shortened because this is a second cycle without resolution) specifically to unblock this build cycle. The underlying architect-agent ruling on FR-013's inputs (whether rev_wellbeinganswer1..10 + rev_incomeband already satisfy it, or a real column is needed) is still outstanding and is staged for after this deployment. The original `expiry_rationale` above still applies once this extension lapses.",
-      "cites": "IMP-0159, IMP-0174, FR-013, FR-016"
-    },
-    {
       "id": "TD-007",
       "table": "rev_application",
       "columns": ["rev_duplicateflag", "rev_priorgrantref", "rev_priorgrantdate", "rev_priorgrantamount", "rev_duplicatecheckedon"],
-      "reason": "The five columns FR-023/FR-024/FR-025 need: check a new application against QuickBooks grant history at create time and record the prior grant's reference, date and amount on the APPLICATION. No accepted WBS task writes them. Task 4.3/4.4 (intake, claimed Done) do no QuickBooks lookup, and task 7.2 flags a possible double-pay on the PAYMENT row, not the application — so the application-side half of FR-023–025 is unquoted work today. That makes it a change-order or WBS-resolution decision for commercial-agent (C-COM-002) before any schema work, which is why these are deferred rather than built: building them would be delivery against no contract line.",
+      "reason": "Pending change order (commercial-agent, raised 2026-10-05); built if approved, removed from §3.1 if declined. Reviewer ruling 2026-10-05: \"TD007: agreed, create a change order with commercial agent\". Original basis: the five columns FR-023/FR-024/FR-025 need: check a new application against QuickBooks grant history at create time and record the prior grant's reference, date and amount on the APPLICATION. No accepted WBS task writes them. Task 4.3/4.4 (intake, claimed Done) do no QuickBooks lookup, and task 7.2 flags a possible double-pay on the PAYMENT row, not the application — so the application-side half of FR-023–025 is unquoted work today. That makes it a change-order or WBS-resolution decision for commercial-agent (C-COM-002) before any schema work, which is why these are deferred rather than built: building them would be delivery against no contract line.",
       "owner": "reviewer (Xander Lykopoulos)",
-      "clears_when": "commercial-agent resolves FR-023–025's application-side columns to an accepted WBS task or a change order. They are then built under it and this entry is deleted. If the decision is that the duplicate flag lives on Payment only, TAD §3.1's rev_application row is amended instead and this entry is deleted.",
-      "expires": "2026-10-03",
+      "clears_when": "pending change order (commercial-agent, raised 2026-10-05); built if approved, removed from §3.1 if declined",
+      "expires": "2026-10-19",
       "expiry_rationale": "Short by design — this is a commercial decision that needs no build to make, and it is the one deferral here with hours attached. Riding a phase date would let unquoted work sit undecided until the phase that cannot pay for it.",
-      "reviewer_extension": "Extended by the reviewer (Anna Southern) on 2026-09-19 from its lapsed 2026-09-18 expiry to 2026-10-03 (2 weeks, not the original 4 — shortened because this is a second cycle without resolution) specifically to unblock this build cycle. The underlying commercial-agent resolution (accepted WBS task vs change order vs TAD amendment for FR-023-025's application-side columns) is still outstanding and is staged for after this deployment. The original `expiry_rationale` above still applies once this extension lapses.",
+      "reviewer_extension": "SUPERSEDED 2026-10-05 by the re-date to 2026-10-19 (two weeks, architect-agent, TAD rev 17). Earlier: Extended by the reviewer (Anna Southern) on 2026-09-19 from its lapsed 2026-09-18 expiry to 2026-10-03 (2 weeks, not the original 4 — shortened because this is a second cycle without resolution) specifically to unblock this build cycle. The underlying commercial-agent resolution (accepted WBS task vs change order vs TAD amendment for FR-023-025's application-side columns) is still outstanding and is staged for after this deployment. The original `expiry_rationale` above still applies once this extension lapses.",
       "cites": "IMP-0159, IMP-0174, C-COM-002, FR-023, FR-024, FR-025"
     },
     {
@@ -38,19 +26,9 @@
       "owner": "reviewer (Xander Lykopoulos)",
       "clears_when": "WBS 5.3/5.4 land, these two columns are built with the flow that writes them, and this entry is deleted. rev_redactionreleased already exists, so the pair completes FR-029's control rather than starting it.",
       "expires": "2026-11-27",
+      "reviewer_confirmation": "2026-10-05, reviewer (Xander Lykopoulos), verbatim: \"TD008: these columns will be made with the narrative scrubbing flows\" — confirms the reason above (automation #5, WBS 5.3/5.4). Expiry 2026-11-27 stands; no conflict.",
       "expiry_rationale": "Inherited from EX-003 and Phase 3's contractual due date, deliberately NOT shortened: the same absence is already owned and dated there, and two mechanisms holding different deadlines for one absence is how a deferral quietly outlives its exception. Same inheritance rule as TD-001–004.",
       "cites": "EX-003, IMP-0159, IMP-0174, FR-029"
-    },
-    {
-      "id": "TD-011",
-      "table": "rev_applicant",
-      "columns": ["rev_middlename", "rev_namesuffix"],
-      "reason": "TAD rev 10: CONDITIONAL columns. They are built only if the website shows the Name field's middle and suffix sub-fields to applicants (TAD ADR-011 remaining question 8). If it does not, the values are not applicant-entered and the columns are removed from §3.1 instead.",
-      "clears_when": "Alex answers ADR-011 question 8. If the sub-fields are shown, development-agent builds both columns under wbs:4.3 and deletes this entry; if not, architect-agent removes them from TAD §3.1 and this entry is deleted.",
-      "owner": "reviewer (Xander Lykopoulos)",
-      "expires": "2026-10-23",
-      "expiry_rationale": "Four weeks: wbs:4.3 rework is contracted (reviewer, 2026-09-25) and the columns are small, but the SPEC_GAP (TAD Appendix C §C.9) must be answered by plan-agent first. If that has not happened by this date, the deferral should be re-examined rather than re-dated.",
-      "cites": "TAD rev 10 ADR-051 item 12, Appendix C §C.8/§C.9, wbs:4.3"
     }
   ],
   "_undelivered_requirements_purpose": "Requirements the approved TAD's Appendix A traces to a response-document FIELD that the shipped artefact composes as a literal `null`. Recorded here, beside the column deferrals, because it is the same failure wearing a different shape: an approved document claiming coverage that source does not supply. Added 2026-08-28 by architect-agent (TAD Erratum 5.3, `wbs:6.9`) after `test-agent` defect D-11.",

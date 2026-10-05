@@ -11,6 +11,13 @@
     calls it a check about the 2026-09-25 diagnosis, not a design rule. Its replacement below is the
     rule the TAD does state — the tab array is built with Select, so it can be secured.
 
+    REWRITTEN 2026-10-05 to TAD rev 16 section 5.8 "Test contract" (IMP-1043, wbs:3.2). 35 tests failed on the
+    working tree for two reasons, neither a design disagreement: the fixture seeded Get_the_application and
+    Get_the_applicant as `value` where the flow reads `body/value`, and the evaluator lacked `skip`. The tab
+    context is now ONE assignment (the owner is the signer whose recipientId or recipientIdGuid equals the tab's),
+    there is no signing order (reviewer: "There is no signing order. The agreement gets send to both."), and the
+    negative cases the TAD lists are added.
+
     What these tests prove: the shape in source, and — for the pre-send guards, the access code and the
     tab matching — the behaviour of the source's own expressions on chosen inputs, through
     `_harness/WdlExpression.psm1` (eager if(), so an untaken branch that throws fails here). What they
@@ -80,13 +87,18 @@ BeforeAll {
             $RefereeEmail = 'referee@example.test',
             $ApplicantEmail = 'applicant@example.test',
             $ApplicantFirst = 'Ada',
+            $RefereeFirst = 'Test',
+            $RefereeLast = 'Referee',
             [object[]]$ApplicantRow = @(@{ rev_name = 'AcceptanceEmailApplicant'; rev_value = '{"subject":"Your grant {grantReference}","body":"Please sign."}' }),
             [object[]]$RefereeRow = @(@{ rev_name = 'AcceptanceEmailReferee'; rev_value = '{"subject":"Referee for {grantReference}","body":"Open the agreement with the last 6 numbers of your phone number."}' })
         )
         $outputs = @{
-            'Get_the_application' = @{ value = @(@{ rev_refereename = $RefereeName; rev_refereeemail = $RefereeEmail; rev_refereephone = $RefereePhone;
+            # The flow reads outputs('X')?['body/value'], so the seed key is 'body/value' (TAD 5.8 Test contract, Cause 1).
+            'Get_the_application' = @{ 'body/value' = @(@{ rev_name = 'APP-0042'; rev_refereename = $RefereeName; rev_refereeemail = $RefereeEmail; rev_refereephone = $RefereePhone;
+                    rev_refereefirstname = $RefereeFirst; rev_refereelastname = $RefereeLast; rev_refereetitle = 'Dr'; rev_refereejobtitle = 'Head of Care';
+                    rev_refereecompany = 'Care Org'; rev_refereeaddress = '5 Low Road'; rev_refereetowncity = 'York'; rev_refereepostcode = 'YO1 1AA';
                     rev_breaklocation = 'Lake District'; rev_breaktype = 1; 'rev_breaktype@OData.Community.Display.V1.FormattedValue' = 'Supported holiday' }) }
-            'Get_the_applicant'   = @{ value = @(@{ rev_fullname = 'Ada Applicant'; rev_email = $ApplicantEmail; rev_firstname = $ApplicantFirst; rev_lastname = 'Applicant';
+            'Get_the_applicant'   = @{ 'body/value' = @(@{ rev_fullname = 'Ada Applicant'; rev_email = $ApplicantEmail; rev_firstname = $ApplicantFirst; rev_lastname = 'Applicant';
                     rev_title = 2; 'rev_title@OData.Community.Display.V1.FormattedValue' = 'Ms'; rev_addressline = '1 High Street'; rev_addressline2 = 'Flat 2';
                     rev_towncity = 'Leeds'; rev_postcode = 'LS1 1AA'; rev_phone = '0113 496 0000' }) }
             'Filter_applicant_email_setting' = $ApplicantRow
@@ -108,25 +120,42 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
     It 'the single SendEnvelope and every superseded operation are gone' {
         $ops = @($script:Entries | ForEach-Object { Get-Op $_.Action } | Where-Object { $_ })
         foreach ($gone in @('SendEnvelope', 'SendEnvelopeWithRecipientFields', 'CreateEnvelopeFromTemplateNoRecipients',
-                            'AddRecipientToEnvelopeV2', 'UpdateRecipientTabsValues')) {
-            $ops | Should -Not -Contain $gone -Because "$gone is superseded or rejected by ADR-067 (UpdateRecipientTabsValues is option B, not built)"
+                            'AddRecipientToEnvelopeV2')) {
+            $ops | Should -Not -Contain $gone -Because "$gone is superseded or rejected by ADR-067"
         }
+        $ops | Should -Contain 'UpdateRecipientTabsValues' -Because 'rev 16 builds it: the recipient tabs are filled per signer'
         $script:Build.Contains('Create_and_send_the_envelope') | Should -BeFalse
     }
 
     It 'the DocuSign operations run in the C1..C10 order, and the send is the last one' {
         $docusign = @($script:Order | ForEach-Object { $a = $script:Build[$_]; if ($a['type'] -eq 'OpenApiConnection' -and $a['inputs']['host']['connectionName'] -eq 'shared_docusign') { Get-Op $a } })
         ($docusign -join ' > ') | Should -Be (@(
-            'CompositeTemplates', 'GetRecipientStatus', 'ListTemplateDocuments', 'UpdateEnvelopeRecipient', 'UpdateEnvelopeRecipient',
-            'AddVerificationToRecipient', 'GetEnvelopeDocumentTabs', 'UpdateEnvelopePrefillTabs', 'GetEnvelopeDocumentTabs',
-            'AddReminders', 'SendDraftEnvelope') -join ' > ')
+            'CompositeTemplates', 'GetRecipientStatus', 'ListTemplateDocuments', 'UpdateEnvelopeRecipient', 'AddVerificationToRecipient',
+            'UpdateEnvelopeRecipient', 'GetRecipientStatus', 'GetEnvelopeDocumentTabs', 'UpdateEnvelopePrefillTabs', 'UpdateEnvelopePrefillTabs',
+            'UpdateRecipientTabsValues', 'UpdateRecipientTabsValues', 'UpdateRecipientTabsValues', 'UpdateRecipientTabsValues',
+            'GetEnvelopeDocumentTabs', 'AddReminders', 'SendDraftEnvelope') -join ' > ')
+        # The access code sits between the two binds; the second GetRecipientStatus is the signer re-read (Check_both_signers_are_bound).
+        $order = $script:Order
+        [array]::IndexOf($order, 'Bind_the_applicant') | Should -BeLessThan ([array]::IndexOf($order, 'Require_referee_access_code'))
+        [array]::IndexOf($order, 'Require_referee_access_code') | Should -BeLessThan ([array]::IndexOf($order, 'Bind_the_referee'))
+    }
+
+    It 'the top-level chain is linear and 70 actions long (TAD 5.8)' {
+        $script:Order.Count | Should -Be 70
+        $script:Build.Count | Should -Be 70
+        # Get_the_provider sits inside an If, so it is not part of the top-level chain.
+        $script:Order | Should -Not -Contain 'Get_the_provider'
+        $script:Build['Skip_provider_lookup_if_none_is_set']['actions'].Contains('Get_the_provider') | Should -BeTrue
     }
 
     It 'every check and every DocuSign configuration step precedes the send; only the write-back follows it (IMP-1024)' {
         $send = [array]::IndexOf($script:Order, 'Send_the_envelope')
         $send | Should -BeGreaterThan 0
-        foreach ($n in @('Check_referee_details_are_present', 'Check_the_draft_matches_the_template', 'Check_every_tab_was_filled',
-                         'Require_referee_access_code', 'Fill_the_tabs', 'Set_reminder_cadence')) {
+        foreach ($n in @('Check_referee_details_are_present', 'Check_the_draft_matches_the_template', 'Check_both_signers_are_bound',
+                         'Check_there_are_tabs_to_fill', 'Check_every_tab_was_filled', 'Require_referee_access_code',
+                         'Fill_the_prefill_tabs', 'Fill_the_applicant_tabs', 'Fill_the_referee_tabs', 'Fill_the_referee_company_tabs_if_any',
+                         'Set_reminder_cadence')) {
+            [array]::IndexOf($script:Order, $n) | Should -BeGreaterOrEqual 0 -Because "$n must exist (a name that is absent would make the next line pass vacuously)"
             [array]::IndexOf($script:Order, $n) | Should -BeLessThan $send -Because $n
         }
         @($script:Order[($send + 1)..($script:Order.Count - 1)]) | Should -Be @('Write_the_envelope_id_and_issue_date')
@@ -182,9 +211,18 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
         }
     }
 
-    It 'the applicant signs first and the referee second (FR-042; the test flow had both at 1)' {
-        $script:Build['Bind_the_applicant']['inputs']['parameters']['routingOrder'] | Should -BeExactly '1'
-        $script:Build['Bind_the_referee']['inputs']['parameters']['routingOrder'] | Should -BeExactly '2'
+    It 'there is no signing order: neither bind carries routingOrder, the agreement goes to both (reviewer; ADR-070; template-locked, TAD 12.5)' {
+        # Reviewer: "There is no signing order. The agreement gets send to both." Sending routingOrder made DocuSign reject
+        # the whole recipient update (2026-10-04), so this is also a platform fact, not only a preference.
+        foreach ($n in 'Bind_the_applicant', 'Bind_the_referee') {
+            $script:Build[$n]['inputs']['parameters'].Contains('routingOrder') | Should -BeFalse -Because $n
+        }
+    }
+
+    It 'no action description still claims a routing order or a signing sequence' {
+        foreach ($e in $script:Entries) {
+            [string]$e.Action['description'] | Should -Not -Match '(?i)routing order\s*[12]|signs first|signs second|signing order 1' -Because $e.Name
+        }
     }
 
     It 'neither signer is given phoneNumber, which is an SMS delivery channel (ADR-067 design requirement 3)' {
@@ -196,15 +234,32 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
     It 'each signer is bound to their own Dataverse record and their own settings-row email (ADR-068 item 3)' {
         $a = $script:Build['Bind_the_applicant']['inputs']['parameters']
         $r = $script:Build['Bind_the_referee']['inputs']['parameters']
-        $a['additionalRecipientParams/name']  | Should -Match "body\('Get_the_applicant'\).*rev_fullname"
-        $a['additionalRecipientParams/email'] | Should -Match "body\('Get_the_applicant'\).*rev_email"
-        $r['additionalRecipientParams/name']  | Should -Match "body\('Get_the_application'\).*rev_refereename"
-        $r['additionalRecipientParams/email'] | Should -Match "body\('Get_the_application'\).*rev_refereeemail"
+        $a['additionalRecipientParams/name']  | Should -Match "outputs\('Get_the_applicant'\)\?\['body/value'\].*rev_fullname"
+        $a['additionalRecipientParams/email'] | Should -Match "outputs\('Get_the_applicant'\)\?\['body/value'\].*rev_email"
+        $r['additionalRecipientParams/name']  | Should -Match "rev_refereefirstname.*rev_refereelastname.*rev_refereename"
+        $r['additionalRecipientParams/email'] | Should -Match "outputs\('Get_the_application'\)\?\['body/value'\].*rev_refereeemail"
         $a['emailNotificationSubject'] | Should -Be "@outputs('Compose_acceptance_email_texts')?['applicantSubject']"
         $a['emailNotificationBody']    | Should -Be "@outputs('Compose_acceptance_email_texts')?['applicantBody']"
         $r['emailNotificationSubject'] | Should -Be "@outputs('Compose_acceptance_email_texts')?['refereeSubject']"
         $r['emailNotificationBody']    | Should -Be "@outputs('Compose_acceptance_email_texts')?['refereeBody']"
         $script:Build['Read_acceptance_email_settings']['inputs']['parameters']['$filter'] | Should -Be "rev_name eq 'AcceptanceEmailApplicant' or rev_name eq 'AcceptanceEmailReferee'"
+    }
+
+    It 'the bind name and email are what the records hold; the referee name is first + last when set, else rev_refereename' {
+        $cases = @(
+            @{ c = New-RunContext;                                         applicant = 'Ada Applicant'; referee = 'Test Referee' }
+            @{ c = New-RunContext -RefereeFirst $null -RefereeLast $null;  applicant = 'Ada Applicant'; referee = 'Test Referee' }   # falls back to rev_refereename
+            @{ c = New-RunContext -RefereeName 'Old Name' -RefereeFirst 'Mary' -RefereeLast 'Ann Smith'; applicant = 'Ada Applicant'; referee = 'Mary Ann Smith' }
+        )
+        foreach ($k in $cases) {
+            $pick = { param($n) $p = $script:Build[$n]['inputs']['parameters']; @{ 'additionalRecipientParams/name' = $p['additionalRecipientParams/name']; 'additionalRecipientParams/email' = $p['additionalRecipientParams/email'] } }
+            $a = Invoke-WdlExpression -Value (& $pick 'Bind_the_applicant') -Outputs $k.c.Outputs -Trigger $k.c.Trigger
+            $r = Invoke-WdlExpression -Value (& $pick 'Bind_the_referee') -Outputs $k.c.Outputs -Trigger $k.c.Trigger
+            $a['additionalRecipientParams/name'] | Should -BeExactly $k.applicant
+            $a['additionalRecipientParams/email'] | Should -BeExactly 'applicant@example.test'
+            $r['additionalRecipientParams/name'] | Should -BeExactly $k.referee
+            $r['additionalRecipientParams/email'] | Should -BeExactly 'referee@example.test'
+        }
     }
 
     It 'the referee must enter an access code taken from the digits-only phone, never the raw column (ADR-068 item 4)' {
@@ -219,13 +274,19 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
         (Get-Op $script:Build['Find_the_document']) | Should -Be 'ListTemplateDocuments'
         $exe = Get-ExecutableDefinition -NameLike $script:EnvelopeName
         $exe | Should -Not -Match '\.docx'
-        $script:Build['Set_draft_shape_problem']['inputs']['value'] | Should -Match "document\(s\), expected exactly 1"
+        $script:Build['Set_draft_shape_problem']['inputs']['value'] | Should -Match 'the template has no documents, expected at least 1'
     }
 
-    It 'option A: ONE UpdateEnvelopePrefillTabs call carries the Select-built array; no variable array, no loop' {
+    It 'prefill tabs go in exactly TWO UpdateEnvelopePrefillTabs calls (primary on rawType, fallback on tabType); no variable array, no loop' {
         $fill = @($script:Entries | Where-Object { (Get-Op $_.Action) -eq 'UpdateEnvelopePrefillTabs' })
-        $fill.Count | Should -Be 1
-        $fill[0].Action['inputs']['parameters']['body'] | Should -Be "@body('Select_tab_array')"
+        $fill.Count | Should -Be 2
+        $fill.Name | Should -Be @('Fill_the_prefill_tabs', 'Fill_the_prefill_tabs_with_enum')
+        $fill[0].Action['inputs']['parameters']['body'] | Should -Be "@body('Select_the_prefill_tabs_array')"
+        $fill[1].Action['inputs']['parameters']['body'] | Should -Be "@body('Select_the_prefill_tabs_with_enum_array')"
+        $script:Build['Select_the_prefill_tabs_array']['inputs']['select']['tabType'] | Should -Be "@item()?['rawType']"
+        $script:Build['Select_the_prefill_tabs_with_enum_array']['inputs']['select']['tabType'] | Should -Be "@item()?['tabType']"
+        # The fallback runs only when the primary failed.
+        @($script:Build['Select_the_prefill_tabs_with_enum_array']['runAfter']['Fill_the_prefill_tabs']) | Should -Be @('Failed')
         $script:Build['Select_tab_array']['type'] | Should -Be 'Select'
         @($script:Build['Select_tab_array']['inputs']['select'].Keys | Sort-Object) | Should -Be @('tabId', 'tabType', 'value')
         $types = @($script:Entries | ForEach-Object { $_.Action['type'] })
@@ -233,29 +294,34 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
         $types | Should -Not -Contain 'Foreach'
     }
 
-    It 'BOTH roles accept the union of placeholders, with both spellings — which set sits on which signer is unmeasured' {
+    It 'the key set of Compose_tab_values is the 57 the TAD lists; every owner|placeholder is looked up with the owner it is written for' {
         # Reviewer, 2026-10-02: "The array with tabs are all the tabs on the template. Skipping them is not ok. They should
         # all be populated by the workflow. Except the signer full name, sign date and signature for both recipients."
         $keys = @($script:Build['Compose_tab_values']['inputs'].Keys)
         foreach ($k in 'prefill|Name', 'prefill|Amount', 'prefill|Holiday type', 'prefill|Holiday destination', 'prefill|Dates') { $keys | Should -Contain $k }
+        $keys.Count | Should -Be 57
         foreach ($owner in 'applicant', 'referee') {
             foreach ($ph in 'First name', 'Last name', 'Title', 'Email', 'Phone', 'Postcode', 'Address', 'Adress', 'Town/City', 'City/Town',
-                            'Job title', 'type:companyTabs', 'type:emailAddressTabs', 'type:checkboxTabs') {
+                            'Job title', 'type:companyTabs', 'type:checkboxTabs') {
                 $keys | Should -Contain "$owner|$ph"
             }
+            # The Email Address tab is filled by DocuSign from the signer, so it is never sent and has no value row.
+            $keys | Should -Not -Contain "$owner|type:emailAddressTabs"
         }
+        # Every key names one of the four owners and every id it resolves to is a known tab id.
+        foreach ($k in $keys) { $k | Should -Match '^(label|prefill|applicant|referee)\|' }
     }
 
     It 'the role decides only the source: applicant columns for the Grant Acceptor, referee columns or "" for the Grant Referee' {
         $c = New-RunContext
         $tv = Invoke-WdlExpression -Value $script:Build['Compose_tab_values']['inputs'] -Outputs $c.Outputs -Trigger $c.Trigger
         $expect = @{
-            'First name' = @('Ada', 'Test'); 'Last name' = @('Applicant', 'Referee'); 'Title' = @('Ms', '')
-            'Email' = @('applicant@example.test', 'referee@example.test'); 'type:emailAddressTabs' = @('applicant@example.test', 'referee@example.test')
-            'Phone' = @('0113 496 0000', '+44 (0)7700 900123'); 'Postcode' = @('LS1 1AA', '')
-            'Address' = @('1 High Street, Flat 2', ''); 'Adress' = @('1 High Street, Flat 2', '')
-            'Town/City' = @('Leeds', ''); 'City/Town' = @('Leeds', '')
-            'Job title' = @('', ''); 'type:companyTabs' = @('', ''); 'type:checkboxTabs' = @('false', 'false')
+            'First name' = @('Ada', 'Test'); 'Last name' = @('Applicant', 'Referee'); 'Title' = @('Ms', 'Dr')
+            'Email' = @('applicant@example.test', 'referee@example.test')
+            'Phone' = @('0113 496 0000', '+44 (0)7700 900123'); 'Postcode' = @('LS1 1AA', 'YO1 1AA')
+            'Address' = @('1 High Street, Flat 2', '5 Low Road'); 'Adress' = @('1 High Street, Flat 2', '5 Low Road')
+            'Town/City' = @('Leeds', 'York'); 'City/Town' = @('Leeds', 'York')
+            'Job title' = @('', 'Head of Care'); 'type:companyTabs' = @('', 'Care Org'); 'type:checkboxTabs' = @('false', 'false')
         }
         foreach ($ph in $expect.Keys) {
             $tv["applicant|$ph"]['value'] | Should -BeExactly $expect[$ph][0] -Because "applicant|$ph"
@@ -272,13 +338,18 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
 
     It 'signature, full name, sign date and the tab group are never sent, and the tabType enum lives in ONE action' {
         $map = $script:Build['Compose_connector_tab_types']['inputs']
-        @($map['neverSend'] | Sort-Object) | Should -Be @('dateSignedTabs', 'fullNameTabs', 'signHereTabs', 'tabGroups')
+        # 19 spellings of five kinds: signature, full name, sign date, tab group, and (rev 16) Email Address.
+        @($map['neverSend']).Count | Should -Be 19
+        foreach ($t in 'signHereTabs', 'fullNameTabs', 'dateSignedTabs', 'tabGroups', 'emailAddressTabs', 'EmailAddress') { $map['neverSend'] | Should -Contain $t }
         $map['send']['textTabs'] | Should -BeExactly 'Text'
-        foreach ($t in 'signHereTabs', 'fullNameTabs', 'dateSignedTabs', 'tabGroups') { $map['send'].Contains($t) | Should -BeFalse }
+        foreach ($t in @($map['neverSend'])) { $map['send'].Contains($t) | Should -BeFalse -Because $t }
         $script:Build['Filter_tabs_in_scope']['inputs']['where'] | Should -Match "Compose_connector_tab_types'\)\?\['neverSend'\]"
         $script:Build['Select_tab_matches']['inputs']['select']['tabType'] | Should -Match "Compose_connector_tab_types'\)\?\['send'\]"
         $exe = Get-ExecutableDefinition -NameLike $script:EnvelopeName
-        ([regex]::Matches($exe, '"Text"')).Count | Should -Be 1 -Because 'the enum literal appears only in the map'
+        $inMap = ConvertTo-Json -InputObject $map -Depth 10 -Compress
+        ([regex]::Matches($inMap, '"Text"')).Count | Should -BeGreaterThan 0
+        $holders = @($script:Build.Keys | Where-Object { (ConvertTo-Json -InputObject $script:Build[$_] -Depth 50 -Compress) -cmatch '"Text"' })
+        $holders | Should -Be @('Compose_connector_tab_types') -Because 'the enum literal appears only in the map'
     }
 
     It 'the grant-agreement checkbox is sent UNTICKED under either role: the workflow never agrees on the applicant''s behalf' {
@@ -288,10 +359,11 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
     }
 
     It 'each check alerts through REV | Ops | Failure Alert and then stops the run as Failed, whatever the alert did — <_>' -ForEach @(
-        'Check_referee_details_are_present', 'Check_the_draft_matches_the_template', 'Check_every_tab_was_filled') {
+        'Check_referee_details_are_present', 'Check_the_draft_matches_the_template', 'Check_both_signers_are_bound',
+        'Check_there_are_tabs_to_fill', 'Check_every_tab_was_filled') {
         $if = $script:Build[$_]
         $if['type'] | Should -Be 'If'
-        ConvertTo-Json $if['expression'] -Depth 10 -Compress | Should -Be '{"and":[{"not":{"equals":["@variables(''checkProblem'')",""]}}]}'
+        ConvertTo-Json $if['expression'] -Depth 10 -Compress | Should -Be '{"and":[{"equals":["@not(empty(variables(''checkProblem'')))",true]}]}'
         $if['else']['actions'].Count | Should -Be 0
         $branch = $if['actions']
         $alert = @($branch.Values | Where-Object { $_['type'] -eq 'Workflow' })
@@ -303,8 +375,8 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
         @($stop[0]['runAfter'].Values)[0] | Should -Be @('Succeeded', 'Failed', 'TimedOut')
     }
 
-    It 'the two checks after the draft exists name the draft''s envelope id so it can be deleted (A-R74)' {
-        foreach ($n in 'Check_the_draft_matches_the_template', 'Check_every_tab_was_filled') {
+    It 'every check after the draft exists names the draft''s envelope id so it can be deleted (A-R74)' {
+        foreach ($n in 'Check_the_draft_matches_the_template', 'Check_both_signers_are_bound', 'Check_there_are_tabs_to_fill', 'Check_every_tab_was_filled') {
             $alert = @($script:Build[$n]['actions'].Values | Where-Object { $_['type'] -eq 'Workflow' })[0]
             $alert['inputs']['body']['text_2'] | Should -Match "variables\('draftEnvelopeId'\)" -Because $n
         }
@@ -314,6 +386,7 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
     It 'Describe_the_failure descends into every container in Build_the_envelope (verify-flow-definition-language check 7)' {
         $containers = @($script:Build.Keys | Where-Object { $script:Build[$_]['type'] -in 'If', 'Switch', 'Foreach', 'Scope', 'Until' })
         $containers.Count | Should -BeGreaterThan 0 -Because 'derived from source (C-TECH-067); an empty set would make this test pass vacuously'
+        $containers.Count | Should -Be 7 -Because 'the provider skip, the five checks and the company-tab If; a cheap pin that a new container gets a case'
         $cases = @($script:Top['Describe_the_failure']['cases'].Values | ForEach-Object { $_['case'] })
         foreach ($c in $containers) {
             $cases | Should -Contain $c
@@ -368,11 +441,19 @@ Describe 'REV | Acceptance | Create Envelope — the guards, executed on chosen 
             Should -BeExactly 'the AcceptanceEmailApplicant subject is longer than 100 characters'
     }
 
-    It '{grantReference} is replaced in subject and body, and nothing personal is substituted' {
-        $t = (New-RunContext).Outputs['Compose_acceptance_email_texts']
-        $t['applicantSubject'] | Should -BeExactly 'Your grant GR-0042'
-        $t['refereeSubject'] | Should -BeExactly 'Referee for GR-0042'
-        $script:Build['Compose_acceptance_email_texts']['inputs'] | ConvertTo-Json -Depth 5 | Should -Not -Match 'rev_fullname|rev_referee|rev_email'
+    It 'the four tokens are replaced in subject and body, and the action that does it is inputs-secured (the names are personal)' {
+        $all = '{"subject":"{grantReference}/{applicationReference}/{applicantName}/{refereeName}","body":"{refereeName} for {applicantName}, {applicationReference}, {grantReference}"}'
+        $c = New-RunContext -ApplicantRow @(@{ rev_name = 'AcceptanceEmailApplicant'; rev_value = $all }) -RefereeRow @(@{ rev_name = 'AcceptanceEmailReferee'; rev_value = $all })
+        $t = $c.Outputs['Compose_acceptance_email_texts']
+        $t['applicantSubject'] | Should -BeExactly 'GR-0042/APP-0042/Ada Applicant/Test Referee'
+        $t['refereeBody'] | Should -BeExactly 'Test Referee for Ada Applicant, APP-0042, GR-0042'
+        foreach ($k in 'applicantSubject', 'applicantBody', 'refereeSubject', 'refereeBody') { $t[$k] | Should -Not -Match '\{[A-Za-z]+\}' -Because $k }
+        # {applicantName} and {refereeName} ARE substituted by design, which is why this Compose is secured.
+        (@($script:Build['Compose_acceptance_email_texts']['runtimeConfiguration']['secureData']['properties']) -join ',') | Should -Be 'inputs'
+        # The plain seeded wording still gets {grantReference} and nothing else changed.
+        $plain = (New-RunContext).Outputs['Compose_acceptance_email_texts']
+        $plain['applicantSubject'] | Should -BeExactly 'Your grant GR-0042'
+        $plain['refereeSubject'] | Should -BeExactly 'Referee for GR-0042'
     }
 
     It 'the seeded DEV wording passes every check, and the referee''s body states the rule without the digits' {
@@ -393,74 +474,112 @@ Describe 'REV | Acceptance | Create Envelope — the guards, executed on chosen 
         Invoke-WdlExpression -Value $set -Outputs $ok | Should -BeExactly 'the draft has 2 signer(s) with role Grant Referee, expected 1'
         $ok['Filter_the_referee_signer'] = @(@{ recipientId = '2' })
         $ok['Find_the_document'] = @{ templateDocuments = @() }
-        Invoke-WdlExpression -Value $set -Outputs $ok | Should -BeExactly 'the template has 0 document(s), expected exactly 1'
+        Invoke-WdlExpression -Value $set -Outputs $ok | Should -BeExactly 'the template has no documents, expected at least 1'
+        # Two documents pass (Acceptance form + General T&Cs): the count is a floor, not an equality.
+        $ok['Find_the_document'] = @{ templateDocuments = @(@{ documentId = '1'; name = 'Acceptance form' }, @{ documentId = '2'; name = 'General T&Cs' }) }
+        Invoke-WdlExpression -Value $set -Outputs $ok | Should -BeExactly ''
+        $ok['Find_the_document'] = @{ }
+        Invoke-WdlExpression -Value $set -Outputs $ok | Should -BeExactly 'the template has no documents, expected at least 1' -Because 'a response with no templateDocuments key must not throw'
     }
 
-    Context 'tab matching and the read-back check, on the reviewer''s template, under BOTH possible role assignments' {
+    It 'Check_both_signers_are_bound passes for matching emails and names the role, never the address, when they differ' {
+        $set = $script:Build['Set_signer_binding_problem']['inputs']['value']
+        $c = New-RunContext
+        $o = @{} + $c.Outputs
+        $o['Filter_the_bound_applicant'] = @(@{ email = 'Applicant@Example.test ' })   # case and padding do not matter
+        $o['Filter_the_bound_referee'] = @(@{ email = 'referee@example.test' })
+        Invoke-WdlExpression -Value $set -Outputs $o | Should -BeExactly ''
+        $o['Filter_the_bound_applicant'] = @(@{ email = 'someone.else@example.test' })
+        $p = Invoke-WdlExpression -Value $set -Outputs $o
+        $p | Should -BeExactly 'the Grant Acceptor signer does not hold the applicant email that was sent'
+        $p | Should -Not -Match 'someone|example'
+        $o['Filter_the_bound_applicant'] = @(@{ email = 'applicant@example.test' })
+        $o['Filter_the_bound_referee'] = @(@{ email = '' })
+        Invoke-WdlExpression -Value $set -Outputs $o | Should -BeExactly 'the Grant Referee signer does not hold the referee email that was sent'
+    }
+
+    Context 'tab matching and the read-back check, on the reviewer''s template (TAD 5.8 Test contract): ONE assignment, the owner is the signer whose recipientId or recipientIdGuid equals the tab''s' {
         BeforeAll {
             $ctx = New-RunContext
             $o = $ctx.Outputs
             $o['Compose_connector_tab_types'] = Invoke-WdlExpression -Value $script:Build['Compose_connector_tab_types']['inputs'] -Outputs $o
             $o['Compose_tab_values'] = Invoke-WdlExpression -Value $script:Build['Compose_tab_values']['inputs'] -Outputs $o -Trigger $ctx.Trigger
             $script:n = 0
-            function script:T { param($type, $value, $rid, [switch]$Prefill)
+            $script:GuidA = '1f0c0a7e-0000-4000-8000-00000000000a'   # the applicant's recipientIdGuid, as DocuSign returns it on each recipient tab
+            $script:GuidB = '2e1d1b8f-0000-4000-8000-00000000000b'   # the referee's
+            function script:T { param($type, $value, $rid, $label, [switch]$Prefill)
                 $script:n++; $t = @{ tabId = "t$script:n"; tabType = $type; value = $value; prefill = [bool]$Prefill }
-                if ($rid) { $t.recipientId = $rid }; return $t }
-            # The reviewer's pasted GetEnvelopeDocumentTabs groups, by recipient id (per envelope; never hardcoded in the flow).
-            $script:Template = @(
-                (T textTabs 'Amount' -Prefill), (T textTabs 'Name' -Prefill), (T textTabs 'Holiday type' -Prefill), (T textTabs 'Dates' -Prefill), (T textTabs 'Holiday destination' -Prefill)
-                (T textTabs 'Email' 'c07e'), (T textTabs 'Title' 'c07e'), (T textTabs 'City/Town' 'c07e'), (T textTabs 'First name' 'c07e'), (T textTabs 'Adress' 'c07e')
-                (T textTabs 'Last name' 'c07e'), (T textTabs 'Phone' 'c07e'), (T textTabs 'Postcode' 'c07e'), (T checkboxTabs '' 'c07e'), (T tabGroups '' 'c07e')
-                (T textTabs 'First name' '9f15'), (T textTabs 'Title' '9f15'), (T textTabs 'Last name' '9f15'), (T textTabs 'Postcode' '9f15'), (T textTabs 'Job title' '9f15')
-                (T textTabs 'Address' '9f15'), (T textTabs 'Town/City' '9f15'), (T textTabs 'Phone' '9f15'), (T companyTabs '' '9f15'), (T emailAddressTabs '' '9f15')
-                (T signHereTabs '' 'c07e'), (T fullNameTabs '' 'c07e'), (T dateSignedTabs '' 'c07e'), (T signHereTabs '' '9f15'), (T fullNameTabs '' '9f15'), (T dateSignedTabs '' '9f15')
-            )
-            function script:Invoke-TabPipeline { param($Tabs, $Outputs, $ApplicantId, $RefereeId)
+                if ($rid) { $t.recipientId = $rid }
+                if ($label) { $t.tabLabel = $label }
+                return $t }
+            # The reviewer's template: 31 tabs. $A and $B are what each recipient tab carries as recipientId.
+            function script:New-Template { param($A, $B)
+                return @(
+                    # prefill (5)
+                    (T textTabs 'Amount' -Prefill), (T textTabs 'Name' -Prefill), (T textTabs 'Holiday type' -Prefill), (T textTabs 'Dates' -Prefill), (T textTabs 'Holiday destination' -Prefill)
+                    # applicant: 8 text, one checkbox, one tab group (10; 9 sent)
+                    (T textTabs 'Email' $A), (T textTabs 'Title' $A), (T textTabs 'City/Town' $A), (T textTabs 'First name' $A), (T textTabs 'Adress' $A)
+                    (T textTabs 'Last name' $A), (T textTabs 'Phone' $A), (T textTabs 'Postcode' $A), (T checkboxTabs '' $A), (T tabGroups '' $A)
+                    # referee: 8 text, the organisation text tab labelled o2, one Email Address tab (10; 9 sent)
+                    (T textTabs 'First name' $B), (T textTabs 'Title' $B), (T textTabs 'Last name' $B), (T textTabs 'Postcode' $B), (T textTabs 'Job title' $B)
+                    (T textTabs 'Address' $B), (T textTabs 'Town/City' $B), (T textTabs 'Phone' $B), (T textTabs 'organisation' $B -Label 'o2'), (T emailAddressTabs '' $B)
+                    # signing tabs (6), never sent
+                    (T signHereTabs '' $A), (T fullNameTabs '' $A), (T dateSignedTabs '' $A), (T signHereTabs '' $B), (T fullNameTabs '' $B), (T dateSignedTabs '' $B)
+                ) }
+            function script:Invoke-Step { param($Name, $R)
+                $a = $script:Build[$Name]
+                if ($a['type'] -eq 'Select') { return Invoke-WdlSelect -Inputs $a['inputs'] -Outputs $R }
+                return Invoke-WdlQuery -Inputs $a['inputs'] -Outputs $R }
+            function script:Invoke-TabPipeline { param($Tabs, $Outputs)
                 $r = @{} + $Outputs
-                $r['Filter_the_applicant_signer'] = @(@{ recipientId = $ApplicantId; roleName = 'Grant Acceptor' })
-                $r['Filter_the_referee_signer'] = @(@{ recipientId = $RefereeId; roleName = 'Grant Referee' })
+                $r['Filter_the_applicant_signer'] = @(@{ recipientId = '1'; recipientIdGuid = $script:GuidA; roleName = 'Grant Acceptor' })
+                $r['Filter_the_referee_signer']   = @(@{ recipientId = '2'; recipientIdGuid = $script:GuidB; roleName = 'Grant Referee' })
                 $r['Read_the_tabs'] = @{ tabs = $Tabs }
-                foreach ($nm in 'Filter_tabs_in_scope', 'Select_tab_matches', 'Filter_tabs_to_fill', 'Filter_unmapped_tabs', 'Select_unmapped_tab_descriptions', 'Select_tab_array') {
-                    $a = $script:Build[$nm]
-                    $r[$nm] = if ($a['type'] -eq 'Select') { Invoke-WdlSelect -Inputs $a['inputs'] -Outputs $r } else { Invoke-WdlQuery -Inputs $a['inputs'] -Outputs $r }
+                foreach ($nm in 'Filter_tabs_in_scope', 'Select_tab_matches', 'Filter_tabs_to_fill', 'Filter_unmapped_tabs', 'Select_unmapped_tab_descriptions',
+                                'Select_tab_array', 'Filter_prefill_tabs', 'Filter_applicant_tabs', 'Filter_referee_tabs', 'Filter_referee_company_tabs',
+                                'Select_the_prefill_tabs_array', 'Select_the_prefill_tabs_with_enum_array', 'Select_the_applicant_tabs_array',
+                                'Select_the_applicant_tabs_as_read_array', 'Select_the_referee_tabs_array', 'Select_the_referee_tabs_as_read_array') {
+                    $r[$nm] = Invoke-Step $nm $r
                 }
                 $r['ById'] = @{}; foreach ($t in $r['Filter_tabs_to_fill']) { $r['ById'][$t['id']] = $t }
                 return $r }
             function script:Invoke-ReadBack { param($R, $ReReadTabs)
                 $r = @{} + $R
                 $r['Re_read_the_tabs'] = @{ tabs = $ReReadTabs }
-                foreach ($nm in 'Select_re_read_values', 'Select_found_tab_ids', 'Filter_missing_tabs', 'Filter_unfilled_tabs', 'Select_unfilled_tab_ids') {
-                    $a = $script:Build[$nm]
-                    $r[$nm] = if ($a['type'] -eq 'Select') { Invoke-WdlSelect -Inputs $a['inputs'] -Outputs $r } else { Invoke-WdlQuery -Inputs $a['inputs'] -Outputs $r }
-                }
+                foreach ($nm in 'Select_re_read_values', 'Select_found_tab_ids', 'Filter_missing_tabs', 'Filter_unfilled_tabs', 'Select_unfilled_tab_ids') { $r[$nm] = Invoke-Step $nm $r }
                 return (Invoke-WdlExpression -Value $script:Build['Set_tab_fill_problem']['inputs']['value'] -Outputs $r) }
-            function script:Get-EchoBack { param($R, $Tabs = $script:Template)
-                # DocuSign holding exactly what was sent; a checkbox reports 'selected' as a boolean.
+            function script:Get-EchoBack { param($R, $Tabs)
+                # DocuSign holding exactly what was sent; a checkbox reports 'selected' as a boolean and an empty value.
                 $types = @{}; foreach ($t in $Tabs) { $types[$t.tabId] = $t.tabType }
                 return @(foreach ($t in $R['Select_tab_array']) {
                     if ($types[$t['tabId']] -eq 'checkboxTabs') { @{ tabId = $t['tabId']; tabType = 'checkboxTabs'; value = ''; selected = $false } }
                     else { @{ tabId = $t['tabId']; tabType = $types[$t['tabId']]; value = $t['value'] } } }) }
-            # A: the checkbox group (c07e) is the applicant — the reviewer's checkbox statement.
-            $script:RA = Invoke-TabPipeline -Tabs $script:Template -Outputs $o -ApplicantId 'c07e' -RefereeId '9f15'
-            # B: the other reading of "pre-fill tabs, acceptor tabs and referee tabs. In this order."
-            $script:RB = Invoke-TabPipeline -Tabs $script:Template -Outputs $o -ApplicantId '9f15' -RefereeId 'c07e'
+            $script:Outputs = $o
+            # Each recipient tab's recipientId is the signer's recipientIdGuid, as DocuSign returns it.
+            $script:Template = New-Template $script:GuidA $script:GuidB
+            $script:R = Invoke-TabPipeline -Tabs $script:Template -Outputs $o
+            # The same template with the numeric recipient id on each tab.
+            $script:TemplateNumeric = New-Template '1' '2'
+            $script:RNumeric = Invoke-TabPipeline -Tabs $script:TemplateNumeric -Outputs $o
         }
 
-        It 'under either assignment, sends 24 tabs and leaves nothing on the template unmapped — <name>' -ForEach @(@{ name = 'A' }, @{ name = 'B' }) {
-            $r = if ($name -eq 'A') { $script:RA } else { $script:RB }
-            @($r['Select_tab_array']).Count | Should -Be 24 -Because '31 tabs on the fixture, minus 6 signature/full-name/date tabs and 1 tab group'
+        It 'reads 31 tabs, sends 23, leaves nothing unmapped, and the read-back is clean — recipient id as <name>' -ForEach @(@{ name = 'the guid' }, @{ name = 'the numeric id' }) {
+            $tabs = if ($name -eq 'the guid') { $script:Template } else { $script:TemplateNumeric }
+            $r = if ($name -eq 'the guid') { $script:R } else { $script:RNumeric }
+            $tabs.Count | Should -Be 31
+            @($r['Select_tab_array']).Count | Should -Be 23 -Because '31 tabs, minus 6 signing tabs, the applicant tab group and the referee Email Address tab'
             @($r['Select_unmapped_tab_descriptions']).Count | Should -Be 0
-            Invoke-ReadBack -R $r -ReReadTabs (Get-EchoBack $r) | Should -BeExactly ''
+            Invoke-ReadBack -R $r -ReReadTabs (Get-EchoBack $r $tabs) | Should -BeExactly ''
         }
 
-        It 'never sends a signature, full name, sign date or tab-group tab' {
-            $excluded = @($script:Template | Where-Object { $_.tabType -in 'signHereTabs', 'fullNameTabs', 'dateSignedTabs', 'tabGroups' } | ForEach-Object { $_.tabId })
-            $excluded.Count | Should -Be 7
-            foreach ($r in $script:RA, $script:RB) { foreach ($t in $r['Select_tab_array']) { $excluded | Should -Not -Contain $t['tabId'] } }
+        It 'never sends a signature, full name, sign date, tab-group or Email Address tab' {
+            $excluded = @($script:Template | Where-Object { $_.tabType -in 'signHereTabs', 'fullNameTabs', 'dateSignedTabs', 'tabGroups', 'emailAddressTabs' } | ForEach-Object { $_.tabId })
+            $excluded.Count | Should -Be 8
+            foreach ($t in $script:R['Select_tab_array']) { $excluded | Should -Not -Contain $t['tabId'] }
         }
 
-        It 'assignment A: the c07e group gets the applicant''s own record, the 9f15 group the referee''s' {
-            $b = $script:RA['ById']
+        It 'the applicant''s tabs get the applicant''s own record, the referee''s the referee''s (placeholder "Adress" sic, organisation by label o2)' {
+            $b = $script:R['ById']
             $b['a_email']['value'] | Should -BeExactly 'applicant@example.test'
             $b['a_title']['value'] | Should -BeExactly 'Ms'
             $b['a_first']['value'] | Should -BeExactly 'Ada'
@@ -469,61 +588,94 @@ Describe 'REV | Acceptance | Create Envelope — the guards, executed on chosen 
             $b['a_agreement']['value'] | Should -BeExactly 'false'
             $b['a_agreement']['tabType'] | Should -BeExactly 'Checkbox'
             $b['r_first']['value'] | Should -BeExactly 'Test'; $b['r_last']['value'] | Should -BeExactly 'Referee'
-            $b['r_emailaddress']['value'] | Should -BeExactly 'referee@example.test'
-            $b['r_emailaddress']['tabType'] | Should -BeExactly 'EmailAddress'
-            foreach ($id in 'r_title', 'r_postcode', 'r_job', 'r_address', 'r_town', 'r_company') { $b[$id]['value'] | Should -BeExactly '' -Because $id }
+            $b['r_title']['value'] | Should -BeExactly 'Dr'
+            $b['r_postcode']['value'] | Should -BeExactly 'YO1 1AA'
+            $b['r_job']['value'] | Should -BeExactly 'Head of Care'
+            $b['r_address']['value'] | Should -BeExactly '5 Low Road' -Because 'placeholder "Address"'
+            $b['r_town']['value'] | Should -BeExactly 'York' -Because 'placeholder "Town/City"'
+            $b['r_phone']['value'] | Should -BeExactly '+44 (0)7700 900123'
+            $b['r_company']['value'] | Should -BeExactly 'Care Org'
+            $b['r_company']['tabType'] | Should -BeExactly 'Text' -Because 'the organisation tab is a textTabs tab labelled o2, which replaced the companyTabs tab'
+            $b.ContainsKey('r_emailaddress') | Should -BeFalse
+            $b.ContainsKey('a_emailaddress') | Should -BeFalse
         }
 
-        It 'assignment B: the same tabs get the other person''s sources, and the referee''s address fields stay empty (ADR-043)' {
-            $b = $script:RB['ById']
-            $b['a_address']['value'] | Should -BeExactly '1 High Street, Flat 2' -Because 'placeholder "Address" under the applicant'
-            $b['a_emailaddress']['value'] | Should -BeExactly 'applicant@example.test'
-            $b['a_job']['value'] | Should -BeExactly ''
-            $b['r_email']['value'] | Should -BeExactly 'referee@example.test'
-            $b['r_address']['value'] | Should -BeExactly '' -Because 'placeholder "Adress" under the referee'
-            $b['r_agreement']['value'] | Should -BeExactly 'false'
+        It 'the same placeholder on the two signers goes to the right person, by recipientIdGuid and by recipientId' {
+            foreach ($pair in @(@{ t = $script:Template; r = $script:R }, @{ t = $script:TemplateNumeric; r = $script:RNumeric })) {
+                $first = @($pair.t | Where-Object { $_.value -eq 'First name' })
+                $first.Count | Should -Be 2
+                $pair.r['ById']['a_first']['tabId'] | Should -Be $first[0].tabId
+                $pair.r['ById']['r_first']['tabId'] | Should -Be $first[1].tabId
+            }
         }
 
-        It 'the same placeholder on the two signers goes to the right person' {
-            $applicantFirst = @($script:Template | Where-Object { $_.value -eq 'First name' -and $_.recipientId -eq 'c07e' })[0].tabId
-            $script:RA['ById']['a_first']['tabId'] | Should -Be $applicantFirst
-            $script:RB['ById']['r_first']['tabId'] | Should -Be $applicantFirst
-        }
-
-        It 'a referee name of one word, of three words, or blank never throws' {
+        It 'a referee name of one word, of three words, or blank never throws (needs skip)' {
             foreach ($case in @(@{ n = 'Prince'; f = 'Prince'; l = '' }, @{ n = 'Mary Ann Smith'; f = 'Mary'; l = 'Ann Smith' }, @{ n = ' '; f = ''; l = '' })) {
-                $c = New-RunContext -RefereeName $case.n
+                $c = New-RunContext -RefereeName $case.n -RefereeFirst $null -RefereeLast $null
                 $tv = Invoke-WdlExpression -Value $script:Build['Compose_tab_values']['inputs'] -Outputs $c.Outputs -Trigger $c.Trigger
                 $tv['referee|First name']['value'] | Should -BeExactly $case.f -Because $case.n
                 $tv['referee|Last name']['value'] | Should -BeExactly $case.l -Because $case.n
             }
         }
 
-        It 'sends every tab with the connector enum, never the read''s own string' {
-            foreach ($t in $script:RA['Select_tab_array']) {
-                @($t.Keys | Sort-Object) | Should -Be @('tabId', 'tabType', 'value')
-                $t['tabType'] | Should -BeIn @('Text', 'Checkbox', 'Company', 'EmailAddress')
-            }
+        It 'a stored first and last name wins over the single rev_refereename' {
+            $c = New-RunContext -RefereeName 'Old Name' -RefereeFirst 'Mary' -RefereeLast 'Ann Smith'
+            $tv = Invoke-WdlExpression -Value $script:Build['Compose_tab_values']['inputs'] -Outputs $c.Outputs -Trigger $c.Trigger
+            $tv['referee|First name']['value'] | Should -BeExactly 'Mary'
+            $tv['referee|Last name']['value'] | Should -BeExactly 'Ann Smith'
         }
 
-        It 'stops naming the TABS (never the values) when option A leaves the recipient tabs unchanged' {
-            $stuck = @($script:RA['ById']['r_first']['tabId'], $script:RA['ById']['r_phone']['tabId'])
-            $reread = @(foreach ($t in (Get-EchoBack $script:RA)) { if ($t.tabId -in $stuck) { @{ tabId = $t.tabId; value = 'First name' } } else { $t } })
-            $problem = Invoke-ReadBack -R $script:RA -ReReadTabs $reread
+        It 'sends every tab with the connector enum in the primary recipient fills and the read form in the fallbacks; prefill is the reverse' {
+            foreach ($t in $script:R['Select_tab_array']) {
+                @($t.Keys | Sort-Object) | Should -Be @('tabId', 'tabType', 'value')
+                $t['tabType'] | Should -BeIn @('Text', 'Checkbox', 'Company')
+            }
+            @($script:R['Select_the_prefill_tabs_array']).Count | Should -Be 5
+            foreach ($t in $script:R['Select_the_prefill_tabs_array']) { $t['tabType'] | Should -BeExactly 'textTabs' }
+            foreach ($t in $script:R['Select_the_prefill_tabs_with_enum_array']) { $t['tabType'] | Should -BeExactly 'Text' }
+            @($script:R['Select_the_applicant_tabs_array']).Count | Should -Be 9
+            @($script:R['Select_the_referee_tabs_array']).Count | Should -Be 9
+            foreach ($t in @($script:R['Select_the_applicant_tabs_array']) + @($script:R['Select_the_referee_tabs_array'])) { $t['tabType'] | Should -BeIn @('Text', 'Checkbox') }
+            foreach ($t in @($script:R['Select_the_applicant_tabs_as_read_array']) + @($script:R['Select_the_referee_tabs_as_read_array'])) { $t['tabType'] | Should -BeIn @('textTabs', 'checkboxTabs') }
+        }
+
+        It 'a referee companyTabs tab is filled in its own call, with the type as read (negative d)' {
+            $tabs = $script:Template + @(T companyTabs '' $script:GuidB)
+            $r = Invoke-TabPipeline -Tabs $tabs -Outputs $script:Outputs
+            @($r['Filter_referee_company_tabs']).Count | Should -Be 1
+            $sel = $script:Build['Fill_the_referee_company_tabs_if_any']['actions']['Select_referee_company_tab_array']['inputs']
+            $arr = Invoke-WdlSelect -Inputs $sel -Outputs $r
+            $arr.Count | Should -Be 1
+            $arr[0]['tabType'] | Should -BeExactly 'companyTabs' -Because 'rawType, as the read returns it'
+            $arr[0]['value'] | Should -BeExactly 'Care Org'
+            @($script:R['Filter_referee_company_tabs']).Count | Should -Be 0 -Because 'the fixed template has no companyTabs tab, so the call is skipped'
+        }
+
+        It 'stops naming the TABS (never the values) when the recipient tabs are left unchanged (negative c)' {
+            $stuck = @($script:R['ById']['r_first']['tabId'], $script:R['ById']['r_phone']['tabId'])
+            $reread = @(foreach ($t in (Get-EchoBack $script:R $script:Template)) { if ($t.tabId -in $stuck) { @{ tabId = $t.tabId; value = 'First name' } } else { $t } })
+            $problem = Invoke-ReadBack -R $script:R -ReReadTabs $reread
             $problem | Should -Match '^tabs not found on the draft: \[\]; tabs not holding the value sent: \[r_(first|phone), r_(first|phone)\]; template tabs with no mapping: \[\]$'
             $problem | Should -Not -Match 'Test|7700'
         }
 
-        It 'stops when the template carries a tab the flow has no mapping for, naming its placeholder' {
-            $tabs = $script:Template + @(@{ tabId = 'tx'; tabType = 'textTabs'; value = 'Organisation'; prefill = $false; recipientId = '9f15' })
-            $r = Invoke-TabPipeline -Tabs $tabs -Outputs $script:RA -ApplicantId 'c07e' -RefereeId '9f15'
-            Invoke-ReadBack -R $r -ReReadTabs (Get-EchoBack $r $tabs) | Should -BeExactly 'tabs not found on the draft: []; tabs not holding the value sent: []; template tabs with no mapping: [referee textTabs "Organisation"]'
+        It 'stops when the template carries a tab with no label and no known placeholder, naming it (negative a)' {
+            $tabs = $script:Template + @(T textTabs 'Shoe size' $script:GuidB)
+            $r = Invoke-TabPipeline -Tabs $tabs -Outputs $script:Outputs
+            Invoke-ReadBack -R $r -ReReadTabs (Get-EchoBack $r $tabs) | Should -BeExactly 'tabs not found on the draft: []; tabs not holding the value sent: []; template tabs with no mapping: [referee textTabs "Shoe size"]'
         }
 
-        It 'stops naming a tab that matched nothing, e.g. a renamed placeholder with no Data Label' {
+        It 'stops naming a required tab that is missing from the draft, e.g. a renamed placeholder with no Data Label (negative b)' {
             $tabs = @($script:Template | Where-Object { -not ($_.value -eq 'Holiday destination') })
-            $r = Invoke-TabPipeline -Tabs $tabs -Outputs $script:RA -ApplicantId 'c07e' -RefereeId '9f15'
+            $r = Invoke-TabPipeline -Tabs $tabs -Outputs $script:Outputs
             Invoke-ReadBack -R $r -ReReadTabs (Get-EchoBack $r $tabs) | Should -BeExactly 'tabs not found on the draft: [p_venue]; tabs not holding the value sent: []; template tabs with no mapping: []'
+        }
+
+        It 'Check_there_are_tabs_to_fill is silent on a matched template and names counts and placeholders when nothing matched' {
+            $set = $script:Build['Set_tabs_to_fill_problem']['inputs']['value']
+            Invoke-WdlExpression -Value $set -Outputs $script:R | Should -BeExactly ''
+            $r = Invoke-TabPipeline -Tabs @() -Outputs $script:Outputs
+            Invoke-WdlExpression -Value $set -Outputs $r | Should -BeExactly 'no tab on the draft could be matched to a value; 0 tab(s) read; tabs with no mapping: []'
         }
     }
 }

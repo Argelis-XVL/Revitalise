@@ -12624,3 +12624,57 @@ Read-only, 2026-10-05, `svc_grantapplications@revitalise.org.uk` on `REV-GrantAp
 `run-source-gates.py` **19 of 19**; `verify-flow-definition-language.py` OK (10 flows, no check-7 exception needed); `verify-shipped-content.py` OK; `verify-derived-counts.py` OK (11 of 11); provisioning Pester suite 786 of 786 (includes `ScriptContract.Tests.ps1`, 476 of 476, and the 8 new tests); `IntakeContract.Tests.ps1` 158 of 158; `verify-provisioning-test-presence.py` OK; `verify-audited-tables.py` OK.
 
 **Not green, and not caused by this revision:** `AcceptanceEnvelopeContract.Tests.ps1` has 35 failing tests (45 on the committed tree before this revision, 1 fixed by R1, 3 secure-data tests fixed here). They assert the rev 15 action list (`Fill_the_tabs`, one `UpdateEnvelopePrefillTabs` call, `body('Get_the_applicant')`) that the 3 October hotfixes replaced, and the hotfixes ran no gates. The `unit-tests` build step will halt on them. They need a rewrite against the hotfixed design, and the TAD (rev 15, section 5.8) needs to say what the hotfixes decided; that is architect-agent's and the reviewer's call, not a mechanical fix.
+
+## Revision — TAD rev 16: envelope test contract rewritten, referee columns locked, no signing order, intake backfill dropped (wbs:3.2; `IMP-1043`, 2026-10-05)
+
+**Configuration decision (IMP-0836).** This revision **amends** `config/revitalise-grant-automation-build.yml` (untouched) and `config/revitalise-grant-automation-pipeline.yml` (same CI slug); it needs no configuration of its own.
+
+**Reviewer decisions carried out.** *"Approved for development"* (TAD rev 16). *"Yes drop the backfill"* (DEV holds test data only). *"There is no signing order. The agreement gets send to both."* (`ADR-070`).
+
+### 1. What changed
+
+| Item | Change | Where |
+|---|---|---|
+| Envelope test contract | 35 failing tests rewritten to TAD §5.8 "Test contract"; now 69 tests, all green. Fixture seeds `Get_the_application`/`Get_the_applicant` as `body/value`; two template documents; 31 tabs read, 23 sent; signers carry `recipientId` and `recipientIdGuid`; one numeric-id case. Negative cases (a) to (e) added; `Check_both_signers_are_bound` and `Check_there_are_tabs_to_fill` covered by behaviour. The "applicant signs first" test now asserts that NO `routingOrder` is sent | `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1` |
+| Evaluator | `skip` and `createArray` added; both throw on null as the platform does | `src/tests/solutions/_harness/WdlExpression.psm1` |
+| Eight referee columns | Added to the type lock through the script's `--update` path (8 attributes) and to the trustee catalogue; the generated catalogue is regenerated (13 to 21 entries) and `--check` passes | `config/attribute-type-lock.json`, `config/trustee-restricted-field-catalogue.json`, `src/code-apps/trustee-review-portal/src/generated/trusteeRestrictedFieldCatalogue.ts` |
+| Secured-column pin | `ScoringInvariants.Tests.ps1` pinned `rev_application` at 34 secured columns; now 42 (34 + the eight of `ADR-070`). Found by the full suite, not by the brief | `src/tests/solutions/ScoringInvariants.Tests.ps1` |
+| Stale text | Pipeline verification step no longer names `Fill_the_tabs` or "routing orders 1 and 2"; two action descriptions (`Bind_the_applicant`, `Bind_the_referee`) and one line of `notes.md` no longer claim a routing order. Descriptions only, no logic change | pipeline config, flow JSON, `notes.md` |
+| Backfill dropped | `backfill-intake-derived-columns.ps1`, its 8 tests, its README row and its DEV `post_deploy` entry removed. Intake still writes `rev_fullname` and `rev_costs` for new rows; existing DEV rows keep NULL by decision | `provisioning/`, `src/tests/provisioning/DataverseScripts.Tests.ps1`, pipeline config |
+
+The earlier section's "backfill script" delivery and its D-3 hours row are superseded by the line above; that section is left as history.
+
+### 2. §10 Unvalidated Assumptions Register — rev 16 rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-DS-14 | `CompositeTemplates` with `status: Created` gives a draft holding both template roles as placeholder signers; `UpdateEnvelopeRecipient` fills them rather than adding signers (no `routingOrder`); `SendDraftEnvelope` sends the draft as filled | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | E1 for operation ids; the 3-4 Oct pipeline runs reached the bind and showed `RECIPIENT_UPDATE_FAILED` when `routingOrder` was sent; behaviour of the corrected bind not yet observed | No run of the corrected flow | TAD §12.5 R1, R5, R7 | OPEN |
+| A-DS-15 | Each recipient tab's `recipientId` equals the signer's `recipientIdGuid` (or the numeric `recipientId`); prefill tabs are `prefill: true`; the template's first document id is the envelope's | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | Tests prove both spellings match one owner; the real read is E2 | No run of the corrected flow | TAD §12.5 R4; a mismatch stops at `Check_there_are_tabs_to_fill` | OPEN |
+| A-DS-16 | Prefill takes the read form (`textTabs`) with the enum as fallback; recipient tabs take the enum (`Text`) with the read form as fallback; `English UK (en_GB)` is accepted; `AddReminders` works on a draft; the `organisation` Text tab shows the company | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | `Text` E1 (v2c); fallbacks proved by test as to which form each sends | No run of the corrected flow | TAD §12.5 R2, R3, R6, R8 | OPEN |
+| A-DS-17 | A six-digit access code conforms to the account's access-code format, and the signing link asks for it | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | E1 static; E2 format rule | No envelope sent | TAD §12.5 R5 | OPEN |
+| A-DS-18 | An envelope from a template whose reassignment option is off inherits it when the account setting is on | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.notes.md` | E2 | Template setting not yet checked | TAD §12.5 M4, M6 | OPEN |
+| A-DS-19 | The template's routing order is applicant 1, referee 2 | — | Reviewer, verbatim: "There is no signing order. The agreement gets send to both." | — | — | CLOSED — not applicable (no signing order, `ADR-070`); the flow sets none, `A-R80` is retired, and §12.5 R7 now confirms both are emailed together. Id kept, not reused. A closed row carries no source marker |
+
+Risk `A-R80` is retired in the TAD; this document restates nothing of it beyond the row above.
+
+**Proposed for `constraints/domain/special-category-register.yml` (C-DOM-033):** none. The eight `rev_referee*` columns already have a row there; no new column was secured by this revision.
+
+### 3. Hours proposal (for `commercial-agent`, not a booking)
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 3.2 | 3.0 h | Envelope tests rewritten (69), evaluator extended, descriptions, type lock and catalogue, secured-column pin |
+| 4.2, 4.3 | 0.3 h | Backfill script, tests, README row and pipeline entry removed |
+| system | 0.5 h | Harness and gate work (tooling, not what the client bought) |
+
+### 4. Verification (second run, after the last edit)
+
+**Highest level executed: V1.** Source and tests only; nothing packaged, imported or run against DocuSign. `AcceptanceEnvelopeContract.Tests.ps1` 69 of 69; provisioning suite 766 passed, 0 failed, 1 skipped; full `src/tests/Invoke-Tests.ps1` run before the one pin fix: 1328 passed, 1 failed (the 34 to 42 pin, since fixed and re-run green). `run-source-gates.py` 19 of 19. `verify-assumption-markers.py` and `verify-assumption-register.py` PASS. `generate-trustee-field-catalogue.py --check` OK (21 entries).
+
+### 5. Amendment: build step 76 (IMP-1047)
+
+`scripts/generate-trustee-field-catalogue.py` had one output path, so `trustee-review-portal-cards` kept the 13-entry catalogue while `--check` passed and `code-app-variant-parity` failed. The instance wrapper now writes and `--check`s both app copies (explicit `--out` still targets one file); the engine script is unchanged. `--selftest` additionally proves a stale second copy fails `--check`. Both generated copies regenerated (21 entries). The hard-coded counts in `src/domain/fieldCatalogue.test.ts` (13 and 10) were stale since the referee columns landed and are now 21 and 18 in both apps. Verified at V1: generator `--check` and `--selftest`, `verify-code-app-variant-parity.py` PASS, both apps' `tsc --noEmit` clean.
+
+### 6. Amendment: build step 96 (IMP-1048)
+
+`IntakeContract.Tests.ps1` still asserted `TD-011` present in `contract/tad-deferrals.json`; TAD rev 17 deleted it (no middle name or suffix fields on the form). The test is renamed and now asserts TD-011 and TD-010 absent, keeping the `rev_middlename`/`rev_namesuffix` absence checks. No other test pins TD-006, TD-011, `rev_financialanswers` or the TD-007 expiry. Full Pester suite 1329 passed, 0 failed, 1 skipped.

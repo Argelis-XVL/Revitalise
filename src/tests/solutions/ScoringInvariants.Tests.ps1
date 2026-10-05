@@ -633,7 +633,7 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         # and rev_supportrecipientdisabilityimpactdescription, both Art. 9 free text, secured in
         # REV_TrusteeRestricted. Neither is read by this flow (and both are in the FR-016 gate).
         $secured = Get-SecuredColumnNames -Entity 'rev_application'
-        $secured.Count | Should -Be 34 -Because 'rev_application secures 34 columns; a change here needs a reviewer'
+        $secured.Count | Should -Be 42 -Because 'rev_application secures 42 columns (34 + the eight rev_referee* columns of ADR-070, accepted by the reviewer in the rev 16 approval); a change here needs a reviewer'
         $lowerExec = $script:ScoringExec.ToLowerInvariant()
         foreach ($column in ($secured | Where-Object { $_ -ne 'rev_receivesbenefits' })) {
             $lowerExec | Should -Not -Match ([regex]::Escape($column)) -Because "secured column '$column'"

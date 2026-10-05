@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1039 entries)
+Source: `logs/improvement-log.jsonl` (1046 entries)
 Generated: 2026-10-05
 
 ## What this file is, and who reads it
@@ -25,15 +25,15 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 - **`platform-contract-guessed-not-groundtruthed`** (×79): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026
 - **`gate-cannot-fail`** (×54): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036
-- **`hand-maintained-count-drifts-from-source`** (×45): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925
+- **`hand-maintained-count-drifts-from-source`** (×47): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925, IMP-1045, IMP-1048
 - **`approved-document-internally-inconsistent`** (×43): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945
 - **`declared-policy-not-mechanically-enforced`** (×40): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966
 - **`platform-fact-groundtruthed`** (×38): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016
-- **`no-assertion-on-shipped-content`** (×36): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979
+- **`no-assertion-on-shipped-content`** (×37): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049
 - **`gate-reassures-wrongly`** (×35): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798
 - **`finding-diagnosis-unverified`** (×34): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959
+- **`gate-scope-mismatch`** (×31): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
-- **`gate-scope-mismatch`** (×29): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992
 - **`stale-claim-contradicting-rechecked-source`** (×26): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015
 - **`untriaged-tool-warning`** (×21): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957, IMP-0961, IMP-0962, IMP-1006
 - **`two-invocation-paths-disagree`** (×18): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939
@@ -44,7 +44,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`output-shape-defeats-the-reader`** (×12): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554, IMP-0865
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`dispatch-brief-asserts-unverified-fact`** (×11): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720, IMP-0803, IMP-0844, IMP-0887, IMP-0905, IMP-0936, IMP-0950
-- **`wrong-artefact-cited-as-evidence`** (×10): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675, IMP-0784, IMP-0788, IMP-0910
+- **`wrong-artefact-cited-as-evidence`** (×11): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675, IMP-0784, IMP-0788, IMP-0910, IMP-1050
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
 - **`stale-deferral-uncaught-across-sessions`** (×9): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764, IMP-0780, IMP-1009, IMP-1040
 - **`agent-instructions-describe-a-topology-that-changed`** (×8): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757
@@ -56,7 +56,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you execute a build config — capped lessons
 
-*104 lesson(s) the digest does not render, in the same order it ranked them.*
+*106 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - In a YAML `>` folded scalar, keep every line at the SAME indentation and put `&&`/`||` at line END — a more-indented line keeps its newline and yields a shell syntax error. Preflight now runs `bash -n` on every step command.  
   <sub>IMP-0025 · `gate-cannot-fail`</sub>
@@ -66,6 +66,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
+- A generated file that is classified contract in code-app-variant-parity needs the generator to write every copy.  
+  <sub>IMP-1047 · `gate-scope-mismatch`</sub>
+- Run verify-tad-coverage.py (and any gate carrying dated baselines or deferrals) in the development-agent source-gate set; other baselines expire 2026-10-13 and 2026-10-14 (gate-baselines.json).  
+  <sub>IMP-1046 · `gate-scope-mismatch`</sub>
 - A review is approved when any entry it processed gained a deferred_reason or a closure; count reviewer-accepted deferrals as evidence of the keyword, not only APPLIED and REJECTED.  
   <sub>IMP-1039 · `gate-fires-on-nothing`</sub>
 - Do not offer an -Env value a script cannot run for; either narrow the ValidateSet to test, acc, prd or give DEV an intake block, so the DEV pipeline never appears to have a probe it lacks.  
@@ -432,8 +436,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you report SUCCESS at all — capped lessons
 
-*40 lesson(s) the digest does not render, in the same order it ranked them.*
+*41 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- A font-size change to a shape borrowed from a host framework (Fluent, or any design system whose root sets typography on `body`/its provider root) needs an explicit line-height alongside it -- inheriting the host's line-height tuned for its own base font-size silently produces overlapping wrapped lines at any size larger than that base, and this is invisible to jsdom-based tests, clean type-checks, and clean lint, because it is a paint-time collision, not a box-model defect. When a CSS class changes font-size away from the ambient body size, grep the same rule for line-height in the same change, and verify by rendering (not by reading the box model) whenever the property can wrap.  
+  <sub>IMP-0509 · `no-assertion-on-shipped-content`</sub>
 - A review parked at its gate is invisible to the queue gate, so `unread` cannot be trusted to mean 'nobody has looked at this' while any review sits unapproved. Before treating a batch trigger as real, check whether a review document already names the entries - verify-improvement-log.py prints exactly that as a WARNING per entry, and those warnings are the signal, not noise. Stamping `reviewed_in` at DRAFT time would fix it and is defensible, because that field records only that a review READ the entry; the trade-off is that every future review then writes to a shared append-only log earlier, and two live sessions on this synced path is IMP-0080's hazard - which review 34 met twice in one dispatch. It would NOT clear either blocker trigger: verify-improvement-log.py:123 counts `awaiting-approval` alongside `unread` for blockers, deliberately.  
   <sub>IMP-0421 · `learning-substrate-destroyed`</sub>
 - IMP-0172's 'verify live state directly, do not re-dispatch the same scale of work' protocol holds even when a dispatch dies AFTER finishing its real work, mid-report -- the tell is a terminal message describing report-writing or summarising rather than implementation, and the fix is the same: check the files, run every verification command yourself (including re-running any tool the dead agent's own comments claim passed, rather than trusting the claim), and only re-dispatch the narrow remainder if something is actually missing or broken.  
@@ -650,7 +656,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*576 lesson(s), in the order the digest would have ranked them.*
+*580 lesson(s), in the order the digest would have ranked them.*
 
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
@@ -846,6 +852,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Cite the decision record whose scope names the thing (ADR-070 for the referee columns), not the change order raised the same day; a wrong CO number tells a reader the columns are unapproved.  
+  <sub>IMP-1050 · `wrong-artefact-cited-as-evidence`</sub>
+- A test that pins the presence of a named deferral by literal id breaks the moment the deferral is legitimately closed; assert the columns are absent from source and not that a deferral id exists.  
+  <sub>IMP-1048 · `hand-maintained-count-drifts-from-source`</sub>
+- Assert existence (IndexOf -ge 0) before any positional comparison on a name; run src/tests/Invoke-Tests.ps1 whole after adding secured columns, not only the suites the brief names.  
+  <sub>IMP-1045 · `hand-maintained-count-drifts-from-source`</sub>
+- When reading hotfixed source for a TAD update, grep Entity.xml for columns the TAD or an ADR says do not exist, and check the two config catalogues (attribute-type-lock, trustee-restricted-field-catalogue) for them.  
+  <sub>IMP-1044 · `solution-source-edited-outside-dispatch`</sub>
 - After any edit to a flow's action list, run that flow's own Pester contract file (src/tests/solutions) before presenting it: run-source-gates.py cannot see it, and a stale suite halts the next build at unit-tests.  
   <sub>IMP-1043 · `solution-source-edited-outside-dispatch`</sub>
 - A selector in approved instruction prose ('every entry whose X is Y') is a filter over data like any gate's: dump the corpus and count matches for the literal before drafting it, and name the false positives a looser form would admit.  
@@ -1840,7 +1854,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*60 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*59 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1925,8 +1939,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0949 · `no-assertion-on-shipped-content`</sub>
 - Two controls that declare the same `min-height` are not the same height unless BOTH also fix their box: `min-height` is the rendered height only where an explicit `height` or `box-sizing: border-box` plus fitting padding already bounds it, and is otherwise a floor a content-sized box has already cleared. When equalising controls, declare box-sizing, line-height and padding that sum UNDER the floor on every one of them — and check the host framework's own computed rules (Fluent's select slot ships `box-sizing: border-box` + `height: 32px`) rather than comparing the two authored stylesheets, which is where the two rules look identical.  
   <sub>IMP-0566 · `no-assertion-on-shipped-content`</sub>
-- A font-size change to a shape borrowed from a host framework (Fluent, or any design system whose root sets typography on `body`/its provider root) needs an explicit line-height alongside it -- inheriting the host's line-height tuned for its own base font-size silently produces overlapping wrapped lines at any size larger than that base, and this is invisible to jsdom-based tests, clean type-checks, and clean lint, because it is a paint-time collision, not a box-model defect. When a CSS class changes font-size away from the ambient body size, grep the same rule for line-height in the same change, and verify by rendering (not by reading the box model) whenever the property can wrap.  
-  <sub>IMP-0509 · `no-assertion-on-shipped-content`</sub>
 - Under Auto Mode, the classifier auto-denies a cert/keychain-touching pwsh command outright with no permission prompt -- this may hold even in a session that would otherwise count as the reviewer's own 'foreground' one per IMP-0173, because auto mode itself removes the human from the approval loop. Before assuming a foreground retry will succeed, check whether Auto Mode is active in that session too; if so, the retry needs a normal (non-auto) interactive session where a human can see and approve the prompt. Also: ensure-schema.ps1-class operations (entity/attribute/role/field-security-profile metadata creation, C-TECH-050) have no native pac CLI verb at all in pac 2.4.1 -- unlike role assignment (pac admin assign-user, IMP-0220) -- so step 3a's fallback never has a target for this operation class and every occurrence goes straight to REVIEWER ACTION REQUIRED.  
   <sub>IMP-0245 · `harness-blocks-destructive-call`</sub>
 - Before assuming a provisioning script needs a code change for a new attribute/option-set/field-permission, check whether it reads its inputs generically from the XML source tree (Get-RevEntityLogicalNames-style helpers in this project's ensure-schema-helpers.psm1 do, for all three) -- most of this project's schema changes over its history needed zero script changes, only new/edited XML. And: a HARD count assertion in this codebase's own Pester suite (e.g. EnsureSchema.Tests.ps1's secured-column/field-permission counts) is deliberately count-coupled by design (IMP-0005) -- the correct fix on a legitimate schema addition is bumping the number with a dated comment explaining why, matching the file's own existing history of such comments, not deriving it away.  

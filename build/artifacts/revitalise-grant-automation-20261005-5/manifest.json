@@ -1,0 +1,154 @@
+{
+ "feature": "revitalise-grant-automation",
+ "wbs": [
+  "3.2",
+  "4.2",
+  "4.3"
+ ],
+ "items": [],
+ "build_date": "2026-10-05",
+ "build_number": 5,
+ "artifact_path": "build/artifacts/revitalise-grant-automation-20261005-5/",
+ "source_commit": "27f14a84ff9f78f71de8c60d181768e75e15f6a9",
+ "source_commit_at_pack_time": "27f14a84ff9f78f71de8c60d181768e75e15f6a9",
+ "source_tree_dirty_paths": 18,
+ "source_commit_note": "18 uncommitted paths under src/, provisioning/ and config/ at pack time. source_commit describes the build inputs only where they are unaffected by those dirty paths.",
+ "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+ "build_os": "Darwin 27.0.0 arm64 (macOS)",
+ "constraint_check": "PASS",
+ "preflight": "PASS \u2014 101 steps executed, 1 out-of-context (auth), 102 declared, run via scripts/run-build.py",
+ "verification_level": "V2 \u2014 packaged; layout accepted by the packer. Content, platform acceptance and designer/editor usability are NOT proven by this build.",
+ "platform_limit_gates": [
+  "field-length-limits",
+  "guid-syntax",
+  "component-shape",
+  "component-shape-packed",
+  "role-privilege-ownership",
+  "tad-coverage",
+  "forms-and-views-reachable",
+  "domain-invariants",
+  "no-special-category-data-in-scoring",
+  "receivesbenefits-scoped-to-income-flag",
+  "no-hardcoded-environment-values",
+  "flow-definition-language",
+  "no-hardcoded-thresholds",
+  "flow-reads-no-trigger-body",
+  "metadata-write-verbs",
+  "no-trustee-in-column-security-profile",
+  "no-secured-columns-in-code-app",
+  "code-app-data-sources",
+  "code-app-bundle-budget",
+  "lint (pac solution check)"
+ ],
+ "warnings": {
+  "total": 10,
+  "resolved": 0,
+  "accepted": 10,
+  "untriaged": 0
+ },
+ "warnings_detail": [
+  {
+   "step": "code-app-install",
+   "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+  },
+  {
+   "step": "code-app-install-cards",
+   "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+  },
+  {
+   "step": "code-app-audit",
+   "signature": "3 moderate severity vulnerabilities [figures compared: 3 moderate, all one chain GHSA-82fw-gwwq-j7x9 (@vitest/mocker), equal to the 3 moderate the row records; audit level high, step exit 0]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7521"
+  },
+  {
+   "step": "code-app-unit-tests",
+   "signature": "Keyborg instance kN is being disposed incorrectly. [stderr; carries no figure]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+  },
+  {
+   "step": "code-app-unit-tests-cards",
+   "signature": "Keyborg instance kN is being disposed incorrectly. [stderr; carries no figure]",
+   "status": "accepted",
+   "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L487"
+  },
+  {
+   "step": "code-app-build",
+   "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 1,210.18 kB vs 1,210,181 bytes in the triaged row and a committed budget; gzip 473.19 kB; byte budget gate PASS]",
+   "status": "accepted",
+   "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L490"
+  },
+  {
+   "step": "code-app-build-cards",
+   "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 845.81 kB (845809 bytes) vs measured_bytes 845809 and its committed budget; byte budget gate PASS]",
+   "status": "accepted",
+   "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L484"
+  },
+  {
+   "step": "pack-managed",
+   "signature": "Following root components are not defined in customizations: [figures compared: 9 EntityRelationship + 8 EnvironmentVariableDefinition = 17 entries, equal to the 17 the Dev Summary records]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7814"
+  },
+  {
+   "step": "pack-unmanaged",
+   "signature": "Following root components are not defined in customizations: [figures compared: 9 EntityRelationship + 8 EnvironmentVariableDefinition = 17 entries, equal to the 17 the Dev Summary records]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7814"
+  },
+  {
+   "step": "lint",
+   "signature": "Solution Checker: Critical 0, High 0, Medium 1, Low 0, Informational 0 [figures compared: 1 Medium, flow-avoid-recursive-loop on REVSafeguardingActionCompletion, identical count to builds 20261003-2 and 20260928-1; rule identity taken from IMP-0948 because the signed report URL returned an empty body at download]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L10323"
+  }
+ ],
+ "soft_gates": {
+  "change-order-requirements": 2,
+  "routing-reconciliation": 157,
+  "post-deploy-completeness": 1,
+  "review-document": 5,
+  "commercial-events": 0,
+  "work-items": 1,
+  "dispatch-share": 0,
+  "open-questions": 4,
+  "document-status-consistency": 1,
+  "derived-counts": 0,
+  "postcode-region-map": 0,
+  "design-doc-mapping-claims": 2,
+  "import-manifest-intake": 7,
+  "dev-summary-artefacts-committed": 48,
+  "constraint-verifiers": 0
+ },
+ "steps_not_executed": [
+  {
+   "step": "auth",
+   "reason": "out-of-context \u2014 when: ci, needs GitHub OIDC token vars not present on a local run",
+   "level_not_established": "n/a \u2014 declared boundary, not a coverage gap",
+   "consecutive_deferrals": 0
+  }
+ ],
+ "build_config_sha256": "2168bcf7e0847c971437c6964f1265e864cb9ecadff9d235b329d4e939992a98",
+ "build_config_drift": "none \u2014 hash identical at start and at manifest time",
+ "improvement_log_observations": {
+  "start": "1044 entries (digest header at activation); 10 unread (IMP-1039..IMP-1048)",
+  "manifest_time": "1044 entries; 10 unread; no entry added during the build",
+  "unread_deploy_lane_blockers": 0,
+  "governance_blockers_open": 0,
+  "governance_blocker_ids": []
+ },
+ "test_results": {
+  "pester_passed": 1329,
+  "pester_failed": 0,
+  "pester_skipped": 1,
+  "coverage_threshold": "82.79% of lines (2169/2620) against 80.0% (coverage-threshold step, C-TECH-014); raw JaCoCo command coverage 68.58% is measured, not enforced",
+  "code_app_visual_tests": "8 passed (portal), 23 passed (cards)"
+ },
+ "improvement_log_entries": [],
+ "status": "SUCCESS"
+}

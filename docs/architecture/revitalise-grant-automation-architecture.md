@@ -3,7 +3,7 @@
 **Feature Slug:** revitalise-grant-automation
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **Date:** 2026-08-10
-**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.**
+**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.** **Rev 16 (2026-10-05: §5.8 rewritten to the Create Envelope design the 3–4 October DEV hotfixes settled, `ADR-069`; the referee's name and address columns, `ADR-070`, superseding `ADR-043`) was **approved 2026-10-05** (Xander Lykopoulos, verbatim *"Approved for development"*, logged in `logs/routing.log`); the approval amendment below records his answers.**
 **Revision:** rev 1 — 2026-08-10. Reviewer decisions applied to ADR-003 (Code App confirmed), ADR-006
 (three environments: DEV, TST/ACC, PRD), §6.1 (group-team pattern confirmed), §6.5 (audit retention
 confirmed at 6 years), role-membership review cadence (confirmed at 6 months), and §4.2 (SAR mechanism
@@ -127,7 +127,7 @@ form-calculated. (5) **Not-answered is shape-tolerant** (`ADR-051` item 11): an 
 send. Key-drift detection is re-scoped to questions every applicant sees, so an omitted conditional
 key is never reported as drift. (6) **`CASCADE: SPEC_GAP`** is emitted for the requirement text the
 new columns and the transfer rule need (Appendix C §C.9). No FR text is invented here. The new
-columns are deferred under `TD-010`/`TD-011` in `contract/tad-deferrals.json` until they are built.
+columns are deferred under `TD-010`/`TD-011` in `contract/tad-deferrals.json` until they are built. *(Rev 17: `TD-011` and its two columns were removed.)*
 (7) The rework of `wbs:4.2`/`4.3` is **contracted work, not a change order** (reviewer,
 2026-09-25), and `IntakeContract.Tests.ps1` is **rewritten against Appendix C, not patched**
 (reviewer, 2026-09-25).
@@ -146,7 +146,7 @@ added:**
 
 (2) **OQ-052 — consent dates hold the receipt time.** Rev 10's interpretation question is closed.
 (3) **OQ-053 — middle name, suffix and state/province are not built** until Alex confirms the form
-shows them. `TD-011` is unchanged.
+shows them. *(Rev 17: the middle name and suffix half is closed, the columns are removed and `TD-011` is deleted.)*
 (4) Appendix A traces FR-083–FR-093.
 
 **No other column, flow mechanism or decision changes from rev 10.**
@@ -334,6 +334,63 @@ referee email could be signed by someone else and was recorded as the referee). 
    it takes an array per signer (E1). **`ADR-068` item 4 becomes an access code** (the last six digits of the
    referee's phone, free per the reviewer), and it sits within `wbs:3.2`/`3.5` — no change order. §5.8–5.10,
    §11 (`A-R76`, `A-R78`, `A-R79`), §12 and §12.5 are amended.
+
+**Revision:** rev 16 — 2026-10-05. **`REV | Acceptance | Create Envelope` brought back in line with the flow the
+reviewer ran** (`wbs:3.2`; raised by `IMP-1043`; the reviewer's instruction was *"Yes architect agent should update the
+design"*). Between 3 Oct 18:51 and 4 Oct 07:25 the reviewer fixed the flow in DEV by hotfix imports with the gates
+overridden ([pipeline log L299–L316](logs/pipeline.log#L299)); this TAD kept describing the rev 15 design, and 35 contract
+tests asserted it. No new connector or connection reference. **One column set is new (item 2).**
+
+1. **§5.8 rewritten and `ADR-069` added.** The rev 15 action list is replaced by the 70-action chain the source has:
+   three fill calls (prefill, applicant, referee) each with a one-shot spelling fallback, no routing order, an access
+   code set before the referee is bound, a signer read-back, a conditional company fill, five stop conditions and a
+   seven-case failure lookup. The tab-fill structure and the test fixture are specified exactly, so the 35 failing
+   tests can be rewritten against them. Rev 15's option A (one array) is dropped as a design: it was never measured.
+2. **`ADR-070` added, superseding `ADR-043`.** Eight secured columns on `rev_application` for the referee's name
+   parts, title, job title, company, address, town and postcode. The reviewer created them in DEV on 3–4 Oct; **the
+   reason is now recorded (approval amendment, below).** §3.1 gains the rows.
+3. **Measured DocuSign facts recorded against `A-DS-16`** (§12.5): the two `tabType` spellings, a Company tab the signer
+   sees empty, and a template-locked routing order answering `200` with `RECIPIENT_UPDATE_FAILED` (improvement review
+   2026-09-30-2 row 43). Marker `A-DS-19` was added here and closed at approval (no signing order).
+4. **`secureData` restored (D-2)**, with its inputs-only exceptions, in §5.8.
+5. §4 (DocuSign row), §11 (`A-R74`, `A-R76` amended; `A-R80`, `A-R81` added) and §12.5 amended. `ADR-067`'s
+   superseded rows are marked, not deleted.
+
+**Rev 16 approval amendment, 2026-10-05** (`wbs:3.2`; the reviewer's answers recorded, not a new design pass):
+
+- **`ADR-070` is `Accepted`.** Reviewer, verbatim: *"The referee columns are added to make the docusign envelope
+  completely data driven. Instead of having empty fields in the docusign form. The grant admin will collect those items
+  i am guessing. Something to discuss with Emily."* **Still open, not settled:** who collects the referee details (the
+  reviewer guesses the grant admin). Owner: reviewer, to raise with Emily (client side).
+- **There is no signing order.** Reviewer, verbatim: *"There is no signing order. The agreement gets send to both."*
+  Both signers receive the agreement at the same time and no sequence is expected. `A-DS-19` is **closed as not
+  applicable**, `A-R80` is **retired**, check `R7` is rewritten to confirm both are emailed together, and `ADR-069`
+  item 3 and §5.8 are reworded. FR-041/FR-042 in the SDD still say *in sequence*; correcting them belongs to
+  `plan-agent`, not to this document, and is raised in the gate output.
+- **`CO-002`** is being reopened by `commercial-agent` in parallel. This document cites it and does not edit `contract/`.
+- **The backfill is dropped** (reviewer: *"Yes drop the backfill"*). DEV holds test data only. Nothing in this
+  document expects one: the eight columns are nullable and existing rows stay blank.
+- **Still open, as recorded:** the referee-data DPIA and retention question (`A-R81`), and the applicant and referee
+  names in the email text (the document's assumption stands).
+
+**Rev 17 amendment, 2026-10-05** (`wbs:3.2` build blocked at HARD step `tad-coverage`; `TD-006` and `TD-007` lapsed
+2026-10-03; a small amendment on the approved rev 16, not a new design pass). The reviewer's four rulings, verbatim:
+
+- **`TD-006`:** *"TD006: we don't need this column"*. `rev_financialanswers` is **not needed**; FR-013's score inputs
+  are `rev_wellbeinganswer1..10` and `rev_incomeband`. §3.1 drops the name and `TD-006` is deleted. (Source already
+  replaced the column with eight typed financial columns, Dev Summary rev of 2026-08; nothing reads it.)
+- **`TD-007`:** *"TD007: agreed, create a change order with commercial agent"*. The five duplicate-check columns
+  **stay in §3.1**, unbuilt, pending `commercial-agent`'s change order (raised 2026-10-05). Built if approved; removed
+  from §3.1 if declined. `TD-007` is re-dated to 2026-10-19 (two weeks). This document does not edit `contract/`.
+- **`TD-008`:** *"TD008: these columns will be made with the narrative scrubbing flows"*. Confirms the existing
+  reason (automation #5, `wbs:5.3`/`5.4`). Unchanged in §3.1; expiry 2026-11-27 stands.
+- **`TD-011`:** *"TD011: there are no middle name and suffix fields on the form"*. **`ADR-011` remaining question 8 is
+  closed for the Name sub-fields:** `rev_middlename` and `rev_namesuffix` are **removed from §3.1** and Appendix C
+  §C.8, `name_middle` / `name_suffix` are not transferred, and `TD-011` is deleted. The State/Province and Country
+  half of question 8 is unaffected: both stay NOT TRANSFERRED (§C.6), as already specified.
+
+Sections changed: §3.1 (three rows), Appendix C §C.1/§C.8/§C.9 item 6, `ADR-011` question 8, and the `TD-011`
+pointers in the rev 10 summary, §10 `ADR-051`/`ADR-052`, §12.4 and Appendix A. Nothing else moves.
 
 ---
 
@@ -558,7 +615,7 @@ sequenceDiagram
   T->>D: Records Approve / Defer / Reject (FR-037)
   E->>P: "Finalise decisions"
   P->>D: Apply verdicts, create Grant rows, write anonymised snapshot (FR-040, FR-055)
-  P->>DS: Create envelope, dual signature in sequence (FR-041, FR-042)
+  P->>DS: Create envelope, dual signature, both signers sent it at once, no order (FR-041)
   DS->>DS: Reminders day 3 and 7; escalate day 14 (FR-043, FR-044)
   DS-->>SP: Signed PDF stored, URL written to Grant (FR-045)
 ```
@@ -610,7 +667,6 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_locationarea` | Choice | Tier 3 | Derived from postcode at intake; trustee-visible (FR-027) |
 | `rev_ethnicgroup` | Choice | Tier 4 (Art. 9) | Column security. **Only if actually captured — SDD OQ-027 open** |
 | `rev_lastcontactdate` | Date | Tier 2 | Drives the 6-month withdrawn/incomplete retention clock |
-| `rev_middlename`, `rev_namesuffix` | Text | Tier 4 | **Rev 10, CONDITIONAL — not yet built (`TD-011`).** Built only if the website shows these Name sub-fields (`ADR-011` question 8). Column security: `REV_TrusteeRestricted` — Admin + Service only. Written by intake from `name_middle` / `name_suffix` (Appendix C §C.8) |
 
 **`rev_application` — Tier 4**
 
@@ -624,17 +680,18 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_scorebreakdown` | Multiline text | Tier 3 | Trustee-visible; evidences the score (FR-035) |
 | `rev_incomeflag` | Choice | Tier 3 | Separate from the circumstance score (FR-015) |
 | `rev_statusoverridden`, `rev_overriddenby`, `rev_overriddenon`, `rev_overridereason` | Bool / Lookup / DateTime / Text | Tier 2 | Named human accountability for every outcome (FR-018) |
-| `rev_wellbeinganswer1..n`, `rev_incomeband`, `rev_financialanswers` | Choice / Text | Tier 3 | Trustee-visible; the only inputs to the score (FR-013, FR-016) |
+| `rev_wellbeinganswer1..n`, `rev_incomeband` | Choice / Text | Tier 3 | Trustee-visible; the only inputs to the score (FR-013, FR-016) |
 | `rev_narrativeraw`, `rev_otherconditionraw` | Multiline text | **Tier 4 (Art. 9)** | Column security — **Admin + Service only. Never reaches a trustee** (FR-031, NFR-001) |
 | `rev_narrativeredacted` | Multiline text | Tier 3 | Written by the narrative flow; trustee-visible (FR-026) |
 | `rev_redactionconfidence` | Decimal | Tier 2 | Compared against the `Setting` threshold, initially 85% (FR-029, NFR-017) |
 | `rev_redactionreviewrequired`, `rev_redactionreleased` | Bool | Tier 2 | Human-in-the-loop gate; trustee visibility requires `released = true` (FR-029, FR-030) |
 | `rev_conditionprofile` | Multi-select choice | Tier 4 (Art. 9) | **Trustee-visible by design** — condition is relevant, identity is not (Security Model §5) |
 | `rev_supportrecipientname`, `rev_helpername/email/phone`, `rev_refereename/email/phone`, `rev_emergencycontactname/phone` | Text | Tier 4 | Column security — Admin + Service only. Referee and emergency contact are **DERIVED** into the profile; the source names only helper and support-recipient identity. **Rev 12:** `rev_helpername` retypes String→Memo, `MaxLength` 1,048,576 — it joins five name parts and the join, not any one part, overflowed (`ADR-053`, Appendix C §C.10) |
+| `rev_refereefirstname`, `rev_refereelastname`, `rev_refereetitle`, `rev_refereejobtitle`, `rev_refereecompany`, `rev_refereeaddress`, `rev_refereetowncity`, `rev_refereepostcode` | Text (`nvarchar` 100, 100, 50, 100, 100, 250, 100, 10) | Tier 4 | **Rev 16, `ADR-070` (supersedes `ADR-043`).** Column security — Admin + Service only, in `REV_TrusteeRestricted`. Entered by the process owner on the Application form; read only by Create Envelope to pre-fill the referee's DocuSign tabs. `wbs:3.2` |
 | `rev_supportrecipientconditionprofile` | Multi-select choice | Tier 4 (Art. 9) | Trustee-visible, identity hidden (Security Model §5) |
 | `rev_grouplinkage` | Text / Lookup | Tier 3 | Trustee-visible |
 | `rev_breakstart`, `rev_breakend`, `rev_amountrequested`, `rev_costs` | Date / Currency | Tier 3 | Trustee-visible (FR-028, FR-034) |
-| `rev_duplicateflag`, `rev_priorgrantref`, `rev_priorgrantdate`, `rev_priorgrantamount`, `rev_duplicatecheckedon` | Bool / Text / Date / Currency / DateTime | Tier 3 | FR-023, FR-024, FR-025. Visible to Finance on the record (US-015 AC-3) |
+| `rev_duplicateflag`, `rev_priorgrantref`, `rev_priorgrantdate`, `rev_priorgrantamount`, `rev_duplicatecheckedon` | Bool / Text / Date / Currency / DateTime | Tier 3 | FR-023, FR-024, FR-025. Visible to Finance on the record (US-015 AC-3). **Rev 17: not built; pending a change order (`commercial-agent`, raised 2026-10-05, `TD-007`). Built if approved; removed from this row if declined** |
 | `rev_decisiondate` | Date | Tier 2 | Drives the 12-month rejected clock |
 | `rev_eligibleforround`, `rev_reviewround` | Bool / Text | Tier 2 | Scopes trustee visibility to the current round (FR-038) |
 | `rev_sourcesubmissionid` | Text, alternate key | Tier 2 | **Idempotency guard on intake** — a replayed webhook cannot create a second row (§5.1) |
@@ -880,7 +937,7 @@ every one has a documented fallback so no single external dependency can stop th
 | Integration | Direction | Protocol / Connector | Tier | Trigger / method | Auth method | Fallback |
 |---|---|---|---|---|---|---|
 | **WordPress / Gravity Forms → Dataverse** | Inbound | Request (HTTP) trigger; or Gravity Forms REST API v2; or parsed structured email. **Rev 9: the body is the website's native entry, keys and label values as the site sends them** (`ADR-051`, Appendix C) | **Premium** | Webhook POST on form submit | ~~Bearer token / shared secret held in a Key Vault-backed secret environment variable — see §6.3.~~ **Rev 14 (`ADR-011`): signed callback URL (*Anyone*) + `x-rev-client-id` header check.** Caller restricted to the charity website (NFR-008) | Scheduled REST pull (service-account-initiated, reverses the trust direction) or structured-email trigger — no downstream component changes |
-| **DocuSign** | Bi-directional | DocuSign connector | Premium | Outbound: create envelope on approval — **rev 15: draft, fill, send (`ADR-067`)**. Inbound: envelope-completed event | OAuth 2.0, service account owns the connection. **Rev 15: signer controls are DocuSign-side — required fields and no reassignment on the template/account; recommended phone authentication on the referee (`ADR-068`)** | Manual print-sign-scan route recorded on the Grant record (FR-046) |
+| **DocuSign** | Bi-directional | DocuSign connector | Premium | Outbound: create envelope on approval — **rev 15: draft, fill, send (`ADR-067`); rev 16: as the hotfixes settled it (`ADR-069`)**. Inbound: envelope-completed event | OAuth 2.0, service account owns the connection. **Rev 15: signer controls are DocuSign-side — required fields and no reassignment on the template/account; an access code, the last six digits of the referee's phone, on the referee (`ADR-068` item 4)** | Manual print-sign-scan route recorded on the Grant record (FR-046) |
 | **QuickBooks Online** | Inbound (read only) | QuickBooks Online connector | Premium | Query by applicant name / email at intake, re-checked before payment issue | OAuth 2.0, **read-only scope** | Quarterly export into `rev_granthistory` + Power Automate cross-reference (ADR-017) |
 | **AI Builder (prebuilt PII detection model)** | Internal | AI Builder connector, invoked from `REV \| Narrative \| Scrub Free-Text` | Premium | Synchronous call within the redaction flow | Environment AI Builder credits; runs as the service account | Human-only redaction: every narrative routes to the process owner for manual review (degraded, not broken) |
 | **SharePoint Online — signed-acceptance library** | Outbound (write) + read | SharePoint connector | Standard | Store signed PDF on envelope completion; URL written to `rev_grant.rev_signedpdfurl` | Service account connection | Attach the PDF as a Dataverse note/annotation on the Grant row |
@@ -1138,43 +1195,214 @@ the Review row: a second run over an already-finalised round is a no-op.
 ### 5.8–5.10 Acceptance flows (#3)
 
 **Create Envelope** — on status Approved, builds the DocuSign envelope from the template, pre-populated with
-applicant name, grant amount, provider, dates and conditions, and routes it for **two signatures in
-sequence**: applicant first, then referee or GP (FR-041, FR-042). Writes `rev_docusignenvelopeid` and
-`rev_acceptanceissuedon`. **The Grant Referee (Signer 2)'s own Title, Address, Town/City and Postcode
-anchor tabs are deliberately left for the referee to complete during signing, not pre-populated from
-Dataverse — see ADR-043.**
+applicant name, grant amount, provider, dates and conditions, and sends it for **two signatures to
+both signers at the same time**, applicant and referee or GP, with no signing order (FR-041; FR-042's *in sequence*
+is overridden by the reviewer, rev 16 approval amendment). Writes `rev_docusignenvelopeid` and
+`rev_acceptanceissuedon`. **Rev 16: the Grant Referee (Signer 2)'s Title, Job title, Company, Address,
+Town/City and Postcode tabs are now pre-populated from `rev_application` (`ADR-070`, which supersedes `ADR-043`,
+under which they were left for the referee to complete).**
 
-**Rev 15 — the action sequence (`ADR-067` C1–C10, `ADR-068`; revised to the reviewer's `TEST_Docusign` v2c,
-2026-10-02).** The single `Create_and_send_the_envelope` is replaced. Inside the existing `Build_the_envelope` scope,
-after the three unchanged reads and `Compose_provider_name`:
+**Rev 16 — the action sequence as the 2026-10-03/04 DEV hotfixes settled it (`ADR-069`; supersedes rev 15's
+single `Fill_the_tabs`, option A and routing orders).** Ground truth is the flow's source,
+`REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json`, read action by action on 2026-10-05.
+`development-agent` confirmed the same day, read-only, that DEV equals source (the flow's `modifiedon` is the
+04 Oct 07:24 import) and that the runs after it succeeded. The one known difference since is `secureData`:
+source has it restored (D-2, below), DEV still runs the unsecured version until a gated build deploys it.
+The rev 15 table's step numbers no longer exist; this table replaces it. Everything is inside the existing
+`Build_the_envelope` scope unless the row says otherwise, and the chain is linear (each action `runAfter` the
+previous one's success) except the two fallbacks in step 12.
 
-| # | Action | Connector operation (`ADR-067`) | What it does |
+| # | Action(s) | Connector operation / type | What it does |
 |---|---|---|---|
-| 1 | `Read_acceptance_email_settings`, `Check_referee_details_are_present` | `ListRecords` on `rev_settings`, then If | Both `AcceptanceEmail*` rows must exist (`ADR-068` item 3). Referee name and email must be non-empty. The phone, **after removing non-digits, must have at least six digits** (`ADR-068` item 4). Missing → call `REV \| Ops \| Failure Alert` with the grant reference and *which field* is missing (never its value), **then** `Terminate` (Failed) — the alert-then-stop shape `REV \| Portal \| Round Statistics` uses. Nobody is emailed; the grant stays at Awarded |
-| 2 | `Compose_access_code`, `Compose_tab_values` | Compose | The last six digits of the normalised referee phone (inputs secured). The expected values by tab identifier: five prefill tabs and the referee's `n2`, `e2`, `ph2`, values as rev 14 composes them (amount awarded, formatted dates) |
-| 3 | `Create_the_draft_envelope` | C1 `CompositeTemplates`, `status: Created` | Draft from the server template. Nobody is emailed |
-| 4 | `List_the_envelope_recipients` → `Foreach` → `Switch` on `roleName` | C2 `GetRecipientStatus` | One branch per template role |
-| 5 | `Bind_the_applicant` / `Bind_the_referee` | C3 `UpdateEnvelopeRecipient` | Name, email, **routing order 1 / 2**, own subject and body from the settings rows, language as the designer writes it. **No `phoneNumber`** |
-| 6 | `Require_referee_access_code` (referee branch only) | C4 `AddVerificationToRecipient`, `Access Code` | The code from step 2 |
-| 7 | `Find_the_document`, `Read_the_tabs` | C5 `ListTemplateDocuments` (or `ListEnvelopeDocuments`), C6 `GetEnvelopeDocumentTabs` | One read of every tab on the document, prefill and recipient |
-| 8 | `Build_the_tab_array` | `Foreach` + `Switch`, or `Select` | One `{tabType, tabId, value}` per expected tab, matched by `tabLabel`, else by placeholder value |
-| 9 | `Fill_the_tabs` | **Option A:** C7-A `UpdateEnvelopePrefillTabs`, one array. **Option B:** prefill array to the same action, plus C7-B `UpdateRecipientTabsValues`, one array per signer | Option A unless the first run shows it leaves recipient tabs unchanged |
-| 10 | `Re-read_the_tabs`, `Check_every_tab_was_filled` | C8 `GetEnvelopeDocumentTabs`, then If | Every expected tab must hold the value sent. Otherwise → alert (naming the **tab** and the draft's envelope id), then `Terminate` (Failed) |
-| 11 | `Read_reminder_days` … `Set_reminder_cadence` | C9 `AddReminders` | Before the send |
-| 12 | `Send_the_envelope` | C10 `SendDraftEnvelope` | Draft → sent: the applicant is emailed; the referee once the applicant has signed |
-| 13 | `Write_the_envelope_id_and_issue_date` | unchanged (`UpdateRecord`) | Status 1 → 2 only after step 12 succeeded |
+| 0 | Before the scope: `Initialise_failure_detail`, `Initialise_check_problem`, `Initialise_draft_envelope_id`, `Compose_run_link` | three `InitializeVariable` (strings `failureDetail`, `checkProblem`, `draftEnvelopeId`), one Compose | The three variables are the flow's only state. `checkProblem` is reused by every check below; `draftEnvelopeId` is set at step 6. The failure lookup after the scope is step 15 |
+| 1 | `Get_the_application`, `Get_the_applicant` | `ListRecords` | The applicant is read by the lookup's **value column** `_rev_applicantid_value`; a filter on `rev_applicantid` read a column that was never selected (pipeline 3 Oct 19:13). **Both are read afterwards as `outputs('Get_the_application')?['body/value']`**, never `body('…')?['value']` |
+| 2 | `Skip_provider_lookup_if_none_is_set` (If) holding `Get_the_provider` and `Compose_provider_name` | `ListRecords`, Compose | `Compose_provider_name` is **inside** the If, after the lookup. Outside it, a grant with no provider failed the run (19:26) |
+| 3 | `Read_acceptance_email_settings`, `Filter_applicant_email_setting`, `Filter_referee_email_setting`, `Compose_acceptance_email_texts` | `ListRecords`, two `Query`, Compose | Composes four strings: `applicantSubject`, `applicantBody`, `refereeSubject`, `refereeBody`. The tokens `{grantReference}`, `{applicationReference}`, `{applicantName}`, `{refereeName}` are replaced; the rev 15 rule "nothing personal is substituted" no longer holds, which is why this Compose is secured (D-2) |
+| 4 | `Select_referee_phone_digits`, `Compose_referee_phone_digits`, `Set_referee_details_problem`, `Check_referee_details_are_present` (If) → `Alert_referee_details_missing`, `Stop_referee_details_missing` | `Select`, Compose, `SetVariable`, If, child-flow call, `Terminate` | `checkProblem` is the first of these, in order: AcceptanceEmailApplicant has no subject; no body; subject over 100 characters; the same three for AcceptanceEmailReferee; applicant email empty; applicant first name empty or unreadable; referee name empty; referee email empty; referee phone under six digits. Any non-empty value alerts, then terminates `Failed` with code `AcceptanceDetailsMissing`. Nothing is sent to DocuSign |
+| 5 | `Compose_access_code`, `Compose_connector_tab_types`, `Compose_tab_values` | Compose ×3 | The access code is the last six digits of the digits-only phone, left-padded with zeros. The other two are the **tab-fill tables** below |
+| 6 | `Create_the_draft_envelope`, `Set_draft_envelope_id` | `CompositeTemplates` (`status: Created`, one server template, subject = `applicantSubject`), `SetVariable` | Unchanged from rev 15 C1. `draftEnvelopeId` is set from the response and is the only DocuSign value later alerts name |
+| 7 | `List_the_envelope_recipients`, `Filter_the_applicant_signer`, `Filter_the_referee_signer`, `Find_the_document`, `Set_draft_shape_problem`, `Check_the_draft_matches_the_template` (If) → `Alert_draft_does_not_match_template`, `Stop_draft_does_not_match_template` | `GetRecipientStatus`, two `Query` on `roleName` (`Grant Acceptor`, `Grant Referee`), `ListTemplateDocuments`, `SetVariable`, If | Passes when each role appears **exactly once** and the template has **at least one** document (rev 15 said exactly one; the real template has two: the acceptance form and the general T&Cs). Failure code `DraftDoesNotMatchTemplate`; the alert names the draft |
+| 8 | `Bind_the_applicant` → `Require_referee_access_code` → `Bind_the_referee` | `UpdateEnvelopeRecipient`, `AddVerificationToRecipient` (`Access Code`), `UpdateEnvelopeRecipient` | **In this order**: the access code is added **before** the referee is bound, because adding it after blanked the referee's name and email (pipeline 3 Oct 21:24). Each bind sets `recipientId` (from the role filter), `recipientType: signers`, `emailNotificationLanguage: English UK (en_GB)`, its own subject and body, `additionalRecipientParams/name` and `/email`. **No `routingOrder` and no `phoneNumber`** (measured, §12.5 A-DS-16 record). Applicant name = `rev_fullname`, else first + last. Referee name = `rev_refereefirstname` + `rev_refereelastname` when either is set, else `rev_refereename` |
+| 9 | `Read_the_signers_after_binding`, `Filter_the_bound_applicant`, `Filter_the_bound_referee`, `Set_signer_binding_problem`, `Check_both_signers_are_bound` (If) → `Alert_signer_not_bound`, `Stop_signer_not_bound` | `GetRecipientStatus`, two `Query`, `SetVariable`, If | **New.** Reads the signers back and requires each one's email, lower-cased and trimmed, to equal the email that was sent. This exists because DocuSign answers `200` with `RECIPIENT_UPDATE_FAILED` and leaves the signer blank (measured, §12.5 A-DS-16 record). Failure code `SignerNotBound` |
+| 10 | `Read_the_tabs` | `GetEnvelopeDocumentTabs` | Reads the **first** template document's tabs only (`first(Find_the_document.templateDocuments).documentId`) |
+| 11 | `Filter_tabs_in_scope`, `Select_tab_matches`, `Filter_tabs_to_fill`, `Filter_unmapped_tabs`, `Select_unmapped_tab_descriptions`, `Select_tab_array`, `Filter_prefill_tabs`, `Filter_applicant_tabs`, `Filter_referee_tabs`, `Set_tabs_to_fill_problem`, `Check_there_are_tabs_to_fill` (If) → `Alert_no_tabs_to_fill`, `Stop_no_tabs_to_fill` | `Query` / `Select` / `SetVariable` / If | **Replaces `Build_the_tab_array`.** Section "The tab-fill structure". Stops with code `NoTabsToFill` when nothing matched, or when any of the three owner groups (prefill, applicant, referee) is empty |
+| 12 | Prefill: `Select_the_prefill_tabs_array` → `Fill_the_prefill_tabs`; on **Failed** → `Select_the_prefill_tabs_with_enum_array` → `Fill_the_prefill_tabs_with_enum`. Applicant: `Select_the_applicant_tabs_array` → `Fill_the_applicant_tabs`; on Failed → `Select_the_applicant_tabs_as_read_array` → `Fill_the_applicant_tabs_as_read`. Referee: `Select_the_referee_tabs_array` → `Fill_the_referee_tabs`; on Failed → `Select_the_referee_tabs_as_read_array` → `Fill_the_referee_tabs_as_read`. Then `Filter_referee_company_tabs` → `Fill_the_referee_company_tabs_if_any` (If non-empty) holding `Select_referee_company_tab_array` → `Fill_the_referee_company_tabs` | `UpdateEnvelopePrefillTabs` (prefill group, `documentId`), `UpdateRecipientTabsValues` (one call per signer, `recipientId`) | **Replaces rev 15's single `Fill_the_tabs`.** Three fill calls on the happy path (prefill, applicant, referee), three fallbacks and one conditional company call. Each group is its own array of `{tabType, tabId, value}`. The next group runs after the previous succeeded **or was skipped** |
+| 13 | `Re_read_the_tabs`, `Select_re_read_values`, `Select_found_tab_ids`, `Filter_missing_tabs`, `Filter_unfilled_tabs`, `Select_unfilled_tab_ids`, `Set_tab_fill_problem`, `Check_every_tab_was_filled` (If) → `Alert_tabs_not_filled`, `Stop_tabs_not_filled` | `GetEnvelopeDocumentTabs`, `Select` / `Query`, `SetVariable`, If | Three conditions fail the run (code `TabsNotFilled`): one of the **15 required tab ids** was not found on the draft; a sent tab does not hold the value sent; a template tab has no mapping. Section "The read-back check" |
+| 14 | `Read_reminder_days`, `Parse_reminder_days`, `Compose_reminder_cadence`, `Set_reminder_cadence`, `Send_the_envelope`, `Write_the_envelope_id_and_issue_date` | `ListRecords`, Compose ×2, `AddReminders`, `SendDraftEnvelope`, `UpdateRecord` | Unchanged from rev 15 C9, C10 and step 13. The status moves from 1 to 2 only after the send succeeded |
+| 15 | After the scope: `Find_the_failed_action` → `Describe_the_failure` (Switch) → `Alert_on_failure` | `Query` on `result('Build_the_envelope')`, Switch, child-flow call | The failure lookup. See "The failure lookup" below |
 
-**What a person sees when an action after step 3 fails:** the applicant and referee receive nothing (a draft sends
-no email); the grant stays at Awarded; the process owner gets the failure alert, which **also carries the
-draft's DocuSign envelope id** (a DocuSign-generated identifier, not personal data) so she can find and
-delete the orphaned draft in DocuSign. A re-run creates a new draft; it does not reuse the old one (risk
-`A-R74`).
+**Call count per envelope (risk `A-R76`).** DocuSign calls on the happy path: create 1, recipients 1, document 1,
+binds 2, access code 1, signers read 1, tabs read 1, fills 3 (prefill, applicant, referee), re-read 1,
+reminders 1, send 1 = **14**. With all three fallbacks firing it is 17; a Company-typed referee tab adds one.
+Rev 15 said "about 12 under option A".
 
-**Run-history protection (`C-DOM-004`) extends to every new action that carries a name, email, phone or tab
-value or the access code:** every connector and `Query`/`Select` action in steps 3–10 gets `secureData`
-on inputs and outputs; the Composes in step 2 get inputs only, the precedent this flow already uses. `Foreach`, `If`, `Switch` and variable actions cannot carry the
-setting and get none. Steps 11–13 read only the envelope id and stay readable, as this flow's existing rule
-already states.
+### The tab-fill structure (`Compose_connector_tab_types`, `Compose_tab_values`, `Select_tab_matches`)
+
+`development-agent` writes tests against these three shapes, so they are specified exactly.
+
+**`Compose_connector_tab_types`** is one static object with three members.
+
+| Member | Content | Used for |
+|---|---|---|
+| `send` | read-form or enum spelling → the **recipient** update's enum: `text`, `Text`, `textTabs` → `Text`; `checkbox`, `Checkbox`, `checkboxTabs` → `Checkbox`; `company`, `Company`, `companyTabs` → `Company` | `tabType` in `Select_tab_matches`, and in the primary recipient fills and the prefill **fallback** |
+| `canon` | any of those spellings → the **read** form: `textTabs`, `checkboxTabs`, `companyTabs` | `rawType`; the primary prefill fill, the recipient **fallback**, the company fill, and the read-back |
+| `neverSend` | 19 spellings of five tab kinds the flow never writes: `SignHere`, `FullName`, `DateSigned`, `TabGroup` and **`EmailAddress`** (each in its enum, lower-camel, `…Tabs` and plural form) | `Filter_tabs_in_scope` drops a tab whose `tabType` is in this list, before anything is matched |
+
+`EmailAddress` is new in `neverSend` (pipeline 3 Oct 20:59): DocuSign fills the email tab from the signer, so a
+value sent to it is wrong or ignored.
+
+**`Compose_tab_values`** is one object of **57 keys**. Each key maps to `{id, value}`; `id` is the logical tab id
+and `value` is the expression for it. A tab is looked up **by three keys, in this order, first non-empty wins**:
+
+1. `label|<tabLabel>`: the template's Data Label. Present for `p_name`, `p_amt`, `p_type`, `p_venue`, `p_dates`
+   and the referee's `f2`, `l2`, `t2`, `e2`, `ph2`, `pc2`, `a2`, `c2`, `j2`, `o2`, plus `Organisation`,
+   `organisation`, `Organization`, `Company` and `company`.
+2. `<owner>|<placeholder value>`: the text typed into the tab on the template. Prefill: `Name`, `Amount`,
+   `Holiday type`, `Holiday destination`, `Dates`. Applicant and referee: `First name`, `Last name`, `Title`,
+   `Email`, `Phone`, `Postcode`, `Address`, `Adress` (the template's own misspelling, kept), `Town/City`,
+   `City/Town`, `Job title`. Referee only: `Company`, `Organisation`, `Organization`, `organisation`,
+   `company` and `Organisation ` (trailing space).
+3. `<owner>|type:<canonical type>`: for tabs with no label and no usable placeholder. Two exist:
+   `…|type:checkboxTabs` and `…|type:companyTabs`.
+
+**Owner** is decided in `Select_tab_matches` and is `prefill` when the tab's `prefill` is true; otherwise `referee`
+when the tab's `recipientId` equals the referee signer's `recipientId` **or** `recipientIdGuid`; otherwise
+`applicant` by the same test against the applicant signer; otherwise `other`. **Tab-level recipient ids in the read
+are the signer's `recipientIdGuid`** (pipeline 3 Oct 20:59), so a numeric-only comparison matches nothing.
+
+**`Select_tab_matches` output** is one object per in-scope tab: `tabId`, `tabType` (the `send` spelling, `''` if
+unknown), `readType`, `rawType` (the `canon` spelling), `owner`, `id`, `value`, and `placeholder` (a description such
+as `referee textTabs "Job title"`, used only in the unmapped-tab message). `Filter_tabs_to_fill` keeps tabs whose
+`id` and `tabType` are both non-empty; `Filter_unmapped_tabs` keeps the rest. **An unmapped tab fails the run at
+the read-back check** (step 13), so a new tab on the template cannot go out blank unnoticed.
+
+**Values.** Prefill: name (applicant `rev_fullname`, else first + last), amount (`rev_grant.rev_amountawarded`,
+`N2`), holiday type (formatted choice label), destination, dates (`d MMMM yyyy to d MMMM yyyy`). Applicant:
+first, last, title (formatted label), email, phone, postcode, address (line 1, then `, ` and line 2 when set),
+town. Referee: from `rev_application`: `rev_refereefirstname` else the first word of `rev_refereename`;
+`rev_refereelastname` else the remaining words (so a one-word or empty name no longer throws, pipeline 3 Oct 18:51);
+`rev_refereetitle`, `rev_refereeemail`, `rev_refereephone`, `rev_refereepostcode`, `rev_refereeaddress`,
+`rev_refereetowncity`, `rev_refereejobtitle`, `rev_refereecompany` (`ADR-070`). **The agreement checkbox is sent
+`false` (unticked) under both roles**: the flow never agrees on a person's behalf.
+
+**The three fill groups** (`Filter_prefill_tabs`, `Filter_applicant_tabs`, `Filter_referee_tabs`) split
+`Filter_tabs_to_fill` by `owner`. Primary spellings: **prefill sends `rawType` (`textTabs`); the two recipient
+fills send `tabType` (`Text`)**. On a failure of a primary fill, the same group is sent once more with the other
+spelling. Both spellings were measured accepted by those primaries (§12.5). The company fill sends `rawType`
+(`companyTabs`) for referee tabs whose `rawType` is `companyTabs`, and is skipped when there are none; **the
+template no longer has one** (the reviewer replaced it with a Text tab, §12.5).
+
+### The read-back check (step 13)
+
+`Select_re_read_values` builds `tabId|value` for every tab in the second read; a checkbox contributes its
+`selected` flag lower-cased. `Filter_unfilled_tabs` keeps a to-fill tab whose `tabId|value` is absent.
+`Filter_missing_tabs` takes the **15 required ids** and keeps those not among the to-fill tabs' ids: `p_name`,
+`p_amt`, `p_type`, `p_venue`, `p_dates`, `a_first`, `a_last`, `a_title`, `a_postcode`, `a_phone`, `r_first`,
+`r_last`, `r_title`, `r_postcode`, `r_phone`. Other mapped ids (address, town, job title, company, email, the
+checkbox) are checked for the value but their absence is not by itself a failure. `Set_tab_fill_problem` is empty
+only when all three lists are empty; otherwise it reads `tabs not found on the draft: […]; tabs not holding the
+value sent: […]; template tabs with no mapping: […]`, naming ids and placeholder descriptions and **never a value**.
+
+### The failure lookup (`Describe_the_failure`)
+
+`Find_the_failed_action` finds the first `Failed` result of `Build_the_envelope`. A Switch on its name descends into
+the scope's containers, because a container reports only "an action failed". Seven cases, each a `Query` on
+`result('<container>')` followed by a `SetVariable` of `failureDetail` (`Action: … | Code: … | Reason: …`): the four rev 15 cases
+(`Case_provider_lookup`, `Case_referee_check`, `Case_draft_check`, `Case_tab_check`) and the **three new ones**,
+one per container added by the hotfixes: **`Case_tabs_to_fill_check`** (`Check_there_are_tabs_to_fill`),
+**`Case_signer_binding_check`** (`Check_both_signers_are_bound`) and **`Case_referee_company_tabs`**
+(`Fill_the_referee_company_tabs_if_any`). The default case sets a generic detail. `Alert_on_failure` sends
+`failureDetail`, then either "No DocuSign envelope was created" or the draft's id with the instruction to delete it
+unless `Send_the_envelope` succeeded. **Rule: a new container in `Build_the_envelope` gets its own case in the same
+change.** Test `Describe_the_failure descends into every container` enforces it (`verify-flow-definition-language`
+check 7).
+
+### What a person sees when an action after step 6 fails
+
+Unchanged from rev 15: the applicant and referee receive nothing; the grant stays at Awarded; the process owner
+gets the alert carrying the draft's envelope id so she can delete it. **The check conditions are written
+`equals(not(empty(variables('checkProblem'))), true)`** and not `not(equals(variables('checkProblem'), ''))`: the
+designer showed the second form with an empty right operand, and the condition tripped on an empty problem
+(pipeline 3 Oct 20:15). **Every action description is at most 256 characters**: a longer one blocks turning the flow
+on (`ActionDescriptionTooLong`, pipeline 3 Oct 20:30).
+
+### Run-history protection (`C-DOM-004`), restored (reviewer decision D-2, 2026-10-05)
+
+The 3 Oct 20:40 hotfix removed `secureData` from 12 tab actions **as a temporary diagnostic** at the reviewer's
+request ("MUST be restored before any promotion"). Improvement review 2026-10-05 decision D-2 restored it in
+source, and the design is this:
+
+- **Inputs and outputs** on every connector action, `Select` and `Query` that carries a name, email, phone, tab
+  value or the access code: `Get_the_application`, `Get_the_applicant`, `Select_referee_phone_digits`, the signer
+  reads and filters, both binds and the access-code call, the tab read and re-read and every `Select`/`Query`
+  over them, the seven `Fill_*` connector calls (six plus the company call), the six `Select_the_*_array`
+  builders, `Select_referee_company_tab_array`, the owner filters, `Find_the_failed_action`, and the three
+  `Find_the_failed_step_inside_…` queries of the new failure cases.
+- **Inputs only, by exception:** (1) every **Compose** that carries personal data (`Compose_acceptance_email_texts`,
+  `Compose_referee_phone_digits`, `Compose_access_code`, `Compose_tab_values`), because a Compose offers no outputs
+  setting and securing inputs hides its outputs too; (2) **`Create_the_draft_envelope`**, a connector action, whose
+  input carries the email subject, which can hold the applicant's name, but whose **output is the envelope id and
+  must stay readable** so a lost draft can be found.
+- **Readable:** `Find_the_document`, `Set_reminder_cadence`, `Send_the_envelope`, `Write_the_envelope_id_and_issue_date`,
+  the settings reads, and `Compose_connector_tab_types` (static). `If`, `Scope`, `Switch`, `Terminate` and variable
+  actions cannot carry the setting and get none.
+- **The cost, accepted:** a tab problem can no longer be diagnosed from run history. It is diagnosed from the error code
+  and `checkProblem`/`failureDetail`, which name tabs and never values.
+- **Source and DEV differ on this until a gated build deploys it** (Dev Summary 2026-10-05 §0).
+
+### Test contract: what `AcceptanceEnvelopeContract.Tests.ps1` asserts against this design (`IMP-1043`)
+
+35 tests fail on the working tree (run 2026-10-05; 26 pass). Two causes explain most of them, and neither is a
+design disagreement.
+
+**Cause 1 — the fixture has the wrong shape.** `New-RunContext` seeds `Get_the_application` and `Get_the_applicant`
+as `@{ value = @(…) }`. The flow reads `outputs('X')?['body/value']`, so the fixture must be
+`@{ 'body/value' = @(…) }`. With the old shape every guard reads empty rows and returns an early "is empty" message, so the access-code, phone,
+name, email, settings-row and seeded-wording tests fail. **Probe, 2026-10-05, on a throwaway copy that was deleted:
+changing only these two seeds takes the failures from 35 to 25.** Add to the application row
+`rev_name`, `rev_refereefirstname`, `rev_refereelastname`, `rev_refereetitle`, `rev_refereejobtitle`,
+`rev_refereecompany`, `rev_refereeaddress`, `rev_refereetowncity`, `rev_refereepostcode`; the applicant row already
+carries what it needs. Filter outputs stay `body('Filter_…')` (a bare array).
+
+**Cause 2 — the evaluator lacks `skip`.** `WdlExpression.psm1` throws `unsupported function 'skip'` on the referee
+last-name expression (`join(skip(split(…)))`). Extend the harness; the error says to. This fails the whole tab
+`Context`'s `BeforeAll`, which is why all of its tests fail together.
+
+**The fixture for the tab context.**
+
+| Item | Shape |
+|---|---|
+| Signers | `Filter_the_applicant_signer` = `@(@{ recipientId = '1'; recipientIdGuid = '<guid-a>'; roleName = 'Grant Acceptor' })`; the referee likewise (`'2'`, `<guid-b>`, `Grant Referee`) |
+| Template document | `Find_the_document` = `@{ templateDocuments = @(@{ documentId = '1'; name = 'Acceptance form' }, @{ documentId = '2'; name = 'General T&Cs' }) }` |
+| Read tabs | `Read_the_tabs` = `@{ tabs = @(…) }`. **Each recipient tab's `recipientId` is the signer's `recipientIdGuid`**, as DocuSign returns it. Add one case with the numeric id |
+| Prefill (5) | `textTabs`, `prefill = $true`, placeholders `Amount`, `Name`, `Holiday type`, `Dates`, `Holiday destination` |
+| Applicant (10 tabs, 9 sent) | `textTabs` `Email`, `Title`, `City/Town`, `First name`, `Adress`, `Last name`, `Phone`, `Postcode`; one `checkboxTabs`; one `tabGroups` (never sent) |
+| Referee (10 tabs, 9 sent) | `textTabs` `First name`, `Title`, `Last name`, `Postcode`, `Job title`, `Address`, `Town/City`, `Phone`; **one `textTabs` with `tabLabel = 'o2'` and placeholder `organisation`** (replaces the `companyTabs` tab); one `emailAddressTabs` (never sent) |
+| Signing tabs (6) | `signHereTabs`, `fullNameTabs`, `dateSignedTabs` for each signer (never sent) |
+| Total | 31 tabs read, **23 sent** (rev 15's 24 included the referee Email Address tab), nothing unmapped |
+| Echo | `Re_read_the_tabs` returns every sent `tabId` with its value; a checkbox returns `selected = $false` and `value = ''` |
+| Negative fixtures | (a) a tab with no label and an unknown placeholder → listed in the unmapped message; (b) one required id missing → in the "not found" list; (c) a tab echoed with another value → in the "not holding" list; (d) a `companyTabs` referee tab → `Filter_referee_company_tabs` non-empty, filled with `rawType`; (e) a referee last name of one word, three words and blank, none throwing |
+
+**Rewrites, by failing test.**
+
+| Failing test (current title) | Becomes |
+|---|---|
+| the single SendEnvelope and every superseded operation are gone | Remove `UpdateRecipientTabsValues` from the "gone" list; it is built. Keep `SendEnvelope`, `SendEnvelopeWithRecipientFields`, `CreateEnvelopeFromTemplateNoRecipients`, `AddRecipientToEnvelopeV2` |
+| the DocuSign operations run in the C1..C10 order | The top-level chain is linear (70 actions). Connector operations in order: `ListRecords` ×3, `CompositeTemplates`, `GetRecipientStatus`, `ListTemplateDocuments`, `UpdateEnvelopeRecipient`, `AddVerificationToRecipient`, `UpdateEnvelopeRecipient`, `GetRecipientStatus`, `GetEnvelopeDocumentTabs`, `UpdateEnvelopePrefillTabs` ×2, `UpdateRecipientTabsValues` ×4, `GetEnvelopeDocumentTabs`, `ListRecords`, `AddReminders`, `SendDraftEnvelope`, `UpdateRecord`. The send is the last DocuSign operation. (`Get_the_provider` is inside an If, so it is not in the top-level chain.) The access code sits between the two binds |
+| the applicant signs first and the referee second | **Retired (rev 16 approval: no signing order).** Replace with: neither bind carries `routingOrder`, neither carries `phoneNumber` (template-locked, §12.5) |
+| each signer is bound to their own Dataverse record | Match `outputs('Get_the_applicant')?['body/value']` and `rev_fullname`; the referee name is first + last when set, else `rev_refereename` |
+| the document is the template's only document | `Set_draft_shape_problem` names `the template has no documents, expected at least 1`; two documents pass |
+| option A: ONE UpdateEnvelopePrefillTabs call | Exactly **two** `UpdateEnvelopePrefillTabs` actions (primary on `rawType`, fallback on `tabType`); the fallback `runAfter` is `Failed`; no variable array, no loop |
+| BOTH roles accept the union of placeholders | The key set of `Compose_tab_values` is the 57 above; every `<owner>\|<placeholder>` is looked up with the owner it is written for, and `applicant\|type:emailAddressTabs` does **not** exist |
+| the role decides only the source | Needs `skip`; the referee last name, and first name, for blank, one-word and three-word names |
+| signature, full name, sign date and the tab group are never sent | `neverSend` holds the 19 spellings of five kinds, `EmailAddress` included; the tab-type enum still lives in one action, `Compose_connector_tab_types` |
+| each check alerts … then stops (three titles) | The five checks, expression `equals(not(empty(variables('checkProblem'))), true)`; the list gains `Check_there_are_tabs_to_fill` and `Check_both_signers_are_bound`. The envelope-id assertion (A-R74) covers every check after the draft exists: draft shape, signer binding, tabs-to-fill, every-tab-filled |
+| the access code is the last six DIGITS …; fewer than six digits …; a missing referee name or email …; settings row …; {grantReference}; seeded DEV wording; draft shape | Re-run unchanged against the corrected fixture (Cause 1). The `{grantReference}` test's "nothing personal is substituted" line is **wrong now**: `{applicantName}` and `{refereeName}` are substituted by design, which is why `Compose_acceptance_email_texts` is secured. Assert that the four tokens are replaced and that the action is inputs-secured |
+| the tab context (10 tests) | Re-run against the fixture above, **one assignment**, not two. The old A/B assignment ambiguity is gone: the owner is the signer whose `recipientId` or `recipientIdGuid` equals the tab's |
+
+**New assertions the rewrite should add:** `Check_both_signers_are_bound` passes for matching emails and names the
+applicant/referee when they differ; the primary fills send `textTabs` for prefill and `Text` for recipients, and the
+fallbacks the reverse; `Describe_the_failure` has the seven cases; the secure-data tests stay as `development-agent` left them (they pass).
 
 **Reminders & Escalation** — scheduled daily, plus DocuSign events. Reminders at **3 and 7 days**
 (`Setting.ReminderDays`), escalation to the process owner with the applicant's details at **14 days**
@@ -2216,7 +2444,7 @@ answer:
 | 5 | Leave `ip` and `user_agent` out? | Open — requested, not depended on |
 | 6 | Staging site, and which endpoint? | Open |
 | 7 | One test entry per route | Open — the reviewer approved asking |
-| 8 *(new)* | Are the Name field's middle and suffix sub-fields, and the address State/Province and Country, shown to applicants? | Open — decides whether §C.8's two conditional columns are built (`ADR-051` item 12) |
+| 8 *(new)* | Are the Name field's middle and suffix sub-fields, and the address State/Province and Country, shown to applicants? | **Closed for the Name sub-fields (rev 17, reviewer 2026-10-05): *"there are no middle name and suffix fields on the form"*.** `rev_middlename`/`rev_namesuffix` removed from §3.1. State/Province and Country stay NOT TRANSFERRED (§C.6) |
 | 9 *(new, his question)* | Unseen questions: omit, null, or empty? | **Our answer: whichever is easiest.** Absent, null, `""`, `[]` and `false` are all read as *not answered* (`ADR-051` item 11). One request: keep a consent box that WAS shown as an explicit `true`/`false` |
 
 **Decision 2026-10-02 (rev 14) — ADOPTED: the signed callback URL (*Anyone*), plus the `x-rev-client-id`
@@ -2444,7 +2672,7 @@ recommended for the WordPress application form, carried into Alex's specificatio
 specification; this needs a named acceptance step. *Neutral* — reviewer may set 2.2 AA for everything.
 
 ### ADR-043: The Grant Referee's Title/Address/Town-City/Postcode DocuSign tabs are not modelled in Dataverse — left for the referee to complete at signing
-**Status:** `Decided` · **Date:** 2026-09-06 · **Raised by:** `contract/change-orders/CO-002.md`
+**Status:** `Superseded` by `ADR-070` (rev 16, accepted) — decided 2026-09-06 and in force until the 3–4 Oct 2026 hotfixes; body kept as history · **Date:** 2026-09-06 · **Raised by:** `contract/change-orders/CO-002.md`
 
 **Context:** The live DocuSign template's own anchor-tag table (reviewer-supplied 2026-09-06;
 `docs/development/revitalise-grant-automation-dev-summary.md`, "Revision — reviewer-supplied
@@ -2967,7 +3195,7 @@ design trips each:
 | `no-hardcoded-thresholds`, `flow-reads-no-trigger-body` | Unaffected. The second targets the round-statistics flow only |
 | Pester `IntakeContract.Tests.ps1` | **Will fail by design.** It pins `submission_id,first_name,last_name,postcode` as the required list and asserts the old field names. It must be rewritten against Appendix C in the same change, and not patched to pass |
 | Pester `DeploymentSettings.Tests.ps1` | New rows in all three settings files, plus any hard-coded row counts |
-| `verify-tad-coverage` (C-TECH-066) | The rev 10 columns are named in §3.1 before they exist, so they are deferred under `TD-010`/`TD-011`. **Delete both entries in the change that builds the columns**, or the gate fails them as stale |
+| `verify-tad-coverage` (C-TECH-066) | The rev 10 columns are named in §3.1 before they exist, so they are deferred under `TD-010`/`TD-011` *(rev 17: `TD-011`'s columns are removed from §3.1 and the entry is deleted)*. **Delete both entries in the change that builds the columns**, or the gate fails them as stale |
 | `domain-invariants` (C-DOM-031/032/033) | **Will fail by design** once the four Art. 9 columns are built with `IsSecured=1`, until the special-category register gains their rows. `constraints/` is not development-agent's to edit, so the register rows (§12.4) go to their owner in the same change set |
 | C-TECH-077 (secured capture column needs a main-form control) | Every new secured column gets a control on its table's main form in the same change (§12.4) |
 
@@ -3206,7 +3434,7 @@ less headroom still (≈1,436 characters committed on 12 columns already).
 |---|---|
 | `IntakeContract.Tests.ps1` (D-03 length tests) | Rewritten to read the new `MaxLength` (1,048,576) for the eleven retyped columns plus the thirteen already-Memo ones; the truncation-behaviour assertions are removed, not left green against dead code |
 | `flow-definition-language` check 3 (nested `item` on `UpdateRecord`) | Not tripped — none of the eleven columns is written by `Refresh_existing_applicant` |
-| `verify-tad-coverage` (C-TECH-066) | No deferral to touch — `TD-010` is already closed; `TD-011` (conditional `rev_middlename`/`rev_namesuffix`) is untouched by this ADR |
+| `verify-tad-coverage` (C-TECH-066) | No deferral to touch — `TD-010` is already closed; `TD-011` (conditional `rev_middlename`/`rev_namesuffix`) was untouched by this ADR; deleted in rev 17 |
 | `domain-invariants` (C-DOM-031/032) | Not tripped — no `IsSecured` or register-row change |
 | `no-hardcoded-environment-values` | Unaffected |
 
@@ -3310,7 +3538,7 @@ field or an explicit "clear this" affordance), out of this flow's control, and i
   keep the prior value.
 
 ### ADR-067: Create Envelope creates a DRAFT from a composite template, binds each signer and fills every tab on the draft, then sends it
-**Status:** `Proposed` (rev 15) · **Date:** 2026-10-02 · **WBS:** `wbs:3.2` · **Raised by:** reviewer, 2026-10-02
+**Status:** `Proposed` (rev 15) — **partly superseded by `ADR-069` (rev 16), see its item 9; the ground-truth tables below are history and are kept.** · **Date:** 2026-10-02 · **WBS:** `wbs:3.2` · **Raised by:** reviewer, 2026-10-02
 
 **Context.** The reviewer reports that the single `SendEnvelope` call can no longer create, fill and send
 in one step, and that `tabs` is no longer in the action's signer schema in the designer. That matches what
@@ -3406,17 +3634,17 @@ bodies show that the two share a body schema, not that they call the same endpoi
 |---|---|---|---|---|---|---|
 | C1 | **Create the draft** | Create envelope using composite templates | `CompositeTemplates` | `accountId`, `emailSubject`, `status: Created`, `merge_roles_on_draft: False`, one server template (`sequence 1`, `templateId`) | `POST …/envelopes` with `compositeTemplates` | E1 static. **That the draft carries both template roles as placeholder recipients with their tabs: run-unverified, `A-DS-14`** |
 | C2 | Find each signer's id | List recipients from an envelope | `GetRecipientStatus` | `accountId`, `envelopeId` | `GET …/recipients` | E1 static |
-| C3 | **Name, email, routing and own email, per role** — a `Foreach` over the signers, then a `Switch` on `roleName` | Update recipient on an envelope | `UpdateEnvelopeRecipient` | `recipientId`, `recipientType: signers`, `routingOrder`, `additionalRecipientParams/name` and `/email`, `emailNotificationSubject`, `emailNotificationBody`, `emailNotificationLanguage` | `PUT …/recipients` (draft) with `emailNotification` | E1 static; language literal run-unverified |
+| C3 | **Name, email, ~~routing~~ (rev 16: no routing order, `ADR-069` item 3) and own email, per role** — a `Foreach` over the signers, then a `Switch` on `roleName` | Update recipient on an envelope | `UpdateEnvelopeRecipient` | `recipientId`, `recipientType: signers`, `routingOrder`, `additionalRecipientParams/name` and `/email`, `emailNotificationSubject`, `emailNotificationBody`, `emailNotificationLanguage` | `PUT …/recipients` (draft) with `emailNotification` | E1 static; language literal run-unverified |
 | C4 | **Referee access code** (`ADR-068` item 4) | Add verification type to a recipient | `AddVerificationToRecipient` | `recipientId`, `recipientType: signers`, `verificationType: Access Code`, `additionalRecipientData/accessCode` | `PUT …/recipients` with `signers[].accessCode` | E1 static. That the account's access-code format accepts 6 digits: run-unverified, `A-DS-17` |
 | C5 | Find the document id | List documents from a template | `ListTemplateDocuments` | `accountId`, `templateId` | `GET …/templates/{templateId}/documents` | E1 static. That the template's document id equals the envelope's is E3 |
 | C6 | Read the tabs | Get document tabs from envelope | `GetEnvelopeDocumentTabs` | `accountId`, `envelopeId`, `documentId` | `GET …/documents/{documentId}/tabs` | E1 static |
-| C7-A | **Option A (reviewer's choice): fill every tab in one call** | Update envelope prefill tabs | `UpdateEnvelopePrefillTabs` | `accountId`, `envelopeId`, `documentId`, `body` = one array of all prefill **and** recipient tabs | `PUT …/documents/{documentId}/tabs` | E1 static. **That it updates recipient tabs: unmeasured, settled by the first run (`A-DS-16`)** |
-| C7-B | **Option B: separate calls** | Update envelope prefill tabs + Update recipient tab values on an envelope | `UpdateEnvelopePrefillTabs` (prefill array) + `UpdateRecipientTabsValues` (one array per signer, by `recipientId`) | as C7-A; plus `recipientId` | `PUT …/documents/{id}/tabs` + `PUT …/recipients/{id}/tabs` | E1 static |
+| C7-A | **~~Option A (reviewer's choice): fill every tab in one call~~ — superseded, never measured (`ADR-069` item 1)** | Update envelope prefill tabs | `UpdateEnvelopePrefillTabs` | `accountId`, `envelopeId`, `documentId`, `body` = one array of all prefill **and** recipient tabs | `PUT …/documents/{documentId}/tabs` | E1 static. **That it updates recipient tabs: unmeasured, settled by the first run (`A-DS-16`)** |
+| C7-B | **Option B: separate calls — what is built (`ADR-069` item 1)** | Update envelope prefill tabs + Update recipient tab values on an envelope | `UpdateEnvelopePrefillTabs` (prefill array) + `UpdateRecipientTabsValues` (one array per signer, by `recipientId`) | as C7-A; plus `recipientId` | `PUT …/documents/{id}/tabs` + `PUT …/recipients/{id}/tabs` | E1 static |
 | C8 | **Check every value landed** | Get document tabs from envelope | `GetEnvelopeDocumentTabs` | as C6 | as C6 | E1 static |
 | C9 | Reminders, before the send | Add reminders for an envelope | `AddReminders` | `envelopeId`, `reminderEnabled`, `reminderDelay`, `reminderFrequency` | `PUT …/notification` | E2; accepted on a draft: run-unverified |
 | C10 | **Send** | Send envelope | `SendDraftEnvelope` | `accountId`, `envelopeId` | `PUT …/envelopes/{id}` `{"status":"sent"}` | E1 static |
 
-**Option A or B.** Build **A**, the reviewer's choice. C8 re-reads every tab after the update and compares each
+**Option A or B — superseded by `ADR-069` item 1.** Build **A**, the reviewer's choice. C8 re-reads every tab after the update and compares each
 expected `tabId`'s value with the value sent. If the first run shows A leaves recipient tabs unchanged, the
 re-read fails and the flow alerts and stops. A cannot fail silently. Development-agent then switches C7 to **B**.
 The choice is one action. The tab-identification step before it is the same either way.
@@ -3435,7 +3663,7 @@ connector's actions exposes either. It stays a template or account setting (`ADR
 **Design requirements the reviewer's test flow does not carry yet.** None of these changes `TEST_Docusign`;
 they bind the solution flow.
 
-1. **The referee's `routingOrder` is `2`.** v2c sets `1` on both roles, which would make them sign in
+1. **~~The referee's `routingOrder` is `2`.~~ Superseded by `ADR-069` item 3: the flow sets none.** v2c sets `1` on both roles, which would make them sign in
    parallel. FR-042 requires applicant first, then referee.
 2. **Values come from the grant, as in rev 14**: amount = `rev_grant.rev_amountawarded` formatted `N2`, not
    the application's amount requested. Dates = the grant's holiday start and end formatted `d MMMM yyyy`. The
@@ -3609,6 +3837,119 @@ the locked baseline, unless an approved change order in `contract/change-orders/
 **It needs no intake or data-model change.** `rev_refereephone` already exists (`nvarchar(25)`, secured). It
 does depend on the process owner always entering it.
 
+### ADR-069: Create Envelope fills the prefill, applicant and referee tabs in separate calls, binds signers without a routing order and reads the binding back
+**Status:** `Proposed` (rev 16) · **Date:** 2026-10-05 · **WBS:** `wbs:3.2` · **Raised by:** reviewer, 2026-10-05
+(*"Yes architect agent should update the design"*), after `IMP-1043`. **Supersedes** the parts of `ADR-067` named in
+item 9; `ADR-068` is unchanged.
+
+**Context.** The rev 15 design was authored before the flow ran. Between 3 Oct 18:51 and 4 Oct 07:25 the reviewer
+fixed it in DEV through a series of hotfix imports, each with the gates overridden (pipeline log
+[L299–L316](logs/pipeline.log#L299)). The imports changed the action list, the tab structure and the stop
+conditions, and no later step recorded them: this TAD still described a single `Fill_the_tabs`, one
+`UpdateEnvelopePrefillTabs` call and a 24-tab fixture, and 35 contract tests asserted that
+([IMP-1043](logs/improvement-log.jsonl#L1039)). This ADR records what the flow now does. **It does not decide
+anything the reviewer had not already settled by running it**; the one place it chooses is item 3's open marker.
+
+**Ground truth.** The flow's source, read 2026-10-05. DEV equals source apart from `secureData` (Dev Summary
+2026-10-05 §0). Run behaviour is E1 where §12.5's A-DS-16 record says so, from the hotfix log lines it cites. No
+DocuSign run output was read by this agent.
+
+**Decision**, nine items:
+
+1. **Three fill calls, not one.** The prefill tabs go through `UpdateEnvelopePrefillTabs`; each signer's tabs go
+   through their own `UpdateRecipientTabsValues` call. Rev 15's *option A* (one array through the prefill action) was
+   never measured working or failing: its first run failed on an unrelated error (`No tabs specified`, 3 Oct 20:40)
+   and the reviewer split the call in the next import. *Option B*, which rev 15 held as the fallback, is therefore
+   what is built.
+2. **Each fill has a primary spelling and a one-shot fallback on the other.** Prefill sends the read spelling
+   (`textTabs`), recipients send the enum (`Text`); a failed fill is repeated once with the other spelling. Both
+   primaries were measured accepted.
+3. **Signers are bound without `routingOrder`.** The template locks it, and DocuSign answers `200` with
+   `RECIPIENT_UPDATE_FAILED` and leaves the signer blank. **Rev 16 approval: there is no signing
+   order** (reviewer: *"The agreement gets send to both"*), so the missing `routingOrder` is the intended behaviour and
+   nothing needs observing (`A-DS-19` closed, §12.5 R7).
+4. **A signer read-back stops the run if a bind did not take** (`Check_both_signers_are_bound`), because item 3's failure
+   mode is silent.
+5. **The access code is set before the referee is bound.** Added after it, DocuSign blanked the referee's name and
+   email.
+6. **No Company-typed tab carries a value the signer must see.** DocuSign stores it and shows it empty. The
+   referee's company is a **Text** tab (`o2`, Data Label `organisation`) matched by placeholder or label; the
+   conditional company fill remains for a template that still has a Company tab.
+7. **Tabs are owned by recipient id or GUID, read from the first template document only, and an Email Address tab
+   is never written.** The template has two documents; the tab-level recipient id in the read is the signer's GUID.
+8. **The run stops on any of five conditions, each alert-then-`Terminate` (Failed):** `AcceptanceDetailsMissing`,
+   `DraftDoesNotMatchTemplate`, `SignerNotBound`, `NoTabsToFill` and `TabsNotFilled`. Every container in the scope
+   has its own failure-lookup case.
+9. **Supersedes in `ADR-067`:** the C3 `routingOrder` and design requirement 1; the C7-A/C7-B choice and the "build A"
+   paragraph; design requirement 4's expected set (now the 15 required ids); design requirement 7's *"exactly one
+   document"* (now at least one); the C8 text *"every expected tab"* (now the three conditions of step 13).
+   **The ground-truth tables in `ADR-067` are history and are kept.**
+
+**Consequences**, in the order of the items:
+
+1. *Positive:* a failure names the group that failed. *Negative:* 14 DocuSign calls per envelope, up to 17 (risk `A-R76`).
+2. *Positive:* a spelling difference between the read and the update no longer stops a run. *Negative:* the
+   fallback can mask which spelling is correct; the primaries are measured, the checkbox literal is not.
+3. *Neutral (rev 16 approval):* both signers are emailed at the same time, which is what the reviewer wants.
+   Risk `A-R80` is retired. The reviewer controls the template.
+4. *Positive:* a blank signer cannot reach the send. The compared value is the email, not the name.
+5. *Neutral:* there is no order to assert; the test asserts that no `routingOrder` is sent.
+6. *Positive:* the referee sees the organisation. *Negative:* the template change is hand-made per environment
+   (risk `A-R75`).
+7. *Positive:* a template with a second document no longer fails. *Negative:* a tab on the second document is not
+   filled or checked.
+8. *Positive:* nobody is emailed on any failed run. *Negative:* five alert shapes and seven lookup cases to keep consistent.
+9. *Neutral:* none.
+
+**Gate interactions** (the gates `config/revitalise-grant-automation-build.yml` runs over this flow, from its own `steps:`):
+
+| Gate | Tripped by this design? |
+|---|---|
+| `flow-definition-language` | Not by source today: `development-agent` ran it clean on 10 flows on 2026-10-05, check 7 without an exception. A new container needs its failure case or check 7 fires |
+| `source-parses`, `assumption-register`, `assumption-markers`, `assumption-id-collisions` | `A-DS-19` has a register row, closed, so it needs no source marker; `A-DS-14`–`A-DS-18` rows change status |
+| `tad-coverage` | The eight columns of `ADR-070` need rows in §3.1, added in this revision |
+| `unit-tests` (`AcceptanceEnvelopeContract.Tests.ps1`) | **Yes: 35 tests fail today.** Their rewrite is specified in §5.8's *Test contract* |
+
+**The retired decision's words, searched across the repository (`IMP-1015`).** `Fill_the_tabs`, `Build_the_tab_array`,
+`option A`, `routing order 1`, `routingOrder`, `24 tabs`: *rewrite* — §5.8 table (replaced), `A-R76`, §12.5 R2/R3 and
+the `A-DS-16` row; *history, kept* — Revision rev 15 items 6–7, `ADR-067` ground-truth tables and C3/C7 rows (each now
+marked superseded), `docs/deployments/…-deployment-summary.md` L2165; *not this document's to rewrite* —
+`config/revitalise-grant-automation-pipeline.yml` L1408–L1410 names `Fill_the_tabs` in a reviewer-run step, and
+`src/solutions/…E06.json` action descriptions that still say "routing order 1" (`development-agent` corrects them).
+
+### ADR-070: The Grant Referee's title, job title, company, address, town and postcode, and first and last names, are held on `rev_application`
+**Status:** `Accepted` (rev 16, reviewer 2026-10-05) · **Date:** 2026-10-05 · **WBS:** `wbs:3.2` · **Supersedes `ADR-043`.**
+
+**Context.** `ADR-043` decided on 2026-09-06 that these tabs stay blank for the referee, and recorded its own
+reversal condition: *"if the reviewer later finds referee address data is needed … this decision reverses and the
+schema work CO-002 deferred still has to happen."* On 3–4 Oct 2026 the reviewer added the columns in DEV by
+instruction and by hand (pipeline [L309](logs/pipeline.log#L309), [L310](logs/pipeline.log#L310),
+[L312](logs/pipeline.log#L312)), and the flow now fills the referee's tabs from them. **The log records the
+instruction, not the reason; the reviewer has since given it:** *"The referee columns are added to make the docusign
+envelope completely data driven. Instead of having empty fields in the docusign form. The grant admin will collect those
+items i am guessing. Something to discuss with Emily."* **Open, not settled:** who collects the referee details. Owner:
+reviewer, to raise with Emily (client side).
+
+**Decision.** `rev_application` carries eight further columns, all `nvarchar`, all `IsSecured` and in
+`REV_TrusteeRestricted` (Tier 4, like `rev_refereename`): `rev_refereefirstname` (100), `rev_refereelastname` (100),
+`rev_refereetitle` (50), `rev_refereejobtitle` (100), `rev_refereecompany` (100), `rev_refereeaddress` (250),
+`rev_refereetowncity` (100), `rev_refereepostcode` (10). They are entered by the process owner on the Application
+form; intake does not capture them. `rev_refereename` stays as the fallback when first and last are empty.
+
+**Consequences.** (1) The envelope's referee tabs are pre-filled, so ADR-068 item 1's Required flags no longer rely
+on the referee typing them. (2) **A second data subject's address and employer are now held** (`C-DOM-002`,
+`C-DOM-003`): ADR-043 avoided exactly this. The retention and erasure helper (§5.12) is not among the solution's workflows today, so
+whether it will blank the eight columns, and whether the DPIA covers them, is **not established** (risk `A-R81`). (3) Column security is in source
+(`FieldSecurityProfiles.xml`). The profile import failed once on these columns with the known `Object reference not set` error
+(pipeline [L309](logs/pipeline.log#L309)), so the eight columns are an **environment prerequisite** for TST/ACC and PRD
+(§12.1, `C-TECH-050`): `ensure-schema.ps1` was run for DEV by the reviewer on 4 Oct 06:27, not for the others.
+
+**Scope.** Inside `wbs:3.2` (*"pre-populated fields"*), but `ADR-043` closed `CO-002` as *not needed* on the basis that nothing was added. `commercial-agent` is reopening `CO-002` in parallel under `C-COM-002`; this document only cites it.
+
+**Gate interactions.** `tad-coverage` (rows added in §3.1). `config/attribute-type-lock.json` and
+`config/trustee-restricted-field-catalogue.json` hold only `rev_refereename`, `rev_refereeemail` and `rev_refereephone`
+today (grepped 2026-10-05); the eight new columns are **not in either**, and `development-agent` adds them.
+
 ---
 
 ## 11. Risks & Mitigations
@@ -3656,12 +3997,14 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R71** **The signed intake URL leaks** (rev 14, `ADR-011`). The URL, together with a header value that is not secret, is the whole trust boundary, and it has no forced expiry. Anyone holding it can create applications in that environment, and they look exactly like the website | Medium | High | Hash-only handling in the pipeline: the URL is never printed or logged (`ADR-011` intervention 4). Ask Alex where Gravity Forms stores and logs the webhook URL, and that backups and staging copies of the site are covered. Rotate by regenerating the trigger key and updating WordPress and the CI secret, but the rotation mechanism is unverified (`A-INT-14`). The flow's existing checks bound the damage: `Reject_incomplete_payload`, the `rev_sourcesubmissionid` idempotency key and human screening before any decision. Stronger options are in `ADR-011` rev 14 consequence 1 |
 | **A-R72** **An import or trigger change silently changes the intake URL** (rev 14). The website keeps posting to the old URL, no run starts, nothing reaches `rev_errorlog` and FR-010 does not alert. The website holds the entry | Medium | High | The pipeline compares the callback URL's SHA-256 before and after each import. If it changed, the deploy is reported `PARTIAL` with `REVIEWER ACTION REQUIRED: update the WordPress webhook URL and the CI secret` (`ADR-011` intervention 4, `A-INT-13`) |
 | **A-R73** **A designer save on a solution flow between deploys rewrites its live definition** (`IMP-1010`). Measured in DEV on 2026-10-02: one save emptied both nested `CreateRecord` actions, removed the trigger's secure outputs, renamed parameters and stripped `inputs.authentication`. The next run succeeded and wrote an empty application | High (if anyone opens the designer) | High | §5 write-shape rule (flat `item/<column>`). No designer saves on solution flows. `verify-live-flow-definitions.py --env dev` before any test run and before any build is put on top of DEV, not only after a deploy (`IMP-1010` proposed change 3) |
-| **A-R74** **A failed run leaves an orphaned DocuSign draft holding personal data** (rev 15, `ADR-067`). Any action after the draft is created (§5.8–5.10 steps 4–10) can fail; a draft cannot be voided, and the connector has no delete-draft action. A re-run makes a second draft | Medium | Low | The failure alert carries the draft's envelope id; the process owner deletes it in DocuSign. The retention helper's envelope purge (FR-049) is the backstop. Nobody outside Revitalise is ever emailed by a draft |
+| **A-R74** **A failed run leaves an orphaned DocuSign draft holding personal data** (rev 15, `ADR-067`). Any action after the draft is created (§5.8 steps 7–14) can fail; a draft cannot be voided, and the connector has no delete-draft action. A re-run makes a second draft | Medium | Low | The failure alert carries the draft's envelope id; the process owner deletes it in DocuSign. The retention helper's envelope purge (FR-049) is the backstop. Nobody outside Revitalise is ever emailed by a draft |
 | **A-R75** **The template differs between environments** (rev 15). Each environment's `rev_DocuSignAcceptanceTemplateId` names its own template. Required flags, tab labels and the reassignment setting are hand-configured in each | Medium | Medium | §12.5 T2 and M4 run per environment before activation. A label mismatch is caught at run time by `ADR-067` step 4 (alert, no send); a missing *Required* flag is not caught by anything in the flow |
-| **A-R76** **A large approved batch exceeds DocuSign's 250 calls per minute per connection** (rev 15). About 12 calls per envelope under option A (13 under B); around 20 grants finalised within one minute can exceed it | Low | Low | Every DocuSign action keeps the existing exponential retry (4). The `wbs:3.7` bulk test (five at once) measures it; a trigger concurrency limit is added only if that test shows failures |
+| **A-R76** **A large approved batch exceeds DocuSign's 250 calls per minute per connection** (rev 15). 14 DocuSign calls per envelope on the happy path and 17 with all three spelling fallbacks (rev 16, `ADR-069`); around 20 grants finalised within one minute can exceed it | Low | Low | Every DocuSign action keeps the existing exponential retry (4). The `wbs:3.7` bulk test (five at once) measures it; a trigger concurrency limit is added only if that test shows failures |
 | **A-R77** **An applicant supplies their own contact details as the referee's** (rev 15, `ADR-068`). Every factor the system can check — email, phone — comes from the applicant, who therefore also knows the access code. The access code stops a forwarded email being opened by someone who does not know the number; it does not stop a fabricated referee | Low | High | A process control, not a system one: the process owner checks the referee's number is plausibly theirs before approving. Only ID Verification binds to a named real person, and it was rejected as disproportionate |
 | **A-R78** **The access code is guessable when the referee's number is public** (rev 15, `ADR-068` item 4; **replaces** the phone-authentication UK-delivery risk, which no longer applies because nothing is sent to the phone). The code is the last six digits of a number; an organisation's published number (a GP practice switchboard) makes it public knowledge | Medium | Medium | The process owner records the referee's direct or mobile number in preference to a switchboard. If a stronger factor is ever wanted, DocuSign phone authentication (one-time code to the phone) is the upgrade, with its cost and UK delivery to be confirmed first |
 | **A-R79** **The referee's phone is missing or has fewer than six digits, so no envelope goes out** (rev 15, `ADR-068` item 4). Nothing in Phase 1 writes `rev_refereephone`; the process owner types it | Medium | Low | Step 1 normalises it to digits and alerts and stops below six, naming the field. The grant stays at Awarded until it is corrected |
+| ~~**A-R80** The template's routing order is not applicant first, referee second~~ **RETIRED, rev 16 approval.** Reviewer: *"There is no signing order. The agreement gets send to both."* Both signers are emailed together by design, so there is no order to get wrong. The id is not reused | n/a | n/a | n/a |
+| **A-R81** **Eight more secured referee columns hold a second data subject's name, employer and address, and no erasure path for them is established** (rev 16, `ADR-070`). `ADR-043` avoided exactly this. The retention and erasure helper (§5.12) is not in the solution's workflows today | Medium | Medium | The columns are `IsSecured` and in `REV_TrusteeRestricted`. When §5.12 is built its blank list covers all eleven `rev_referee*` columns. The reviewer confirms the DPIA covers a referee's address and employer. TST/ACC and PRD need `ensure-schema.ps1` run for the eight columns (§12.1) |
 
 ---
 
@@ -3796,7 +4139,7 @@ of the flow version that writes them, in DEV, TST/ACC and PRD. Nothing here exis
 | Item | Mechanism | Note |
 |---|---|---|
 | Global option set `rev_otherfundingstatus` (1 Yes · 2 No · 3 Applied and awaiting decision) | `provisioning/dataverse/ensure-schema.ps1` pattern | Option values are author-chosen, not platform-assigned |
-| Seven `rev_application` columns and (conditionally) two `rev_applicant` columns (§3.1, Appendix C §C.8) | same | Delete `TD-010`/`TD-011` in the same change |
+| Seven `rev_application` columns and (rev 17: the two conditional `rev_applicant` columns are removed) (§3.1, Appendix C §C.8) | same | Delete `TD-010` in the same change |
 | `RequiredLevel` None on `rev_applicant.rev_dateofbirth` and `rev_email` (`ADR-051` item 9) | same (attribute update) | Reviewer-confirmed at the rev 9 gate |
 | `REV_TrusteeRestricted` gains create/read/update on the **two secured descriptions** (and, if built, the two conditional name columns). **Rev 11:** not on the two Equality Act answers, which are unsecured | `Other/FieldSecurityProfiles.xml` | Without it the intake create fails with a permission error — the same reason given for the seventeen existing secured writes (flow `.notes.md`) |
 | Special-category register: four `columns:` rows (Art. 9, health). **Rev 11:** the two Equality Act answers take `secured: exception` with a reason (*"Panel-visible: released under SDD OQ-051; the free-text elaboration stays secured"*) and an owner (the reviewer, 2026-09-25). The two descriptions are plain rows. The conditional name columns go under `pending_adjudication:` | `constraints/domain/special-category-register.yml` — **owner: Domain Owner / reviewer**, not development-agent | Until they land, `domain-invariants` fails by design (C-DOM-031/033) |
@@ -3823,7 +4166,7 @@ this flow, so their first import creates all eleven directly as `Memo`, no delet
 | 8. Independent verification by direct Web API query: `AttributeType`, `MaxLength`, `IsSecured` per column | development-agent | Not satisfied by the import's own exit code (2026-08-16 precedent) |
 
 
-### 12.5 Platform Contract Verification Plan — Create Envelope rev 15 (`wbs:3.1,3.2`)
+### 12.5 Platform Contract Verification Plan — Create Envelope (rev 15 plan; rev 16 measured record added) (`wbs:3.1,3.2`)
 
 Three operation ids are now E1 from the reviewer's DEV flow `TEST_Docusign` (`ADR-067`). Its dynamic fields
 are not, and no run has been observed. R1–R6 use **that flow as a measurement harness only** — not as a draft of the design — so the lead can
@@ -3836,11 +4179,13 @@ none of its action shapes is copied into solution source verbatim.
 |---|---|---|---|---|
 | T1 | **Done 2026-10-02 (reviewer, designer).** `SendEnvelopeWithRecipientFields` fills recipient tabs only; superseded by `CompositeTemplates` (`ADR-067`) | — | Recorded | Reviewer |
 | R1 | **First run — the draft and its roles.** After C1–C2: is the envelope in **Drafts**, and does `GetRecipientStatus` return exactly two signers named `Grant Acceptor` and `Grant Referee`, each with the template's tabs? After C3: the same two, now with names, emails and routing orders 1 and 2 — not four signers | `A-DS-14` | The run's outputs | Reviewer runs; lead reads the run history |
-| R2 | **Option A or B.** After C7-A, does C8's re-read show the referee's `n2`, `e2`, `ph2` with the values sent, as well as the five prefill tabs? If not, switch to B and re-run | `A-DS-16` | C8's re-read | Reviewer |
-| R3 | **The `tabType` string.** Which value does each update action accept: the GET's own `tabType` passed through, or the designer's `Text`? Also record the checkbox literal from the designer's `tabType` list, for any checkbox tab added later | `A-DS-16` | Run with the GET value passed through. If refused, map it to the designer's literal | Reviewer |
+| R2 | ~~**Option A or B.**~~ **Rev 16: not measured and no longer a question.** Option A was never observed working or failing; the split fills (`ADR-069` item 1) are built and the read-back (step 13) is the check on them | `A-DS-16` | Step 13's re-read | — |
+| R3 | **The `tabType` string.** **Measured 2026-10-03 20:50 UTC, see the record below.** Still open: the checkbox literal, i.e. which of `Checkbox` and `checkboxTabs` DocuSign accepted (the run succeeded through one of the two paths) | `A-DS-16` | Read the `Fill_the_applicant_tabs` and `…_as_read` statuses in one run | Reviewer |
 | R4 | **Tab identification.** Record each tab's `tabLabel` next to its placeholder `value`. If labels are set, the flow keys on them | `A-DS-15` | The C6 output | Reviewer |
 | R5 | **The access code.** Run with a test referee whose phone is entered with spaces and a `+44` prefix. Is the code taken from the digits only, and does DocuSign accept a six-digit code under the account's format setting? Forward the test email and open the link: it must ask for the code. Then try a test referee with a five-digit phone: the flow must alert and stop | `A-DS-17`, `ADR-068` item 4 | One sent test envelope to test mailboxes, then void it | Reviewer |
 | R6 | **Email and reminders.** Each test mailbox gets its own subject and body, and the language string `English UK (en_GB)` is accepted. C9 is accepted on the draft and holds after C10 | `A-DS-16` | The same R5 envelope | Reviewer |
+| R7 | **Both signers receive the agreement at the same time.** On one sent test envelope, confirm the applicant and the referee are each emailed on the send, with no sequence expected. The flow sets no order (`ADR-069` item 3). *Rewritten at rev 16 approval; it formerly checked applicant-then-referee* | `A-DS-19` (closed) | The template in DocuSign; one sent test envelope to test mailboxes, then void it | Reviewer with Emily |
+| R8 | **The referee's company shows to the signer.** Open the signing view of a test envelope: the `organisation` Text tab (`o2`) must show the company. A Company-typed tab does not (record below) | `A-DS-16` | Same envelope as R7 | Reviewer |
 | M4 | Open the template in DocuSign: each field's *Required* box and *Data Label*; the reassignment option in the template's advanced options and in Admin → Signing Settings | H1 (`ADR-068`); `A-DS-18` | Reading the template, per environment | Reviewer with Emily |
 | M5 | ~~Phone authentication values and a test code to a phone~~ **Superseded: `ADR-068` item 4 is an access code, measured by R5** | — | — | — |
 | M6 | After M4 is fixed: send one test envelope to a test referee mailbox, forward it, open the forwarded link | `ADR-068` items 2 and 4 | The forwarded link must ask for the phone code (if item 4) and must not offer *Assign to someone else* | Emily (`wbs:3.5`) |
@@ -3850,11 +4195,28 @@ checked across both documents on 2026-10-02):
 
 | ID | Unverified contract | Closed by |
 |---|---|---|
-| `A-DS-14` | `CompositeTemplates` with `status: Created` produces a draft carrying both template roles as placeholder signers with their tabs; `UpdateEnvelopeRecipient` fills those placeholders rather than adding signers; `SendDraftEnvelope` sends the draft unchanged | R1, R5 |
-| `A-DS-15` | How each tab is identified (Data Label or only its placeholder `value`); which tabs are prefill and which recipient; that the template's document id is the envelope's | R4, R1 |
-| `A-DS-16` | `UpdateEnvelopePrefillTabs` updates recipient tabs when given them (option A), else option B; which `tabType` string each update accepts, and the checkbox literal; the language string `English UK (en_GB)` is accepted; `AddReminders` works on a draft | R2, R3, R6 |
-| `A-DS-17` | A six-digit access code conforms to the account's access-code format setting, and the signing link requires it | R5 |
+| `A-DS-14` | `CompositeTemplates` with `status: Created` produces a draft carrying both template roles as placeholder signers with their tabs; `UpdateEnvelopeRecipient` fills those placeholders rather than adding signers; `SendDraftEnvelope` sends the draft unchanged | R1, R5 — **rev 16:** the draft, its two roles, both binds and the send are observed at run-status level in DEV (runs succeeded after the 4 Oct 07:24 import, every check passing); the DocuSign UI was not read |
+| `A-DS-15` | How each tab is identified (Data Label or only its placeholder `value`); which tabs are prefill and which recipient; that the template's document id is the envelope's | R4, R1 — **rev 16:** recipient tab ids in the read are the signer's `recipientIdGuid` (E1, pipeline L308); the template's document id equals the envelope's for the first of two documents |
+| `A-DS-16` | **Rev 16, partly closed.** Option A is dropped (`ADR-069` item 1). Measured: prefill accepts `textTabs`, recipients accept `Text`; `Company` is dropped and `companyTabs` stores but is shown empty; `English UK (en_GB)` and `AddReminders` on a draft are accepted at run-status level. **Open: the checkbox literal** | R3, R8 |
+| `A-DS-17` | A six-digit access code conforms to the account's access-code format setting, and the signing link requires it | R5 — **rev 16:** DocuSign accepted the six-digit code on the update (run status); that the signing link requires it is still unobserved |
 | `A-DS-18` | An envelope created from a template whose reassignment option is off inherits it, when the account setting is left on | M4, M6 |
+| `A-DS-19` | **Closed, not applicable (rev 16 approval).** Was: the template's routing order is applicant 1, referee 2. The reviewer says there is no signing order and both signers get the agreement at once. Id kept, not reused | R7 (rewritten) |
+
+**A-DS-16 measured record (rev 16)** — every row is E1 from a DEV run, read from the hotfix log by `development-agent` and
+the reviewer, not from DocuSign's UI or documentation. Improvement review 2026-09-30-2 row 43 asked for the first three.
+
+| # | Measured fact | Source | Design consequence |
+|---|---|---|---|
+| 1 | `UpdateEnvelopePrefillTabs` accepted `tabType: textTabs` (the read's own spelling); `UpdateRecipientTabsValues` accepted `Text` (the enum). The read returns `textTabs`, the designer writes `Text` | [pipeline L308](logs/pipeline.log#L308), run 3 Oct 20:50 UTC | Primary spellings per action, one-shot fallback on the other (`ADR-069` item 2). **Rejection of the other spelling was not recorded** |
+| 2 | A value sent to a **Company** tab is stored (`companyTabs` accepted, the read-back matches) but the **signer sees it empty**. The `Company` enum was dropped | [L312](logs/pipeline.log#L312), [L314](logs/pipeline.log#L314) | The read-back cannot catch it, because the value is stored. No Company tab carries a value the signer must see; the reviewer replaced it with a Text tab `organisation` at `o2` ([L315](logs/pipeline.log#L315)); R8 checks the signing view |
+| 3 | `routingOrder` is locked by the template. `UpdateEnvelopeRecipient` with one returned `200` with `RECIPIENT_UPDATE_FAILED` and kept the referee blank | [L311](logs/pipeline.log#L311) | No `routingOrder` is sent; `Check_both_signers_are_bound` reads the signers back; there is no signing order (rev 16 approval; `A-DS-19` closed, `A-R80` retired) |
+| 4 | Recipient tab ids in the tab read are `recipientIdGuid`, not the numeric `recipientId` | [L308](logs/pipeline.log#L308) | Owner match accepts either |
+| 5 | Email Address tabs are filled by DocuSign from the signer | [L308](logs/pipeline.log#L308) | `EmailAddress` is in `neverSend` |
+| 6 | Adding the access code **after** binding the referee blanked the referee's name and email | [L309](logs/pipeline.log#L309) | Access code before the referee bind |
+| 7 | The template has two documents (the acceptance form and the general T&Cs) | [L303](logs/pipeline.log#L303) | At least one; tabs read and filled on the first |
+| 8 | A flow action description over 256 characters blocks turning the flow on | [L305](logs/pipeline.log#L305) | Descriptions are at most 256 characters |
+| 9 | The checkbox literal DocuSign accepted is **not recorded** | — | Open in `A-DS-16`, R3 |
+
 ---
 
 ## Appendix A — Requirement Traceability (SDD → TAD)
@@ -3867,7 +4229,7 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | FR-001 – FR-006 | WordPress / Gravity Forms application form — **out-of-palette**, §4, §8, §12 (specification obligation, incl. NFR-020 reading age) |
 | FR-007, FR-008 | `REV \| Intake` flow §5.1; `rev_application.rev_name` §3.1 (**reference-format conflict §3.5 #1**). **Rev 9:** the payload contract is the website's native entry — `ADR-051`, field map Appendix C |
 | FR-009 | `REV \| Intake` → Teams 1:1 chat, ADR-015 |
-| FR-083 – FR-093 (SDD A-08) | `ADR-051` items 11–12, `ADR-052`; Appendix C §C.1, §C.6, §C.8; §3.1 rev 10/11 rows; §12.4. FR-093 is conditional on OQ-053 (`TD-011`) |
+| FR-083 – FR-093 (SDD A-08) | `ADR-051` items 11–12, `ADR-052`; Appendix C §C.1, §C.6, §C.8; §3.1 rev 10/11 rows; §12.4. FR-093 was conditional on OQ-053 (`TD-011`); rev 17: closed, the columns are removed |
 | FR-010 | `REV \| Ops \| Failure Alert` §5.14; `rev_errorlog` §3.1. **Rev 9:** rejection limited to four empty keys, and every other defect is a note (Appendix C §C.5, `ADR-051` items 6 and 10) |
 | FR-011 – FR-016 | `REV \| Scoring \| Calculate & Flag` §5.2; `rev_circumstancescore`, `rev_scorebreakdown`, `rev_incomeflag` §3.1; `rev_setting` §3.1 |
 | FR-017 | `rev_setting` table, ADR-010, NFR-019 |
@@ -3969,9 +4331,9 @@ its `pending_adjudication:` block (identifying, secured); `—` = neither.
 | `grant_terms_and_conditions` | `true` | `grant_terms_consent` | `rev_application.rev_granttermsconsent` (+ `…consentdate` = `received_at` when true) | BOOL | — | The payload carries no consent timestamp |
 | `name_title` | `"Mr."` | `title` | `rev_applicant.rev_title` | MAP `TitleLabelMap` | PII | Previously never sent (spec M-10). The trailing full stop is an alias row, not a normalisation |
 | `name_first` | `"Alex"` | `first_name` | `rev_applicant.rev_firstname` | TEXT, **required** | PII | Replaces the old `first_name` key |
-| `name_middle` | `""` | `middle_name` (**new, conditional**) | `rev_applicant.rev_middlename` (§C.8) | TEXT | PII | Only if Alex confirms the sub-field is shown (`ADR-011` question 8). If it is hidden, it is not applicant-entered and not transferred |
+| `name_middle` | `""` | — | **NOT TRANSFERRED (rev 17)** — reviewer: no middle-name field on the form (`ADR-011` question 8 closed) | — | — | `rev_middlename` removed from §3.1 |
 | `name_last` | `"Walton"` | `last_name` | `rev_applicant.rev_lastname` | TEXT, **required** | PII | |
-| `name_suffix` | `""` | `name_suffix` (**new, conditional**) | `rev_applicant.rev_namesuffix` (§C.8) | TEXT | PII | Same condition |
+| `name_suffix` | `""` | — | **NOT TRANSFERRED (rev 17)** — no suffix field on the form | — | — | `rev_namesuffix` removed from §3.1 |
 | `address_street_address` | text | `address_line` | `rev_applicant.rev_addressline` | TEXT | PII | |
 | `address_address_line_2` | `""` | `address_line2` | `rev_applicant.rev_addressline2` | TEXT | PII | |
 | `address_town_city` | text | `town_city` | `rev_applicant.rev_towncity` | TEXT | PII | |
@@ -4211,8 +4573,6 @@ redacted counterparts. Every other new column is hidden from trustees.
 | `rev_disabilityimpactdescriptionredacted`, `rev_supportrecipientdisabilityimpactdescriptionredacted` (**rev 11**) | `rev_application` | Multiline text, 4,000 | — (written by Automation #5, never by intake) | Tier 3 | not secured; shown to trustees once `rev_redactionreleased` is true | `ADR-052`, ADR-027 pattern. Empty until Automation #5 is extended |
 | `rev_provisionaldate` | `rev_application` | Text, 200 | `provisional_date` | Tier 3 | not secured; audited | The applicant's free text (*"July 2025"*), stored as written. `rev_breakstart`/`rev_breakend` stay for a future structured question (M-06, EF-09) |
 | `rev_otherfundingstatus` | `rev_application` | Choice — **new global option set `rev_otherfundingstatus`**: 1 Yes · 2 No · 3 Applied and awaiting decision | `are_you_receiving_funding_from_any_other_sources_for_this_break` | Tier 3 | not secured; audited | Closes spec M-08 on the data side. `rev_receivingotherfunding` stays and is still written |
-| `rev_middlename` *(conditional)* | `rev_applicant` | Text, 100 | `name_middle` | Tier 4 (PII) | `IsSecured=1`; register `pending_adjudication`; main-form control | **Build only if Alex confirms the sub-field is shown** (`ADR-011` question 8). If it is hidden it is not applicant-entered, and it is not built |
-| `rev_namesuffix` *(conditional)* | `rev_applicant` | Text, 20 | `name_suffix` | Tier 4 (PII) | as above | Same condition |
 
 **Helper name parts need no new column.** `helpers_name_prefix`, `_first`, `_middle`, `_last` and
 `_suffix` are joined, in that order and skipping empties, into the existing `rev_helpername`
@@ -4240,8 +4600,8 @@ the requirement it must state.
 5. **FR-001 and FR-027 name a date of birth** (FR-001 as a mandatory field; FR-027 as the source of
    the age range) **that the live form does not collect.** `ADR-051` item 9 has relaxed the column,
    but the requirement text still says otherwise.
-6. **Conditional:** `rev_middlename` / `rev_namesuffix`, only if Alex confirms the sub-fields are
-   shown.
+6. ~~**Conditional:** `rev_middlename` / `rev_namesuffix`, only if Alex confirms the sub-fields are
+   shown.~~ **Closed rev 17:** the reviewer ruled the fields are not on the form; the columns are removed.
 
 ### C.10 Widen-or-retype map (rev 12, `ADR-053`; rev 13 adds the two rows `IMP-0934` found missing) — every applicant-entered text/multiline column, structured or free-text
 

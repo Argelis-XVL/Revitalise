@@ -91,6 +91,18 @@
       "expires": "2026-12-31",
       "expiry_rationale": "Covers Phase 3 (due 2026-11-27) and the closing invoice after it; re-confirm before the final invoice is prepared so the decision is not silently carried past the project.",
       "_risk_acceptance_note": "Commercial-agent is not blocked by anything in code: verify-wbs-chain and verify-worklog would accept hours logged against 6.3, which is a contracted task. This entry and commercial-events CE-0012 and CE-0013 are the record commercial-agent reads; the control is that record, not a gate."
+    },
+    {
+      "id": "EX-009",
+      "gate": "none - not a gate violation. Standing record of a reviewer decision that CO-002's referee-prefill work is UNBILLED; see _gate_scope_note. No gate observes it.",
+      "matches": "UNBILLED by reviewer decision - CO-002 eight referee columns on rev_application, feature revitalise-grant-automation, wbs:3.2",
+      "reason": "Reviewer verbatim (logs/routing.log L1310, 2026-10-05 17:24): \"CO-002: leave it unbilled work\". The eight secured referee columns were added in DEV by hotfix on 3-4 Oct; CO-002's proposed 3-5h ROM is withdrawn and no change order approval is sought.",
+      "finding": "IMP-1044",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "Commercial-agent proposes no billable hours and logs no worklog session for the CO-002 referee columns. Revisit only if the reviewer decides to bill them (then an APPROVE CHANGE ORDER for CO-002 is required first, per C-COM-002).",
+      "expires": "2026-12-31",
+      "expiry_rationale": "Same horizon as EX-008: covers Phase 3 and the closing invoice, so the decision is re-confirmed before the final invoice is prepared.",
+      "_risk_acceptance_note": "Commercial-agent is not blocked by code: verify-worklog would accept hours against wbs:3.2. This entry and commercial-events CE-0016 are the record commercial-agent reads; the control is that record, not a gate."
     }
   ],
   "_closed_exceptions": [

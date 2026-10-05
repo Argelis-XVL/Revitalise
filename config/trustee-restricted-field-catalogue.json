@@ -17,6 +17,14 @@
     ["referee-name", "rev_refereename", "Helper, referee and emergency contact"],
     ["referee-email", "rev_refereeemail", "Helper, referee and emergency contact"],
     ["referee-phone", "rev_refereephone", "Helper, referee and emergency contact"],
+    ["referee-first-name", "rev_refereefirstname", "Helper, referee and emergency contact"],
+    ["referee-last-name", "rev_refereelastname", "Helper, referee and emergency contact"],
+    ["referee-title", "rev_refereetitle", "Helper, referee and emergency contact"],
+    ["referee-job-title", "rev_refereejobtitle", "Helper, referee and emergency contact"],
+    ["referee-company", "rev_refereecompany", "Helper, referee and emergency contact"],
+    ["referee-address", "rev_refereeaddress", "Helper, referee and emergency contact"],
+    ["referee-town-city", "rev_refereetowncity", "Helper, referee and emergency contact"],
+    ["referee-postcode", "rev_refereepostcode", "Helper, referee and emergency contact"],
     ["emergency-contact-name", "rev_emergencycontactname", "Helper, referee and emergency contact"],
     ["emergency-contact-phone", "rev_emergencycontactphone", "Helper, referee and emergency contact"]
   ]

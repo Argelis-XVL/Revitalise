@@ -596,14 +596,14 @@
         "key": "AcceptanceEmailApplicant",
         "displayName": "Acceptance email: applicant",
         "dataType": "JSON",
-        "value": "{\"subject\": \"Revitalise grant acceptance - {grantReference}\", \"body\": \"Please review and sign your Revitalise grant acceptance. After you have signed, your referee or GP will be asked to sign too.\"}",
+        "value": "{\"subject\": \"Revitalise grant acceptance - {grantReference}\", \"body\": \"Dear {applicantName},\\n\\nWe are pleased to tell you that your grant application {applicationReference} has been accepted.\\n\\nPlease review and sign your grant acceptance. Your referee, {refereeName}, will also be asked to sign.\\n\\nThank you.\\n\\nRevitalise Grant Applications Team\"}",
         "description": "TAD rev 15, ADR-068 item 3 (wbs:3.2): the applicant's own DocuSign email, JSON {subject, body}. Read by REV | Acceptance | Create Envelope and set with UpdateEnvelopeRecipient. {grantReference} is replaced with the grant reference (ADR-013); the subject must stay within 100 characters after that. No row, no subject or no body -> the flow alerts and sends nothing. PROVISIONAL TEST WORDING, not Emily's: replace with the wording Emily supplies. See settings-rows.notes.md#AcceptanceEmailApplicant--AcceptanceEmailReferee."
       },
       {
         "key": "AcceptanceEmailReferee",
         "displayName": "Acceptance email: referee",
         "dataType": "JSON",
-        "value": "{\"subject\": \"Revitalise grant acceptance - referee signature - {grantReference}\", \"body\": \"You have been named as the referee for a Revitalise grant. Please review and sign the grant acceptance. Open the agreement with the last 6 numbers of your phone number.\"}",
+        "value": "{\"subject\": \"Revitalise grant acceptance - referee signature - {grantReference}\", \"body\": \"Dear {refereeName},\\n\\nYou are receiving this message because we have accepted a grant application for {applicantName} and you have been named as their referee.\\n\\nYou can open the agreement with the last 6 numbers of your phone number.\\n\\nThank you.\\n\\nRevitalise Grant Applications Team\"}",
         "description": "TAD rev 15, ADR-068 items 3-4 (wbs:3.2): the referee's own DocuSign email, JSON {subject, body}. The body must state the access-code RULE (the last 6 numbers of your phone number) and never the digits. {grantReference} is replaced with the grant reference; subject within 100 characters. No row -> the flow alerts and sends nothing. PROVISIONAL TEST WORDING, not Emily's: replace with the wording Emily supplies. See settings-rows.notes.md#AcceptanceEmailApplicant--AcceptanceEmailReferee."
       },
       {

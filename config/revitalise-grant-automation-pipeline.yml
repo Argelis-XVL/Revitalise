@@ -1402,12 +1402,13 @@ environments:
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
-          TAD rev 15 section 12.5 R1-R6, after turning the flow on, with TEST identities only: create
+          TAD rev 16 section 12.5 R1-R8, after turning the flow on, with TEST identities only: create
           one grant whose referee phone is typed with spaces and a +44 prefix. Read the run: R1 the
-          draft has exactly two signers, Grant Acceptor and Grant Referee, bound with routing orders
-          1 and 2 (A-DS-14); R2/R3 Check_every_tab_was_filled passed, i.e. option A filled the
-          referee's tabs and the read's own tabType was accepted (A-DS-16; if it stopped naming
-          n2/e2/ph2, switch Fill_the_tabs to option B); R4 record each tab's tabLabel (A-DS-15); R5
+          draft has exactly two signers, Grant Acceptor and Grant Referee, bound with no routing
+          order (A-DS-14; there is no signing order, both are emailed on the send, R7);
+          R2/R3 Check_every_tab_was_filled passed, i.e. the prefill and recipient tab fills took
+          and the read's own tabType was accepted (A-DS-16; if a fill stopped naming tabs, the
+          fallback call with the other tabType form is the one that ran); R4 record each tab's tabLabel (A-DS-15); R5
           forward the referee email and open it: it must ask for the access code (the last six
           digits), and a second test grant with a five-digit phone must alert and stop (A-DS-17);
           R6 each mailbox got its own subject and body, and the reminders hold after the send. Void
@@ -1549,26 +1550,6 @@ environments:
         script: >
           pwsh provisioning/entra/verify-intake-callback-url.ps1 -Env dev -Mode Compare
           -SnapshotPath intake-callback-dev-before.json
-
-      # ══ D-3 (improvement review 2026-10-05) — one-off backfill of intake-created rows ══
-      - description: >
-          REVIEWER-RUN, ONE-OFF, DRY RUN BY DEFAULT. Fill rev_applicant.rev_fullname and
-          rev_application.rev_costs on intake-created rows that hold NULL (wbs:4.2,4.3). Run it
-          ONLY after this deploy has put the intake flow live FROM SOURCE and the
-          `flow-definition-reread` step above reports no difference: until then the live intake
-          flow does not write rev_costs and new rows keep arriving without it. The command below
-          is the DRY RUN (reads, reports row ids and counts, writes nothing); the write is the same
-          command with `-Apply`, executed by the reviewer, who holds the provisioning credential
-          (agents/pipeline-agent.md -> Reviewer-Executed Operations). Re-runnable: rows already
-          filled are never read back or written. Neither target column is audit-enabled, so the
-          script's own output is the only record; keep it with the Deployment Summary.
-          Prove afterwards with `rev_applicants?$filter=rev_fullname eq null` and
-          `rev_applications?$filter=rev_costs eq null`; what remains must be rows with no source
-          values to derive from.
-        operation: intake-derived-columns-backfill
-        evidence: backfill-intake-derived-columns.ps1
-        script: pwsh provisioning/dataverse/backfill-intake-derived-columns.ps1 -Env dev
-        owner: reviewer (or a session holding live-write permission)
 
     # ── Verification — no stage may claim a level it did not execute ──────────
     verification:

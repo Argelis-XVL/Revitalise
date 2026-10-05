@@ -38,9 +38,13 @@ ENGINE_SCRIPT = REPO_ROOT / ".engine" / "scripts" / "generate-restricted-field-c
 MANIFEST_PATH = "config/trustee-restricted-field-catalogue.json"
 DEFAULT_PROFILE = "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml"
 DEFAULT_ENTITIES = "src/solutions/RevitaliseGrantAutomation/Entities"
-DEFAULT_OUT = (
-    "src/code-apps/trustee-review-portal/src/generated/trusteeRestrictedFieldCatalogue.ts"
+# BOTH code-app copies (ADR-056/ADR-060: the card app is a full copy, and this file is classified
+# CONTRACT-equivalent). A single output left the second copy stale while --check passed (IMP-1047).
+DEFAULT_OUTS = (
+    "src/code-apps/trustee-review-portal/src/generated/trusteeRestrictedFieldCatalogue.ts",
+    "src/code-apps/trustee-review-portal-cards/src/generated/trusteeRestrictedFieldCatalogue.ts",
 )
+DEFAULT_OUT = DEFAULT_OUTS[0]  # kept for importers of the old name
 
 
 def _load_engine():
@@ -61,19 +65,46 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(argv if argv is not None else sys.argv[1:])
 
     if "--selftest" in argv:
-        return engine.main(["generate-restricted-field-catalogue.py", "--selftest"])
+        rc = engine.main(["generate-restricted-field-catalogue.py", "--selftest"])
+        return rc or _selftest_all_outputs_checked()
 
     defaults = {
         "--manifest": MANIFEST_PATH,
         "--profile": DEFAULT_PROFILE,
         "--entities": DEFAULT_ENTITIES,
-        "--out": DEFAULT_OUT,
     }
     for flag, value in defaults.items():
         if flag not in argv:
             argv = argv + [flag, value]
 
-    return engine.main(["generate-restricted-field-catalogue.py", *argv])
+    # An explicit --out targets exactly that file; otherwise every app copy is written/checked.
+    outs = [DEFAULT_OUTS[i] for i in range(len(DEFAULT_OUTS))] if "--out" not in argv else [None]
+    rc = 0
+    for out in outs:
+        call = argv if out is None else argv + ["--out", out]
+        rc = max(rc, engine.main(["generate-restricted-field-catalogue.py", *call]))
+    return rc
+
+
+def _selftest_all_outputs_checked() -> int:
+    """A stale second copy must fail --check (IMP-1047)."""
+    second = REPO_ROOT / DEFAULT_OUTS[1]
+    if not second.exists():
+        print(f"SELFTEST FAIL: {DEFAULT_OUTS[1]} missing")
+        return 1
+    original = second.read_bytes()
+    try:
+        second.write_bytes(original + b"// stale\n")
+        if main(["--check"]) == 0:
+            print("SELFTEST FAIL: --check passed with a stale second app copy")
+            return 1
+    finally:
+        second.write_bytes(original)
+    if main(["--check"]) != 0:
+        print("SELFTEST FAIL: --check failed on restored copies")
+        return 1
+    print("SELFTEST OK: stale second copy fails --check")
+    return 0
 
 
 if __name__ == "__main__":

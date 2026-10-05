@@ -441,7 +441,7 @@ the `UpdateRecord` write-back and the failure-detail / `Alert_on_failure` patter
 The reviewer's flow is E1 for operation ids, static parameter names and the literals the designer
 writes. Its values are test artefacts. Each difference below follows TAD rev 15.
 
-1. **Referee routing order is `2`**, not `1` (FR-042; ADR-067 design requirement 1).
+1. **Superseded (rev 16): there is no signing order and no `routingOrder` is sent.** (Was: referee routing order `2`.)
 2. **No `phoneNumber` on the referee.** It is an SMS delivery channel for the signing link, not a
    contact field (ADR-067 design requirement 3).
 3. **The access code is the last six DIGITS** after every non-digit is removed. v2c took the last six

@@ -161,7 +161,7 @@ BeforeAll {
         'source_url', 'currency', 'payment_status', 'payment_date', 'payment_amount', 'payment_method',
         'transaction_id', 'is_fulfilled', 'created_by', 'transaction_type', 'status', 'source_id', 'ip',
         'user_agent', 'total_estimated_cost', 'address_country', 'address_state_province')
-    # C.1 / C.8 conditional rows — not built until Alex confirms the sub-fields are shown (OQ-053, TD-011).
+    # C.1 / C.8 conditional rows — not built: no middle name or suffix fields on the form (TAD rev 17 deleted TD-011).
     $script:Conditional = @('name_middle', 'name_suffix')
     # C.1a — always-shown questions, the only keys key-drift detection checks.
     $script:AlwaysShown = @('grant_terms_and_conditions', 'name_title', 'name_first', 'name_last',
@@ -1564,10 +1564,10 @@ Describe 'ADR-052 / TD-010 — the schema the transfer rule needs exists' {
         }
     }
 
-    It 'the conditional name columns are NOT built — TD-011 stays until Alex answers ADR-011 question 8' {
+    It 'the conditional name columns are NOT built — no middle name or suffix fields on the form (TAD rev 17 deleted TD-011)' {
         foreach ($name in @('rev_middlename', 'rev_namesuffix')) { Get-Attr $script:ApplXml $name | Should -BeNullOrEmpty }
         $deferrals = Get-Content (Join-Path (Get-RepositoryRoot) 'contract' 'tad-deferrals.json') -Raw
-        $deferrals | Should -Match '"TD-011"'
+        $deferrals | Should -Not -Match '"TD-011"'
         $deferrals | Should -Not -Match '"TD-010"'
     }
 

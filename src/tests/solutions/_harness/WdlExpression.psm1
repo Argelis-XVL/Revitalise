@@ -155,6 +155,15 @@ function Invoke-WdlFunction {
             if ($null -eq $A[0]) { throw 'WDL: split() of null' }
             return , ([string[]]([string]$A[0]).Split([string]$A[1]))
         }
+        'createArray' { return , ([object[]]$A) }
+        'skip'      {
+            if ($null -eq $A[0]) { throw 'WDL: skip() of null' }
+            $n = [int]$A[1]
+            if ($n -lt 0) { throw 'WDL: skip() with a negative count' }
+            $arr = @($A[0])
+            if ($n -ge $arr.Count) { return , ([object[]]@()) }
+            return , ([object[]]$arr[$n..($arr.Count - 1)])
+        }
         'indexOf'   {
             if ($null -eq $A[0]) { throw 'WDL: indexOf() of null' }
             return , ([long]([string]$A[0]).IndexOf([string]$A[1], [System.StringComparison]::OrdinalIgnoreCase))
