@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1046 entries)
+Source: `logs/improvement-log.jsonl` (1048 entries)
 Generated: 2026-10-05
 
 ## What this file is, and who reads it
@@ -36,7 +36,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
 - **`stale-claim-contradicting-rechecked-source`** (×26): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015
 - **`untriaged-tool-warning`** (×21): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957, IMP-0961, IMP-0962, IMP-1006
-- **`two-invocation-paths-disagree`** (×18): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939
+- **`two-invocation-paths-disagree`** (×19): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052
 - **`platform-state-divergence`** (×17): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857
 - **`gate-fires-on-nothing`** (×16): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825, IMP-1039
 - **`harness-blocks-destructive-call`** (×16): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828
@@ -56,7 +56,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you execute a build config — capped lessons
 
-*106 lesson(s) the digest does not render, in the same order it ranked them.*
+*107 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - In a YAML `>` folded scalar, keep every line at the SAME indentation and put `&&`/`||` at line END — a more-indented line keeps its newline and yields a shell syntax error. Preflight now runs `bash -n` on every step command.  
   <sub>IMP-0025 · `gate-cannot-fail`</sub>
@@ -66,6 +66,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
+- A build that can skip producers must say so in its result, and every consumer of the artifact must read that before acting on it.  
+  <sub>IMP-1052 · `two-invocation-paths-disagree`</sub>
 - A generated file that is classified contract in code-app-variant-parity needs the generator to write every copy.  
   <sub>IMP-1047 · `gate-scope-mismatch`</sub>
 - Run verify-tad-coverage.py (and any gate carrying dated baselines or deferrals) in the development-agent source-gate set; other baselines expire 2026-10-13 and 2026-10-14 (gate-baselines.json).  
@@ -539,8 +541,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Capabilities established in earlier sessions — capped lessons
 
-*55 lesson(s) the digest does not render, in the same order it ranked them.*
+*56 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- Verifying a data source has two halves and the second is easy to skip because the first goes well: what it contains, and how it is reached. A published quarterly download does not mean a download is the access route - ONS's Open Geography Portal also exposes ONSPD_Online_latest_Postcode_Centroids, a stable endpoint tracking the current edition, which removes both the manual step and the per-edition GUID discovery an automated refresh would otherwise need. Query the endpoint before designing around the file: here it also confirmed EF-49 against the authoritative source, confirmed the county pseudo-codes from data rather than documentation, made the deprivation index free, and revealed that the returned values are ONS codes needing a second register to render as names.  
+  <sub>IMP-0751 · `source-verified-for-content-not-for-access`</sub>
 - When sizing a threshold rule against a corpus, count three things and not one: records beyond the boundary, records ON it, and what the opposite operator would give. A cap or maximum is almost always the modal value in application data, because applicants ask for the most they can - so 'exceeds' versus 'meets or exceeds' is not a detail there, it is the whole rule. In this corpus 35 of 63 sat exactly on GBP500 and 4 exactly on GBP100: > flags 0, >= flags 37. State the operator in the item, in the test fixture and in the words handed to any third party building the same check upstream.  
   <sub>IMP-0749 · `implicit-comparison-operator-at-a-modal-threshold`</sub>
 - Two sources agreeing that a value is missing on a surface tell you the value is missing on that surface, and nothing about why. Where the sources observe the SAME surface, their agreement is one observation, not two. Before classifying an absence as a capture gap, read the column (IsSecured, description) and the write path that would populate it - here one grep of the intake flow showed the reason captured, secured by design, and blocked behind an exception that was already recorded and owned. Capture gap, disclosure gap and surfacing gap have different owners, different costs and different answers to the client.  
@@ -1854,7 +1858,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*59 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*58 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1977,8 +1981,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0197 · `gate-cannot-fail`</sub>
 - Enabling field-level security on a Dataverse column via the maker portal UI sets IsSecured and triggers Dataverse's own automatic 'System Administrator' FieldPermission row -- it does NOT create a FieldPermission for any other named profile. Before treating a maker-portal field-security fix as complete, query fieldpermission joined to fieldsecurityprofile by name for the specific profile FieldSecurityProfiles.xml assigns the column to, not just for the column's presence in the table at all; a System-Administrator-only row looks identical to a correctly-secured column at a glance but proves nothing about the profile the solution actually depends on. The named profile's own FieldPermission arrives as a solution component on the next import.  
   <sub>IMP-0783 · `platform-fact-groundtruthed`</sub>
-- Verifying a data source has two halves and the second is easy to skip because the first goes well: what it contains, and how it is reached. A published quarterly download does not mean a download is the access route - ONS's Open Geography Portal also exposes ONSPD_Online_latest_Postcode_Centroids, a stable endpoint tracking the current edition, which removes both the manual step and the per-edition GUID discovery an automated refresh would otherwise need. Query the endpoint before designing around the file: here it also confirmed EF-49 against the authoritative source, confirmed the county pseudo-codes from data rather than documentation, made the deprivation index free, and revealed that the returned values are ONS codes needing a second register to render as names.  
-  <sub>IMP-0751 · `source-verified-for-content-not-for-access`</sub>
 
 
 ---
