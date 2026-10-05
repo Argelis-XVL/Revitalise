@@ -1,0 +1,134 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "3.2",
+    "3.5"
+  ],
+  "items": [
+    "WI-0107",
+    "WI-0109",
+    "WI-0111"
+  ],
+  "build_date": "2026-10-03",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20261003-2/",
+  "source_commit": "7cd080c32d37a382c41c6871c0b0140381de7a2f",
+  "source_commit_at_pack_time": "7cd080c32d37a382c41c6871c0b0140381de7a2f",
+  "source_tree_dirty_paths": 25,
+  "source_commit_note": "25 uncommitted paths under src/, provisioning/ and config/ at pack time. source_commit describes the build inputs only where they are unaffected by those dirty paths.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 27.0.0 arm64 (macOS)",
+  "constraint_check": "PASS",
+  "preflight": "PASS \u2014 99 steps executed, 1 out-of-context (auth), 100 declared, run via scripts/run-build.py",
+  "verification_level": "V2 \u2014 packaged; layout accepted by the packer. Content, platform acceptance and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "component-shape-packed",
+    "role-privilege-ownership",
+    "tad-coverage",
+    "forms-and-views-reachable",
+    "domain-invariants",
+    "no-special-category-data-in-scoring",
+    "receivesbenefits-scoped-to-income-flag",
+    "no-hardcoded-environment-values",
+    "flow-definition-language",
+    "no-hardcoded-thresholds",
+    "flow-reads-no-trigger-body",
+    "metadata-write-verbs",
+    "no-trustee-in-column-security-profile",
+    "no-secured-columns-in-code-app",
+    "code-app-data-sources",
+    "code-app-bundle-budget",
+    "lint (pac solution check)"
+  ],
+  "warnings": {
+    "total": 6,
+    "resolved": 0,
+    "accepted": 6,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-install-cards",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 1,210.18 kB vs 1205 kB triaged and budget max 1241000 bytes; gzip 473.19 kB vs about 472 kB; byte budget gate PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build-cards",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 845.81 kB (845809 bytes) vs measured_bytes 845809 and budget max 871100 bytes; byte budget gate PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L484"
+    },
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: [figures compared: 9 EntityRelationship + 8 EnvironmentVariableDefinition = 17 entries, equal to the 17 the Dev Summary records; IMP-0609's earlier 14 is superseded by it]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7814"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: [figures compared: 9 EntityRelationship + 8 EnvironmentVariableDefinition = 17 entries, equal to the 17 the Dev Summary records; IMP-0609's earlier 14 is superseded by it]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7814"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 157,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 1,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 8,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 4,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 50,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context \u2014 when: ci, needs GitHub OIDC token vars not present on a local run",
+      "level_not_established": "n/a \u2014 declared boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "build_config_sha256": "a4e5f99e783aba3a9eca2ea1bfc14d184e5783ee0d05a5d34bd767c954d89b52",
+  "build_config_drift": "none \u2014 hash identical at start and at manifest time",
+  "improvement_log_observations": {
+    "start": "1027 entries (verified by the improvement-log-check step); pre-dispatch gate exit 0",
+    "manifest_time": "1028 entries; the one addition is this build's own IMP-1032",
+    "unread_deploy_lane_blockers": 0,
+    "governance_blockers_open": 1,
+    "governance_blocker_ids": [
+      "IMP-0934"
+    ]
+  },
+  "test_results": {
+    "pester_passed": 1315,
+    "coverage_threshold": "82.64% of lines (2138/2587) against 80.0%"
+  },
+  "improvement_log_entries": [
+    "IMP-1032"
+  ],
+  "status": "SUCCESS"
+}

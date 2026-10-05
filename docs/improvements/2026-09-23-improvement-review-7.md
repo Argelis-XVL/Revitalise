@@ -1,6 +1,6 @@
 # Improvement Review — 2026-09-23 (7)
 
-**Status:** DRAFT — awaiting `APPROVE IMPROVEMENTS`.
+**Status:** ~~DRAFT — awaiting `APPROVE IMPROVEMENTS`~~ **APPLIED 2026-10-05** (one entry moved, IMP-0855; see [section 7](#7-apply-time-record)). **Revalidated 2026-10-05: still valid, unchanged.** `run-source-gates.py` against the working tree still passes `source-validate` and `root-components-resolve` (3 other gates are red for unrelated reasons, see [review 2026-10-05](docs/improvements/2026-10-05-improvement-review.md#L45)). Ten flow definitions are on disk, and the register watch flow is now also live in DEV: `verify-live-flow-definitions.py --env dev` reads 10 of 10. Of the two entries, only the closure report is parked here; the other already carries a reviewer-accepted deferral from review 6, so approving this review moves one entry.
 
 **Trigger:** a single deferred critical finding whose return condition has been reported as met.
 Scope was set by the dispatch: verify that condition independently, and close the entry if it
@@ -126,4 +126,23 @@ manifest promises.
 
 ## 7. Apply-time record
 
-*To be completed on approval.*
+**Applied 2026-10-05 on `APPROVE IMPROVEMENTS`**, given by Xander Lykopoulos and relayed by lead-agent (logs/routing.log, 2026-10-05 10:41). This is the revalidated reduced set: one entry moves, not two.
+
+**What moved.**
+
+| Entry | Was | Now | Evidence |
+|---|---|---|---|
+| IMP-0855 (the closure report) | waiting for approval | **applied** | The register watch flow's metadata file is tracked and names the flow id the manifest declares |
+| IMP-0852 (the original critical finding) | deferred by review 6, reason accepted by the reviewer | **unchanged** | Not moved, as the revalidation note said. Its return condition is now met (below), so a later review can close it |
+
+**Re-measured at apply time, not taken from the draft.**
+
+- `run-source-gates.py` against the real build config: `source-validate` PASS, `root-components-resolve` PASS. Overall exit 1: 3 of 18 gates are red (`shipped-content`, `domain-invariants`, `flow-definition-language`). Those are the unrelated hotfix-session failures the revalidation note already named, and none of them is this cluster.
+- The manifest declares 10 cloud flows and 10 flow definitions are on disk. The register watch flow's three files are present and tracked.
+- Regression check, re-run 12 days after the draft: no recurrence of review 6's class (a new provisioning script arriving without its companion files). One later finding (IMP-0857, already deferred) shares the much broader class of review 6's *other* cluster, which is a platform state differing from source. Review 6 made no change aimed at that class, so this is not a regression.
+
+**What changed in the rules.** Nothing, as the draft proposed. Constraint counts, derived now: 87 live, 10 retired, no change.
+
+**Narrowed or withheld at apply time.** Nothing.
+
+**Residual.** This closure is at V1, which means the source is well-formed and nothing more. Whether the flow works when it runs is for the delivery pipeline to show.

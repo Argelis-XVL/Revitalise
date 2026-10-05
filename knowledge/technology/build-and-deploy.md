@@ -196,7 +196,7 @@ resolve it with an `importjob` query filtered by `solutionname` and a date bound
     GET {env}/api/data/v9.2/appmodules?$filter=uniquename eq '<name>'
     GET {env}/api/data/v9.2/environmentvariabledefinitions?$filter=startswith(schemaname,'<prefix>')
 (b) Re-run the same import. It must succeed again cleanly.
-(c) Open every flow in the designer and press Save.
+(c) Open every flow in the designer and press Save, then re-read it live; a designer save rewrites the whole definition (IMP-1010).
 ```
 
 **(c) cannot be automated away.** Three of the fifteen failures were invisible to (a) and
@@ -223,9 +223,11 @@ when the same field was read about twenty minutes later, with no further deploy 
 4. **Before a live-fix import of a flow someone is diagnosing in the designer, ask for that tab to
    be closed without saving.** A designer tab opened before the import, if saved afterwards, can
    write its old definition back. On this Mac the browser signs in as the same account `pac` uses
-   (`code-apps.md`), so `modifiedby` cannot tell that save from an import. This is the leading
-   candidate for the 2026-09-29 revert and it is **not proven**: the reverted content matched the
-   reviewer's pre-import view of the flow exactly, which this cause predicts, and nothing has varied it.
+   (`code-apps.md`), so `modifiedby` cannot tell that save from an import. Observed 2026-10-02
+   (IMP-1010): a designer save between deploys, with the designer's fingerprints throughout
+   (display-name parameters, authentication blocks and secureData removed, trigger mode added),
+   emptied the two nested writes while the flat write in the same flow kept every column. The
+   2026-09-29 loss has the same shape.
 
 ## Diagnosing a Failed Import
 
@@ -448,7 +450,7 @@ look). Expect the fourth to be whatever you happen to run next.
 
 So, in order:
 
-1. **Find a stray `pac`, kill it, retry.** Match on the EXECUTABLE, not the command line:
+1. **Find a stray `pac`, kill it, then confirm before you retry.** Match on the EXECUTABLE, not the command line:
 
    ```bash
    ps -Ao pid=,etime=,comm= | while read -r pid etime comm; do
@@ -469,6 +471,11 @@ So, in order:
 
    `IMP-0215` also notes that a killed *wrapper* can leave the real `pac` alive, so a previous
    timed-out attempt is itself a candidate.
+
+   Run `scripts/run-with-timeout.sh 45 pac org who`. If it returns, retry the build. If it still
+   hangs, the stray was not the blocker: go to step 2 before any further attempt. A build report
+   calls a stray `pac` 'found', never 'the cause', until this probe has returned (IMP-1032; on 2–3
+   October a kill changed nothing and two builds were lost).
 2. **Look at the screen — there may be a macOS Keychain prompt waiting.** `pac` needs the
    credential store, and macOS can put up a modal *"wants to use your confidential information"*
    dialog that blocks it forever. It leaves **no shell-visible trace**: no output, no error, no

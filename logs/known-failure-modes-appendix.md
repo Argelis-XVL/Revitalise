@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1005 entries)
-Generated: 2026-10-01
+Source: `logs/improvement-log.jsonl` (1038 entries)
+Generated: 2026-10-05
 
 ## What this file is, and who reads it
 
@@ -23,32 +23,32 @@ every dispatch; it is not a judgement that what it hides is settled.
 
 The digest shows the 6 most recent ids per class. These are all of them, oldest first.
 
-- **`platform-contract-guessed-not-groundtruthed`** (×71): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008
-- **`gate-cannot-fail`** (×52): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990
+- **`platform-contract-guessed-not-groundtruthed`** (×79): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026
+- **`gate-cannot-fail`** (×54): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036
 - **`hand-maintained-count-drifts-from-source`** (×45): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925
 - **`approved-document-internally-inconsistent`** (×43): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945
 - **`declared-policy-not-mechanically-enforced`** (×40): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966
-- **`platform-fact-groundtruthed`** (×37): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940
+- **`platform-fact-groundtruthed`** (×38): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016
 - **`no-assertion-on-shipped-content`** (×36): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979
 - **`gate-reassures-wrongly`** (×35): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798
 - **`finding-diagnosis-unverified`** (×34): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
 - **`gate-scope-mismatch`** (×29): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992
-- **`stale-claim-contradicting-rechecked-source`** (×25): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995
+- **`stale-claim-contradicting-rechecked-source`** (×26): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015
 - **`untriaged-tool-warning`** (×21): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957, IMP-0961, IMP-0962, IMP-1006
 - **`two-invocation-paths-disagree`** (×18): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939
 - **`platform-state-divergence`** (×17): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857
+- **`gate-fires-on-nothing`** (×16): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825, IMP-1039
 - **`harness-blocks-destructive-call`** (×16): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828
-- **`gate-fires-on-nothing`** (×15): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825
-- **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
+- **`exit-zero-does-not-mean-created`** (×14): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148, IMP-1034
 - **`output-shape-defeats-the-reader`** (×12): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554, IMP-0865
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`dispatch-brief-asserts-unverified-fact`** (×11): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720, IMP-0803, IMP-0844, IMP-0887, IMP-0905, IMP-0936, IMP-0950
 - **`wrong-artefact-cited-as-evidence`** (×10): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675, IMP-0784, IMP-0788, IMP-0910
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
+- **`stale-deferral-uncaught-across-sessions`** (×9): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764, IMP-0780, IMP-1009, IMP-1040
 - **`agent-instructions-describe-a-topology-that-changed`** (×8): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757
 - **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
-- **`stale-deferral-uncaught-across-sessions`** (×8): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764, IMP-0780, IMP-1009
 - **`finding-premise-fails-re-measurement`** (×7): IMP-0632, IMP-0869, IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952
 - **`hard-gate-has-no-scoped-override-path`** (×7): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795
 - **`test-asserts-the-defect`** (×7): IMP-0111, IMP-0138, IMP-0871, IMP-0872, IMP-0888, IMP-0890, IMP-0926
@@ -56,7 +56,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you execute a build config — capped lessons
 
-*101 lesson(s) the digest does not render, in the same order it ranked them.*
+*104 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - In a YAML `>` folded scalar, keep every line at the SAME indentation and put `&&`/`||` at line END — a more-indented line keeps its newline and yields a shell syntax error. Preflight now runs `bash -n` on every step command.  
   <sub>IMP-0025 · `gate-cannot-fail`</sub>
@@ -66,14 +66,12 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
+- A review is approved when any entry it processed gained a deferred_reason or a closure; count reviewer-accepted deferrals as evidence of the keyword, not only APPLIED and REJECTED.  
+  <sub>IMP-1039 · `gate-fires-on-nothing`</sub>
+- Do not offer an -Env value a script cannot run for; either narrow the ValidateSet to test, acc, prd or give DEV an intake block, so the DEV pipeline never appears to have a probe it lacks.  
+  <sub>IMP-1018 · `gate-cannot-fail`</sub>
 - When two copies of a design drop share an inner layout, design-source-coverage's PASS cannot say which was read; cite the full path of the copy you intake'd and resolve the duplicate.  
   <sub>IMP-0992 · `gate-scope-mismatch`</sub>
-- After adding Unvalidated Assumptions rows, plant one orphan (point a row's Where at a file without its marker) and confirm verify-assumption-markers.py FAILS, because an id with a digit in its prefix or a Where naming a .css file in a code span is skipped without failing.  
-  <sub>IMP-0990 · `gate-cannot-fail`</sub>
-- A PASS from design-source-coverage says nothing about a supplied drop whose folder names do not match an app folder; enumerate the drop and cite every folder yourself, and report the gate's in-scope count for the new drop, not its overall PASS.  
-  <sub>IMP-0984 · `gate-scope-mismatch`</sub>
-- A per-result check and a history audit are different windows. When a check exists to judge the result just received, give it that result's date with --since; the full history belongs to the warn-only build step.  
-  <sub>IMP-0972 · `gate-scope-mismatch`</sub>
 - A gate that reports OK and a CAVEAT in the same run has reported two things; the caveat is the half that describes CI. Before closing a finding on evidence that is a file, confirm the file is tracked — git cat-file -e HEAD:<path> is the whole check, and it costs less than the halted build it prevents. Measured across this log: 0 of 335 instance-repo evidence_grep targets were untracked before this one, so this is the first instance and does not yet justify a gate.  
   <sub>IMP-0847 · `gate-scope-mismatch`</sub>
 - When a review document must cite a numbered section of ANOTHER file, put the file name and the section reference on the SAME source line with nothing between them but a backtick and a space, or reword to name the section by title instead of by number -- a line wrap between the file name and the '§N' defeats verify-review-document.py's foreign-document suppression and the finding reads as a dangling self-reference.  
@@ -98,6 +96,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0205 · `gate-cannot-fail`</sub>
 - A path-kind evidence rule only proves a directory or file exists, never that a specific named deliverable inside it is present. When a task's own description names multiple items (e.g. three security roles: admin, finance, trustee), give it a rule that checks each by name and reports partial when any are absent, instead of accepting the directory's mere existence as complete.  
   <sub>IMP-0152 · `gate-cannot-fail`</sub>
+- Run a new gate against the DEFECTIVE version of the corpus (git archive of the pre-fix commit), not only the fixed one: here only that run showed Rule B could not fail. Measured candidate: counting only flow write payloads gives 5 findings on HEAD, all true, and 0 on the working tree.  
+  <sub>IMP-1036 · `gate-cannot-fail`</sub>
+- After adding Unvalidated Assumptions rows, plant one orphan (point a row's Where at a file without its marker) and confirm verify-assumption-markers.py FAILS, because an id with a digit in its prefix or a Where naming a .css file in a code span is skipped without failing.  
+  <sub>IMP-0990 · `gate-cannot-fail`</sub>
+- A PASS from design-source-coverage says nothing about a supplied drop whose folder names do not match an app folder; enumerate the drop and cite every folder yourself, and report the gate's in-scope count for the new drop, not its overall PASS.  
+  <sub>IMP-0984 · `gate-scope-mismatch`</sub>
+- A per-result check and a history audit are different windows. When a check exists to judge the result just received, give it that result's date with --since; the full history belongs to the warn-only build step.  
+  <sub>IMP-0972 · `gate-scope-mismatch`</sub>
 - In Pester suites over solution XML, read optional child elements with SelectSingleNode, never $node.Child: Invoke-Tests.ps1 runs under StrictMode and a missing element throws there while a direct Invoke-Pester run reads it as null.  
   <sub>IMP-0939 · `two-invocation-paths-disagree`</sub>
 - Never put <word> in a Pester It or Describe title - Pester 5 expands it as a template variable, which throws under the suite's StrictMode and silently empties outside it. Run a new or rewritten test file through src/tests/Invoke-Tests.ps1, not only on its own.  
@@ -269,7 +275,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*57 lesson(s) the digest does not render, in the same order it ranked them.*
+*66 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - A field security profile's membership list is who it grants access TO, not who it withholds from - never write a dispatch instruction that says 'bind role X to profile Y' without first reading the profile XML to confirm whether X should be ADDED as a member (grants access) or must NEVER be a member (the actual control). For REV_TrusteeRestricted specifically, the control IS non-membership - trustees must never be added to it.  
   <sub>IMP-0153 · `platform-contract-guessed-not-groundtruthed`</sub>
@@ -296,8 +302,18 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0006 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
-- On this tenant `pac code push --solutionName` does NOT put a new Code App into the named solution, and a non-solution-aware Code App has no canvasapp row in Dataverse at all. After a first push read solutioncomponents by objectid in ANY solution; if absent, add it through maker portal Solutions > Add existing > App > Code app (Outside Dataverse) and re-read. Before trusting a 'push registers it' observation, compare the solutioncomponent createdon with the push time.  
-  <sub>IMP-1008 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Before setting an optional connector parameter, read its reference description for a side effect (a delivery channel, a notification, a charge), not just its name. Compare two actions by their path or id parameters, never by their body schema alone.  
+  <sub>IMP-1026 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Before designing around a connector action's body shape, take the designer-written definition (E1) of that action; do not cite a per-tab or per-call cardinality from the reference. The connector tabType enum differs from the GET tabType string and its full list, including the checkbox value, is unverified.  
+  <sub>IMP-1025 · `platform-contract-guessed-not-groundtruthed`</sub>
+- When reading a designer-built exploratory flow as evidence, check each action for an id parameter bound to the previous action's output (envelopeId, recordId) before treating the chain as a sequence. An action with no such parameter creates a new resource; it does not continue the old one.  
+  <sub>IMP-1023 · `platform-contract-guessed-not-groundtruthed`</sub>
+- When a flow hands a document to an external signing service, list in the TAD every signer behaviour only the service's template or account can enforce (required fields, reassignment, recipient authentication) and give each a per-environment configuration row and a live test.  
+  <sub>IMP-1022 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Never treat a designer's silence about a property as evidence it is accepted. Before placing data inside a dynamic-schema parameter, enumerate the connector's whole action list for a dedicated action that writes that data, and prefer it.  
+  <sub>IMP-1021 · `platform-contract-guessed-not-groundtruthed`</sub>
+- When an ADR's route depends on what an external sender's tool can do, keep it open until that tool has made one successful call or its owner has confirmed the mechanism; a credential handover is not that evidence. And re-test any 'cannot be expressed in source' claim against the first live definition read.  
+  <sub>IMP-1011 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Every text value from an external caller that a flow writes to a Dataverse column must be cut to that column's MaxLength (read from Entity.xml) at the normalise step, before it is used for matching, with a note naming the field and limit, never the value; and keep every expression under Power Automate's 8,192-character limit, which the packer does not check.  
   <sub>IMP-0931 · `platform-field-length-limit-unenforced`</sub>
 - On a Compose, Parse JSON or Response action set secureData.properties to ["inputs"] only (it also hides the outputs); Secure Outputs is unsupported there. And secure every action that reads a Compose's output explicitly: Logic Apps does not propagate the protection through a Compose. IntakeContract.Tests.ps1 asserts both as a transitive closure.  
@@ -340,6 +356,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0255 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A table's OwnershipType determines which privileges Dataverse will ever create for it: OrganizationOwned tables get no Assign/Share privilege at all, full stop. Before writing or copying a role's privilege block for a custom table, check that table's own OwnershipType first (rev_anonymisedstatistic in this same solution is the worked correct example). Separately: ensure-schema.ps1's "privilege does not exist" error message assumes exactly one cause (table not yet created) and should be broadened, since it produced a misleading remedy here.  
   <sub>IMP-0254 · `platform-contract-guessed-not-groundtruthed`</sub>
+- An assumption whose cheapest verification is the DEV import is closed by that import, so DEV runs under a named OVERRIDE and the blocking applies from TST/ACC onward.  
+  <sub>IMP-1019 · `platform-contract-guessed-not-groundtruthed`</sub>
+- The intake trigger's auth mode is inputs.triggerAuthenticationType in the flow definition ('All' = Anyone), so it ships in source and verify-live-flow-definitions compares it. To search every live flow definition for a shape, run one pac env fetch with <condition attribute="clientdata" operator="like" value="%...%"/> on workflow, category 5, and no top attribute (pac pages and rejects top).  
+  <sub>IMP-1016 · `platform-fact-groundtruthed`</sub>
+- When a platform contract can only be ground-truthed by a designer save, name a human executor and hand over the exact steps as a REVIEWER ACTION; do not assign it to an agent dispatch. Until it is measured, leave the action in its runtime-proven shape and mark it at the point of the deferral.  
+  <sub>IMP-1014 · `platform-contract-guessed-not-groundtruthed`</sub>
+- On this tenant `pac code push --solutionName` does NOT put a new Code App into the named solution, and a non-solution-aware Code App has no canvasapp row in Dataverse at all. After a first push read solutioncomponents by objectid in ANY solution; if absent, add it through maker portal Solutions > Add existing > App > Code app (Outside Dataverse) and re-read. Before trusting a 'push registers it' observation, compare the solutioncomponent createdon with the push time.  
+  <sub>IMP-1008 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A static page meant to open from disk (file://) cannot fetch a sibling JSON file in Chromium browsers. Carry the data inside the page (an inline script of type application/json) or as a <script src> file, and prove it by opening the page from disk, not from a local server.  
   <sub>IMP-0908 · `platform-contract-guessed-not-groundtruthed`</sub>
 - When a build gate you add needs the packed artifact to exist (any step whose command references $ARTIFACT_DIR or another build-time-only variable), check it against run-source-gates.py's selection rule in the SAME dispatch — a step naming src/solutions/<Name> and invoking only scripts/verify-*.py is otherwise indistinguishable, to that tool, from a cheap source-only check, and will read as a false FAIL for every dispatch that runs step 8 until a build has actually produced the artifact.  
@@ -390,8 +414,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you declare a deploy or an import successful — capped lessons
 
-*5 lesson(s) the digest does not render, in the same order it ranked them.*
+*6 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- An unmanaged pac solution import with --force-overwrite DEACTIVATES every cloud flow in the solution - statecode 1 becomes 0 - while reporting 'completed successfully'. Capture the flow statecodes BEFORE the import and re-assert them after, and treat re-activation as a named post-deploy step with an owner. Re-activate IN THE DESIGNER, never by PATCHing workflow.statecode: a statecode flip can leave the flow reporting Activated with no callbackregistration row, which is the un-triggerable state that cost four rounds on 2026-08-20. Also re-check the callbackregistration count after re-activation - a row from the pre-import flow version survives the import and must not be read as evidence that the new version's trigger is live.  
+  <sub>IMP-0113 · `v3-does-not-imply-v4`</sub>
 - statecode=0 on a cloud flow means DRAFT, not activated, and a solution import never turns a flow on. Query workflows(<id>)?$select=statecode and read 1 as Activated; do not accept a Deployment Summary's word for it - this project's own summary labelled statecode=0 'activated' while its Dev Summary correctly called the same value Draft. A flow in Draft receives no trigger, so a row created against it is never processed and never will be.  
   <sub>IMP-0100 · `v3-does-not-imply-v4`</sub>
 - Renders-in-edit-mode is not renders-in-play-mode. A site map confirmed by Web API query, in a published app, can still fail to render for a user — so V4 stays a named human step and is never inferred from a successful query, however thorough. When it happens, re-check after propagation time before diagnosing, and check the sub-area shape (IMP-0087) before blaming the platform.  
@@ -408,8 +434,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 *40 lesson(s) the digest does not render, in the same order it ranked them.*
 
-- A font-size change to a shape borrowed from a host framework (Fluent, or any design system whose root sets typography on `body`/its provider root) needs an explicit line-height alongside it -- inheriting the host's line-height tuned for its own base font-size silently produces overlapping wrapped lines at any size larger than that base, and this is invisible to jsdom-based tests, clean type-checks, and clean lint, because it is a paint-time collision, not a box-model defect. When a CSS class changes font-size away from the ambient body size, grep the same rule for line-height in the same change, and verify by rendering (not by reading the box model) whenever the property can wrap.  
-  <sub>IMP-0509 · `no-assertion-on-shipped-content`</sub>
 - A review parked at its gate is invisible to the queue gate, so `unread` cannot be trusted to mean 'nobody has looked at this' while any review sits unapproved. Before treating a batch trigger as real, check whether a review document already names the entries - verify-improvement-log.py prints exactly that as a WARNING per entry, and those warnings are the signal, not noise. Stamping `reviewed_in` at DRAFT time would fix it and is defensible, because that field records only that a review READ the entry; the trade-off is that every future review then writes to a shared append-only log earlier, and two live sessions on this synced path is IMP-0080's hazard - which review 34 met twice in one dispatch. It would NOT clear either blocker trigger: verify-improvement-log.py:123 counts `awaiting-approval` alongside `unread` for blockers, deliberately.  
   <sub>IMP-0421 · `learning-substrate-destroyed`</sub>
 - IMP-0172's 'verify live state directly, do not re-dispatch the same scale of work' protocol holds even when a dispatch dies AFTER finishing its real work, mid-report -- the tell is a terminal message describing report-writing or summarising rather than implementation, and the fix is the same: check the files, run every verification command yourself (including re-running any tool the dead agent's own comments claim passed, rather than trusting the claim), and only re-dispatch the narrow remainder if something is actually missing or broken.  
@@ -418,6 +442,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0346 · `no-assertion-on-shipped-content`</sub>
 - A build manifest's free-text provenance note is an unchecked claim about shipped content - resolve every artefact it names to a path on disk before trusting it, because no gate reads that prose. Record the dirty-path COUNT (IMP-0078) and stop there; enumerating what the dirty tree contains restates the dispatch's intended scope, not the tree's actual contents.  
   <sub>IMP-0324 · `no-assertion-on-shipped-content`</sub>
+- When an item's acceptance is 'the screen follows supplied document X', transcribe X's rows (section, sub-heading, label, in order) into a test fixture and render the screen FROM a typed row spec that the test compares to that transcription; reordering existing components against the document's section headings is not verification, because a missing or relabelled row inside a section passes it.  
+  <sub>IMP-0975 · `no-assertion-on-shipped-content`</sub>
 - A new provisioning script and its behavioural test belong in the same commit; when they are split across two dispatches, the fixing dispatch must stamp corrects on the finding it closes and re-run scripts/verify-improvement-log.py --check standalone, not just the gate it fixed.  
   <sub>IMP-0846 · `no-assertion-on-shipped-content`</sub>
 - After appending an improvement-log entry, run BOTH commands before ending the turn -- verify-improvement-log.py then generate-known-failure-modes.py -- even when the entry closes (corrects) a prior one and even when the dispatch's own gate check (verify-improvement-log.py --check) already exits 0; that check does not regenerate the digest and a build dispatched afterwards inherits a stale one.  
@@ -624,10 +650,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*557 lesson(s), in the order the digest would have ranked them.*
+*575 lesson(s), in the order the digest would have ranked them.*
 
-- A Dataverse attribute Type change on an existing column cannot ship through solution import - import rejects it ('Attribute X is a <old>, but a <new> type was specified'). Before approving or building one, plan either new columns under new logical names (additive, import-safe) or the measured delete-and-recreate sequence as a reviewer-executed operation, and account for IsSecured field permissions and audit history on each deleted column.  
-  <sub>IMP-0934 · `approved-document-internally-inconsistent`</sub>
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0855`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -684,6 +708,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - After a modern-flow-bearing solution import reports SUCCEEDED (including Published All Customizations), query asyncoperation for 'Async update of workflow' / 'Processing modern flow following import' rows created in the same window before trusting any live clientdata read of that flow - a Failed row here (e.g. 'ProcessStage ... Does Not Exist', 'concurrent Delete requests detected') means the platform's own finishing step for that flow did not complete, and a field read as fully populated minutes earlier can revert with no further entry in pipeline.log and no audit trail (DEV auditing is unreliable, IMP-0082). Re-read the live field again immediately before reporting V3, not just once after the import.  
   <sub>IMP-0956 · `async-flow-postimport-plugin-fails-silently`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0959`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
+- A Dataverse attribute Type change on an existing column cannot ship through solution import - import rejects it ('Attribute X is a <old>, but a <new> type was specified'). Before approving or building one, plan either new columns under new logical names (additive, import-safe) or the measured delete-and-recreate sequence as a reviewer-executed operation, and account for IsSecured field permissions and audit history on each deleted column.  
+  <sub>IMP-0934 · `approved-document-internally-inconsistent`</sub>
 - When a provisioning script's own hardcoded external-endpoint literal is corrected against live ground truth (e.g. after ArcGIS FeatureServer verification), grep every Pester test file that mocks that endpoint (Register-FakeDataverseResponse routes) for the OLD literal in the SAME change — a corrected source constant and a stale test-double route produce the identical 'gate fired' symptom (no fake route matched) that looks like a new regression rather than an incomplete fix.  
   <sub>IMP-0888 · `test-asserts-the-defect`</sub>
 - Before citing a source document's filename in a code comment (e.g. 'per docs/Import/X.xlsx row N'), check whether any build-time regex-based invariant scans comments as well as code -- src/styles/print.test.ts's no-print-only-data-path check does, because it has no comment-stripping step, so a substring match on a cited filename's own extension (xlsx) is indistinguishable to it from an XLSX-export library import. The fix belongs to development-agent: either scope the regex to import/require statements only, or word the citation without the literal substring 'xlsx' adjacent to a plausible import context. Separately and unrelated: src/App.tsx imports a GroupsListPage component that was never created in this repository -- development-agent must either add it or remove the dangling import before this build can proceed past code-app-unit-tests.  
@@ -820,66 +846,56 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
-- When a finding re-proposes something, grep the log for a reviewer-deferral of the same proposal and run its revisit_when check before drafting; IMP-0500's condition (three conforming manifests) was met by 58 manifests while it sat deferred.  
-  <sub>IMP-1009 · `stale-deferral-uncaught-across-sessions`</sub>
-- Never anchor an evidence_grep needle to the wording of a blocked_on note. Check 14 forces those notes to be rewritten on a 14-day cycle. Anchor to a stable key such as the prerequisite id or script name instead.  
-  <sub>IMP-1007 · `serialisation-default-invalidates-evidence-needle`</sub>
+- A selector in approved instruction prose ('every entry whose X is Y') is a filter over data like any gate's: dump the corpus and count matches for the literal before drafting it, and name the false positives a looser form would admit.  
+  <sub>IMP-1042 · `approved-change-wording-assumes-a-field-that-does-not-exist`</sub>
+- Before treating a source fix as done, run verify-live-flow-definitions.py against the environment; a DIFFERS on the fixed flow means the fix is not live.  
+  <sub>IMP-1041 · `live-definition-drifts-from-source`</sub>
+- When amending a parked review, re-measure every routed row and every deferral whose revisit_when names a live observation before writing the amendment note; a parked review ages with the environment, not with its own amendments.  
+  <sub>IMP-1040 · `stale-deferral-uncaught-across-sessions`</sub>
+- A reviewer-directed hotfix route skips gates that already defend the classes it then meets live. Run the gated build over the hotfix source before the next deploy, and log the lessons while the session still holds them.  
+  <sub>IMP-1038 · `solution-source-edited-outside-dispatch`</sub>
+- A changed column contract has readers in provisioning/ as well as in the solution and the docs; sweep the column name over the whole tree, unfiltered.  
+  <sub>IMP-1037 · `document-contradicted-by-shipped-artefact`</sub>
+- When fixing one instance of a class, sweep the whole class in the same change and build the derived gate then; a test asserting an absence encodes the false assumption and must be revisited.  
+  <sub>IMP-1035 · `document-contradicted-by-shipped-artefact`</sub>
+- When a column's shipped type differs from the design intent (plain vs calculated), update every writer and reader assumption in the same change and add a payload test for it; a deferred manual conversion needs an owner and a tracked item.  
+  <sub>IMP-1033 · `document-contradicted-by-shipped-artefact`</sub>
+- When a flow fills a third-party template, take the field set from the template's own field list (all fields, minus the ones the platform owns), not from a requirement summary, and do not assume which signer owns a placeholder set from a grouped API listing: match per role at run time.  
+  <sub>IMP-1031 · `human-correction-of-agent-output`</sub>
+- For a hand-authored flow guard, execute its expression against the input that selects each branch with _harness/WdlExpression.psm1 (eager if(), throws where the platform throws); extend the evaluator rather than skip a function it lacks.  
+  <sub>IMP-1029 · `capability-established`</sub>
+- When a design adds an alert-and-stop to a flow that triggers on record CREATED only, name the re-issue route (a re-run trigger, an override field, or a manual route) in the same ADR, and do not tell the user to re-run in shipped text.  
+  <sub>IMP-1028 · `shipped-prose-promises-unbuilt-capability`</sub>
+- In a flow that performs an irreversible external action (send an email or envelope, post a payment), order every fallible configuration step before it, so that any failure leaves the unsent state the alert describes; only the record of the action may follow it.  
+  <sub>IMP-1024 · `failure-path-leaves-inconsistent-state`</sub>
+- When an ADR is re-decided, grep test-data folders (_howToRun, README) for the retired decision's tokens; a stale how-to sends the next tester down a route that no longer exists.  
+  <sub>IMP-1017 · `re-decided-adr-encoded-beyond-its-named-checks`</sub>
+- Never save a solution flow in the designer to inspect or test it in DEV: a save rewrites the whole definition from what the designer understood. Write every Dataverse CreateRecord/UpdateRecord column as a flat 'item/<column>' parameter, never a nested 'item' object, because the designer silently drops the nested form on save. After anyone has opened a flow in the designer, run verify-live-flow-definitions --env dev before trusting a test run.  
+  <sub>IMP-1010 · `live-definition-overwritten-outside-the-pipeline`</sub>
 - When a feature shares a build config with an earlier feature, section 11 must carry a row for every third-party warning the WHOLE config emits, not only for the steps the feature added; compare the pack warning's entry count against the cited row.  
   <sub>IMP-1006 · `untriaged-tool-warning`</sub>
 - Generate the probe list from the kit's declarations (every inline-style property on every element type) and run each probe at all three widths, rather than hand-writing probes from the 1280 screenshot.  
   <sub>IMP-1005 · `fidelity-inventory-match-asserted-not-measured`</sub>
-- Before rewriting a test file, grep logs/work-items.jsonl for needles in that file; either keep the traced names where the property is unchanged, or expect and report the reopens.  
-  <sub>IMP-1004 · `evidence-rule-mismatch`</sub>
-- Before applying a fidelity 'fix', grep the approved TAD's Appendix B and the item's acceptance for the value being replaced; if either pins it, implement it but leave the item reopened and route the amendment, rather than closing against a clause the build no longer meets.  
-  <sub>IMP-1003 · `item-acceptance-contradicts-approved-design`</sub>
 - Build a fidelity inventory by measuring both renders with getComputedStyle (one probe per element, same locator on both), and let only equal computed values count as a match; a grep of the built CSS proves a declaration exists, not that it renders.  
   <sub>IMP-1002 · `design-values-read-from-source-not-rendering`</sub>
 - Render a supplied design at 320px before matching it, and where it overflows, keep WCAG 1.4.10 and record the difference as a deviation rather than copying the overflow.  
   <sub>IMP-1001 · `supplied-design-asset-assumed-wcag-compliant`</sub>
-- Run `git check-ignore -v <path>` before writing generated files to a path a brief calls gitignored; only build/exports/ and build/artifacts/ are ignored in this repository.  
-  <sub>IMP-1000 · `repo-document-contradicted-by-reality`</sub>
 - Give every overflow-x:auto wrapper position:relative when anything inside it is absolutely positioned (including visually hidden .srOnly text), or the hidden element escapes the scroll container and widens the page at 320px.  
   <sub>IMP-0999 · `absolute-srOnly-escapes-scroll-container`</sub>
-- Before classifying a stylesheet test as contract for a redesign, read what its assertions compare: a test that pins values the new design changes (gaps, paddings, sizes) is presentation, and only its accessibility half (44px, wrapping, floors, no fixed heights) belongs in both apps.  
-  <sub>IMP-0998 · `contract-test-pins-presentation-values`</sub>
 - Render the supplied design and the build side by side at 320, 390 and 1280px BEFORE the first code review, and read the kit's global stylesheet and index.html <style> block as design values too — inline JSX styles and the README do not carry the element rules (heading weight and family) the design actually renders with.  
   <sub>IMP-0997 · `design-values-read-from-source-not-rendering`</sub>
-- Write routing.log lines with the timestamp generated inline, e.g. echo "[$(date '+%Y-%m-%d %H:%M')] [LEAD] ...", never typed; a long background dispatch makes elapsed-time estimates drift by hours.  
-  <sub>IMP-0996 · `log-timestamp-not-taken-from-the-clock`</sub>
 - Read rev_setting live before designing on a seeded value; the settings notes' RoundStatisticsHistory* values were stale in DEV on 2026-09-30 (715 prior applications, start 2026-09-24).  
   <sub>IMP-0995 · `stale-claim-contradicting-rechecked-source`</sub>
-- Read an item's latest link acceptance, not its title, before citing what a fix requires; WI-0052's title states the reversed order.  
-  <sub>IMP-0994 · `ledger-title-contradicts-relinked-acceptance`</sub>
-- Treat a supplied design kit as presentation only: take every label, heading, section and figure from current source, and list each difference rather than adopting it; do not trust the kit's own provenance line.  
-  <sub>IMP-0993 · `supplied-design-content-predates-source`</sub>
-- Before dispatching the next build, check config/gate-baselines.json for entries expiring today or earlier and route each to its owner, because an expired baseline turns a suppressed finding into a halted build.  
-  <sub>IMP-0989 · `gate-baseline-expires-without-owner-action`</sub>
 - Before running a second Code App's visual tests locally, confirm nothing is listening on port 4173 (`lsof -i :4173`), because a leftover server from the other app is reused and the wrong app is measured.  
   <sub>IMP-0988 · `second-app-shares-local-dev-port`</sub>
-- When item intake runs in parallel with architecture, re-read every item's acceptance against the approved TAD's ADRs before development and amend the clauses an ADR overrides, so close-out traces the design that was approved rather than the source it replaced.  
-  <sub>IMP-0987 · `item-acceptance-contradicts-approved-design`</sub>
 - When a solution carries two Code Apps, check that each post_deploy code-app-push entry and each item's component label name the app folder, or one app's push will be recorded as delivering the other app's items.  
   <sub>IMP-0986 · `deploy-record-cannot-name-which-app`</sub>
-- Recompute every text pairing a supplied design declares compliant — #e6027f with #ffffff is 4.49:1 and fails normal text — and grep which test actually asserts a contract before relaying a handoff's claim that a named test must change.  
-  <sub>IMP-0985 · `supplied-design-asset-assumed-wcag-compliant`</sub>
-- Before relying on whether `pac code push --solutionName` places a Code App in the solution, read solutioncomponent (componenttype 300) for that solution live; the knowledge file and the pipeline config disagree, and the 2026-09-30 E1 read agrees with the pipeline config for the existing app.  
-  <sub>IMP-0983 · `two-recorded-lessons-contradict-each-other`</sub>
 - A reviewer decision to leave contracted-task work unbilled is not representable in the ledger; record it where commercial-agent reads (commercial-events.jsonl or contract/known-exceptions.json) and tell commercial-agent explicitly, since title text is not a gate.  
   <sub>IMP-0982 · `ledger-has-no-billing-status-field`</sub>
-- A change to src/solutions/** with no routing line, work item or finding is unowned: run-source-gates.py before leaving it, log the platform discovery that motivated it, and route it. Also record that Power Automate string(<boolean>) yields True/False, not JSON literals; use if(cond,'true','false').  
-  <sub>IMP-0981 · `solution-source-edited-outside-dispatch`</sub>
 - In a Power Automate expression, never pass a nullable column straight to greater/greaterOrEquals/less/lessOrEquals: wrap it in coalesce() with a value outside every band (or filter out nulls first). Only equals() tolerates null.  
   <sub>IMP-0980 · `null-operand-in-ordering-comparison-throws`</sub>
-- When quoting a reviewer's decision inside Code App source or tests, replace any secured column name in the quote with a bracketed placeholder before saving; keep the verbatim quote in the Dev Summary or field map, which the scan does not read.  
-  <sub>IMP-0978 · `quoted-decision-names-secured-column`</sub>
-- To resume a deferred work item, use `work-items.py reopen` (the only legal exit) but state in its --reason that it is an un-defer by reviewer decision, and do not read that reopen as a rejection when applying the 'reopened two or more times' escalation rule.  
-  <sub>IMP-0977 · `work-item-state-model-gap`</sub>
-- Stamp every log line with $(date '+%Y-%m-%d %H:%M') inside the same command that appends it; never type the time.  
-  <sub>IMP-0974 · `log-timestamp-not-taken-from-the-clock`</sub>
 - A retry is a deploy. A dispatch that re-imports runs the same --pending check before its stage line as a full deploy does, even when the reviewer asked only for the import.  
   <sub>IMP-0971 · `pipeline-dispatch-stops-before-declared-post-deploy`</sub>
-- A timestamp typed by an agent is a guess, measured today at 5 to 330 minutes in the future across build.log, pipeline.log and the improvement log. Let the tool that appends the line take the time: the allocator for findings, scripts/log-line.py for the plain logs.  
-  <sub>IMP-0970 · `log-timestamp-not-taken-from-the-clock`</sub>
 - An item's components must be declared before packaging, because the refusal otherwise arrives only after the live deploy has run.  
   <sub>IMP-0969 · `item-components-undeclared-at-deploy`</sub>
 - A handoff that lists an artifact's contents must be reconciled against the workflow diff, because an unlisted failure-path rewrite ships under the reviewer's approval of a different change.  
@@ -888,16 +904,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0967 · `selftest-depends-on-live-defect`</sub>
 - A run-history exposure has three sources, not one: connector reads, connector writes, and row triggers. A rule that lists the actions to secure must say whether triggers are in scope, because a trigger with no column restriction hands over the whole row.  
   <sub>IMP-0966 · `declared-policy-not-mechanically-enforced`</sub>
-- A timestamp rule that lives in prose recurs within hours across agents. The tool that appends the line already holds a lock and a clock; it should stamp the time itself, and the validator should refuse a ts later than the moment it runs.  
-  <sub>IMP-0965 · `log-timestamp-not-taken-from-the-clock`</sub>
-- When adding a scripts/verify-*.py gate, add its build-config step (or SUITE_GATE_EXEMPT reason) in the same change; build-agent cannot edit the config and must hand back BLOCKED.  
-  <sub>IMP-0964 · `suite-gate-is-not-a-step`</sub>
 - When securing a personal-data read in a flow, secure every action that names the column or reads that action's output (Compose, connector posts, Find_the_failed_action over result()), leave actions reading only a non-personal generated id readable, and pin it with a fixed-point closure test as IntakeContract.Tests.ps1 does; the closure test failed on Set_reminder_cadence on its first run, which is what proved it able to fail.  
   <sub>IMP-0963 · `declared-policy-not-mechanically-enforced`</sub>
-- An npm advisory set is a moving target: a code-app-audit result is true for the day it was read, and an exit 0 last night says nothing about today's build. Before a build that must ship on a schedule, re-run `npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high` first; a HIGH advisory on a devDependency still fails the HARD step, and the remedy is `npm audit fix` plus a Dev Summary section 11 row per new GHSA id, owned by development-agent.  
-  <sub>IMP-0961 · `untriaged-tool-warning`</sub>
-- When `pac solution import` against this solution is killed by a client-side wrapper timeout, do not report DEPLOYMENT FAILED from the client output alone. Query asyncoperation (name eq 'ImportSolution', createdon today) live first -- it is a read-only call needing no provisioning credential -- and only report failure if that record itself shows Failed, not merely because the local pac process was terminated. Use a wrapper timeout of at least 400s for this specific `pac solution import` call, or treat a 180s TIMED OUT on it as inconclusive rather than negative.  
-  <sub>IMP-0954 · `client-timeout-misread-as-write-failure`</sub>
 - A risk acceptance that names specific actions goes stale in both directions: the named ones can be fixed and new ones can appear. A precise secure-data gate needs a column-level list of personal columns, because a table-level rule is about 40% precise here.  
   <sub>IMP-0951 · `declared-policy-not-mechanically-enforced`</sub>
 - A Dev Summary line claiming a live Solution Checker finding is 'Fixed' (not accepted-with-rationale) must be re-verified by fetching and parsing the checker's actual SARIF report (the pac stdout's signed report-files URL is fetchable directly with curl even though --outputDirectory writes nothing locally) after the fix lands, not assumed from the source diff alone. For flow-avoid-recursive-loop specifically: check whether the fix changes the flow's STATIC shape (trigger entity vs. action target entity) - a subscriptionRequest/filteringattributes column scope is a runtime property the rule cannot see and will not suppress it.  
@@ -951,8 +959,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0857 · `platform-state-divergence`</sub>
 - When a change adds a row to dataverse.settingRows in any of dev-scoring-settings.json / test-settings.json / prd-settings.json, grep config/revitalise-grant-automation-pipeline.yml for 'rev_setting rows' prose (lines 573, 1880 as of this entry) and update the spelled-out count, or the next build's verify-derived-counts.py run fires an untriaged warning that C-TECH-055 requires blocking on.  
   <sub>IMP-0856 · `hand-maintained-count-drifts-from-source`</sub>
-- When a sibling dispatch's step-8 gate run reports a defect in YOUR feature's uncommitted working tree, check logs/improvement-log.jsonl for a deferred finding naming your own RootComponent/table before assuming the gap is undiscovered — IMP-0852 already named the exact fix this dispatch needed to make.  
-  <sub>IMP-0855 · `finding-fixed-in-later-dispatch`</sub>
 - Two skills are loaded by no agent: skills/how-to-select-a-model.md (only hit is CLAUDE.md's layout diagram, which loads nothing) and skills/how-to-write-a-deployment-runbook.md (no hit anywhere). Do not put a rule in either expecting it to be read. The general check is one command - for f in skills/*.md; do grep -rl $(basename $f) agents/ CLAUDE.md | wc -l; done - and skills/ has no gate for this where scripts/ has verify-build-config.py's suite-gate rung making an unwired verify-*.py a red preflight. A skill with no agent naming it is documentation, not an activation step, which is IMP-0554 and IMP-0070's measured shape: a rule that appears in no activation sequence depends on remembering.  
   <sub>IMP-0837 · `rule-lives-in-a-file-no-agent-loads`</sub>
 - when a plan's closed-dependency or summary row cites an analysis section for a multi-attribute finding, open that section and check which of the several attributes it actually covers before trusting the summary sentence's scope — a supersession finding proven for one attribute of a multi-column file is not evidence for its neighbours.  
@@ -1134,8 +1140,60 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- After removing a stray pac, re-run `scripts/run-with-timeout.sh 45 pac org who` before retrying the build: if it still hangs, look for the macOS Keychain prompt (IMP-0217) before any further attempt. The hint should print the Keychain check in both branches, and a build report must call a stray pac 'found', not 'the cause', until that probe has returned.  
+  <sub>IMP-1032 · `gate-defect`</sub>
+- To record a Pester test-run with its exit code, use New-PesterConfiguration with Run.Exit = $true, not -CI, which writes the tracked testResults.xml.  
+  <sub>IMP-1030 · `tool-side-effect-on-tracked-file`</sub>
+- When scripting a replacement of a Markdown table row, match the whole line anchored at its start (split into lines, startswith, assert exactly one hit), never str.index on a cell value that can appear inside another row.  
+  <sub>IMP-1027 · `tooling-edit-landed-in-the-wrong-place`</sub>
+- A designer save of a solution-sourced flow is a live write that rewrites the whole definition. After any V4 save, run verify-live-flow-definitions.py --env <env> and re-import from source if it reports a difference, before anything is tested on that flow.  
+  <sub>IMP-1020 · `live-definition-overwritten-outside-the-pipeline`</sub>
+- When an ADR is re-decided, grep the retired decision's distinctive tokens across src/, provisioning/, config/ and scripts/ before scoping the change, and list every hit. A gate list names only build steps; most encodings of a decision are tests, fixtures, settings and shipped descriptions.  
+  <sub>IMP-1015 · `stale-claim-contradicting-rechecked-source`</sub>
+- A state shown to the person who judges it must carry the verifier's verdict on that state, not only the state itself.  
+  <sub>IMP-1013 · `evidence-recorded-but-not-surfaced`</sub>
+- When an event type gains an optional field, extend every reader of that event, including the fold's history summary; a missing key on a display path fails silently.  
+  <sub>IMP-1012 · `evidence-recorded-but-not-surfaced`</sub>
+- When a finding re-proposes something, grep the log for a reviewer-deferral of the same proposal and run its revisit_when check before drafting; IMP-0500's condition (three conforming manifests) was met by 58 manifests while it sat deferred.  
+  <sub>IMP-1009 · `stale-deferral-uncaught-across-sessions`</sub>
+- Never anchor an evidence_grep needle to the wording of a blocked_on note. Check 14 forces those notes to be rewritten on a 14-day cycle. Anchor to a stable key such as the prerequisite id or script name instead.  
+  <sub>IMP-1007 · `serialisation-default-invalidates-evidence-needle`</sub>
+- Before rewriting a test file, grep logs/work-items.jsonl for needles in that file; either keep the traced names where the property is unchanged, or expect and report the reopens.  
+  <sub>IMP-1004 · `evidence-rule-mismatch`</sub>
+- Before applying a fidelity 'fix', grep the approved TAD's Appendix B and the item's acceptance for the value being replaced; if either pins it, implement it but leave the item reopened and route the amendment, rather than closing against a clause the build no longer meets.  
+  <sub>IMP-1003 · `item-acceptance-contradicts-approved-design`</sub>
+- Write routing.log lines with the timestamp generated inline, e.g. echo "[$(date '+%Y-%m-%d %H:%M')] [LEAD] ...", never typed; a long background dispatch makes elapsed-time estimates drift by hours.  
+  <sub>IMP-0996 · `log-timestamp-not-taken-from-the-clock`</sub>
+- Read an item's latest link acceptance, not its title, before citing what a fix requires; WI-0052's title states the reversed order.  
+  <sub>IMP-0994 · `ledger-title-contradicts-relinked-acceptance`</sub>
+- Treat a supplied design kit as presentation only: take every label, heading, section and figure from current source, and list each difference rather than adopting it; do not trust the kit's own provenance line.  
+  <sub>IMP-0993 · `supplied-design-content-predates-source`</sub>
+- Before dispatching the next build, check config/gate-baselines.json for entries expiring today or earlier and route each to its owner, because an expired baseline turns a suppressed finding into a halted build.  
+  <sub>IMP-0989 · `gate-baseline-expires-without-owner-action`</sub>
+- When item intake runs in parallel with architecture, re-read every item's acceptance against the approved TAD's ADRs before development and amend the clauses an ADR overrides, so close-out traces the design that was approved rather than the source it replaced.  
+  <sub>IMP-0987 · `item-acceptance-contradicts-approved-design`</sub>
+- Recompute every text pairing a supplied design declares compliant — #e6027f with #ffffff is 4.49:1 and fails normal text — and grep which test actually asserts a contract before relaying a handoff's claim that a named test must change.  
+  <sub>IMP-0985 · `supplied-design-asset-assumed-wcag-compliant`</sub>
+- Before relying on whether `pac code push --solutionName` places a Code App in the solution, read solutioncomponent (componenttype 300) for that solution live; the knowledge file and the pipeline config disagree, and the 2026-09-30 E1 read agrees with the pipeline config for the existing app.  
+  <sub>IMP-0983 · `two-recorded-lessons-contradict-each-other`</sub>
+- A change to src/solutions/** with no routing line, work item or finding is unowned: run-source-gates.py before leaving it, log the platform discovery that motivated it, and route it. Also record that Power Automate string(<boolean>) yields True/False, not JSON literals; use if(cond,'true','false').  
+  <sub>IMP-0981 · `solution-source-edited-outside-dispatch`</sub>
+- When quoting a reviewer's decision inside Code App source or tests, replace any secured column name in the quote with a bracketed placeholder before saving; keep the verbatim quote in the Dev Summary or field map, which the scan does not read.  
+  <sub>IMP-0978 · `quoted-decision-names-secured-column`</sub>
+- To resume a deferred work item, use `work-items.py reopen` (the only legal exit) but state in its --reason that it is an un-defer by reviewer decision, and do not read that reopen as a rejection when applying the 'reopened two or more times' escalation rule.  
+  <sub>IMP-0977 · `work-item-state-model-gap`</sub>
+- Stamp every log line with $(date '+%Y-%m-%d %H:%M') inside the same command that appends it; never type the time.  
+  <sub>IMP-0974 · `log-timestamp-not-taken-from-the-clock`</sub>
+- A timestamp typed by an agent is a guess, measured today at 5 to 330 minutes in the future across build.log, pipeline.log and the improvement log. Let the tool that appends the line take the time: the allocator for findings, scripts/log-line.py for the plain logs.  
+  <sub>IMP-0970 · `log-timestamp-not-taken-from-the-clock`</sub>
+- A timestamp rule that lives in prose recurs within hours across agents. The tool that appends the line already holds a lock and a clock; it should stamp the time itself, and the validator should refuse a ts later than the moment it runs.  
+  <sub>IMP-0965 · `log-timestamp-not-taken-from-the-clock`</sub>
+- When adding a scripts/verify-*.py gate, add its build-config step (or SUITE_GATE_EXEMPT reason) in the same change; build-agent cannot edit the config and must hand back BLOCKED.  
+  <sub>IMP-0964 · `suite-gate-is-not-a-step`</sub>
 - Full vitest run in the OneDrive-synced tree can fail with ETIMEDOUT read errors on a cold run; re-run before reading it as a regression.  
   <sub>IMP-0962 · `untriaged-tool-warning`</sub>
+- An npm advisory set is a moving target: a code-app-audit result is true for the day it was read, and an exit 0 last night says nothing about today's build. Before a build that must ship on a schedule, re-run `npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high` first; a HIGH advisory on a devDependency still fails the HARD step, and the remedy is `npm audit fix` plus a Dev Summary section 11 row per new GHSA id, owned by development-agent.  
+  <sub>IMP-0961 · `untriaged-tool-warning`</sub>
 - Take every logs/ timestamp and every finding's ts from `date` at the moment you write the line, never from a platform value or from memory, and write the zone beside every platform time you quote: `pac env fetch` renders date-times in UTC with no zone marker (measured 2026-09-29: an import begun 21:29 CEST reads createdon 7:29 PM). Convert before comparing a platform time with a log line. On 2026-09-29 one dispatch's pipeline.log lines ran two hours behind the next dispatch's, and a failed platform job read as 'during this import' was two hours away from it.  
   <sub>IMP-0960 · `log-timestamp-not-taken-from-the-clock`</sub>
 - A Failed 'Async update of workflow' row is not by itself evidence that a flow's live definition was reverted: put it, the verification and the workflow's modifiedon on one clock first (pac env fetch renders UTC with no zone marker). On 2026-09-29 both Failed rows preceded the verification that read the intake mapping intact, and the write that removed it had no async job at all. On this Mac the browser signs in as svc_grantapplications, the same identity pac uses, so modifiedby cannot tell a designer save from an import. Before a live-fix import of a flow someone is diagnosing in the designer, ask for that tab to be closed without saving; before a V3 claim, re-read the definition and its modifiedon, and treat a modifiedon later than your import's completion as a write you must explain before claiming anything.  
@@ -1144,6 +1202,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0957 · `untriaged-tool-warning`</sub>
 - code-app-audit's advisory list must be read every build, not just its exit code or the presence of some triage row in the warning stream -- a NEW advisory (different GHSA id) sharing a build step with an already-triaged one is not covered by that row and is untriaged until its own Dev Summary citation exists, exactly as IMP-0700/IMP-0701 already established for GHSA-82fw-gwwq-j7x9.  
   <sub>IMP-0955 · `untriaged-tool-warning`</sub>
+- When `pac solution import` against this solution is killed by a client-side wrapper timeout, do not report DEPLOYMENT FAILED from the client output alone. Query asyncoperation (name eq 'ImportSolution', createdon today) live first -- it is a read-only call needing no provisioning credential -- and only report failure if that record itself shows Failed, not merely because the local pac process was terminated. Use a wrapper timeout of at least 400s for this specific `pac solution import` call, or treat a 180s TIMED OUT on it as inconclusive rather than negative.  
+  <sub>IMP-0954 · `client-timeout-misread-as-write-failure`</sub>
 - When a finding proposes widening or narrowing what a gate reads, run the gate or a one-off count over the proposed scope and put the number in the proposal.  
   <sub>IMP-0952 · `finding-premise-fails-re-measurement`</sub>
 - Name the improvement-agent trigger with a tag from the closed list, copied from what verify-improvement-log.py --check printed on this run: trigger:post-deploy, trigger:batch-threshold, trigger:deploy-blocker, trigger:reviewer or trigger:capability. Never restate the count from memory.  
@@ -1227,6 +1287,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - When a new flow is added, re-run the live Solution Checker (`lint` build step) and diff its Critical/High/Medium/Low/Informational counts against the Dev Summary's last recorded figures before trusting an old '0 issues' claim — the SARIF report (downloadable via the SAS URL `pac solution check` prints, since the CLI does not save it locally under --outputDirectory in this environment) names the exact rule and file. A self-referential Dataverse flow (a flow that both triggers on and later writes back to the same table's row, as REVSafeguardingActionCompletion sets rev_safeguardingactioncompletedby on the very row whose update triggered it) is exactly the shape `flow-avoid-recursive-loop` flags, and needs an explicit condition guard (e.g. only-if-not-already-set) to clear it, or a documented triage rationale in Dev Summary section 11 if the loop is provably bounded.  
   <sub>IMP-0858 · `untriaged-tool-warning`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0859`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
+- When a sibling dispatch's step-8 gate run reports a defect in YOUR feature's uncommitted working tree, check logs/improvement-log.jsonl for a deferred finding naming your own RootComponent/table before assuming the gap is undiscovered — IMP-0852 already named the exact fix this dispatch needed to make.  
+  <sub>IMP-0855 · `finding-fixed-in-later-dispatch`</sub>
 - To establish whether two paths are one file, compare INODES (stat -f %i) or run ls -ld on each DIRECTORY component -- never ls -l or diff on the file paths, because both follow symlinks and return the identical answer for 'one file, two paths' and for 'two synchronised copies'. Corollary for this repository: agents/, skills/ and templates/ are directory symlinks into .engine, so an edit through either path is ONE write; it is scripts/ that holds genuine unsplit duplicates needing two edits, and conflating the two cases produces either a harmless double write or -- in the other direction -- a script edit that silently does not execute.  
   <sub>IMP-0854 · `finding-premise-false-at-draft-time`</sub>
 - A finding that proposes an N-item checklist derived from N gates that fired is proposing a SYMMETRY, not a measurement: the items it did not personally watch fail are the ones to grep. Measured here: of 4 proposed items, 1 already existed as prose in the right file, 1 was a genuine gap, 1 was half-documented, and 1 described a convention that 20 of 29 scripts correctly do not follow.  
@@ -1776,7 +1838,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*59 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*60 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1839,8 +1901,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0106 · `exit-zero-does-not-mean-created`</sub>
 - statecode=1 on a cloud flow does NOT mean its Dataverse trigger is registered. Query callbackregistrations?$filter=entityname eq '<table>' - if it returns 0, Dataverse will never call the flow, no run is attempted, and run history shows nothing because there is nothing to show. Fix it by opening the flow in the Power Automate DESIGNER and saving it, not by toggling it in the Solutions list. Check the count as an identity with System Administrator, or a 0 may mean you cannot see the rows. And note the trap this creates: a row-CREATED trigger never replays, so rows inserted before the registration existed must be deleted and re-created.  
   <sub>IMP-0104 · `exit-zero-does-not-mean-created`</sub>
-- An unmanaged pac solution import with --force-overwrite DEACTIVATES every cloud flow in the solution - statecode 1 becomes 0 - while reporting 'completed successfully'. Capture the flow statecodes BEFORE the import and re-assert them after, and treat re-activation as a named post-deploy step with an owner. Re-activate IN THE DESIGNER, never by PATCHing workflow.statecode: a statecode flip can leave the flow reporting Activated with no callbackregistration row, which is the un-triggerable state that cost four rounds on 2026-08-20. Also re-check the callbackregistration count after re-activation - a row from the pre-import flow version survives the import and must not be read as evidence that the new version's trigger is live.  
-  <sub>IMP-0113 · `v3-does-not-imply-v4`</sub>
+- A trim of an option set is two deployments: the import and a live delete. The gate that proves it must read members, both directions (orphan, missing, 1033 label), not existence. Implemented 2026-10-03 as Test-OptionSetMembers in provisioning/dataverse/verify-solution-components.ps1 with src/tests/provisioning/VerifyOptionSetMembers.Tests.ps1; it runs in the existing DEV verification step. Source-only: not yet run against DEV (no PROVISION_* credential in session). Local picklists: none exist in Entities/*/Entity.xml, every picklist names a global set. The 2026-08-26 code-app generated snapshots were regenerated from DEV (pa app refresh data-source; typecheck and tests green in both apps).  
+  <sub>IMP-1034 · `exit-zero-does-not-mean-created`</sub>
 - When a dispatch's own brief describes a fix that development-agent already logged as a blocker-severity finding in the same session, expect improvement-log-check to fail on that finding's unread state regardless of whether the source fix is correct and complete. Check `python3 scripts/verify-improvement-log.py --check` for an unread blocker BEFORE dispatching build-agent, per IMP-0569's same instruction for gate-cannot-fear findings — the fix belongs to development-agent (already done here); clearing the finding's own queue state is improvement-agent's, behind APPROVE IMPROVEMENTS or an explicit deferred_reason from the reviewer.  
   <sub>IMP-0651 · `learning-substrate-destroyed`</sub>
 - When an ADR splits a table and the superseded columns are RETAINED rather than deleted, the old columns stay valid write targets and every stale writer keeps succeeding silently — a green run with an empty UI is the only symptom. After any such split, grep provisioning/ AND the flow definitions for the OLD entity set name and re-point every writer, then assert the new target in a test; do not trust a <Description> saying 'written by nothing' to be true, because nothing checks it. Concretely: seed-round-statistics-test-data.ps1 wrote rev_roundstatisticsrequests for three days after ADR-038 moved its three columns to rev_roundstatisticsresult, and the app reads only the result table (schema.ts ROUND_STATISTICS_REQUEST_COLUMNS is that row's primary key and nothing else).  
@@ -1861,6 +1923,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0949 · `no-assertion-on-shipped-content`</sub>
 - Two controls that declare the same `min-height` are not the same height unless BOTH also fix their box: `min-height` is the rendered height only where an explicit `height` or `box-sizing: border-box` plus fitting padding already bounds it, and is otherwise a floor a content-sized box has already cleared. When equalising controls, declare box-sizing, line-height and padding that sum UNDER the floor on every one of them — and check the host framework's own computed rules (Fluent's select slot ships `box-sizing: border-box` + `height: 32px`) rather than comparing the two authored stylesheets, which is where the two rules look identical.  
   <sub>IMP-0566 · `no-assertion-on-shipped-content`</sub>
+- A font-size change to a shape borrowed from a host framework (Fluent, or any design system whose root sets typography on `body`/its provider root) needs an explicit line-height alongside it -- inheriting the host's line-height tuned for its own base font-size silently produces overlapping wrapped lines at any size larger than that base, and this is invisible to jsdom-based tests, clean type-checks, and clean lint, because it is a paint-time collision, not a box-model defect. When a CSS class changes font-size away from the ambient body size, grep the same rule for line-height in the same change, and verify by rendering (not by reading the box model) whenever the property can wrap.  
+  <sub>IMP-0509 · `no-assertion-on-shipped-content`</sub>
 - Under Auto Mode, the classifier auto-denies a cert/keychain-touching pwsh command outright with no permission prompt -- this may hold even in a session that would otherwise count as the reviewer's own 'foreground' one per IMP-0173, because auto mode itself removes the human from the approval loop. Before assuming a foreground retry will succeed, check whether Auto Mode is active in that session too; if so, the retry needs a normal (non-auto) interactive session where a human can see and approve the prompt. Also: ensure-schema.ps1-class operations (entity/attribute/role/field-security-profile metadata creation, C-TECH-050) have no native pac CLI verb at all in pac 2.4.1 -- unlike role assignment (pac admin assign-user, IMP-0220) -- so step 3a's fallback never has a target for this operation class and every occurrence goes straight to REVIEWER ACTION REQUIRED.  
   <sub>IMP-0245 · `harness-blocks-destructive-call`</sub>
 - Before assuming a provisioning script needs a code change for a new attribute/option-set/field-permission, check whether it reads its inputs generically from the XML source tree (Get-RevEntityLogicalNames-style helpers in this project's ensure-schema-helpers.psm1 do, for all three) -- most of this project's schema changes over its history needed zero script changes, only new/edited XML. And: a HARD count assertion in this codebase's own Pester suite (e.g. EnsureSchema.Tests.ps1's secured-column/field-permission counts) is deliberately count-coupled by design (IMP-0005) -- the correct fix on a legitimate schema addition is bumping the number with a dated comment explaining why, matching the file's own existing history of such comments, not deriving it away.  

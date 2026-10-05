@@ -140,7 +140,7 @@
               "Succeeded"
             ]
           },
-          "description": "FR-010. Creates the log row. rev_runurl holds the calling run deep link so the row is actionable from the Error Log itself. Nested item is correct for CreateRecord; only UpdateRecord needs item/<column>. See notes.md.",
+          "description": "FR-010. Creates the log row. rev_runurl holds the calling run deep link so the row is actionable from the Error Log itself. Columns are flat item/<column> keys, the only form the designer keeps on save (TAD section 5 rule, rev 14). See notes.md.",
           "inputs": {
             "host": {
               "connectionName": "shared_commondataserviceforapps",
@@ -149,16 +149,14 @@
             },
             "parameters": {
               "entityName": "rev_errorlogs",
-              "item": {
-                "rev_flowname": "@triggerBody()?['text']",
-                "rev_runid": "@triggerBody()?['text_1']",
-                "rev_errormessage": "@outputs('Truncate_error_message')",
-                "rev_recordreference": "@triggerBody()?['text_3']",
-                "rev_occurredon": "@utcNow()",
-                "rev_severity": "@outputs('Map_severity_to_option_value')",
-                "rev_resolved": false,
-                "rev_runurl": "@triggerBody()?['text_5']"
-              }
+              "item/rev_flowname": "@triggerBody()?['text']",
+              "item/rev_runid": "@triggerBody()?['text_1']",
+              "item/rev_errormessage": "@outputs('Truncate_error_message')",
+              "item/rev_recordreference": "@triggerBody()?['text_3']",
+              "item/rev_occurredon": "@utcNow()",
+              "item/rev_severity": "@outputs('Map_severity_to_option_value')",
+              "item/rev_resolved": false,
+              "item/rev_runurl": "@triggerBody()?['text_5']"
             },
             "authentication": "@parameters('$authentication')",
             "retryPolicy": {

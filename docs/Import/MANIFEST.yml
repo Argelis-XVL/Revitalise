@@ -280,3 +280,13 @@ files:
     contains_commercial_terms: false
     intaked_by: pm-agent (APPROVE BASELINE)
     note: "Pointer to the two incorporated terms documents. Their clause text is NOT here (D-4)."
+  - name: "2026-10-02-docusign-envelope-feedback.md"
+    class: requirements
+    sha256: b32948968340cf2da6a64f408af4ef6fd8222014ff48ce6b91a34a3a89f5a0ff
+    bytes: 1472
+    contains_commercial_terms: false
+    intaked_by: pm-agent (ledger intake); design by architect-agent
+    note: >-
+      Summary (not verbatim) of the reviewer's 2026-10-02 turn and Emily's relayed DocuSign
+      feedback on the wbs:3.2 envelope flow. No contact details recorded. Records what was asked;
+      authorises nothing (C-COM-002).

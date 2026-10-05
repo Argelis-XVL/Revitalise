@@ -1,11 +1,64 @@
 # Improvement Review — 2026-09-30 (2): post-deploy batch after builds 20260930-2 to 20260930-4
 
 **Agent:** improvement-agent (tier `strategic`)
-**Findings processed:** 48 `NEW` → 26 clusters (42 unread — 6 at draft, 6 folded in by Amendment 1 after build 20260930-4, 30 folded in by Amendment 2 after the trustee-portal-design-2 DEV deploy — plus 4 logged by this review, and 2 reviewer-deferred entries whose approved return condition has happened)
+**Findings processed:** 69 `NEW` → 38 clusters (62 unread — 6 at draft, 6 folded in by Amendment 1 after build 20260930-4, 30 folded in by Amendment 2 after the trustee-portal-design-2 DEV deploy, 8 folded in by Amendment 3 after the DEV deploy of build 20261002-1, 12 folded in by Amendment 4 after the DEV deploy of build 20261003-2 — plus 5 logged by this review, and 2 reviewer-deferred entries whose approved return condition has happened)
 **Trigger:** post-deploy batch
 **Gate:** `APPROVE IMPROVEMENTS`
-**Status:** DRAFT, amended twice (see *Amendment 1* and *Amendment 2* at the end of §0). Parked at the gate, nothing applied. `reviewed_in` is stamped on 46 of the 48 entries (measured). The other two, IMP-0954 and IMP-0500, are reviewer-deferrals whose return condition has happened; each keeps the review that deferred it, and its annotation waits for the keyword. (This header used to say all 16 were stamped; IMP-0954 never was.)
-**WBS:** system work, `wbs:system`. The flows and ledger items it touches belong to `wbs:4.2,4.3` and `wbs:6.8` (Amendment 1's findings come from WI-0052 and WI-0005, both `wbs:6.8`). Amendment 2's findings come from trustee-portal-design-2, `wbs:6.3`, which the reviewer has declared unbilled ([EX-008](contract/known-exceptions.json#L84)). No change here is billable.
+**Status:** APPLIED 2026-10-05 on `APPROVE IMPROVEMENTS` (Xander Lykopoulos, relayed by lead-agent 10:41), as revalidated the same day; decisions 1–6 answered *agreed with suggested*. See §8 *Record of what is done on approval*. Drafted 2026-09-30, amended four times, revalidated 2026-10-05. Previously recorded: DRAFT, parked at the gate, nothing applied; `reviewed_in` stamped on 67 of 69 entries.
+**WBS:** system work, `wbs:system`. The flows and ledger items it touches belong to `wbs:4.2,4.3` and `wbs:6.8` (Amendment 1's findings come from WI-0052 and WI-0005, both `wbs:6.8`). Amendment 2's findings come from trustee-portal-design-2, `wbs:6.3`, which the reviewer has declared unbilled ([EX-008](contract/known-exceptions.json#L84)). Amendment 3's findings come from the intake rework, `wbs:4.2,4.3`; three of them record their cost as warranty-class rework on the delivered intake, with no hours estimated. Amendment 4's findings come from the Create Envelope rework, `wbs:3.2` (one also names `wbs:3.1,3.5`, and three are `wbs:system`). One of them refers a possible change order to commercial-agent; this review does not decide it. No change here is billable.
+
+---
+
+## Revalidation — 2026-10-05 (read this first)
+
+Re-measured against the working tree (branch `deploy-first-learning-and-item-closure`, uncommitted changes present) and against DEV, read-only, at 2026-10-05 10:00–10:20. No commit has landed since this draft's last amendment (`7cd080c`, 2 October); what landed is 18 hotfix imports to DEV ([pipeline L299–L316](logs/pipeline.log#L299)) and uncommitted edits. Nothing below is applied; the keyword still applies the table in §3, read with these verdicts.
+
+**Proposed changes (§3, 48 rows).** Each row's target was grepped for the text the row would add. **None of the 48 is on disk.** 42 rows are **VALID as drafted**: 1–5, 8, 9, 11–14, 16–42, 44–46, 48. Row 9's target moved ten lines ([lead-agent L433](agents/lead-agent.md#L433)); its text is unchanged. The other six:
+
+| Row | Verdict | What changed |
+|---|---|---|
+| 6, 7 | **VALID, still HELD**, and the hold now has a second condition | The check-7 descent is still in no commit: on the committed tree the wrapper self-test reports *"the declared exceptions suppress the check-7 FAILURE today"* PASS; on the working tree it reports FAIL. Once committed, the plain gate will also fail on Create Envelope's `Find_the_failed_action` (routed R1 of [review 2026-10-05](docs/improvements/2026-10-05-improvement-review.md#L161)) until that is fixed. Apply rows 6–7 only after both |
+| 10 | **VALID, overlaps** | The count is now **70**. [Review 2026-10-05 row 4](docs/improvements/2026-10-05-improvement-review.md#L149) proposes the same edit; apply it once |
+| 15 | **CHANGED — strengthened** | A fourth dated reading: the card app became a solution component on **2 October 09:10 UTC** (`solutioncomponent.createdon`), a day after its push and with no deploy logged at that time. That is the manual *Add existing*. Add this reading to the row's list |
+| 43 | **CHANGED — incomplete** | The hotfixes measured three more DocuSign facts the section should carry: prefill fills accept `textTabs` while recipient fills accept `Text` ([pipeline L308](logs/pipeline.log#L308)); a Company tab stores a value the signer sees empty ([L314](logs/pipeline.log#L314)); `routingOrder` is locked by the template and `UpdateEnvelopeRecipient` returns 200 with `RECIPIENT_UPDATE_FAILED` ([L311](logs/pipeline.log#L311)). Fold them in at apply, at E1 |
+| 47 | **VALID, still HELD** | `WdlExpression.psm1` is still untracked |
+
+**Routed work (§5).**
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| Add the card app to the solution (reviewer) | **ALREADY RESOLVED** | DEV: two componenttype-300 rows in `RevitaliseGrantAutomation`, one per appId (`70869c95…` since 22 Aug, `b0483396…` since 2 Oct 09:10 UTC); the solution export holds both `CodeAppPackages` folders |
+| Commit the six WI-0005 files (lead-agent) | **ALREADY RESOLVED** | all six are tracked (`git ls-files`) |
+| Commit `verify-live-flow-definitions.py` and the deployed flows (lead-agent) | **PARTLY RESOLVED** | the script is tracked since `4eb731e`; the flows, the check-7 descent and `WdlExpression.psm1` are not |
+| Designer-save question (reviewer) | **WITHHELD** already (Amendment 3) | — |
+| Dev Summary revision for the check-7 failure path (IMP-0968) | **VALID** | [Dev Summary L11244](docs/development/revitalise-grant-automation-dev-summary.md#L11244) still says the exception expires 30 September |
+| `.definitions` grid at 320 px; first app `.tableScroll` position; per-app test port | **VALID** | [`.definitions`](src/code-apps/trustee-review-portal/src/styles/app.module.css#L563) keeps its fixed column; [`.tableScroll`](src/code-apps/trustee-review-portal/src/styles/app.module.css#L303) has no `position`; both `playwright.config.ts` use port 4173 |
+| pm-agent re-read of the 21 feedback-sheet items | **VALID** | no re-read recorded; the 32 acceptance links since 30 September are Design 2.0 items plus WI-0013 and WI-0053 |
+| Your verdict on WI-0005 | **VALID** | WI-0005 is still `deployed:dev` |
+| Three pipeline-config notes; TAD §9.3; supplied-assets page | **VALID** | [pipeline L1124](config/revitalise-grant-automation-pipeline.yml#L1124) and [L1968](config/revitalise-grant-automation-pipeline.yml#L1968) still credit the push; [TAD L1708](docs/architecture/revitalise-grant-automation-architecture.md#L1708) still says a pushed app *is* a component; [supplied-assets L36](docs/reference/supplied-assets.md#L36) still says 131 files (285 tracked) |
+| Relink WI-0055..0105 after row 16; retitle WI-0052 after row 23 | **VALID**, waits on those rows | — |
+| `settings-rows.notes.md` RoundStatisticsHistory values (IMP-0995) | **VALID** | the notes still say 2026-02-16 and 0; DEV holds 2026-09-24 and 715 (modified 3 Oct) |
+| Live re-read mode for "written after the last import" | **VALID** | no such mode in the script |
+| Test-data instructions still describe the token route (IMP-1017) | **VALID** | [README L198](src/tests/data/README.md#L198), [payloads L13](src/tests/data/intake-payloads.json#L13) |
+| Endpoint check accepts `dev` (IMP-1018) | **VALID** | [ValidateSet L75](provisioning/entra/verify-intake-endpoint-auth.ps1#L75) still lists `dev` |
+| TAD §12.3: close A-INT-15 and A-INT-11 | **VALID** | [A-INT-15 row](docs/architecture/revitalise-grant-automation-architecture.md#L3788) unchanged |
+| TAD every-tab rule (IMP-1031) | **VALID** | [ADR-043](docs/architecture/revitalise-grant-automation-architecture.md#L2446) still says the referee tabs are left for the referee |
+| Re-issue route after a pre-send stop (IMP-1028) | **VALID** | no re-issue route anywhere in the TAD |
+| Commit Create Envelope and `WdlExpression.psm1` | **VALID** | both still uncommitted |
+| Commercial-agent: recipient-authentication change order | **VALID** | nothing recorded in `logs/commercial-events.jsonl` or `contract/change-orders/` |
+| Your live checks R1–R6, M4, M6 | **UNVERIFIABLE from here, likely exercised** | Create Envelope ran 19 times since 3 October (last 7 Succeeded, newest 4 Oct 07:39 UTC), but what each envelope held is visible only in DocuSign. Your confirmation per step closes the six deferrals |
+
+**Dispositions (§5 table) that change:**
+
+| Entry | Was | Now | Why |
+|---|---|---|---|
+| IMP-1008 | DEFER | **CLOSE** at apply | Its `revisit_when` is met: re-run FetchXML on `solutioncomponent` (componenttype 300, linked to `solution`) on 2026-10-05 10:05 by improvement-agent shows two rows in `RevitaliseGrantAutomation`, one per appId. Re-run at apply and record it as `reobserved` V3 |
+| IMP-1025 | DEFER | **DEFER**, condition half met | The `tabType` strings were measured live on 3 October ([L308](logs/pipeline.log#L308)); the TAD still says *"unmeasured"* ([L3391](docs/architecture/revitalise-grant-automation-architecture.md#L3391)). New routed item: architect-agent records the measurement against `A-DS-16` |
+| IMP-0971, IMP-0879, IMP-0906 (decision 2) | DEFER | **DEFER**, unverifiable | The 2 and 3 October DEV stage lines are PARTIAL and the audit since 2 October gives 0 findings, but no line records that `--pending` ran before them. A pipeline line naming that run would settle it |
+
+**Decisions.** 1, 2, 3, 4 and 6: **VALID, unanswered**. Decision 5: **CHANGED.** `Designsystem/Revitalise Design System (1)/` is no longer untracked: commit `7cd080c` (2 October) added it, 145 files beside the original drop's 131. The question still stands, because the two copies still share inner folders. Its last consequence (CI and a local run judge different trees) no longer applies.
+
+**Logged by this revalidation:** IMP-1039 (the "still parked" warning about IMP-0298 is false; both reviews it names are applied), IMP-1040 (this draft's carried rows went stale while parked), IMP-1041 (DEV's intake flow lacks the `rev_costs` write). All three are unread and wait for the next batch.
 
 ---
 
@@ -17,7 +70,11 @@ The DEV deploy of build 20260930-2 worked: the import, the Code App push and the
 
 **Added by Amendment 2 (the Design 2.0 card app's first DEV deploy):** the second Code App reached DEV but not the solution. Pushing it with the solution's name did not add it, which is what the first push found in August. A later note that called the opposite "settled" had mistaken a manual add for the push. Two things in the delivery records were also wrong in a way nothing caught. All 51 new items were recorded as deployed against the first app's push line, so they would have read as deployed even if the card app had never been pushed. And the item wording kept drifting from the approved design: eight clauses in five items had to be amended one at a time, after development had started. The amendment fixes both in the tools, adds an intake checklist for supplied design bundles (the export had arrived with four of its screens missing, and nobody checked), and says how to prove a screen "matches the design".
 
-**Waiting on you:** `APPROVE IMPROVEMENTS`, plus five decisions below. Two of the changes (rows 6 and 7) wait on the same condition as this morning's secure-data review: the other session's flow changes must be committed first. One live step is still yours from the deploy: add the card app to the solution in the maker portal.
+**Added by Amendment 3 (the intake rework's DEV deploy, build 20261002-1):** the deploy worked, and the live intake flow now matches source. The lesson behind it is larger than the flow. Someone saved the intake flow in the designer, and the save rewrote the whole flow from what the designer understood: it emptied two record-creating steps, removed the secure-inputs setting and changed the trigger's sign-in mode. **This system's own definition of "a human can use it" requires exactly that save**, in seven places, and says nothing about what to do afterwards. The amendment adds the missing step (re-read the live flow after any designer save, and re-import if it differs) everywhere that definition is taught. It also records that an integration decision was closed when credentials were handed over, before anyone checked that the website's plugin could send them. And it asks you whether open assumptions that only a DEV deploy can close should still need an override each time: the last three DEV deploys all did.
+
+**Added by Amendment 4 (the Create Envelope rework, build 20261003-2 in DEV):** four of the twelve new lessons come from the same habit. A flow you saved in the designer was treated as proof of more than it shows: that a property it did not complain about was accepted, that actions placed one after another work on the same envelope, that two actions with the same body are the same call, and that a field called "phone number" is only a contact field (it turns on SMS delivery). The verify skill gains one paragraph saying what a designer-saved flow proves and what it does not. The workflow design skill gains three checks that the Create Envelope design missed: send last, after every step that can fail; say how a stopped run is restarted when the flow only fires on a new record; and list every signer control only DocuSign's template or account can set. The build's timeout script now stops calling a leftover `pac` process "the usual cause". On 2 and 3 October that wording cost two blocked builds while the real blocker was a Keychain prompt, the same mistake as August. And `testResults.xml` stops being tracked: test runs have rewritten it, and three commits picked up the rewrite.
+
+**Waiting on you:** `APPROVE IMPROVEMENTS`, plus six decisions below (Amendment 4 adds none). Two of the changes (rows 6 and 7) wait on the same condition as this morning's secure-data review: the other session's flow changes must be committed first. Row 47 waits on a commit too: the new test helper it names is not in git yet. One live step is still yours from the deploy: add the card app to the solution in the maker portal.
 
 ## What this review proposes
 
@@ -63,6 +120,36 @@ The DEV deploy of build 20260930-2 worked: the import, the Code App push and the
 
 20. **Four smaller lessons are written down where the next person will look.** Power Automate's ordering comparisons fail on an empty value, and `string()` of a true/false value gives `True`/`False` ([power-automate L340](knowledge/technology/power-automate.md#L340)). Two layout lessons from the card app go in the Code App styling notes ([code-apps L639](knowledge/technology/code-apps.md#L639)). Commercial-agent reads the recorded unbilled decisions before proposing hours ([commercial L126](agents/commercial-agent.md#L126)). And this agent never ties its closing evidence to wording that another rule forces to be rewritten ([improvement-agent L676](agents/improvement-agent.md#L676)).
 
+*Items 21–27 were added by Amendment 3.*
+
+21. **A designer save counts as a live write, and every place that asks for one says what to do next** ([C-TECH-053](constraints/technology/technology-constraints.md#L108), [V4 row L596](skills/how-to-verify-a-platform-contract.md#L596), [pipeline check (c) L476](agents/pipeline-agent.md#L476), [build-and-deploy L199](knowledge/technology/build-and-deploy.md#L199), [dev summary template L96](templates/dev-summary-template.md#L96), [test report template L82](templates/test-report-template.md#L82), [pipeline example L171](config/pipeline.yml.example#L171)). Today "a human can use it" means a person opens the flow in the designer *and saves it*. On 2 October one such save rewrote the live intake flow, and nothing noticed until an application arrived empty. The new sentence, in all seven places: after the save, run the live-flow re-read, and re-import from source if it reports a difference.
+
+22. **The knowledge page stops calling the designer-save cause "not proven"** ([build-and-deploy L227](knowledge/technology/build-and-deploy.md#L227)). The 2 October loss carries the designer's fingerprints throughout, and inside the same save the step written in the flat form kept every column while the two nested ones lost theirs. That answers the designer-save question this review has listed as yours since 29 September.
+
+23. **Three Power Automate facts are written down** ([hand-authoring L381](knowledge/technology/power-automate.md#L381), [Trigger L290](knowledge/technology/power-automate.md#L290), [fetch note L483](knowledge/technology/power-automate.md#L483)). Write each Dataverse create or update column as its own `item/<column>` key, and a lookup as `item/<navigation property>@odata.bind`. The trigger's sign-in mode is a property of the flow definition (`triggerAuthenticationType`, `All` for Anyone), so it can ship in source. And one `pac env fetch` with a `like` filter finds every live flow containing a given shape, even though reading the column itself that way truncates it.
+
+24. **A decision that depends on what an outside party's tool can do stays open until that tool has done it** ([what counts L41](skills/how-to-verify-a-platform-contract.md#L41), [first-environment sweep L662](skills/how-to-verify-a-platform-contract.md#L662)). The intake sign-in decision was closed on "I have shared the url, clientid and secret". The open question it had recorded, whether the website's plugin could send a changing token, was answered no a week later. The sweep a first environment triggers also re-tests every "this cannot be written in source" claim, because that is the claim that was wrong here.
+
+25. **A check that needs a person in the designer names that person** ([register L499](skills/how-to-verify-a-platform-contract.md#L499)). The TAD told a development dispatch to settle a key name by binding it in the designer, which no dispatch can do. It went to you as a reviewer action, you did it in a few minutes, and the conversion followed. The register's "cheapest verification" cell now names a human executor whenever the step needs the designer.
+
+26. **When a decision is re-made, the architect lists every place the old decision is written, not only the build checks** ([architect L106](agents/architect-agent.md#L106)). The architect's instruction today says to list the gates from the build config. The re-decided sign-in route was written into about 14 files, most of them tests, fixtures, settings comments and shipped descriptions. Two were still missed: the test-data instructions, in a README and in the payload file, still describe the retired token route. The new instruction: grep the old decision's words across the whole repository and list every hit with what happens to it.
+
+27. **Only on decision 6: an open assumption that only a DEV deploy can close stops needing an override for that DEV deploy** ([C-TECH-058](constraints/technology/technology-constraints.md#L128)). It still blocks everything after DEV until it is closed. The last three DEV deploys that carried open assumptions each needed your override for this reason ([routing L943](logs/routing.log#L943), [L1227](logs/routing.log#L1227), [L1249](logs/routing.log#L1249)).
+
+*Items 28–33 were added by Amendment 4 (table rows 41–48).*
+
+28. **The verify skill says what a designer-saved flow proves, and what it does not** (row 41, after [§2 L104](skills/how-to-verify-a-platform-contract.md#L104)). It proves the actions and the parameters it holds. It does not prove four things, and each one cost a design pass on Create Envelope. A property the designer did not complain about may simply have been dropped: the merge fields placed inside `SendEnvelope`'s signers never filled a tab. Actions in a row do not act on one envelope unless an id parameter links them: the third action of your test flow has no `envelopeId`, so it would have sent a second envelope ([TAD L3338](docs/architecture/revitalise-grant-automation-architecture.md#L3338)). Two actions with the same body may still be different calls. And a parameter's name does not show what it triggers: `phoneNumber` on a recipient turns on SMS delivery ([TAD L3443](docs/architecture/revitalise-grant-automation-architecture.md#L3443)). The skill already says the opposite case (a designer error about an unflagged property is a warning sign, [L103](skills/how-to-verify-a-platform-contract.md#L103)); this adds the case where it says nothing.
+
+29. **The workflow design checklist gains three checks** (row 42, [design checklist L27](skills/how-to-design-a-workflow.md#L27)). Send last: in Create Envelope as built since 6 September, the reminders and the Dataverse write ran after the send, so a failure there left the applicant holding an envelope while the alert invited a re-run that would send a second one. It is fixed in source: reminders now run before the send, and only the record write follows it ([flow L1567](src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1567)). Name the restart: the flow fires only when a grant is created, and the new pre-send stops told the process owner to "correct it and re-run", which nothing can do. Name what only the outside service can enforce: required fields, reassignment and recipient sign-in are DocuSign template or account settings that no connector action sets.
+
+30. **A short DocuSign section on the Power Automate knowledge page** (row 43, before [Sensitive Data Flows L310](knowledge/technology/power-automate.md#L310)). Four facts, each with the level of its evidence, pointing at the measured table in TAD ADR-067 rather than copying it.
+
+31. **A template's own field list decides which fields a flow fills** (row 44, extends [§2 L120](skills/how-to-verify-a-platform-contract.md#L120)). The TAD named eight tabs to fill, taken from an earlier design; you said every tab on the template is filled except signature, signer name and date. The skill row that already says a template's role names come from the template now says the same of its field set.
+
+32. **The build's timeout script stops naming a leftover `pac` process as the cause** (row 45, [report_stray_pac L94](scripts/run-with-timeout.sh#L94); row 46, [build-and-deploy L451](knowledge/technology/build-and-deploy.md#L451)). On 2 and 3 October it printed "the usual cause" for a VS Code `pac` that was not blocking anything, and two build reports repeated it ([build L159–L160](logs/build.log#L159)). The Keychain hint printed only when no such process was found. The new message calls the process a candidate, prints the Keychain check in both cases, and gives the 45-second `pac org who` test that tells the two apart. This is the August mistake again: the knowledge page was corrected then, and the script was not.
+
+33. **Two small housekeeping changes.** The Power Automate page names the new test helper that runs a flow's own guard expressions (row 47, held until the helper is committed). And `testResults.xml` is untracked and ignored (row 48). Pester's `-CI` switch rewrites it at the repository root. It was committed once on 26 August and swept into three later commits as a rewrite; nothing reads it.
+
 ### Elements added
 
 | Element | What it is |
@@ -75,6 +162,8 @@ The DEV deploy of build 20260930-2 worked: the import, the Code App push and the
 | *(Amendment 2)* `reopen --retrace` (row 13, revised) | Re-points an item's evidence after a test rewrite without counting as a rejection |
 | *(Amendment 2)* `link --title` (row 23) | Lets the ledger correct a title that a relinked acceptance has reversed |
 | *(Amendment 2)* An `app:` key on a Code App push entry (row 16) | Names which app a push delivers, so each app's items are discharged only by its own push |
+| *(Amendment 4)* A DocuSign section in the Power Automate knowledge page (row 43) | What a flow can set through the connector and what only the template or account can |
+| *(Amendment 4)* A `run-with-timeout.sh` self-test case (row 45) | A timeout that finds a stray `pac` still prints the Keychain check and the confirming probe |
 
 ### Elements changed
 
@@ -102,6 +191,18 @@ The DEV deploy of build 20260930-2 worked: the import, the Code App push and the
 | *(Amendment 2)* [power-automate.md L340](knowledge/technology/power-automate.md#L340), [code-apps.md L639](knowledge/technology/code-apps.md#L639) | Four lessons: null in ordering comparisons, `string()` of a boolean, group spacing, positioned scroll wrappers |
 | *(Amendment 2)* [commercial-agent.md L126](agents/commercial-agent.md#L126), [improvement-agent.md L676](agents/improvement-agent.md#L676) | Read the recorded unbilled decisions; never anchor a needle to rewritable wording |
 | *(Amendment 2)* IMP-0764's `evidence_grep`, IMP-0500's `deferred_reason` (log data) | The needle moves to a stable line; the deferral records that its condition is met |
+| *(Amendment 3)* [C-TECH-053](constraints/technology/technology-constraints.md#L108) | Amended: a V4 designer save of a solution flow is followed by the live-flow re-read |
+| *(Amendment 3)* [verify skill §5 L596](skills/how-to-verify-a-platform-contract.md#L596), [§1 L41](skills/how-to-verify-a-platform-contract.md#L41), [§4 L499](skills/how-to-verify-a-platform-contract.md#L499), [§6 L662](skills/how-to-verify-a-platform-contract.md#L662) | After-the-save step; an outside party's tool is a platform contract; a designer-only check names its human executor; the sweep re-tests "cannot be written in source" claims |
+| *(Amendment 3)* [pipeline-agent.md check (c) L476](agents/pipeline-agent.md#L476), [architect-agent.md L106](agents/architect-agent.md#L106) | The after-the-save step; a re-decided ADR lists every hit of the old decision's words |
+| *(Amendment 3)* [dev-summary template L96](templates/dev-summary-template.md#L96), [test-report template L82](templates/test-report-template.md#L82), [pipeline.yml.example L171](config/pipeline.yml.example#L171) | The V4 wording gains the live re-read after the save |
+| *(Amendment 3)* [build-and-deploy.md L199, L227](knowledge/technology/build-and-deploy.md#L199), [power-automate.md L290, L381, L483](knowledge/technology/power-automate.md#L381) | The after-the-save step; the designer-save cause recorded as observed; flat item keys, the trigger-mode property, the `like` search |
+| *(Amendment 3)* [C-TECH-058](constraints/technology/technology-constraints.md#L128) (only on decision 6) | An assumption whose own register row names the DEV deploy as its check does not block that DEV deploy |
+| *(Amendment 4)* [verify skill §2 L104, L120](skills/how-to-verify-a-platform-contract.md#L104) | What a designer-saved flow does not prove; a template's field set comes from the template |
+| *(Amendment 4)* [how-to-design-a-workflow.md L27](skills/how-to-design-a-workflow.md#L27) | Three checklist lines: irreversible step last, the restart route, what only the outside service enforces |
+| *(Amendment 4)* [run-with-timeout.sh L88–L111](scripts/run-with-timeout.sh#L88), both copies | The stray-`pac` message: a candidate, not the cause; Keychain check and probe in both branches |
+| *(Amendment 4)* [build-and-deploy.md L451](knowledge/technology/build-and-deploy.md#L451) | Step 1 ends with the 45 s `pac org who` probe before any retry |
+| *(Amendment 4)* [power-automate.md L340](knowledge/technology/power-automate.md#L340) (held) | Names the guard-expression test helper; IMP-1029 gains `capability: true` |
+| *(Amendment 4)* `.gitignore`, `testResults.xml` | The file is ignored and removed from the index (`git rm --cached`) |
 
 ## What is still open
 
@@ -117,9 +218,9 @@ The DEV deploy of build 20260930-2 worked: the import, the Code App push and the
 
 **The 29 September 21:51 "SUCCESS" should have read PARTIAL, and the log cannot be corrected.** That retry re-imported the solution and never pushed the Code App ([L241](logs/pipeline.log#L241)). Lead-agent never received that dispatch, so its check never ran. Today's push replaced the app, so nothing is wrong live now. The line stays in the log. Once row 5 lands, lead-agent's per-result check stops re-reporting it; the build's history audit still lists it, as a warning only.
 
-**Your designer-save question from yesterday's review is still unanswered.** Nothing here depends on it.
+**Your designer-save question from yesterday's review is still unanswered.** Nothing here depends on it. *(Amendment 3: answered by evidence, so it is no longer yours to answer. The 2 October loss is a designer save, shown by the designer's fingerprints and by the flat step surviving the same save. The routed row below is withheld at apply.)*
 
-**The card app is in DEV but in no solution, and only you can add it.** Pipeline-agent read the solution four times after the push, including after a repeat push: still one Code App in it, and no record of the card app in any solution ([L281](logs/pipeline.log#L281)). Until it is added through the maker portal's *Add existing*, it cannot travel to Test/Acceptance with the solution. The finding stays open until a re-read shows two apps in the solution.
+**RESOLVED 2026-10-05 (revalidation): the card app is in the solution** — a componenttype-300 row dated 2 October 09:10 UTC. Previously recorded: *the card app is in DEV but in no solution, and only you can add it.* Pipeline-agent read the solution four times after the push, including after a repeat push: still one Code App in it, and no record of the card app in any solution ([L281](logs/pipeline.log#L281)). Until it is added through the maker portal's *Add existing*, it cannot travel to Test/Acceptance with the solution. The finding stays open until a re-read shows two apps in the solution.
 
 **Three pipeline-config notes and two TAD passages still say the push puts the app in the solution.** They are at [L1099](config/revitalise-grant-automation-pipeline.yml#L1099), [L1936](config/revitalise-grant-automation-pipeline.yml#L1936) and [L2220](config/revitalise-grant-automation-pipeline.yml#L2220) of the pipeline config, in the main TAD's §9.3 and in the Design 2.0 TAD's A-TR-15 row. Their conclusion for Test and Production still holds for the first app, because it is in the solution; only the reason is wrong. They belong to pipeline-agent and architect-agent, and are routed below.
 
@@ -128,6 +229,24 @@ The DEV deploy of build 20260930-2 worked: the import, the Code App push and the
 **Whether the card app now matches the design is still yours to judge.** The second audit's 17 findings were fixed in Revision 3.2 and measured at 1280 px and below. No rule here can stand in for you comparing the two apps side by side.
 
 **The first app has the same hidden-text overflow the card app had, and nobody has measured it.** Its table wrapper scrolls sideways but is not positioned ([L303](src/code-apps/trustee-review-portal/src/styles/app.module.css#L303)), which is what let the card app's hidden sort hints widen the page at 320 px. Routed to development-agent.
+
+**(Amendment 3) A designer save between deploys is still seen only at the next deploy.** The live-flow re-read runs after an import, and it ran on 1 October with nothing wrong ([pipeline L283](logs/pipeline.log#L283)). The save came the next morning. Running it before a deploy or a test needs a small change first: run against today's source, it would report every change the deploy is about to make. Its "written after the last import" check is the part that matters there. Routed to development-agent.
+
+**(Amendment 3) Only a real website submission proves the new sign-in route.** The import kept the trigger mode and the three rewritten record steps exactly as in source ([pipeline L289](logs/pipeline.log#L289)). Whether the website's form reaches the flow through the signed address is your step R1 from the test report. The callback-address check could not run, because it needs the provisioning certificate you hold.
+
+**(Amendment 3) The test-data instructions still describe the retired token route** ([README L197](src/tests/data/README.md#L197), [payloads L12](src/tests/data/intake-payloads.json#L12)). Anyone following them asks for a token the flow no longer accepts. Routed to development-agent.
+
+**(Amendment 3) The endpoint check accepts `dev` and then fails on it** ([ValidateSet L75](provisioning/entra/verify-intake-endpoint-auth.ps1#L75)). DEV has no intake settings block by design, so the script throws. Its sibling, the callback-address check, already says so in its own help ([L52](provisioning/entra/verify-intake-callback-url.ps1#L52)). Routed, as a one-line change for whoever owns the script.
+
+**(Amendment 4) The Create Envelope flow in DEV is in no commit, and nor is the test helper that checks it.** The deploy's provenance check records the artifact as differing from the manifest commit, "uncommitted by instruction" ([pipeline L298](logs/pipeline.log#L298)). The contract tests import `WdlExpression.psm1`, which is untracked, so a fresh clone cannot run them. Committing is lead-agent's call; row 47 waits on it.
+
+**(Amendment 4) The TAD still says the flow fills eight tabs and leaves the referee's address for the referee** ([§5.8 step 2 L1154](docs/architecture/revitalise-grant-automation-architecture.md#L1154), [ADR-043 L2446](docs/architecture/revitalise-grant-automation-architecture.md#L2446)). Your code-review rule (every tab except signature, signer name and date) is not in it yet. Routed to architect-agent.
+
+**(Amendment 4) Nothing restarts Create Envelope after one of its pre-send stops.** The flow fires only when a grant is created, and neither the TAD's risk rows ([A-R74 L3659](docs/architecture/revitalise-grant-automation-architecture.md#L3659), [A-R79 L3664](docs/architecture/revitalise-grant-automation-architecture.md#L3664)) nor the flow name a route. The shipped alert no longer promises a re-run; the design question is routed to architect-agent.
+
+**(Amendment 4) Most of the new lessons close only on your live checks.** R1, R2, R3, R5 and R6 in the test report ([L69–L72](docs/tests/revitalise-grant-automation-test-report-20261003-2.md#L69)) and M4 and M6 in the TAD ([L3844](docs/architecture/revitalise-grant-automation-architecture.md#L3844)) are what re-observe them. Which `tabType` string the fill action accepts is one of them, still open as `A-DS-16`.
+
+**(Amendment 4) One finding refers a possible change order for recipient authentication to commercial-agent.** The TAD has since replaced phone authentication with an access code, recorded as free ([L3711](docs/architecture/revitalise-grant-automation-architecture.md#L3711)), so the referral may be moot. That is commercial-agent's to confirm, not this review's.
 
 **Parked elsewhere, not re-derived:** the governance-lane blocker in [review 2026-09-27](docs/improvements/2026-09-27-improvement-review.md), one entry in [review 2026-09-23-7](docs/improvements/2026-09-23-improvement-review-7.md), and the two secure-data entries held by [review 2026-09-30](docs/improvements/2026-09-30-improvement-review.md).
 
@@ -178,7 +297,16 @@ The DEV deploy of build 20260930-2 worked: the import, the Code App push and the
 
 ---
 
-Measured, not assumed: the future timestamps come from `stat` modification times, not from any agent's statement. The deploy-list rule was measured over all 8 `built` transitions in the ledger. The post-deploy check was run in three forms. The npm audit was re-run (exit 0, one advisory, already triaged). The disposition was simulated on a copy of the log: `verify-improvement-log.py --check` exits 0, with 0 unread and none of this review's entries left awaiting approval, in both the held and the applied variant of rows 6–7. **Not verified:** none of the scripts in rows 1, 2, 6 and 8 is written yet. Whether a flow's rewritten failure path works was not observed, and cannot be without making the flow fail in DEV. **Amendment:** the decision-3 rule was measured over all 52 ledger items, and the feedback-sheet gap over its 38 rows that carry a status comment. The two new future stamps come from the log file's modification time. The disposition was simulated again for all 16 entries, in both variants of rows 6–7: exit 0, 0 unread, and only the other reviews' two entries left awaiting approval. **Not verified:** whether the rebuilt screen matches the PDF (that needs your eyes), and the portal's other label/value lists at 320 px. Rows 11–14 are not written yet. **Amendment 2:** executed, not read: the deploy-record matcher on today's log (51 of 51 card-app records resolve on the first app's line), the assumption-marker gate with the wider grammar over the real registers (97 → 108 rows, 0 failures), the design-source gate and the root-path rule over the three drops (0 findings today, 2 true before the Design 2.0 TAD), a missing-reference resolver over 40 HTML files (16 reported, 6–10 real, so not wired), the ordering-comparison search over all flow source (1 hit, safe by its data), IMP-0500's own check command (58 of 80 manifests) and a signature diff over them (37 of 261). The disposition was simulated in three variants, each exit 0 with 0 unread. **Not verified:** none of rows 13 and 15–30 is written. Nothing live was read by this amendment; the push and solution readings are pipeline-agent's. Whether the card app matches the design, and whether the wellbeing spacing is right, need your eyes.
+**6. Should an open assumption that only a DEV deploy can close stop needing an override for that DEV deploy?** *(Amendment 3)*
+
+**Problem** — The rule blocks a deploy into any environment where an open assumption could be closed, so an assumption that only the DEV deploy itself can close always needs your override; the last three DEV deploys that carried open assumptions all did, for that reason.
+**Suggested fix** — Yes: where the assumption's own register row names the DEV deploy (the import, the first push, a designer check in DEV, a run in DEV) as its check, the DEV deploy goes ahead and records it, and the assumption blocks every environment after DEV until it is closed.
+**What happens if you don't** — Nothing breaks: each DEV deploy of this kind keeps costing you one more message and a relay. But the override stops being a real decision when it is always given, and that makes a genuine one harder to notice.
+[C-TECH-058](constraints/technology/technology-constraints.md#L128)
+
+---
+
+Measured, not assumed: the future timestamps come from `stat` modification times, not from any agent's statement. The deploy-list rule was measured over all 8 `built` transitions in the ledger. The post-deploy check was run in three forms. The npm audit was re-run (exit 0, one advisory, already triaged). The disposition was simulated on a copy of the log: `verify-improvement-log.py --check` exits 0, with 0 unread and none of this review's entries left awaiting approval, in both the held and the applied variant of rows 6–7. **Not verified:** none of the scripts in rows 1, 2, 6 and 8 is written yet. Whether a flow's rewritten failure path works was not observed, and cannot be without making the flow fail in DEV. **Amendment:** the decision-3 rule was measured over all 52 ledger items, and the feedback-sheet gap over its 38 rows that carry a status comment. The two new future stamps come from the log file's modification time. The disposition was simulated again for all 16 entries, in both variants of rows 6–7: exit 0, 0 unread, and only the other reviews' two entries left awaiting approval. **Not verified:** whether the rebuilt screen matches the PDF (that needs your eyes), and the portal's other label/value lists at 320 px. Rows 11–14 are not written yet. **Amendment 2:** executed, not read: the deploy-record matcher on today's log (51 of 51 card-app records resolve on the first app's line), the assumption-marker gate with the wider grammar over the real registers (97 → 108 rows, 0 failures), the design-source gate and the root-path rule over the three drops (0 findings today, 2 true before the Design 2.0 TAD), a missing-reference resolver over 40 HTML files (16 reported, 6–10 real, so not wired), the ordering-comparison search over all flow source (1 hit, safe by its data), IMP-0500's own check command (58 of 80 manifests) and a signature diff over them (37 of 261). The disposition was simulated in three variants, each exit 0 with 0 unread. **Not verified:** none of rows 13 and 15–30 is written. Nothing live was read by this amendment; the push and solution readings are pipeline-agent's. Whether the card app matches the design, and whether the wellbeing spacing is right, need your eyes. **Amendment 3:** executed, not read: the flow source walk (all four Dataverse writes in the two flows are flat; 0 nested writes across the 10 flows), the retired-route word search over `src/`, `provisioning/`, `config/` and `scripts/` (it does reach the test data, so the miss was in reading the hits, not in where the search looked), the V4 wording search inside the engine, with a positive control (7 places), the override count in the routing log (3 of 3 DEV overrides since 25 September give "closes only by the deploy" as the reason), log times against file times (3 more future-dated findings), and the disposition simulated a fourth time (exit 0, 0 unread). **Not verified:** none of rows 31–40 is written. Nothing live was read by this amendment; the live readings are pipeline-agent's and lead-agent's. Whether a designer save now leaves the three record steps intact has not been observed, because nobody has saved the flow since the deploy. **Amendment 4:** executed, not read: the timeout script's self-test (6 of 6, exit 0) and its two-branch message read at source (the Keychain line sits only in the no-stray branch); the Create Envelope action order walked from the flow source (reminders, then send, then the record write; no `phoneNumber` parameter, only a description saying why); the TAD searched for a re-issue route (none) and for the corrected one-call-per-signer row (present); `testResults.xml`'s history (added once, rewritten in three commits) and its readers (none: the test runner writes `pester-results.xml` elsewhere, and CI names neither); log stamps against file times (3 more instances, one of them a new shape: pipeline lines in UTC); the derived-count gate (the same 8 drifts as Amendment 3, none new); and the disposition simulated a fifth time, in two variants (exit 0, 0 unread). **Not verified:** none of rows 41–48 is written. Nothing live was read; R1–R6, M4 and M6 are yours.
 
 ---
 
@@ -222,9 +350,41 @@ IMP-0965 is the escalation that review logged from its own regression check and 
 - **IMP-1004** proposed a new `retrace` event. Row 13 is revised to an option on the existing `reopen` instead, the same shape as the deferred-resume case it already handles: one schema, and both cases fixed by one rule ("Reopens counts rejections only").
 - **IMP-1006** proposed building the warning-row check now. Its input exists (IMP-0500's condition is met), but the check as designed measures badly: only 37 of 261 recorded warning signatures appear word for word in their own feature's Dev Summary. It needs a design, not a script (C24).
 
+**Amendment 3 scope (2026-10-02, after the DEV deploy of build 20261002-1, [pipeline.log L285–L290](logs/pipeline.log#L285)).** The 8 entries unread at dispatch: IMP-1010, IMP-1011, IMP-1014 to IMP-1019. Plus IMP-1020, logged by this amendment from its own measurement (the V4 wording, C27). IMP-1012 and IMP-1013 are not here: the capability review [2026-10-02](docs/improvements/2026-10-02-improvement-review.md) processed and applied them today. That review's applied note names IMP-1014 to IMP-1016 only to say they arrived after its draft; it did not process them, so they are this batch's.
+
+**Amendment 3 exclusions.** Unchanged: IMP-0934 (governance blocker) and IMP-0855 wait on their own reviews; IMP-0963 and IMP-0966 on review 2026-09-30; IMP-0298's warning on a review parked since 2026-08-28; IMP-0879, IMP-0906 and IMP-0824 are reviewer-deferred with conditions not met. IMP-0959 is `APPLIED` and is not reopened; C27 records what IMP-1010 adds to it.
+
+**Amendment 3 departures from the findings' own proposals, each forced by a measurement:**
+- **IMP-1010** proposed four things, and two are already done in source by the dispatch that logged it. (1) All four Dataverse writes in the intake and failure-alert flows are flat today (walked: 16, 20, 81 and 8 flat keys, none nested), and the deploy re-read them live with 0 differences ([L289](logs/pipeline.log#L289)). (2) The "no nested `item`" check exists as a test inside the HARD unit-test step ([ScoringInvariants L1469](src/tests/solutions/ScoringInvariants.Tests.ps1#L1469)), so no new gate is proposed. (3) Running the live re-read before a deploy is routed, not applied: its DIFFERS check compares against current source, so before a deploy it would report every intended change. Only its MODIFIED check means "written after the last import", and the script has no mode that runs that alone. (4) is row 34.
+- **IMP-1010's lesson ("never save a solution flow in the designer") contradicts this system's own V4 definition**, which requires the save in seven places (measured, C27). The lesson is not adopted as written, because V4 exists for a measured reason: three of the fifteen founding failures imported cleanly and could not be saved. Rows 31–35 keep the save and add what must follow it. Logged as IMP-1020.
+- **IMP-1017**'s root cause, that the retired-route word search "did not cover test-data run instructions", is false. Executed: one of IMP-1015's own words, the double-slash scope, matches [intake-payloads.json L12](src/tests/data/intake-payloads.json#L12), and `src/tests/data/` is under `src/`, which that search covered. The miss was in reading the hits: the same word matches 7 other lines (8 in all), which are kept on purpose as history ("SUPERSEDED … retained so the change is visible") or are tests asserting the old value is gone, and the stale one looked like them. So row 39 asks for every hit to be listed with what happens to it, which makes an unhandled one visible to whoever reads the list.
+- **IMP-1015** proposed a `skill` change targeting `agents/architect-agent.md`. It lands as an agent-file edit (row 39), in the section that gave the build config as the source of the list ([L106](agents/architect-agent.md#L106), from IMP-0472). That instruction caused this narrowing: the TAD's rev 14 list says it was taken "from `config/revitalise-grant-automation-build.yml` and the pipeline config".
+- **IMP-1014**'s second suggestion, measuring whether the connector's dynamic-schema call returns flat key names, is not adopted. You settled the question in a few minutes in the designer ([routing L1241](logs/routing.log#L1241)), the skill already says a dynamic parameter has no route except a person in the designer ([L88](skills/how-to-verify-a-platform-contract.md#L88)), and nothing has needed it a second time.
+- **IMP-1019** proposed amending C-TECH-058 directly. It removes a human approval step for one class of DEV deploy, so it is offered as decision 6, not drafted as a row the keyword alone would approve. The measurement backs it: 3 of 3 DEV overrides since 25 September give the reason "closes only by the deploy".
+- **IMP-1018** proposed a provisioning-script change. Provisioning scripts are delivery work, not this agent's to write. Routed.
+
+**Amendment 4 scope (2026-10-03, after the DEV deploy of build 20261003-2, [pipeline.log L291–L298](logs/pipeline.log#L291)).** The 12 entries unread at dispatch, IMP-1021 to IMP-1032, all from the Create Envelope rework (`wbs:3.2`) and its two blocked builds. Census at dispatch, re-measured: 12 unread, 0 fixed-in-flight, 0 deploy-lane blockers open. No entry was logged by this amendment: its one new measurement (pipeline lines stamped in UTC) is an instance of C1, recorded there.
+
+**Amendment 4 exclusions.** Unchanged: IMP-0934 (governance blocker) and IMP-0855 wait on their own reviews; IMP-0963 and IMP-0966 on review 2026-09-30; IMP-0298's warning on a review parked since 2026-08-28; IMP-0879, IMP-0906 and IMP-0824 are reviewer-deferred with conditions not met. IMP-0217 is `APPLIED` and is not reopened; C36 records what IMP-1032 adds to it.
+
+**Amendment 4 departures from the findings' own proposals, each forced by a measurement:**
+- **IMP-1021, IMP-1023 and IMP-1026** proposed three separate skill edits, in two places. They share one class and one property (what a designer-saved flow proves), so row 41 is one paragraph in one place. IMP-1021's second half, "enumerate the connector's whole action list for a dedicated action", is already the skill's catalogue rule ([L258](skills/how-to-verify-a-platform-contract.md#L258), from IMP-0620) and is not repeated.
+- **IMP-1025** proposed amending ADR-067 D6/E2. The architect already did: the row is corrected in place to "one call per signer" ([TAD L3366](docs/architecture/revitalise-grant-automation-architecture.md#L3366), [L3387](docs/architecture/revitalise-grant-automation-architecture.md#L3387)), and the `tabType` string is an open register row ([A-DS-16 L3855](docs/architecture/revitalise-grant-automation-architecture.md#L3855)). Nothing is routed. Its general lesson (an action's body shape is taken from the designer-saved definition, never from the reference) is row 41's.
+- **IMP-1022** proposed a knowledge page of DocuSign facts. Adopted narrower: the measured facts already live in TAD ADR-067 with their evidence levels, so row 43 gives the boundary in four lines and points there instead of copying a table that will be revised. Its negative claims ("no connector action exposes `allowReassign`") are E2 in the TAD ([L3431](docs/architecture/revitalise-grant-automation-architecture.md#L3431)) and stay E2 here; this review could not re-scan the connector catalogue. The design lesson (list what only the service's template or account enforces) goes to the design skill (row 42), where an architect looks before designing, not after.
+- **IMP-1028** proposed only a route to architect-agent. Routed, and row 42 adds the general check, because the gate that caught the shipped wording ([verify-shipped-content.py check 7 L716](scripts/verify-shipped-content.py#L716)) reads shipped text, never the TAD's risk table.
+- **IMP-1031** proposed only a TAD route. Routed, and row 44 extends the skill row that IMP-0615 wrote: role names come from the template, and so does the field set. That row is the applied prior change this finding recurs against (§1).
+- **IMP-1032** is filed under `gate-defect`. It is the second instance of IMP-0217's misdiagnosis, which is filed under `platform-contract-guessed-not-groundtruthed`, so the class count understates it. Treated as a recurrence after a prose fix: review 16 corrected the knowledge page and left the script's own message saying "the usual cause", and the script's message is what an agent reads at the moment of the hang. Its proposal is adopted as written (row 45), plus the knowledge step (row 46). No build-agent rule: both BLOCKED reports repeated the script's word.
+- **IMP-1030** proposed waiting for a second instance before untracking `testResults.xml`. Measured: the file was added on 26 August and rewritten in three later commits (`git log --numstat`), and nothing reads it ([Invoke-Tests.ps1 L103](src/tests/Invoke-Tests.ps1#L103) writes `pester-results.xml` elsewhere; CI names neither). The second instance has already happened, so row 48 adopts it now.
+- **IMP-1027** suggested a shared line-anchored replace helper on a second instance. One instance; not adopted.
+- **IMP-1029** is a capability with no `capability: true` field, so the digest renders it as an ordinary lesson. Row 47 sets the field, which is what the ladder's capability row asks for, and names the helper in the knowledge page. Held: the helper is untracked.
+
 **Amendment 1 (2026-09-30, after build 20260930-4).** *Folded in:* IMP-0973 to IMP-0978, with `reviewed_in` stamped on all six. That adds clusters C10–C13 and extends C1 with IMP-0974 and two new measured future stamps. It adds rows 11–13, and row 14 on the new decision 3. It adds one regression row (§12c), dispositions for all six, four routed items, and a re-measurement that narrows row 8's cutoff. The gate block, header, summary, simulation and digest table were reconciled first. *Still to do:* nothing in this document. Everything waits on the keyword and the three decisions. Rows 6–7 and the WI-0005 files still wait on lead-agent's commit. *Not folded in:* IMP-0979, appended during this dispatch. It goes to the next batch.
 
 **Amendment 2 (2026-10-01, after the trustee-portal-design-2 DEV deploy).** *Folded in:* the 30 entries unread at dispatch (IMP-0979 to IMP-1008), each stamped with `reviewed_in`; IMP-1009, logged by this amendment; and IMP-0500, a reviewer-deferral that is due. That extends C1, C11 and C12, and adds clusters C14–C26. It revises row 13 (generalised on its second instance) and adds rows 15–30, decisions 4 and 5, six regression rows, 32 dispositions, seven routed items and a third simulation. The gate block, header, summary, digest table and derived-count note were reconciled first. *Still to do:* nothing in this document. Everything waits on the keyword and five decisions; rows 6–7 and the WI-0005 files still wait on lead-agent's commit, and row 19(b) on decision 5. *Not folded in:* nothing; the queue had 0 unread entries after the stamps (measured).
+
+**Amendment 3 (2026-10-02, after the DEV deploy of build 20261002-1).** *Folded in:* the 8 entries unread at dispatch (IMP-1010, IMP-1011, IMP-1014 to IMP-1019), each stamped with `reviewed_in`, and IMP-1020, logged by this amendment. That extends C1 with three measured instances, and adds clusters C27–C32, rows 31–40, decision 6, six regression rows, nine dispositions, six routed items (one of them a withholding), and a fourth simulation. The gate block, header, summary, digest table and derived-count note were reconciled first; `verify-review-document.py` passes on this file. *Still to do:* nothing in this document. Everything waits on the keyword and six decisions; rows 6–7 and the WI-0005 files still wait on lead-agent's commit, row 19(b) on decision 5, row 40 on decision 6. *Not folded in:* nothing; the queue had 0 unread entries after the stamps (measured).
+
+**Amendment 4 (2026-10-03, after the DEV deploy of build 20261003-2).** *Folded in:* the 12 entries unread at dispatch (IMP-1021 to IMP-1032), each stamped with `reviewed_in`; no entry logged by this amendment. That extends C1 with three measured instances (one in UTC), and adds clusters C33–C38, items 28–33, rows 41–48, six regression rows, twelve dispositions, five routed items and a fifth simulation. The gate block, header, summary, closing verification line and digest table were reconciled first. *Still to do:* nothing in this document. Everything waits on the keyword and the same six decisions; rows 6–7, row 47 and the WI-0005 files wait on lead-agent's commit, row 19(b) on decision 5, row 40 on decision 6. *Not folded in:* nothing; the queue had 0 unread entries after the stamps (measured).
 
 ---
 
@@ -246,9 +406,21 @@ The last review applied is [2026-09-29](docs/improvements/2026-09-29-improvement
 | *(Amendment 2)* review 2026-09-18-2: IMP-0764 closed on a needle in a `blocked_on` note's wording | 2026-09-18 | `serialisation-default-invalidates-evidence-needle` | **YES** (IMP-1007): check 14 forced the note to be rewritten, and the needle broke the HARD log gate | **Wrong needle, not wrong rule.** Row 29 adds the rule to the needle list; 1 of the 4 needles in the pipeline config was exposed (measured) |
 | *(Amendment 2)* review 2026-09-26-6: a deploy record must match the component's own command (IMP-0910) | 2026-09-26 | `wrong-artefact-cited-as-evidence` | **YES** (IMP-0986): two Code Apps share the command, so the first app's push discharged the card app's 51 items (executed) | **Right rule, one level too low.** Row 16 takes it from "an import is not a push" to "one app's push is not another's" |
 | *(Amendment 2)* review 2026-08-30: IMP-0500 deferred until three manifests carry `warnings_detail[]` | 2026-08-30 | `untriaged-tool-warning` | Not a recurrence. The condition came true (58 of 80 manifests) and nothing said so (IMP-1009), while IMP-1006 re-proposed the same gate | **Due.** Annotated, not built: the check as designed measures 37 of 261 (C24) |
+| *(Amendment 3)* review [2026-10-02](docs/improvements/2026-10-02-improvement-review.md), the last review applied (today): reviewer verdicts on the work board | 2026-10-02 | `evidence-recorded-but-not-surfaced` | NO. None of the 9 entries in this amendment is in that class or touches the ledger or the board | Working, too early to say more |
+| *(Amendment 3)* 09-29 change 1, now `verify-live-flow-definitions.py` | 2026-09-30 | `async-flow-postimport-plugin-fails-silently` | **YES, in a new shape** (IMP-1010). The script ran and was right twice: 0 differences on 1 October ([L283](logs/pipeline.log#L283)) and on 2 October after the fix ([L289](logs/pipeline.log#L289)). The designer save came between them, and the script runs only after an import | **The gate ran, and its moment was too narrow.** Pre-deploy and pre-test use routed (C27) |
+| *(Amendment 3)* 09-29 knowledge step 4: close a designer tab before an import; designer save "not proven" | 2026-09-30 | `finding-diagnosis-unverified` | **YES** (IMP-1010). A later, deliberate save did what an open tab was suspected of. The prose covered one shape | **Recurred after a prose fix → mechanical defence**, already in source: flat writes and the nested-`item` test (HARD unit tests). Row 34 corrects the prose; rows 31–35 cover the save the system itself asks for |
+| *(Amendment 3)* review 2026-08-28: architect lists an ADR's gate interactions from the build config (IMP-0472) | 2026-08-28 | `platform-contract-guessed-not-groundtruthed` | **YES** (IMP-1015, IMP-1017). Followed exactly, and the rule's own source was the cause: a decision is written mostly into tests, fixtures and settings, which are not build steps | **Right idea, too narrow a source.** Row 39 widens it for a re-decided ADR |
+| *(Amendment 3)* C-TECH-058, OPEN assumptions block a deploy (from IMP-0014) | August | `assumption-shipped-open` | **Not a defect recurrence**, but the rule meets one case every time: 3 of 3 DEV overrides since 25 September give "closes only by the deploy" as the reason | **Working as written; the wording costs a message per DEV deploy.** Decision 6 |
+| *(Amendment 3)* C1, the log-time rows 1–5 (still unapplied) | — | `log-timestamp-not-taken-from-the-clock` | **YES, again**: IMP-1017, IMP-1018 and IMP-1019 are stamped 15:00 and sit in a log last written at 13:58:47, about an hour ahead, all through the allocator | **Each day the draft waits costs more instances.** No new row; rows 1–5 fix it on the keyword |
+| *(Amendment 4)* C1 again | — | `log-timestamp-not-taken-from-the-clock` | **YES, three more, one in a new shape.** Pipeline-agent's eight DEV lines for build 20261003-2 are stamped 09:11–09:23, which is UTC: lead-agent routed the deploy at 11:10 local and received it at 11:23 ([routing L1295](logs/routing.log#L1295), [L1297](logs/routing.log#L1297)), and the file was last written at 11:23:04 ([pipeline L291–L298](logs/pipeline.log#L291)). Build-agent's success line is stamped 09:58 in a `build.log` last written at 09:46:48 ([L161](logs/build.log#L161)). IMP-1032 is stamped 09:50 in a log last written at 09:45:36 | **Same verdict.** Rows 1–2 take the local clock, which settles the UTC shape too |
+| *(Amendment 4)* IMP-0614, IMP-0882 and IMP-0620: the verify skill's dynamic-parameter and connector-catalogue rules | 2026-09-08, 2026-09-25 | `platform-contract-guessed-not-groundtruthed` | **YES, four times on one flow** (IMP-1021, IMP-1023, IMP-1025, IMP-1026). The rules were followed: you ran the designer step and saved the flow. What was misread was the saved flow itself | **Right rule, one case short.** It says what a designer error means, not what its silence means. Row 41. No gate: nothing here can read a connector's dynamic schema ([L92](skills/how-to-verify-a-platform-contract.md#L92)) |
+| *(Amendment 4)* IMP-0615: a template's role names come from the template, not a requirement document ([§2 L120](skills/how-to-verify-a-platform-contract.md#L120)) | 2026-09-08 | `platform-contract-guessed-not-groundtruthed` | **YES, next door** (IMP-1031): the role names were right this time; the tab set was taken from an earlier design | **Right rule, too narrow.** Row 44 widens it from names to the field set |
+| *(Amendment 4)* Review 16: the knowledge page's correction that a stray `pac` was not the cause (IMP-0217) | 2026-08-23 | `platform-contract-guessed-not-groundtruthed` (IMP-1032 is filed as `gate-defect`) | **YES** (IMP-1032): two blocked builds, a kill that changed nothing, then the Keychain prompt. The page was right; the script's own message still said "the usual cause" | **Recurred after a prose fix → the tool.** Rows 45–46 |
+| *(Amendment 4)* IMP-0139: shipped prose promises nothing the solution cannot do (check 7) | August | `shipped-prose-promises-unbuilt-capability` | Exercised: it failed "Correct it and re-run" on the first run (IMP-1028), and the wording was fixed in the same dispatch | **Working.** Its reach stops at shipped text; row 42 covers the design |
+| *(Amendment 4)* Review 2026-09-28: guards and fallbacks are tested with the input that triggers them | 2026-09-29 | `no-assertion-on-shipped-content` | **NO.** IMP-1029 is that rule being made executable: a test helper that runs the flow's own guard expressions; a mutation back to the old access-code expression failed 8 tests | **Working.** Row 47 names the helper |
 
-**Changes whose class recurred after a *prose* fix:** 09-29 change 3 → rows 1–5. *(Amendment)* 09-23 §12c → row 11, plus row 14 if decision 3 is yes. *(Amendment 2)* 09-29 change 3 again → still rows 1–5, with build-agent's and lead-agent's new instances; 08-23-4's knowledge lesson → row 15; 09-18-2's needle → row 29. Not the last review applied, but it is the prior change this amendment's main finding tests, so it is audited.
-**Changes whose class recurred after a *gate*:** *(Amendment 2)* two. `verify-design-source-coverage.py` ran and passed while mis-scoped (rows 19–20). The deploy-record command rule worked as written and was not specific enough (row 16). Before Amendment 2: none. Nearest case: IMP-0971 is a recurrence of a class after its gate was *built*. The gate is invoked by instruction, the dispatch that skipped it was never routed through lead-agent, and the build's history audit is warn-only by design. Recorded, not re-escalated (C7).
+**Changes whose class recurred after a *prose* fix:** 09-29 change 3 → rows 1–5. *(Amendment)* 09-23 §12c → row 11, plus row 14 if decision 3 is yes. *(Amendment 2)* 09-29 change 3 again → still rows 1–5, with build-agent's and lead-agent's new instances; 08-23-4's knowledge lesson → row 15; 09-18-2's needle → row 29. Not the last review applied, but it is the prior change this amendment's main finding tests, so it is audited. *(Amendment 3)* 09-29 knowledge step 4 → rows 31–35 and the defence already in source; 08-28 IMP-0472 → row 39; 09-29 change 3 (log times) again → still rows 1–5. *(Amendment 4)* the dynamic-parameter rules → row 41 (prose again, because no instrument here can read a dynamic schema); IMP-0615's row → row 44; review 16's stray-`pac` correction → rows 45–46, moved from the page into the script's own message; 09-29 change 3 again → still rows 1–5.
+**Changes whose class recurred after a *gate*:** *(Amendment 4)* none; the one gate this amendment's findings touched (shipped-content check 7) fired on its first run and the wording was fixed. *(Amendment 3)* one more: `verify-live-flow-definitions.py` ran and was right, but only after imports, and the designer save fell between two runs (routed, C27). *(Amendment 2)* two. `verify-design-source-coverage.py` ran and passed while mis-scoped (rows 19–20). The deploy-record command rule worked as written and was not specific enough (row 16). Before Amendment 2: none. Nearest case: IMP-0971 is a recurrence of a class after its gate was *built*. The gate is invoked by instruction, the dispatch that skipped it was never routed through lead-agent, and the build's history audit is warn-only by design. Recorded, not re-escalated (C7).
 **Closure evidence against level:** no entry closed by the last review has recurred. IMP-0955 was closed at V2 on a re-run audit, and its successor IMP-0961 was a *new* advisory set, not a recurrence of the triaged one.
 
 ---
@@ -674,6 +846,239 @@ Cites:      IMP-0995, IMP-0998, IMP-1000
 Residual:   none new
 ```
 
+*Amendment 3 extends C1 and adds C27–C32.*
+
+- **C1 gains three measured instances and no entry.** IMP-1017, IMP-1018 and IMP-1019 carry `ts` 15:00 in a log whose modification time is 13:58:47, all appended through the allocator that row 1 changes. The class count is unchanged (these are instances of the entries' own stamps, not new findings), and no row is added.
+
+```
+CLUSTER C27: live-definition-overwritten-outside-the-pipeline — a designer save rewrites a solution flow,
+            and V4 asks for one  (x2: IMP-1010, IMP-1020; IMP-0959 and IMP-0956 APPLIED, read for §3a)
+Altitude:   CLASS, ENGINE-level for the V4 half. The property, with this client stripped: "a designer
+            save of a solution-sourced flow is a live write that rewrites the whole definition from what
+            the designer understood". Measured inside one save on 2026-10-02: the two nested Dataverse
+            writes lost every column, the flat one in the same flow kept all of its columns; secureData removed;
+            every inputs.authentication stripped; parameters renamed to display names; trigger mode
+            added. The V4 wording that asks for the save, found by a search with a positive control
+            inside .engine: skill §5 L596, pipeline-agent L476, the two templates (L96, L82); plus
+            C-TECH-053 L108, build-and-deploy L199 and pipeline.yml.example L171 in this repository
+Ladder row: "an agent had the information and still did the wrong thing" does not fit — the rule
+            itself mandates the step. "A tool could catch it mechanically": the tool exists
+            (verify-live-flow-definitions.py) and only needs to be tied to the save. The defect half
+            (nested bags) is already defended mechanically in source (flat writes + the nested-item
+            test, HARD unit tests), so no new gate
+Becomes:    row 31 (C-TECH-053 amendment), 32 (skill §5), 33 (pipeline-agent (c)), 34 (build-and-deploy:
+            step 5(c), and step 4's "not proven" replaced by the observation), 35 (templates and the
+            example config), 36 (power-automate: the flat-key rule). Routed: a "modified since the last
+            import" run before a deploy and before a test
+Retires:    nothing. The save stays in V4; three of the fifteen founding failures were found only by it
+Cites:      IMP-1010, IMP-1020
+Residual:   (1) a save that happens with nobody running the re-read is still found only at the next
+            deploy, until the routed pre-deploy use exists. (2) A save also drops secureData and
+            inputs.authentication, which no flat-key rule protects; only the re-read and a re-import
+            restore them. (3) Whether a save now keeps the three flat writes intact has not been
+            observed (IMP-1010 stays open on it)
+```
+
+```
+CLUSTER C28: platform-contract-guessed-not-groundtruthed — a decision closed on what an outside party was
+            given, not on what its tool can do; and a "cannot be written in source" claim never re-tested
+            (x2: IMP-1011, IMP-1016; class x75)
+Altitude:   CLASS, ENGINE-level. Two properties, one root: an untested claim about something outside the
+            repository. (a) "A route that depends on what a third party's tool can send is closed only
+            when that tool has made one call, or its owner has confirmed the mechanism." The TAD had
+            already written the risk as an open inference (rev 9) and converted it to "answered" on a
+            credential handover (rev 10). (b) "A claim that a setting has no definition property is a
+            negative platform claim, and the first live definition is the whole set." The §12 claim
+            was written before any environment existed; the first live read contradicts it
+            (triggerAuthenticationType, IMP-1016). §2's negative-claim rule (L204) exists; nothing
+            routes a TAD claim of this kind into the first-environment sweep (§6, grepped)
+Ladder row: "an agent had the information and still did the wrong thing" — skill edit
+Becomes:    row 37 (§1 table gains an "outside party's tool" row; §6 gains one step)
+Retires:    nothing
+Cites:      IMP-1011, IMP-1016
+Residual:   a claim made in a TAD and never copied into a register row is still invisible to every
+            gate; the sweep step is prose
+```
+
+```
+CLUSTER C29: platform-contract-guessed-not-groundtruthed — a check only a person in the designer can make,
+            assigned to an agent  (x1: IMP-1014; adjacent applied IMP-0614)
+Altitude:   INSTANCE + one sentence. §2 already says a dynamic connector parameter has no route except a
+            person in the designer (L88, from IMP-0614). What was missing is who: the register's
+            "cheapest verification" cell (L499) has no executor, so the TAD gave the step to the
+            development dispatch. Handled correctly anyway: the dispatch handed it to you, you made the
+            binding in about 4 minutes (TEST_Binding created 11:15 UTC, modified 11:19), and the
+            conversion followed in the next dispatch
+Ladder row: "one instance, general cause, a human needs to know it" → one skill sentence
+Becomes:    row 38
+Retires:    nothing
+Cites:      IMP-1014
+Residual:   the throwaway flow TEST_Binding is still in DEV (routing L1241); removing it is yours
+```
+
+```
+CLUSTER C30: re-decided-adr-encoded-beyond-its-named-checks  (x2: IMP-1015, IMP-1017 — IMP-1015 names it as
+            its class and files itself under stale-claim-contradicting-rechecked-source, so the digest counts x1)
+Altitude:   CLASS. The property: "when a decision is re-made, every place the old decision is written is
+            found by searching for its words across the repository, and every hit is listed with its
+            disposition". The second instance shows the listing half matters: the search reached the
+            stale fixture, and it was missed while reading 8 hits that look alike (§0)
+Ladder row: "second instance → generalise" + "an agent had the information" — the agent file whose
+            IMP-0472 section produced the narrow list
+Becomes:    row 39. Routed: the two stale test-data instructions
+Retires:    nothing. IMP-0472's build-config enumeration stays, for an ADR that specifies mechanism
+Cites:      IMP-1015, IMP-1017
+Residual:   choosing the retired decision's distinctive words is judgement; a word list that misses one
+            misses its hits. No gate: an ADR's hit list is prose, and this repository has measured
+            prose gates at 48–100% false
+```
+
+```
+CLUSTER C31: gate-cannot-fail — a script accepts an environment it cannot run for  (x1: IMP-1018; class x54)
+Altitude:   NOTE. One script; its sibling already documents the same limit (callback-URL check L52).
+            The DEV pipeline correctly does not wire the probe, so nothing false has been reported
+Ladder row: one instance, no general mechanism worth a gate; §3a found no applied entry about ValidateSet
+Becomes:    nothing here; routed as a one-line delivery change
+Retires:    nothing
+Cites:      IMP-1018
+Residual:   other provisioning scripts may accept values they cannot run for; not measured
+```
+
+```
+CLUSTER C32: platform-contract-guessed-not-groundtruthed — a rule that blocks its own closing step
+            (x1 finding: IMP-1019; x3 measured in routing.log)
+Altitude:   INSTANCE, constraint wording. C-TECH-058 blocks a deploy into any environment where an OPEN
+            assumption could be closed; when the deploy IS the closing step, the rule always needs an
+            override. Measured: every DEV override since 25 September gives that reason (L943 A-DS-12/13,
+            "name the DEV designer as their own closing step"; L1227 nine A-TR/A-CRD rows, "closes only
+            by the first DEV push"; L1249 A-INT-11..13, "closed by the DEV import"). Adjacent class
+            hard-gate-has-no-scoped-override-path x7 is about gates with NO override; this one has one
+Ladder row: "a platform law, or a third instance → constraint" — the constraint exists, so an
+            amendment. It removes a human approval for one class of DEV deploy, so it is decision 6
+Becomes:    row 40, only on decision 6
+Retires:    nothing
+Cites:      IMP-1019
+Residual:   the rule then depends on the register row naming its check honestly; a row that names "the
+            DEV import" for an assumption that a query could close would skip the override. Test-agent
+            already re-evaluates C-TECH-058 each cycle (digest), which is where that is caught
+```
+
+*Amendment 4 extends C1 and adds C33–C38.*
+
+- **C1 gains three measured instances and no entry** (§1): eight pipeline lines stamped in UTC, one build line 11 minutes ahead, one finding 5 minutes ahead. The UTC shape is new: the 09-29 lesson ("`pac` times are UTC; take log times from `date`") was written for exactly this and did not reach the writer. Rows 1–2 stamp the local clock, which covers it; no row is added.
+
+```
+CLUSTER C33: platform-contract-guessed-not-groundtruthed — what a designer-saved flow proves
+            (x4: IMP-1021, IMP-1023, IMP-1025, IMP-1026; class x80)
+Altitude:   CLASS, ENGINE-level. The property, with this client stripped: "a designer-saved definition
+            is E1 for the actions and parameters it CONTAINS, and for nothing it omits or implies".
+            Four readings beyond that, all on one DocuSign flow in two days: (1) silence about a
+            nested property read as acceptance (signers' tabs inside SendEnvelope, never filled live);
+            (2) a chain of actions read as one envelope's sequence, where the third has no envelopeId
+            and creates a new one (TAD L3338); (3) two actions with one body schema read as one call,
+            where their addressing parameters differ; (4) cardinality taken from the reference (E2) as
+            a decision basis — "one tab per call" — where the saved action takes an array per signer
+            (TAD L3387); plus a parameter named after a person's attribute (phoneNumber) that is a
+            delivery channel (TAD L3443). The skill states the error case (L103) and the catalogue
+            rule (L258); it has no sentence on any of these four
+Ladder row: "an agent had the information and still did the wrong thing" + "second instance →
+            generalise": one paragraph for the class, not four rows
+Becomes:    row 41 (verify skill §2, after L104)
+Retires:    nothing
+Cites:      IMP-1021, IMP-1023, IMP-1025, IMP-1026
+Residual:   no gate: the schema exists only inside the vendor's designer (L92). All four entries close
+            only on live DEV runs (R1–R3, R5), which are the reviewer's
+```
+
+```
+CLUSTER C34: a flow that drives an outside service — three design checks the checklist lacks
+            (x3: IMP-1024 failure-path-leaves-inconsistent-state, IMP-1028
+            shipped-prose-promises-unbuilt-capability, IMP-1022 platform-contract-guessed-not-
+            groundtruthed; each x1 in its own class except IMP-1022)
+Altitude:   CLASS, ENGINE-level for the checklist. One property, three faces: "a flow that hands work
+            to an outside service states, at design time, what state each failure leaves, how a stopped
+            run is restarted, and which behaviours only the service's own configuration enforces".
+            Measured against the design skill: its checklist asks "what happens at each failure point"
+            (L27) and "can the workflow run twice safely" (L26), and none of the three (grepped:
+            irreversib*, re-issue, external configuration). All three hit Create Envelope's rev 15
+            design. The ordering defect is fixed in source (reminders L1538, send L1567, record write
+            L1593 — the only step after the send). The shipped "re-run" wording is gone (0 hits);
+            the restart route is not designed (TAD searched: none)
+Ladder row: "one instance, general cause, a human needs to know it" ×3, landing in one existing
+            checklist an architect reads before designing
+Becomes:    row 42 (design checklist, three lines); row 43 (the DocuSign boundary in four lines,
+            pointing at TAD ADR-067). Routed: the restart route (architect-agent)
+Retires:    nothing
+Cites:      IMP-1024, IMP-1028, IMP-1022
+Residual:   checklist lines bind only an architect who opens the skill; the restart route stays a design
+            gap until the TAD names one; the template's Required and reassignment settings are checked
+            by a person (M4, M6) and by nothing in this repository
+```
+
+```
+CLUSTER C35: platform-contract-guessed-not-groundtruthed (adjacent) — a template's field set taken from
+            a design summary  (x1: IMP-1031, human-correction-of-agent-output; recurs against IMP-0615)
+Altitude:   CLASS by extension. IMP-0615's row says a template's ROLE NAMES come from the template; the
+            same reasoning applied to its FIELD SET would have listed every tab. The TAD named eight
+            (§5.8 step 2, L1154); the reviewer's rule is every tab except signature, signer name and date
+Ladder row: "an agent had the information" — the row exists one word too narrow
+Becomes:    row 44 (the L120 row's left cell gains "or the set of fields it carries"). Routed: the TAD
+            amendment (architect-agent)
+Retires:    nothing
+Cites:      IMP-1031
+Residual:   which recipient group holds which placeholders is still unsettled by the pasted tab list
+            (the finding's own caveat); the flow matches per role at run time, and R2–R3 observe it
+```
+
+```
+CLUSTER C36: the timeout script names a stray pac as "the usual cause"  (x1: IMP-1032; a recurrence of
+            IMP-0217, class platform-contract-guessed-not-groundtruthed; filed as gate-defect x6)
+Altitude:   INSTANCE, mechanical, in the tool's own message. Read at source and executed: report_stray_pac()
+            (L88–L111) prints "the usual cause (IMP-0215/0216/0226)" when it finds a pac and the
+            Keychain line only when it finds none. Both causes were present on 2–3 October; the build
+            log repeats the script's word (L159–L160); the kill changed nothing and the Keychain answer
+            fixed it (L161). The knowledge page has said since 2026-08-23 that the two causes are not
+            exclusive (build-and-deploy L423); its step 1 still ends "kill it, retry" with no
+            confirming probe (L451)
+Ladder row: "recurrence after a prose fix → escalate": the tool prints its diagnosis at the moment of
+            the hang, so the tool's message is the mechanical home
+Becomes:    row 45 (both copies, byte-identical today: cmp exit 0), row 46 (knowledge step 1)
+Retires:    the phrase "the usual cause" in the script, replaced in place
+Cites:      IMP-1032
+Residual:   no shell probe can see a Keychain prompt (the page's own words); the script can only tell the
+            agent to ask the person at the screen
+```
+
+```
+CLUSTER C37: capability — a flow's guard expressions executed in a test  (x1: IMP-1029)
+Altitude:   NOTE + knowledge + capability flag. The evaluator is untracked
+            (src/tests/solutions/_harness/WdlExpression.psm1: `??`), and the tracked contract tests
+            already import it. It evaluates if() eagerly, which the knowledge page's open if() question
+            (L237) makes the safe choice, and its own header says so
+Ladder row: "a capability was established and could be lost again" → `capability: true`
+Becomes:    row 47, HELD until the helper is committed
+Retires:    nothing
+Cites:      IMP-1029
+Residual:   the evaluator covers a subset; a guard using a function outside it fails "unsupported", by
+            design
+```
+
+```
+CLUSTER C38: notes  (x2: IMP-1027 tooling-edit-landed-in-the-wrong-place, IMP-1030
+            tool-side-effect-on-tracked-file)
+Altitude:   IMP-1027: NOTE, one instance, repaired in the same dispatch; the register row sits where it
+            should (TAD L3853). IMP-1030: INSTANCE, and already repeated: testResults.xml added
+            2026-08-26 and rewritten in 3 later commits (git log --numstat); nothing reads it
+            (Invoke-Tests.ps1 writes pester-results.xml under its own output path; ci.yml names
+            neither); the engine-instance classification already calls it "should probably be
+            gitignored"
+Ladder row: IMP-1027 none; IMP-1030 "a tool could catch it" — the ignore file is the tool
+Becomes:    row 48 (.gitignore entry and git rm --cached)
+Retires:    the tracked testResults.xml
+Cites:      IMP-1027, IMP-1030
+Residual:   a Pester run with -CI still writes the file locally; it just stops reaching commits
+```
+
 **Premises grepped at draft time.**
 - IMP-0965: `allocate-improvement-id.py` has no clock stamp (the only `ts` in it is a fixture). `verify-improvement-log.py` compares `ts` only against other fields, never against the clock. Both confirmed. The two scripts are byte-identical engine/instance pairs (`cmp`).
 - IMP-0969: the `packaged` branch checks only for a manifest ([L560](.engine/scripts/lib/work_items.py#L560)). Confirmed.
@@ -698,8 +1103,21 @@ Residual:   none new
 - *(Amendment 2)* IMP-0998: the reviewer's R19 answer keeps `layout.test.ts` a contract test, rewritten in both apps (Design 2.0 TAD, Revision 3.2 §5.3).
 - *(Amendment 2)* IMP-1000: `.gitignore` covers `build/exports/` and `build/artifacts/**` only; `CLAUDE.md`'s layout says the same, so the brief, not the repository document, was wrong.
 - *(Amendment 2)* IMP-1007: of 4 needles into the pipeline config, 1 is note wording (IMP-0764); `BLOCKED_ON_MAX_AGE_DAYS = 14` occurs once in `verify-pipeline-config.py`.
+- *(Amendment 3)* IMP-1010: walked the two flows' JSON: `Refresh_existing_applicant` 16, `Create_new_applicant` 20, `Create_application` 81 and `Write_error_log_row` 8 flat `item/` keys, none nested; 0 nested writes across all 10 flows; `Create_application` binds `item/rev_applicantid@odata.bind`. The live re-read is wired only in DEV `post_deploy` ([pipeline config L1541](config/revitalise-grant-automation-pipeline.yml#L1541)); `--help` shows no MODIFIED-only mode. The knowledge page still says "not proven" ([L227](knowledge/technology/build-and-deploy.md#L227)) and still says "Open every flow in the designer and press Save" ([L199](knowledge/technology/build-and-deploy.md#L199)).
+- *(Amendment 3)* IMP-1020: the V4 wording search, run inside `.engine` after a positive control (a plain `git grep -- agents skills` from the instance returned nothing for a phrase present in the skill: the submodule trap the promotion skill names). 4 engine hits plus 3 instance hits, listed in C27.
+- *(Amendment 3)* IMP-1011: §1's category table has no row for an outside party's tool, and §6's sweep names register rows only (both read). IMP-1016: `triggerAuthenticationType` appears in no knowledge file (grepped); power-automate.md warns against reading `workflow.clientdata` through `pac env fetch` ([L483](knowledge/technology/power-automate.md#L483)) and says nothing about filtering on it.
+- *(Amendment 3)* IMP-1014: the register's columns ([L491–L501](skills/how-to-verify-a-platform-contract.md#L491)) name no executor. IMP-1015: the TAD's rev 14 list says it came from the build and pipeline configs; the architect file's instruction names the build config as the source ([L110](agents/architect-agent.md#L110)).
+- *(Amendment 3)* IMP-1017: still true today ([README L197](src/tests/data/README.md#L197), [payloads L12](src/tests/data/intake-payloads.json#L12)); its root cause is false (§0). IMP-1018: still true ([L75](provisioning/entra/verify-intake-endpoint-auth.ps1#L75)); no `dev-*.json` file carries an `intake` block (counted). IMP-1019: C-TECH-058's text ([L128](constraints/technology/technology-constraints.md#L128)) and the three overrides (C32).
+- *(Amendment 4)* IMP-1032: `report_stray_pac()` read in both copies (byte-identical, `cmp` exit 0); the Keychain line is in the `else` branch only ([L105–L111](scripts/run-with-timeout.sh#L105)); self-test case 6 matches the prefix `STRAY pac PROCESS(ES) FOUND` ([L196](scripts/run-with-timeout.sh#L196)), so row 45 keeps that prefix; self-test executed, 6 of 6. The phrase "the usual cause" has no reader outside the two script copies (`git grep --recurse-submodules`, with the engine copy as positive control).
+- *(Amendment 4)* IMP-1024: the flow source's order, walked from `runAfter`: `Set_reminder_cadence` → `Send_the_envelope` → `Write_the_envelope_id_and_issue_date` ([L1538](src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1538), [L1567](src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1567), [L1593](src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1593)). The design skill has no ordering-by-reversibility line (grepped).
+- *(Amendment 4)* IMP-1026: `phoneNumber` appears once in the flow source, in a description saying why it is not set ([L976](src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L976)).
+- *(Amendment 4)* IMP-1025: the TAD's D6 row is corrected in place ([L3366](docs/architecture/revitalise-grant-automation-architecture.md#L3366)) and the `tabType` question is open ([L3391](docs/architecture/revitalise-grant-automation-architecture.md#L3391), [A-DS-16 L3855](docs/architecture/revitalise-grant-automation-architecture.md#L3855)).
+- *(Amendment 4)* IMP-1028: the flow no longer says "re-run" (0 hits in the source); the TAD names no re-issue route (searched for re-issue, reissue, resubmit and re-run beside envelope: only the A-R74 risk row). The trigger is `rev_grant` create only (message 1).
+- *(Amendment 4)* IMP-1031: the TAD still names the eight tabs ([§5.8 step 2 L1154](docs/architecture/revitalise-grant-automation-architecture.md#L1154)) and ADR-043 still says "left for the referee to complete" ([L2446](docs/architecture/revitalise-grant-automation-architecture.md#L2446)).
+- *(Amendment 4)* IMP-1029: `WdlExpression.psm1` is untracked and imported by the tracked contract tests ([L22](src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1#L22)); it evaluates `if()` eagerly and says why, consistent with the open question ([power-automate L237](knowledge/technology/power-automate.md#L237)).
+- *(Amendment 4)* IMP-1030: `testResults.xml` is tracked, not ignored (`.gitignore` has no entry), and its history is 1 add plus 3 rewrites. IMP-1022: no file under `knowledge/technology/` names any DocuSign connector action (grepped for four operation ids, `allowReassign` and `tabType`: 0 hits in `knowledge/` and `skills/`).
 
-**Duplicate check (skill §3a).** The `APPLIED` entries sharing each cluster's class were read for C1 (IMP-0960: knowledge line only; its mechanical candidate was named and not applied, so there is no duplicate) and C6 (none). C2's closest applied entry, IMP-0962, is the fix this review closes against. *(Amendment)* C10: the class's applied entries since 09-15 are IMP-0845 and IMP-0846 (provisioning tests), which do not overlap. The prior change on this subject is §12c, audited in §1. Also read: IMP-0920 (applied by review 2026-09-28), the same checklist paragraph row 12 extends; row 12 does not repeat it. C12 and C13: no other entry in either class. *(Amendment 2)* C14: IMP-0185, IMP-0193 and IMP-0223 read; row 15 extends the page IMP-0185 and IMP-0193 wrote and does not repeat it. C15: IMP-0910 (review 2026-09-26-6) is the rule row 16 extends. C16: IMP-0510 and IMP-0385 read (both reviewer-deferred); C-TECH-075 and §1.4a are their applied homes, and row 18 adds only what neither covers. C24: IMP-0500 read, because IMP-1006 re-proposes it. C25: IMP-0664, IMP-0733 and IMP-0755 share the class, all about needle form; none covers rewritable text. C19: no `APPLIED` entry in `gate-cannot-fail` mentions the assumption-marker gate (searched). C17, C18 and C20–C23: no `APPLIED` entry shares any of their classes (counted). C26 proposes no change, so there is nothing to duplicate.
+**Duplicate check (skill §3a).** The `APPLIED` entries sharing each cluster's class were read for C1 (IMP-0960: knowledge line only; its mechanical candidate was named and not applied, so there is no duplicate) and C6 (none). C2's closest applied entry, IMP-0962, is the fix this review closes against. *(Amendment)* C10: the class's applied entries since 09-15 are IMP-0845 and IMP-0846 (provisioning tests), which do not overlap. The prior change on this subject is §12c, audited in §1. Also read: IMP-0920 (applied by review 2026-09-28), the same checklist paragraph row 12 extends; row 12 does not repeat it. C12 and C13: no other entry in either class. *(Amendment 2)* C14: IMP-0185, IMP-0193 and IMP-0223 read; row 15 extends the page IMP-0185 and IMP-0193 wrote and does not repeat it. C15: IMP-0910 (review 2026-09-26-6) is the rule row 16 extends. C16: IMP-0510 and IMP-0385 read (both reviewer-deferred); C-TECH-075 and §1.4a are their applied homes, and row 18 adds only what neither covers. C24: IMP-0500 read, because IMP-1006 re-proposes it. C25: IMP-0664, IMP-0733 and IMP-0755 share the class, all about needle form; none covers rewritable text. C19: no `APPLIED` entry in `gate-cannot-fail` mentions the assumption-marker gate (searched). C17, C18 and C20–C23: no `APPLIED` entry shares any of their classes (counted). C26 proposes no change, so there is nothing to duplicate. *(Amendment 3)* C27: no `APPLIED` entry shares its class; IMP-0959 and IMP-0956 (the 09-29 subsection) were read, and row 34 corrects their step 4 rather than repeating it. C28, C29 and C32 share `platform-contract-guessed-not-groundtruthed` (41 `APPLIED`); searched for sender, handover, executor, designer save and override: IMP-0614 is the §2 dynamic-parameter rule that C29 extends, IMP-0618 (a reviewer's own description of a platform artefact outranks repository prose) is adjacent to C28 and does not cover a closure test, and none covers an outside party's tool, an executor, or C-TECH-058's wording. C30: no `APPLIED` entry in its class; IMP-0472's section is the one row 39 widens. C31: 0 of 43 `APPLIED` `gate-cannot-fail` entries mention `ValidateSet`. IMP-1016's class has 25 `APPLIED`; IMP-0409 (read a live flow through export and unpack) is the nearest, and does not cover the trigger-mode property or a `like` search. *(Amendment 4)* C33, C34 (IMP-1022) and C35 share `platform-contract-guessed-not-groundtruthed`; its `APPLIED` entries were searched for designer silence, `envelopeId`, `phoneNumber`, SMS, body schema and a template's field list. None covers them; the nearest are IMP-0614, IMP-0620 and IMP-0615, the rules rows 41 and 44 extend (§1). C34's other two classes have no other member. C36: the five `APPLIED` `gate-defect` entries (IMP-0619, IMP-0621, IMP-0693, IMP-0896, IMP-0916) are about gate wiring, a site-map pairing, a coverage substring and review stamps; none touches the timeout script. IMP-0217 is the prior change C36 recurs against. C37 and C38: no other member in any of their classes.
 
 ---
 
@@ -740,24 +1158,42 @@ Residual:   none new
 | 28 | agent | [agents/commercial-agent.md](agents/commercial-agent.md#L126) | Add before hours are proposed: "read every `billing-decision` event (IMP-0982) in `logs/commercial-events.jsonl` and every `contract/known-exceptions.json` entry whose `gate` is `none`, and propose no billable hours for the items or feature they name" | IMP-0982 | N/A — instruction change; the mechanical half is decision 4 | N/A |
 | 29 | agent | [agents/improvement-agent.md needle list L676](agents/improvement-agent.md#L676) | New bullet: "never anchor a needle to text a rule requires to be rewritten (IMP-1007): a `blocked_on` note is re-dated and reworded every 14 days by check 14. Anchor to a stable key — a script constant, a prerequisite id, or a marker that cites the entry's own id." | IMP-1007 | N/A — instruction change | N/A |
 | 30 | other | `logs/improvement-log.jsonl` (data) | IMP-0764's `evidence_grep` → `{"file": "scripts/verify-pipeline-config.py", "contains": "BLOCKED_ON_MAX_AGE_DAYS = 14"}` (`grep -c` = 1, measured), the defence its own `applied_by` names. IMP-0500's `deferred_reason` gains the measurement in C24; its `revisit_when` stays verbatim | IMP-1007, IMP-1009 | YES — `python3 scripts/verify-improvement-log.py --check` | N/A |
+| 31 | constraint-amendment | [C-TECH-053](constraints/technology/technology-constraints.md#L108) | Rule gains: "**AMENDED <apply date> — a V4 designer save of a solution-sourced flow is itself a live write (IMP-1020)**: it rewrites the whole definition from what the designer understood, so run `verify-live-flow-definitions.py --env <env>` after it, and re-import from source on any difference before the flow is tested further (IMP-1010)." Rationale gains IMP-1010 and IMP-1020. Verify By unchanged | IMP-1020, IMP-1010 | YES — the named script, exit 0 after a save | already wired — DEV `post_deploy` `flow-definition-reread` |
+| 32 | skill | [skills/how-to-verify-a-platform-contract.md §5, after the levels table L596](skills/how-to-verify-a-platform-contract.md#L596) (engine) | New paragraph: "**A V4 save rewrites a solution flow from what the designer understood (IMP-1010).** It is a live write, not an observation: in one measured save it dropped nested write parameters, the secure-inputs setting and every action's authentication block, renamed parameters and added the trigger's sign-in mode. Save, then re-read the live definition against source and re-import on any difference; a V4 claim stands only on a re-read taken after the save." No client names (grepped before commit, skill §6) | IMP-1010, IMP-1020 | N/A — instruction change; row 31 is its constraint | N/A |
+| 33 | agent | [agents/pipeline-agent.md check (c) L476](agents/pipeline-agent.md#L476) (engine) | The How cell gains: "then re-read the live definition (`verify-live-flow-definitions.py --env <env>`) and re-import on any difference (IMP-1020); a save is a write" | IMP-1020 | N/A — instruction change | N/A |
+| 34 | knowledge | [knowledge/technology/build-and-deploy.md L199](knowledge/technology/build-and-deploy.md#L199) and [step 4 L222–L229](knowledge/technology/build-and-deploy.md#L227) | (a) Step 5(c) becomes "Open every flow in the designer and press Save, then re-read it live; a designer save rewrites the whole definition (IMP-1010)." (b) Step 4 keeps its instruction and replaces "This is the leading candidate … and it is **not proven** …" with: "Observed 2026-10-02 (IMP-1010): a designer save between deploys, with the designer's fingerprints throughout (display-name parameters, authentication blocks and secureData removed, trigger mode added), emptied the two nested writes while the flat write in the same flow kept every column. The 2026-09-29 loss has the same shape." | IMP-1010 | N/A — reference text | N/A |
+| 35 | template | [templates/dev-summary-template.md L96](templates/dev-summary-template.md#L96), [templates/test-report-template.md L82](templates/test-report-template.md#L82) (engine) and [config/pipeline.yml.example L171](config/pipeline.yml.example#L171) | Each V4 wording gains "then re-read live (IMP-1020)" after "saved"; the example's (c) description gains the command | IMP-1020 | N/A — template text | N/A |
+| 36 | knowledge | [knowledge/technology/power-automate.md](knowledge/technology/power-automate.md#L381): *Hand-Authoring* L381, *Trigger* L290, the fetch note L483 | Three bullets. (a) "Write each column as its own `item/<column>` key (IMP-1010) in a Dataverse create or update, never a nested `item` object: the designer binds only the flat form and a save keeps only what it bound. A lookup is `item/<navigation property>@odata.bind` with the value `/<entity set>(<guid>)`." (b) "The HTTP trigger's 'Who can trigger the flow?' is `triggers.<name>.inputs.triggerAuthenticationType` (IMP-1016); `All` is Anyone. It ships in source and the live re-read compares it." (c) After the L483 warning: "Filtering on the column works: a `like` condition on `clientdata` (category 5) finds every live flow containing a shape in one query; `pac` rejects `fetch/@top` (IMP-1016)." | IMP-1010, IMP-1016 | N/A — reference text | N/A |
+| 37 | skill | [skills/how-to-verify-a-platform-contract.md §1 table L41](skills/how-to-verify-a-platform-contract.md#L41) and [§6 L662](skills/how-to-verify-a-platform-contract.md#L662) (engine) | (a) New category row: "**An outside party's tool** — what a third party's plugin, form or service can send or accept (fixed or per-request headers, token refresh, retries). A route that depends on it is closed only when that tool has made one successful call, or its owner has confirmed the mechanism in writing; a credential handover is not that evidence (IMP-1011)." (b) §6 new step 0: "List every 'cannot be expressed in source' or 'no property exists' claim in the TAD and test each against the first exported definition: it is a negative claim, and the export is the whole set (IMP-1016)." No client names | IMP-1011, IMP-1016 | N/A — instruction change | N/A |
+| 38 | skill | [skills/how-to-verify-a-platform-contract.md §4 register, *Cheapest verification* L499](skills/how-to-verify-a-platform-contract.md#L499) (engine) | Meaning cell gains: "Where the step needs the maker designer (bind, save, read back), the cell names its human executor and the step goes out as `REVIEWER ACTION REQUIRED`; never assign it to an agent dispatch (IMP-1014)" | IMP-1014 | N/A — reference text | N/A |
+| 39 | agent | [agents/architect-agent.md, the IMP-0472 section L106](agents/architect-agent.md#L106) (engine) | New paragraph at its end: "**When an ADR is RE-DECIDED, the build config is not the source.** Search for the retired decision's distinctive words across the whole repository (`git grep -n --recurse-submodules`, no extension filter, a positive control first) and list every hit of the retired decision's words (IMP-1015) in the ADR's gate-interactions paragraph, each marked *rewrite* or *history, kept*. A hit nobody marks is the one that is missed: the second instance was found by the search and lost among similar history lines (IMP-1017)." | IMP-1015, IMP-1017 | N/A — instruction change | N/A |
+| 40 | constraint-amendment | [C-TECH-058](constraints/technology/technology-constraints.md#L128) — **only on decision 6** | Rule gains: "An OPEN assumption whose register row names the DEV deploy as its own check (IMP-1019) (the import, the first push, a designer check in DEV, a run in DEV) does not block that DEV deploy; pipeline-agent records it as measured by the deploy, and it blocks every environment after DEV until closed." Verify By unchanged | IMP-1019 | YES as far as today's Verify By goes — pipeline-agent's register output names each such row | N/A |
+| 41 | skill | [skills/how-to-verify-a-platform-contract.md §2, after L104](skills/how-to-verify-a-platform-contract.md#L104) (engine) | New paragraph: "**A designer-saved definition proves what it CONTAINS, and nothing it leaves out.** It is E1 for the actions it holds and the parameters it bound. It is not evidence of: (1) a property it did not reject — a designer's silence about a property is not acceptance (IMP-1021); a dynamic block may drop what it did not bind, and only a live run shows it; (2) composition — actions in a row act on one resource only where an id parameter is bound to the earlier output (an envelope id, a record id); an action with none creates a new resource (IMP-1023); (3) sameness — two actions with one body schema are different calls when their path or id parameters differ (IMP-1026); (4) side effects — read a parameter's reference description, not its display name: a phone-number parameter can be a delivery channel (IMP-1026). And take an action's body shape and cardinality from the saved definition, never from the reference (IMP-1025)." No client names (grepped before commit, skill §6) | IMP-1021, IMP-1023, IMP-1025, IMP-1026 | N/A — instruction change; no instrument here reads a dynamic schema (L92) | N/A |
+| 42 | skill | [skills/how-to-design-a-workflow.md Design Checklist L27](skills/how-to-design-a-workflow.md#L27) (engine) | Three lines after *Error handling*: "- [ ] **Irreversible step last:** every fallible step runs before the send, post or payment, so a failure leaves the unsent state the alert describes; only the local record of the action follows it (IMP-1024)". "- [ ] **Restart route:** a workflow that fires only when a record is created names how a stopped run is re-issued once its cause is fixed; shipped text never says 're-run' without one (IMP-1028)". "- [ ] **Outside configuration:** list each behaviour only the outside service's own template or account can enforce (required fields, reassignment, recipient sign-in), each with a per-environment configuration row and a live test (IMP-1022)". No client names | IMP-1024, IMP-1028, IMP-1022 | N/A — instruction change | N/A |
+| 43 | knowledge | [knowledge/technology/power-automate.md, new section before *Sensitive Data Flows* L310](knowledge/technology/power-automate.md#L310) | "### DocuSign connector — what a flow can set, and what only the template or account can (IMP-1022)". Four bullets, each with its level: tab values are written by `tabId` through `UpdateRecipientTabsValues` (one recipient) or `UpdateEnvelopePrefillTabs` (one document), array bodies of `{tabType, tabId, value}` (E1, saved); neither sets *Required* or *Locked*, which stay on the template (E2); reassignment is a template or account setting no action exposes (E2); the referee's access code is `AddVerificationToRecipient` (E1), and `UpdateEnvelopeRecipient`'s `phoneNumber` makes SMS a delivery channel (E2). Closing line: "The measured table, with sources, is TAD ADR-067; correct it there first." | IMP-1022 | N/A — reference text | N/A |
+| 44 | skill | [skills/how-to-verify-a-platform-contract.md §2 table, L120](skills/how-to-verify-a-platform-contract.md#L120) (engine) | The row's first cell gains: "— or the set of fields a template carries (IMP-1031)"; its second cell gains: "the template's own field list, every field minus those the platform fills (signature, signer name, date signed)". The paragraph under the table gains one sentence: "The same holds for a template's fields: a design summary lists the fields someone thought of; the template lists the ones that will show placeholder text if left unfilled." | IMP-1031 | N/A — instruction change | N/A |
+| 45 | script | [scripts/run-with-timeout.sh `report_stray_pac` L88–L111](scripts/run-with-timeout.sh#L88) **and** `.engine/scripts/run-with-timeout.sh` | Stray-found branch: the first line becomes "STRAY pac PROCESS(ES) FOUND — a candidate, not yet the cause (IMP-1032)." (the prefix self-test case 6 matches is kept). Both branches then print: "Also check for a pending macOS Keychain prompt (IMP-0217): no shell probe can see it." and "To confirm a kill fixed it: run `scripts/run-with-timeout.sh 45 pac org who` before retrying. Still hangs → the stray was not the blocker; ask the person at the screen." Self-test case 7: with a fixture process list containing a `pac`, the output carries both the Keychain line and the probe line. The process list moves behind a small function so the self-test can supply one | IMP-1032 | YES — `bash scripts/run-with-timeout.sh --selftest` (7 of 7) | already invoked by the HARD `lint` step ([build L1057](config/revitalise-grant-automation-build.yml#L1057)); not a `verify-*` gate. `verify-engine-instance-split.py` at apply |
+| 46 | knowledge | [knowledge/technology/build-and-deploy.md step 1 L451](knowledge/technology/build-and-deploy.md#L451) | Step 1's heading becomes "**Find a stray `pac`, kill it, then confirm before you retry.**" and gains: "Run `scripts/run-with-timeout.sh 45 pac org who`. If it returns, retry the build. If it still hangs, the stray was not the blocker: go to step 2 before any further attempt. A build report calls a stray `pac` 'found', never 'the cause', until this probe has returned (IMP-1032; on 2–3 October a kill changed nothing and two builds were lost)." | IMP-1032 | N/A — reference text | N/A |
+| 47 | knowledge | [knowledge/technology/power-automate.md *Guards and fallbacks* L340](knowledge/technology/power-automate.md#L340) and `logs/improvement-log.jsonl` (data) | One bullet: "To execute a guard rather than read it, import `src/tests/solutions/_harness/WdlExpression.psm1` (IMP-1029) and evaluate the source's own expression with the input that selects each branch. It evaluates `if()` eagerly, which is safe under either answer to the open question above; extend it rather than skip a function it lacks." IMP-1029 gains `"capability": true`. **HELD**: applies when `WdlExpression.psm1` is committed | IMP-1029 | YES for the data half — `python3 scripts/verify-improvement-log.py --check` and `generate-known-failure-modes.py --check` (the lesson moves to *Capabilities*) | N/A |
+| 48 | other | `.gitignore` and the tracked `testResults.xml` | `.gitignore` gains, under *OS / editor*: "# Pester -CI writes this at the repo root; never track it (IMP-1030)" and "testResults.xml" on its own line (a `#` inside a pattern line would be part of the pattern). Then `git rm --cached testResults.xml` in the same commit | IMP-1030 | YES — `git check-ignore -v testResults.xml` names the new line; `git ls-files testResults.xml` prints nothing | N/A |
 
 **Amendment re-measurement of row 8.** Since WI-0052, all 4 `built` events recorded today had components declared before them ([L149](logs/work-items.jsonl#L149), [L155](logs/work-items.jsonl#L155), [L159](logs/work-items.jsonl#L159), [L160](logs/work-items.jsonl#L160)). The one that had none, WI-0052 at 09:37 ([L143](logs/work-items.jsonl#L143)), is dated today. So row 8's "on or after the apply date" would report it if applied today, and its "0 new findings" verification would fail. At apply, row 8 takes the same **after the apply date** cutoff as row 14. That narrowing removes one named historical event the rule would wrongly report, and does not change what the rule enforces.
 
-**Constraint budget:** 0 of 3 used. *(Amendment 2)* One amendment to an existing constraint (row 20), which adds no row.
+**Constraint budget:** 0 of 3 used. *(Amendment 2)* One amendment to an existing constraint (row 20), which adds no row. *(Amendment 3)* Two more amendments (rows 31 and 40, the second only on decision 6); still no new row. *(Amendment 4)* None; still 0 of 3.
 
-**Publishing.** Rows 1, 2, 3, 4, 8 and 10 change the `.engine` submodule, and so do rows 11–14 from the amendment. It already carries one uncommitted change from review 2026-09-30 (the digest line count in `generate-known-failure-modes.py`). The order is: commit there, `git -C .engine push origin HEAD:main`, verify with `git -C .engine branch -r --contains HEAD`, then bump the pointer here. Rows 1 and 2 are script pairs: both copies, same change. *(Amendment 2)* Engine changes added: rows 13, 16 (`deploy_markers.py`, `work_items.py`), 17, 18, 21, 22, 23, 28 and 29. Script pairs added: `verify-pipeline-config.py` (row 16), `verify-design-source-coverage.py` (row 19), `verify-assumption-markers.py` (row 24) and `lib/gate_baseline.py` (row 25) are byte-identical pairs today (`cmp`). `verify-build-config.py` (row 25) is not: the instance copy carries two exemption entries the engine copy lacks (`report-baseline-drift.py`, `verify-live-flow-definitions.py`), so row 25 edits each copy in place and must not copy one over the other. Rows 15, 20, 26, 27 and 30, and the pipeline config's `app:` keys, are instance-repository changes.
+**Publishing.** Rows 1, 2, 3, 4, 8 and 10 change the `.engine` submodule, and so do rows 11–14 from the amendment. It already carries one uncommitted change from review 2026-09-30 (the digest line count in `generate-known-failure-modes.py`). The order is: commit there, `git -C .engine push origin HEAD:main`, verify with `git -C .engine branch -r --contains HEAD`, then bump the pointer here. Rows 1 and 2 are script pairs: both copies, same change. *(Amendment 2)* Engine changes added: rows 13, 16 (`deploy_markers.py`, `work_items.py`), 17, 18, 21, 22, 23, 28 and 29. Script pairs added: `verify-pipeline-config.py` (row 16), `verify-design-source-coverage.py` (row 19), `verify-assumption-markers.py` (row 24) and `lib/gate_baseline.py` (row 25) are byte-identical pairs today (`cmp`). `verify-build-config.py` (row 25) is not: the instance copy carries two exemption entries the engine copy lacks (`report-baseline-drift.py`, `verify-live-flow-definitions.py`), so row 25 edits each copy in place and must not copy one over the other. Rows 15, 20, 26, 27 and 30, and the pipeline config's `app:` keys, are instance-repository changes. *(Amendment 3)* Engine changes added: rows 32, 33, 35 (the two templates), 37, 38 and 39. Instance changes added: rows 31, 34, 35 (`config/pipeline.yml.example`), 36 and 40. No script pair is touched. *(Amendment 4)* Engine changes added: rows 41, 42 and 44. Script pair added: `run-with-timeout.sh` (row 45), byte-identical today (`cmp` exit 0), so one edit is copied to both. Instance changes added: rows 43, 46, 47 and 48.
 
 ---
 
 ## 4. Retirements
 
-> Retirement check performed: 87 live constraint rows, 10 retired (`grep -rh '^| ~~C-' constraints/ --include='*.md' | wc -l`, re-run at apply). None is made redundant: this review adds no constraint. Retired as text: the three check-7 exceptions (row 7, held), and the testing-tools.md clause about `date`, struck through in place (row 5). No gate is retired. *(Amendment)* Checked again for rows 11–14: none replaces an existing rule. Row 12 sits beside the 09-28 status-column rule and does not supersede it, and §12c's existing text stays, because opening the document is still the first step. *(Amendment 2)* Re-derived: 87 live rows, 10 retired. Checked for rows 15–30: none retires a constraint. C-TECH-075 is amended, not replaced: its name-match clause still finds a folder named after an app inside a drop, which the root-path rule does not. The drafted narrow form of row 13 is superseded by its revision (a draft row, not a rule, so there is nothing to strike through). The three `IMP-0223` config notes are corrected by their owners, not retired.
+> Retirement check performed: 87 live constraint rows, 10 retired (`grep -rh '^| ~~C-' constraints/ --include='*.md' | wc -l`, re-run at apply). None is made redundant: this review adds no constraint. Retired as text: the three check-7 exceptions (row 7, held), and the testing-tools.md clause about `date`, struck through in place (row 5). No gate is retired. *(Amendment)* Checked again for rows 11–14: none replaces an existing rule. Row 12 sits beside the 09-28 status-column rule and does not supersede it, and §12c's existing text stays, because opening the document is still the first step. *(Amendment 2)* Re-derived: 87 live rows, 10 retired. Checked for rows 15–30: none retires a constraint. C-TECH-075 is amended, not replaced: its name-match clause still finds a folder named after an app inside a drop, which the root-path rule does not. The drafted narrow form of row 13 is superseded by its revision (a draft row, not a rule, so there is nothing to strike through). The three `IMP-0223` config notes are corrected by their owners, not retired. *(Amendment 3)* Checked for rows 31–40: none retires a constraint or a gate. The V4 save was considered for retirement and kept: three of the fifteen founding failures were found only by it. Row 34 replaces a "not proven" sentence with the observation, in place; that is a correction, not a retirement. Live and retired counts unchanged (87 and 10, re-derived). *(Amendment 4)* Checked for rows 41–48: none retires a constraint or a gate. Retired as text: the script phrase "the usual cause" (row 45), replaced in place, and the tracked `testResults.xml` (row 48). The knowledge page's 23 August CORRECTION block stays: it is the history row 46 builds on. Live and retired counts re-derived: 87 and 10.
 
 ---
 
 ## 5. Findings left unprocessed
 
-**Deferred:** IMP-0934, IMP-0855, IMP-0963, IMP-0966, IMP-0879, IMP-0906, IMP-0298, IMP-0824 *(Amendment 2: the same list; nothing added)*
+**Deferred:** IMP-0934, IMP-0855, IMP-0963, IMP-0966, IMP-0879, IMP-0906, IMP-0298, IMP-0824 *(Amendments 2, 3 and 4: the same list; nothing added)*
 
 These are parked in other reviews or reviewer-deferred (§0), and are cited only as context. None of the `unread` entries at draft time is unprocessed.
 
@@ -810,8 +1246,29 @@ These are parked in other reviews or reviewer-deferred (§0), and are cited only
 | IMP-1005 | V2 | **DEFER from the start**, as IMP-0997 | `revisit_when`: as IMP-0997 |
 | IMP-1006 | V1 | **DEFER from the start**, joined to IMP-0500 | `revisit_when`: *a capability design under docs/improvements/ specifies a C-TECH-055 warning-row check and measures it over the conforming manifests* |
 | IMP-1007 | V1 | **CLOSE** → `APPLIED`, rows 29–30 | `evidence_grep` on "never anchor a needle to text a rule requires to be rewritten (IMP-1007)" |
-| IMP-1008 | V3 | **DEFER from the start.** Row 15 lands; the live correction is yours | `revisit_when`: *the card app is added through the maker portal's Add existing, and a solutioncomponent re-read for the solution shows two componenttype-300 rows, one per appId* |
+| IMP-1008 | V3 | **CLOSE** (revalidation 2026-10-05: the return condition below is met live; re-run the FetchXML at apply and record it as `reobserved` V3). Was: DEFER from the start. Row 15 lands; the live correction is yours | `revisit_when`: *the card app is added through the maker portal's Add existing, and a solutioncomponent re-read for the solution shows two componenttype-300 rows, one per appId* |
 | IMP-1009 | n/a | **CLOSE** → `APPLIED`, row 30 and C24 | `evidence_grep` on "IMP-0500 is due in this batch" in this review document |
+| *(Amendment 3)* IMP-1010 | V3 | **DEFER from the start.** The fix is in source and live: the deploy re-read all four writes flat with 0 differences ([L289](logs/pipeline.log#L289)). But the defect was a designer save emptying them, and nobody has saved the flow since. Rows 31–36 land | `revisit_when`: *the intake flow is saved in the designer in DEV, and verify-live-flow-definitions.py --env dev run straight afterwards shows Create_application, Create_new_applicant and Write_error_log_row with every column (any other difference it reports is the expected save rewrite, and is re-imported)* |
+| IMP-1011 | V5 | **DEFER from the start.** Row 37 lands; only a real call from the website's form proves the decided route | `revisit_when`: *a submission from the website's form through the signed callback address creates a populated rev_application in DEV (test report step R1)* |
+| IMP-1014 | n/a | **CLOSE** → `APPLIED`, row 38 | `evidence_grep` on "names its human executor and the step goes out as `REVIEWER ACTION REQUIRED`" — one line of §4, `grep -c` = 1 before it is written into the entry |
+| IMP-1015 | n/a | **CLOSE** → `APPLIED`, row 39 | `evidence_grep` on "list every hit of the retired decision's words (IMP-1015)" |
+| IMP-1016 | n/a | **CLOSE** → `APPLIED`, row 36 | `evidence_grep` on "`triggers.<name>.inputs.triggerAuthenticationType` (IMP-1016)" |
+| IMP-1017 | n/a | **DEFER from the start.** Row 39 lands the rule; the two stale instructions are routed | `revisit_when`: *src/tests/data/README.md and intake-payloads.json _howToRun describe the signed callback address plus x-rev-client-id, and name no bearer token*. It then closes on an `evidence_grep` there |
+| IMP-1018 | n/a | **DEFER from the start**, routed | `revisit_when`: *verify-intake-endpoint-auth.ps1's -Env accepts only values it can run for (test, acc, prd), or DEV gains an intake settings block and a DEV post_deploy probe* |
+| IMP-1019 | n/a | **CLOSE** if decision 6 is yes and row 40 applies, on "names the DEV deploy as its own check (IMP-1019)". **Otherwise DEFER** | `revisit_when`: *decision 6 is answered* |
+| IMP-1020 | n/a | **CLOSE** → `APPLIED`, rows 31–35 | `evidence_grep` on "a V4 designer save of a solution-sourced flow is itself a live write (IMP-1020)" in the technology constraints |
+| *(Amendment 4)* IMP-1021 | V4 | **DEFER from the start.** Fixed by redesign in source (draft, bind, fill, read back, send), deployed to DEV; no run has filled a tab yet. Row 41 lands | `revisit_when`: *R2 and R3 of test report 20261003-2 pass in DEV: a Create Envelope run fills every in-scope tab on the draft and its read-back check passes* |
+| IMP-1022 | V5 | **DEFER from the start.** Rows 42–43 land; the template and account settings are set and checked by a person | `revisit_when`: *M4 and M6 are done: the template's Required boxes and reassignment option are confirmed, and a forwarded test envelope asks for the access code and cannot be reassigned* |
+| IMP-1023 | V5 | **DEFER from the start.** The chain was never built (TAD L3344); row 41 lands | `revisit_when`: *R1 of test report 20261003-2: one DEV run creates exactly one envelope for the grant, and it holds both roles* |
+| IMP-1024 | V5 | **DEFER from the start.** Fixed in source (reminders before the send, L1538–L1567); row 42 lands | `revisit_when`: *R6 of test report 20261003-2: reminders are attached on the draft and the signing email arrives only after them* |
+| IMP-1025 | V4 | **DEFER from the start.** The TAD is corrected; the `tabType` string is open | `revisit_when`: *A-DS-16 is closed: R2 and R3 show which tabType string the fill accepts, and the TAD records it* |
+| IMP-1026 | V5 | **DEFER from the start.** Fixed in source (`phoneNumber` not set, L976); row 41 lands | `revisit_when`: *R5 or M6: the referee receives the signing link by email only, with no SMS, and the link asks for the access code* |
+| IMP-1027 | n/a | **CLOSE** → `APPLIED`, no system change; repaired in the same dispatch | `evidence_grep`: "`CompositeTemplates` with `status: Created` produces a draft carrying both template roles" in the TAD, the start of the `A-DS-14` register row ([L3853](docs/architecture/revitalise-grant-automation-architecture.md#L3853)), `grep -c` = 1 (measured): the register row is where it belongs |
+| IMP-1028 | V5 | **DEFER from the start.** Row 42 lands; the route is routed | `revisit_when`: *the TAD names how Create Envelope is re-issued for an existing Awarded grant after a pre-send stop (A-R74, A-R79), and one DEV run proves that route* |
+| IMP-1029 | V1 | **CLOSE** if row 47 applies, on "WdlExpression.psm1` (IMP-1029)" in power-automate.md. **Otherwise DEFER** | `revisit_when`: *src/tests/solutions/_harness/WdlExpression.psm1 is committed; then apply row 47 and close* |
+| IMP-1030 | n/a | **CLOSE** → `APPLIED`, row 48 | `evidence_grep` on "never track it (IMP-1030)" in `.gitignore` |
+| IMP-1031 | V1 | **DEFER from the start.** Row 44 lands; the TAD amendment is routed, and the defect lives there | `revisit_when`: *TAD §5.8 step 2, ADR-067 design requirement 4 and ADR-043 state the reviewer's every-tab rule*. It then closes on an `evidence_grep` there |
+| IMP-1032 | V1 | **CLOSE** → `APPLIED`, rows 45–46 | `evidence_grep` on "a candidate, not yet the cause (IMP-1032)" in `scripts/run-with-timeout.sh` |
 | IMP-0500 (reviewer-deferred, due) | n/a | **Stays deferred**, annotated (row 30) | `deferred_reason` gains: *condition met 2026-10-01, 58 of 80 manifests; the diff as designed measures 37 of 261, so a design is needed (C24)*. `revisit_when` unchanged, verbatim |
 
 **Simulated before parking.** The simulation ran in a scratch root: every top-level path is linked to this repository, except `logs/`, `scripts/` and `agents/`, which are copies. The copies had the dispositions above applied, and stub lines carrying each proposed needle. `verify-improvement-log.py --check` exits **0** in both variants of IMP-0967 (deferred, and closed with rows 6–7). Both show 0 unread and 0 fixed-in-flight. The IMP-0961 warning is cleared. The only entries left awaiting approval belong to other reviews (IMP-0855, and the governance blocker IMP-0934). The only warning left is IMP-0298's. The real log's only changes are this draft's ten `reviewed_in` stamps and its three appended findings.
@@ -820,6 +1277,10 @@ These are parked in other reviews or reviewer-deferred (§0), and are cited only
 
 *(Amendment 2)* **Simulated a third time: all 48 entries (the 46 stamped with this review, plus IMP-0954 and IMP-0500).** Same method: a scratch root with `logs/`, `scripts/`, `.engine/`, `knowledge/` and `config/` copied, every draft disposition applied, and a stub line carrying each needle in the copied target file. Three variants: decisions 4 and 5 unanswered; decision 5 answered (IMP-0992 closed on row 19(b)); decision 4 answered "no gate" (IMP-0982 closed on row 28). All three exit **0**, with 0 unread and 0 fixed-in-flight. The only entries left awaiting approval are the other reviews' IMP-0855 and IMP-0934. The warning that IMP-0979 was cited but unstamped is gone; the only warning left is IMP-0298's. The real log's only changes from Amendment 2 are 30 `reviewed_in` stamps and the appended IMP-1009 (`diff`: 30 changed lines and 1 added).
 
+*(Amendment 3)* **Simulated a fourth time, for this amendment's nine entries.** A scratch root with `logs/`, `constraints/` and `knowledge/` copied, and the verify skill and the architect file copied out of their symlinked folders; a stub line carrying each needle; every other path linked. The nine dispositions above applied on a copy of today's log, the earlier 48 left as they are (they were simulated by Amendment 2). Two variants, decision 6 unanswered and yes: both exit **0**, with 0 unread and 0 fixed-in-flight. Each variant prints one warning per earlier entry of this review saying the keyword was given and the entry left behind; that is what a partial simulation produces by construction, and the full apply closes those entries in the same step. The real log's only changes from Amendment 3 are 8 `reviewed_in` stamps and the appended IMP-1020 (`diff` against the pre-simulation copy: identical).
+
+*(Amendment 4)* **Simulated a fifth time, for this amendment's twelve entries.** A scratch root with `logs/`, `knowledge/technology/`, `scripts/run-with-timeout.sh` and `.gitignore` copied, a stub line carrying each needle in its copied target, and every other path linked (hidden ones included: a first run without `.claude/` reported a missing needle file for an unrelated applied entry). The twelve dispositions above applied, the earlier 57 left as they are. Two variants, row 47 held (IMP-1029 deferred) and applied (IMP-1029 closed, `capability: true`): both exit **0**, with 0 unread and 0 fixed-in-flight. The only warnings are the 55 "keyword given, entry left behind" lines a partial simulation produces by construction, and IMP-0298's. The real log's only change from Amendment 4 is 12 `reviewed_in` stamps (`diff` against the pre-stamp copy: 12 changed lines; against the pre-simulation copy: identical).
+
 **Routed work, to be re-measured at apply before it is handed on:**
 
 | To | Item | From |
@@ -827,32 +1288,47 @@ These are parked in other reviews or reviewer-deferred (§0), and are cited only
 | the session that authored the check-7 descent (automation-agent, via lead-agent) | Dev Summary revision for the failure-path change in flows 1001, 1002 and 1007 (Describe_the_failure If → Switch, descent queries, the new If in 1007); correct the "exception expires 2026-09-30" notes at [L11244](docs/development/revitalise-grant-automation-dev-summary.md#L11244) | IMP-0968 |
 | lead-agent | Commit the deployed working-tree changes, including the untracked `scripts/verify-live-flow-definitions.py`; rows 6–7 here and 1–6 of review 2026-09-30 wait on it | IMP-0967, IMP-0964 |
 | reviewer | The designer-save question from review 2026-09-29, still unanswered | IMP-0959 |
-| lead-agent | *(Amendment)* Add the six untracked WI-0005 files to the same commit: `domain/applicationDetailLayout.ts` and `.test.ts`, `test/detail-harness-app.tsx`, `test/visual/application-detail-layout.visual.spec.ts`, `detail-harness.html`, and `docs/development/trustee-portal-pack-field-map.md` | IMP-0975, IMP-0976 |
+| lead-agent | **RESOLVED 2026-10-05 — WITHHOLD at apply** (all six tracked). *(Amendment)* Add the six untracked WI-0005 files to the same commit: `domain/applicationDetailLayout.ts` and `.test.ts`, `test/detail-harness-app.tsx`, `test/visual/application-detail-layout.visual.spec.ts`, `detail-harness.html`, and `docs/development/trustee-portal-pack-field-map.md` | IMP-0975, IMP-0976 |
 | development-agent (frontend) | *(Amendment)* Measure the shared `.definitions` grid at 320 px in the Chromium suite for every `Definitions` consumer, or give it the same narrow-width stacking the pack rows now have. Delivery work under `wbs:6.8`, not a rule change | IMP-0976 |
 | pm-agent | *(Amendment)* Re-read the 21 items from `FeedbackDeployment_20-09-2026.xlsx` whose status comment never became acceptance, and add a clause wherever the comment states a requirement (checklist L247). Not classified here: how many of the 21 comments state one | IMP-0973 |
 | reviewer | *(Amendment)* Your verdict on the rebuilt WI-0005 screen in DEV | IMP-0973, IMP-0824 |
-| reviewer | *(Amendment 2)* Add the card app to the solution through the maker portal's *Add existing* (owed since the deploy, [L284](logs/pipeline.log#L284)); then pipeline-agent re-reads the solution's componenttype-300 rows | IMP-1008 |
+| reviewer | **RESOLVED 2026-10-05 — WITHHOLD at apply** (two componenttype-300 rows measured in DEV). *(Amendment 2)* Add the card app to the solution through the maker portal's *Add existing* (owed since the deploy, [L284](logs/pipeline.log#L284)); then pipeline-agent re-reads the solution's componenttype-300 rows | IMP-1008 |
 | pipeline-agent (owner of the DEV post_deploy notes) or development-agent | *(Amendment 2)* Correct the three notes that credit membership to the push ([L1099](config/revitalise-grant-automation-pipeline.yml#L1099), [L1936](config/revitalise-grant-automation-pipeline.yml#L1936), [L2220](config/revitalise-grant-automation-pipeline.yml#L2220)): membership came from the 22 August manual add (IMP-1008). The Test/Production conclusion stands for an app already in the solution | IMP-1008, IMP-0983 |
 | architect-agent | *(Amendment 2)* Main TAD §9.3 ([L1575](docs/architecture/revitalise-grant-automation-architecture.md#L1575)) and Design 2.0 TAD A-TR-15 and R-D2-4: record the refutation and its cause; re-measure the supplied-assets page, which still says the `Designsystem/` working tree is clean ([L36](docs/reference/supplied-assets.md#L36)) while two drops are untracked | IMP-1008, IMP-0992 |
 | pm-agent | *(Amendment 2)* After row 16 lands, relink WI-0055..WI-0105's components to `operation:code-app-push@trustee-review-portal-cards`; after row 23, retitle WI-0052 to its relinked order | IMP-0986, IMP-0994 |
 | development-agent (frontend) | *(Amendment 2)* First app: give `.tableScroll` `position: relative` and measure its tables at 320 px with sort hints present; both apps: derive the visual-test port per app in one parity-preserving change. Delivery work under `wbs:6.3` (unbilled) or `wbs:6.8` | IMP-0999, IMP-0988 |
 | development-agent | *(Amendment 2)* `provisioning/deploymentSettings/settings-rows.notes.md` ([L94](provisioning/deploymentSettings/settings-rows.notes.md#L94)): record DEV's current RoundStatisticsHistory* values and who set them, or say the notes give initial values only | IMP-0995 |
 | reviewer | *(Amendment 2)* Decisions 4 and 5 | IMP-0982, IMP-0992 |
+| — | *(Amendment 3)* **WITHHELD at apply:** the row above that sends you "the designer-save question from review 2026-09-29". It is answered by evidence (C27), so it is no longer yours to answer | IMP-0959, IMP-1010 |
+| development-agent (owner of the pipeline config) | *(Amendment 3)* Give `verify-live-flow-definitions.py` a mode that reports only flows written after the last import, and run it in DEV `pre_deploy` and before test-agent's live runs. Its DIFFERS check compares against current source, so before a deploy it would report every intended change | IMP-1010 |
+| development-agent | *(Amendment 3)* Rewrite the run instructions in [src/tests/data/README.md L197](src/tests/data/README.md#L197) and [intake-payloads.json L12](src/tests/data/intake-payloads.json#L12) for the signed callback address plus `x-rev-client-id`, with no bearer token | IMP-1017 |
+| identity-agent or development-agent | *(Amendment 3)* [verify-intake-endpoint-auth.ps1 L75](provisioning/entra/verify-intake-endpoint-auth.ps1#L75): narrow `-Env` to `test`, `acc`, `prd`, and say why in its help, as its sibling does ([L52](provisioning/entra/verify-intake-callback-url.ps1#L52)) | IMP-1018 |
+| architect-agent | *(Amendment 3)* TAD §12.3: `A-INT-15` closed on your designer-written `TEST_Binding` (the Dev Summary has the evidence; test report D-04), and `A-INT-11` closed at V3 by the 2 October import | IMP-1014 |
+| reviewer | *(Amendment 3)* Test report step R1, a real submission from the website through the signed address; the callback-address capture and compare, which need your provisioning certificate; removing the throwaway `TEST_Binding` flow from DEV; and decision 6 | IMP-1011, IMP-1014, IMP-1019 |
+| architect-agent | *(Amendment 4)* Amend TAD §5.8 step 2 ([L1154](docs/architecture/revitalise-grant-automation-architecture.md#L1154)), ADR-067 design requirement 4 and ADR-043 ([L2446](docs/architecture/revitalise-grant-automation-architecture.md#L2446)) to your code-review rule: every tab except signature, signer name and date signed; placeholders matched per role at run time; the applicant's agreement checkbox sent unticked and marked Required on the template; the unmapped-tab stop; "left for the referee" becomes "cleared to empty by the flow" | IMP-1031 |
+| architect-agent | *(Amendment 4)* Name how Create Envelope is re-issued for an existing Awarded grant after a pre-send stop ([A-R74](docs/architecture/revitalise-grant-automation-architecture.md#L3659), [A-R79](docs/architecture/revitalise-grant-automation-architecture.md#L3664)): an update trigger on a re-issue field, a manual route, or run-history Resubmit confirmed by one DEV measurement | IMP-1028 |
+| lead-agent | *(Amendment 4)* Commit the deployed Create Envelope flow, its notes and tests, and the untracked `src/tests/solutions/_harness/WdlExpression.psm1` that the tracked contract tests import; row 47 waits on it | IMP-1029 |
+| commercial-agent | *(Amendment 4)* Confirm whether the possible change order for recipient authentication still stands: the TAD now records an access code, free per the reviewer ([L3711](docs/architecture/revitalise-grant-automation-architecture.md#L3711)) | IMP-1022 |
+| reviewer | *(Amendment 4)* R1, R2, R3, R5 and R6 from test report 20261003-2, and M4 and M6 from the TAD; six of this amendment's deferrals close on them | IMP-1021, IMP-1022, IMP-1023, IMP-1024, IMP-1025, IMP-1026 |
 
 ---
 
 ## 6. Digest impact
 
-| | Before this review | Draft (regenerated) | Amendment 1 (regenerated) | Amendment 2 (regenerated) | After apply |
-|---|---|---|---|---|---|
-| Log entries | 965 | 968 (IMP-0970, IMP-0971, IMP-0972 appended) | 975 (IMP-0973 to IMP-0978 in scope; IMP-0979 appended by a live development-agent during this dispatch, not processed here) | 1005 (IMP-0979 to IMP-1008 in scope; IMP-1009 appended by this amendment) | 1005 or more |
-| Distinct lessons | 949 | 952 | 959 | 989 | 989 or more |
-| Recurring classes (x≥2) | 73 | 73 (`log-timestamp-not-taken-from-the-clock` x2 → x3, `pipeline-dispatch-stops-before-declared-post-deploy` x2 → x3) | 73 (`log-timestamp-…` x3 → x4, `no-assertion-on-shipped-content` x32 → x36 with IMP-0979; the two new classes are x1) | 76 (measured: `log-timestamp-…` x5, `supplied-design-asset-assumed-wcag-compliant` x3, `design-values-read-from-source-not-rendering` x2, `item-acceptance-contradicts-approved-design` x2, `stale-deferral-uncaught-across-sessions` x8) | 76 |
-| Digest lines | 606 | 606 | 606 | 611 | 611 (re-measured at apply) |
+| | Before this review | Draft (regenerated) | Amendment 1 (regenerated) | Amendment 2 (regenerated) | Amendment 3 (regenerated) | Amendment 4 (regenerated) | After apply |
+|---|---|---|---|---|---|---|---|
+| Log entries | 965 | 968 (IMP-0970, IMP-0971, IMP-0972 appended) | 975 (IMP-0973 to IMP-0978 in scope; IMP-0979 appended by a live development-agent during this dispatch, not processed here) | 1005 (IMP-0979 to IMP-1008 in scope; IMP-1009 appended by this amendment) | 1016 (IMP-1010, IMP-1011, IMP-1014 to IMP-1019 in scope; IMP-1012 and IMP-1013 applied by review 2026-10-02; IMP-1020 appended by this amendment) | 1028 (IMP-1021 to IMP-1032 in scope; none appended) | 1028 or more |
+| Distinct lessons | 949 | 952 | 959 | 989 | 1000 | 1012 | 1012 or more |
+| Recurring classes (x≥2) | 73 | 73 (`log-timestamp-not-taken-from-the-clock` x2 → x3, `pipeline-dispatch-stops-before-declared-post-deploy` x2 → x3) | 73 (`log-timestamp-…` x3 → x4, `no-assertion-on-shipped-content` x32 → x36 with IMP-0979; the two new classes are x1) | 76 (measured: `log-timestamp-…` x5, `supplied-design-asset-assumed-wcag-compliant` x3, `design-values-read-from-source-not-rendering` x2, `item-acceptance-contradicts-approved-design` x2, `stale-deferral-uncaught-across-sessions` x8) | 78 (measured: rows in the recurring-classes table; `live-definition-overwritten-outside-the-pipeline` x2 is among the new ones) | 78 (measured; none of the twelve opens a recurring class, and `platform-contract-guessed-not-groundtruthed` is x80 by `class_instance_of`) | 78 |
+| Digest lines | 606 | 606 | 606 | 611 | 613 | 613 | 613 (re-measured at apply) |
 
 Regenerated after the three appends, and again after the amendment's six stamps (`--check` exits 0 both times). `generate-known-failure-modes.py --check` exits 0. `verify-derived-counts.py` reports 6 drifted claims. Five predate this review and belong to other files' owners: the `rev_setting` count twice in the pipeline config, two secured-column counts in the Dev Summary, and the REV Trustee role header. The sixth is row 10.
 
 *(Amendment 2)* Regenerated after the 30 new `reviewed_in` stamps and IMP-1009 (`--check` exits 0). `verify-derived-counts.py` now reports 7 drifted claims. Five are the same as above. The sixth is row 10 (now 69). The seventh is new and is caused by this regeneration: the digest is 611 lines, and [generate-known-failure-modes.py L46](scripts/generate-known-failure-modes.py#L46) says 606. Apply corrects it in both copies, re-measured after the final regeneration.
+
+*(Amendment 3)* Regenerated after the 8 new stamps and IMP-1020 (`--check` exits 0). `verify-derived-counts.py` reports 8 drifted claims. The digest line count is now 613 against the 612 the generator says ([L46](scripts/generate-known-failure-modes.py#L46)), still corrected at apply. Row 10's verify-script count is 69. A new one, the `Designsystem/` tracked-file count (131 stated, 285 measured, [supplied-assets L36](docs/reference/supplied-assets.md#L36)), belongs to the supplied-assets re-measure already routed to architect-agent. The rest are other files' owners', as before.
+
+*(Amendment 4)* Regenerated after the 12 stamps (`--check` exits 0; 1028 entries, 1012 lessons, 613 lines, 78 recurring classes). `verify-derived-counts.py` reports the same 8 drifted claims as Amendment 3 and no new one; row 10's count is still 69.
 
 **Apply-time obligations:** regenerate the digest, then run `--check`, `verify-derived-counts.py`, `verify-engine-instance-split.py`, `verify-build-config.py config/revitalise-grant-automation-build.yml`, every added or edited script's `--selftest`, and `verify-work-items.py --check`. *(Amendment)* Also: `grep` the new §12c and ingestion-checklist text for this client's names before the engine commit (skill §6), and `grep -c` each new needle = 1.
 
@@ -863,14 +1339,16 @@ Regenerated after the three appends, and again after the amendment's six stamps 
 ```
 IMPROVEMENT REVIEW REQUIRED — docs/improvements/2026-09-30-improvement-review-2.md
 
-Findings processed: 48 NEW  →  26 clusters
-Regression check:   12 prior changes audited, 7 classes recurred
-Proposed:           0 constraints (cap 3) + 1 constraint amendment, 11 gates/scripts
-                    (row 14 only on decision 3; row 19's second half only on decision 5),
-                    9 skill/knowledge edits, 7 agent-file edits, 2 other, 0 retirements
-Altitude calls:     7 generalised from instance to class, 10 left as notes
-Digest:             regenerated at draft (amended twice) — 989 lessons, 76 recurring classes;
-                    will regenerate at apply
+Findings processed: 69 NEW  →  38 clusters
+Regression check:   24 prior changes audited, 13 classes recurred
+Proposed:           0 constraints (cap 3) + 3 constraint amendments (row 40 only on
+                    decision 6), 12 gates/scripts (row 14 only on decision 3; row 19's
+                    second half only on decision 5), 20 skill/knowledge edits (row 47
+                    held behind a commit), 9 agent-file edits, 1 template edits,
+                    3 other, 0 retirements
+Altitude calls:     12 generalised from instance to class, 11 left as notes
+Digest:             regenerated at draft (amended four times) — 1012 lessons,
+                    78 recurring classes; will regenerate at apply
 
 Respond APPROVE IMPROVEMENTS to apply, or give feedback for revision.
 ```
@@ -879,4 +1357,74 @@ Respond APPROVE IMPROVEMENTS to apply, or give feedback for revision.
 
 ## 8. Record of what is done on approval
 
-Written only after `APPROVE IMPROVEMENTS`. Nothing has been done yet.
+**Applied 2026-10-05, 10:55–11:30**, on the reviewer's verbatim turn *"Agreed with all suggested improvements for the questions 1 - 6 and D1 - 3 / Approve Improvements for all reviews, process them one by one."* (Xander Lykopoulos), relayed by lead-agent at 10:41 ([routing.log](logs/routing.log)). Third of four sequential dispatches. Reviews 2026-09-23-7 and 2026-09-27 were applied before it, and 2026-10-05 is applied after it. Nothing is committed (the dispatch said not to).
+
+### Decisions, recorded verbatim as "agreed with suggested"
+
+| # | Answer | What it made happen |
+|---|---|---|
+| 1 | agreed with suggested — refuse `built` without declared components | Row 8 applied |
+| 2 | agreed with suggested — keep the "post-deploy step skipped" findings open | IMP-0971 deferred beside IMP-0879 and IMP-0906, which are unchanged |
+| 3 | agreed with suggested — yes | Row 14 applied |
+| 4 | agreed with suggested — yes, as a commercial-agent design | Row 28 applied (narrowed, below); the design is routed to commercial-agent |
+| 5 | agreed with suggested, as amended by the revalidation — the `(1)` copy is the replacement | Row 19(a) applied. Row 19(b) is **held** until the old drop is removed (below) |
+| 6 | agreed with suggested — yes | Row 40 applied ([C-TECH-058](constraints/technology/technology-constraints.md#L128)) |
+
+### What landed
+
+44 rows: the revalidation's 42 valid rows, and rows 15 and 43 with the facts the revalidation added. Each row's entries were closed as the row landed.
+
+- **Log time comes from the clock** — [allocator](scripts/allocate-improvement-id.py#L46), new [log-line.py](scripts/log-line.py#L11), the eight format blocks ([WORKFLOW](agents/WORKFLOW.md#L661) and the other seven), the [logging skill](skills/how-to-log-an-improvement.md#L63), [testing-tools](knowledge/technology/testing-tools.md#L165) (rows 1–5). Self-tests 14/14 and 8/8.
+- **Lead-agent's per-result check gets `--since`** ([lead L436](agents/lead-agent.md#L436), row 9).
+- **The ledger's dated rules** ([work_items.py L155](.engine/scripts/lib/work_items.py#L155), rows 8, 13, 14, 23). Built needs declared components. A clause naming a supplied document needs a test line that names it. Reopens count rejections only, with `reopen --retrace`. `link --title`. All bind events dated **after 2026-10-05**; earlier events fold as before.
+- **One push label per app** ([deploy_markers L75](.engine/scripts/lib/deploy_markers.py#L75), [check 15](scripts/verify-pipeline-config.py#L577), [the three DEV `app:` keys](config/revitalise-grant-automation-pipeline.yml#L1238), [pipeline-agent WRITE line](agents/pipeline-agent.md#L295), rows 16–17).
+- **Verify skill** — §12c's transcription test ([L969](skills/how-to-verify-a-platform-contract.md#L969)), §12d ([L972](skills/how-to-verify-a-platform-contract.md#L972)), what a designer-saved flow proves ([L107](skills/how-to-verify-a-platform-contract.md#L107)), a template's field set, the outside-party row ([L49](skills/how-to-verify-a-platform-contract.md#L49)), §6 step 0, the designer executor, the V4 save paragraph ([L612](skills/how-to-verify-a-platform-contract.md#L612)) (rows 11, 21, 32, 37, 38, 41, 44).
+- **Intake skill** — the path rule ([L257](skills/how-to-intake-external-documents.md#L257)) and the [Supplied Design Bundle Checklist](skills/how-to-intake-external-documents.md#L164) (rows 12, 18).
+- **Design-source gate** — every top-level drop in scope by its root path ([L98](scripts/verify-design-source-coverage.py#L98)), with [C-TECH-075](constraints/technology/technology-constraints.md#L145) amended (rows 19(a), 20).
+- **Constraint amendments** — [C-TECH-053](constraints/technology/technology-constraints.md#L108) and [C-TECH-058](constraints/technology/technology-constraints.md#L128) (rows 31, 40). No new constraint: 0 of 3 used. Live rows 88 and retired rows 10, re-derived (88 includes C-TECH-080 from review 2026-09-27).
+- **Agent files** — architect: [clauses a TAD overrides](agents/architect-agent.md#L276) and the [re-decided ADR search](agents/architect-agent.md#L138); [commercial](agents/commercial-agent.md#L27); [improvement-agent needle rule](agents/improvement-agent.md#L692); [pipeline check (c)](agents/pipeline-agent.md#L480) (rows 22, 28, 29, 33, 39).
+- **Templates and example config** — the live re-read after a V4 save ([dev summary](templates/dev-summary-template.md#L96), test report, pipeline.yml.example) (row 35). **Workflow checklist** — three lines ([L28](skills/how-to-design-a-workflow.md#L28), row 42).
+- **Knowledge** — [Code App membership readings](knowledge/technology/code-apps.md#L548) and [styling lines](knowledge/technology/code-apps.md#L657) (rows 15, 27); [the DocuSign section](knowledge/technology/power-automate.md#L311) and the Power Automate bullets (rows 26, 36, 43); [build-and-deploy](knowledge/technology/build-and-deploy.md#L226) (rows 34, 46).
+- **Scripts** — [assumption-marker grammar](scripts/verify-assumption-markers.py#L124), [baseline expiry warning](scripts/lib/gate_baseline.py#L152) and [its NOTE](scripts/verify-build-config.py#L1322), [timeout message](scripts/run-with-timeout.sh#L104) (rows 24, 25, 45). Every script pair was edited in both copies (`cmp` identical). The exception is `verify-build-config.py`, whose two copies differ by design, so each was edited in place.
+- **Housekeeping** — `testResults.xml` is ignored ([.gitignore L22](.gitignore#L22)) and removed from the index with `git rm --cached`. That change is **staged, not committed**. IMP-0764's needle moved and IMP-0500's deferral was annotated (rows 48, 30).
+
+Row 15 carries the fourth reading. Row 43 carries the three measured hotfix facts: the two `tabType` spellings, a Company tab the signer sees empty, and `RECIPIENT_UPDATE_FAILED` behind a 200.
+
+**Row 10** was re-derived at 71 `verify-*.py`, the figure review 2026-09-27 already wrote. No edit, and review 2026-10-05 row 4 needs none either.
+
+### Narrowed, held, withheld at apply
+
+- **Row 28 NARROWED.** The drafted selector, "a known-exceptions entry whose `gate` is `none`", matches **0** entries literally and **2** by prefix. One of the two is EX-005, a DPIA risk acceptance over billable work: a named false positive. The applied selector is `matches` beginning `UNBILLED`, which matches EX-008 only.
+- **Row 19(b) HELD**, a new hold at apply. Measured on the real tree it finds **1 true finding**: the old drop's `ui_kits/trustee-review-portal` is cited by no full path. Wiring it today would turn the HARD `design-source-coverage` step red until architect-agent replaces the old drop, which is what decision 5 asks for. Apply it in the same change as that removal.
+- **Row 8's cutoff** is "after 2026-10-05", as the draft's Amendment re-measurement already required.
+- **Rows 6–7 HELD.** The check-7 descent is still in no commit, and Create Envelope's `Find_the_failed_action` fails the plain gate ([review 2026-10-05 L132](docs/improvements/2026-10-05-improvement-review.md#L132)).
+- **Row 47 HELD.** `WdlExpression.psm1` is still untracked, re-measured at 0 `git ls-files` hits.
+- **Withheld from the routed table, already resolved:** the card-app *Add existing* (re-measured at V3, below) and the WI-0005 commit (all six files tracked). The designer-save question was already withheld (Amendment 3). Partly resolved: the commit item now covers only the flows, the check-7 descent and `WdlExpression.psm1`, because `verify-live-flow-definitions.py` is tracked.
+- **IMP-1039 to IMP-1041 are not folded in.** Their proposed changes were never in front of the reviewer, so applying them on this keyword would apply unapproved rules. They carry `excluded_by` naming this review and stay unread for the next batch, as the revalidation said. IMP-1040 is cited in IMP-1008's closure as the record of the stale carried row.
+
+### Entries
+
+69 entries: **34 APPLIED**, **32 DEFER** with a reviewer-accepted `deferred_reason` and their approved `revisit_when` verbatim, **2 REJECTED** (IMP-0998, IMP-1000), and IMP-0500 annotated and still deferred. Three closures carry a `reobserved` record:
+
+- IMP-1008 at V3: `pac env fetch` on `solutioncomponent` in DEV at 2026-10-05 09:14:13Z shows two componenttype-300 rows in `RevitaliseGrantAutomation`, one per appId (`b0483396…` created 2 Oct 09:10 UTC, `70869c95…` created 22 Aug).
+- IMP-0961 at V2: `npm audit --audit-level=high` re-run at 09:20:36Z exits 0 with the one triaged advisory.
+- IMP-0954 at V3: pipeline-agent's import of 30 September.
+
+### Routed at apply
+
+The rows in §5 still stand, except the three withheld above. These are added:
+
+| To | Item | From |
+|---|---|---|
+| architect-agent | Decision 5: replace `Designsystem/Revitalise Design System/` with the `(1)` copy, cite the replacement's paths, and re-measure [supplied-assets L36](docs/reference/supplied-assets.md#L36) (it still says 131 files). Then improvement-agent applies row 19(b) in the same change | IMP-0992 |
+| commercial-agent | Decision 4: a design under `docs/improvements/` for a per-item billing check (a worklog session names no items today) | IMP-0982 |
+| architect-agent | Record the measured `tabType` strings (prefill `textTabs`, recipient `Text`, [pipeline L308](logs/pipeline.log#L308)) against `A-DS-16`; the TAD still says "unmeasured" | IMP-1025 |
+| pm-agent | Row 16 is live: **62 items** carry the plain `operation:code-app-push` label (55 verified, 6 deployed, 1 reopened). Their next DEV deploy is refused until they are relinked. Card-app items WI-0055..0105 go to `@trustee-review-portal-cards`, the rest to `@trustee-review-portal`. Retitle WI-0052 with `link --title` | IMP-0986, IMP-0994 |
+
+### Verification
+
+- **Gates:** `verify-improvement-log.py --check` exits 0 (275 NEW, 744 APPLIED, 18 REJECTED), with 0 entries of this review awaiting approval and 0 blockers. `verify-build-config.py` PASS (102 steps, 75 gates). `verify-pipeline-config.py` exits 0; before the `app:` keys, check 15 found 3 findings, all 3 true. `verify-design-source-coverage.py` PASS: 3 drops, 0 findings. `verify-assumption-markers.py` PASS: 106 → 117 rows, 0 new failures, 1 new note, true. `verify-class-defences.py` OK. `verify-engine-instance-split.py` exits 0.
+- **Self-tests:** allocator 14, log-line 8, work-items (incl. 17 new cases), post-deploy-completeness 15, design-source 6, assumption-markers 16, gate_baseline, run-with-timeout 7. All pass.
+- **Real ledger:** `verify-work-items.py --check` adds **0** findings. Its 1 failure, WI-0009, is pre-existing and identical on the pre-change library. WI-0045 moved 1 → 0 reopens and WI-0008 2 → 1, as predicted.
+- **Pester:** the build suite is 141 passed, 3 failed. The 3 are `domain-invariants`, the special-category register and `shipped-content`, run over working-tree solution source this review did not edit. They are the hotfix session's red source gates recorded by review 2026-10-05.
+- **Not verified:** no new rule has met a real event yet. The dated ledger rules bind from 6 October, and per-app labels are proven by fixtures and by check 15 on the real config, never by a deploy. Rows 41–44 and the knowledge lines are prose. Nothing here is above V1 except the three re-observations.

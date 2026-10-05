@@ -313,39 +313,41 @@ Describe 'NFR-019 / FR-017 — the rev_setting rows' {
     }
 }
 
-Describe 'C-TECH-006 / NFR-008 — the intake trigger authentication declaration (closes D-001)' {
+Describe 'C-TECH-006 / NFR-008 — the intake trigger authentication declaration (TAD rev 14, ADR-011)' {
+    # REWRITTEN 2026-10-02. The rev 10 block asserted mode 'Specific users in my tenant', the Entra
+    # audience and double-slash scope, the oid claim, and "never Anyone". ADR-011 was re-decided:
+    # the website's webhook cannot refresh an Entra token, so the trigger is in mode Anyone (the
+    # signed callback URL) plus the x-rev-client-id header, and the mode is DECLARED in the flow
+    # source. These assertions encode that decision and tie the settings to the source value.
     It 'both environments declare an intake block' {
         foreach ($name in $script:Both.Keys) {
             $script:Both[$name].intake | Should -Not -BeNullOrEmpty -Because $name
         }
     }
 
-    It 'the authentication mode is the narrowest available option, and never Anyone' {
+    It 'the mode is Anyone, the reviewer''s rev 14 decision, and is IDENTICAL in test and prd' {
         foreach ($name in $script:Both.Keys) {
-            $mode = $script:Both[$name].intake.triggerAuthentication.mode
-            $mode | Should -Be 'Specific users in my tenant' -Because $name
-            $mode | Should -Not -Match '(?i)anyone' -Because "$name — 'Anyone' is a defect, not a configuration choice"
+            $script:Both[$name].intake.triggerAuthentication.mode | Should -BeExactly 'Anyone' -Because $name
         }
-    }
-
-    It 'the mode is IDENTICAL in test and prd — the control is not relaxed anywhere' {
         $script:Prd.intake.triggerAuthentication.mode | Should -Be $script:Test.intake.triggerAuthentication.mode
     }
 
-    It 'the expected audience is the exact public-cloud value, trailing slash included' {
+    It 'the settings name the definition value, and the flow source actually declares it' {
+        $flowPath = Join-Path (Get-RepoRoot) 'src' 'solutions' 'RevitaliseGrantAutomation' 'Workflows' `
+            'REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json'
+        $declared = (Get-Content -Path $flowPath -Raw | ConvertFrom-Json -AsHashtable).properties.definition.triggers.manual.inputs.triggerAuthenticationType
         foreach ($name in $script:Both.Keys) {
-            $script:Both[$name].intake.triggerAuthentication.expectedAudience |
-                Should -Be 'https://service.flow.microsoft.com/' -Because "$name — the aud claim is matched exactly"
+            $script:Both[$name].intake.triggerAuthentication.definitionValue | Should -BeExactly $declared -Because $name
         }
+        $declared | Should -BeExactly 'All'
     }
 
-    It 'the caller token scope carries the double slash before .default' {
-        # A single slash produces MisMatchingOAuthClaims, which reads like a permissions
-        # problem and is not one. Asserting the exact string keeps that half-day out of
-        # somebody's week.
+    It 'no retired Entra-route field survives in the settings (audience, scope, claims, allowed caller)' {
         foreach ($name in $script:Both.Keys) {
-            $script:Both[$name].intake.triggerAuthentication.callerTokenScope |
-                Should -Be 'https://service.flow.microsoft.com//.default' -Because $name
+            $keys = @($script:Both[$name].intake.triggerAuthentication.PSObject.Properties.Name)
+            foreach ($retired in @('expectedAudience', 'callerTokenScope', 'requiredClaims', 'allowedCallerSource')) {
+                $keys | Should -Not -Contain $retired -Because "$name — $retired belongs to the retired rev 10 route"
+            }
         }
     }
 
@@ -357,18 +359,13 @@ Describe 'C-TECH-006 / NFR-008 — the intake trigger authentication declaration
         }
     }
 
-    It 'the required claims include oid, which is what restricting to a service principal depends on' {
-        foreach ($name in $script:Both.Keys) {
-            @($script:Both[$name].intake.triggerAuthentication.requiredClaims) | Should -Contain 'oid' -Because $name
-        }
-    }
-
-    It 'the control HAS A NAMED OWNER — the single thing D-001 said was missing' {
+    It 'the control HAS A NAMED OWNER, and says it is never a designer edit' {
         foreach ($name in $script:Both.Keys) {
             $owner = $script:Both[$name].intake.triggerAuthentication.configuredBy
             $owner | Should -Not -BeNullOrEmpty -Because $name
             $owner.Length | Should -BeGreaterThan 30 -Because "$name — 'someone' is not an owner"
-            $owner | Should -Match '(?i)wanstor' -Because "$name — tenant administration applies the trigger setting"
+            $owner | Should -Match 'development-agent' -Because $name
+            $owner | Should -Match '(?i)never a designer edit' -Because $name
         }
     }
 

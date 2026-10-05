@@ -25,6 +25,7 @@ BeforeAll {
     $script:VerifyEntra   = Get-ProvisioningScriptPath -RelativePath 'entra/verify-entra.ps1'
     $script:EnsureIntake  = Get-ProvisioningScriptPath -RelativePath 'entra/ensure-intake-client.ps1'
     $script:VerifyIntake  = Get-ProvisioningScriptPath -RelativePath 'entra/verify-intake-endpoint-auth.ps1'
+    $script:VerifyCallback = Get-ProvisioningScriptPath -RelativePath 'entra/verify-intake-callback-url.ps1'
 }
 
 AfterAll {
@@ -352,7 +353,7 @@ Describe 'ensure-intake-client.ps1 — the identity behind the intake endpoint (
         }
     }
 
-    It 'PRINTS BOTH IDENTIFIERS, correctly labelled — the values the trigger cannot be configured without' {
+    It 'PRINTS THE x-rev-client-id VALUE, correctly labelled, and the rev 14 trigger mode' {
         Mock Get-MgApplication { $null }
         Mock New-MgApplication { [pscustomobject]@{ Id = 'intake-obj'; AppId = 'intake-app-id'; KeyCredentials = @(); PasswordCredentials = @() } }
         Mock Get-MgServicePrincipal { $null }
@@ -360,13 +361,15 @@ Describe 'ensure-intake-client.ps1 — the identity behind the intake endpoint (
 
         $text = (& $script:EnsureIntake -Env acc) -join "`n"
 
-        # The service principal OBJECT id belongs to the trigger's Allowed users field.
-        $text | Should -Match 'Allowed users\s+\(PRIMARY gate\)\s*:\s*intake-sp-object-id'
-        # The APPLICATION id belongs to the environment variable, and nowhere else.
+        # TAD rev 14 (ADR-011): the APPLICATION id is the header value and the environment variable.
         $text | Should -Match 'rev_IntakeAllowedClientId\s*:\s*intake-app-id'
-        # And the mode, scope and audience are reported so the Deployment Summary carries them.
-        $text | Should -Match 'Specific users in my tenant'
-        $text | Should -Match ([regex]::Escape('https://service.flow.microsoft.com//.default'))
+        $text | Should -Match 'x-rev-client-id header value'
+        # The mode is reported from settings, with the definition value the source declares.
+        $text | Should -Match 'Trigger mode\s*:\s*Anyone \(declared in source: triggerAuthenticationType All\)'
+        # The service principal object id is no longer a trigger value, and must not be presented as one.
+        $text | Should -Not -Match 'Allowed users'
+        $text | Should -Match 'Service principal object id\s*:\s*intake-sp-object-id \(no longer used by the trigger'
+        $text | Should -Not -Match ([regex]::Escape('https://service.flow.microsoft.com//.default'))
         $text | Should -Match 'Configured by\s*:\s*fixture owner'
         $text | Should -Match 'verify-intake-endpoint-auth\.ps1 -Env acc'
     }
@@ -486,90 +489,110 @@ Describe 'ensure-intake-client.ps1 — the identity behind the intake endpoint (
     }
 }
 
-Describe 'verify-intake-endpoint-auth.ps1 — C-TECH-006 Verify By, executable' {
+Describe 'verify-intake-endpoint-auth.ps1 — C-TECH-006 Verify By, executable (TAD rev 14 probes)' {
+    # REWRITTEN 2026-10-02. Under rev 14 the trigger is in mode Anyone: probe A (sig removed) must be
+    # refused by the PLATFORM, probe B (signed, no x-rev-client-id) must be refused by the FLOW with
+    # its own 401 body. The rev 10 tests treated that flow body as defect D-001; it is now the pass.
     BeforeEach {
         $env:INTAKE_ENDPOINT_URL_ACC =
-            'https://prod-99.uksouth.logic.azure.com:443/workflows/abc/triggers/manual/paths/invoke?api-version=2016-06-01&sig=SECRETSIGNATUREVALUE'
+            'https://prod-99.uksouth.logic.azure.com:443/workflows/abc/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SECRETSIGNATUREVALUE'
+        $script:PlatformBody = '{"error":{"code":"DirectApiAuthorizationRequired"}}'
+        $script:FlowBody     = '{"error":"unauthorised"}'
     }
     AfterEach { Remove-Item Env:INTAKE_ENDPOINT_URL_ACC -ErrorAction SilentlyContinue }
 
-    It 'PASSES when the platform rejects both probes with 401' {
-        Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 401; Content = '{"error":{"code":"DirectApiAuthorizationRequired"}}' } }
+    It 'PASSES when the platform refuses the unsigned call and the flow refuses the headerless signed call' {
+        Mock Invoke-WebRequest {
+            if ($Uri -match 'sig=') { return [pscustomobject]@{ StatusCode = 401; Content = '{"error":"unauthorised"}' } }
+            return [pscustomobject]@{ StatusCode = 401; Content = '{"error":{"code":"DirectApiAuthorizationRequired"}}' }
+        }
 
         $output = & $script:VerifyIntake -Env acc
         $LASTEXITCODE | Should -Be 0
-        ($output -join "`n") | Should -Match 'PASS — Unauthenticated POST is rejected'
-        ($output -join "`n") | Should -Match 'PASS — Rejection happened before the workflow definition ran'
-        ($output -join "`n") | Should -Match 'PASS — POST with an invalid bearer token is rejected'
+        ($output -join "`n") | Should -Match 'PASS — \$env:INTAKE_ENDPOINT_URL_ACC carries a sig query value'
+        ($output -join "`n") | Should -Match 'PASS — POST without the sig is refused by the platform'
+        ($output -join "`n") | Should -Match 'PASS — Signed POST without x-rev-client-id is refused by the flow \(401\)'
         Should -Invoke Invoke-WebRequest -Times 2 -Exactly
     }
 
-    It 'accepts 403 as well as 401, because the constraint names both' {
-        Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 403; Content = '{"error":{"code":"Forbidden"}}' } }
+    It 'accepts 403 from the platform on the unsigned probe, because the constraint names both' {
+        Mock Invoke-WebRequest {
+            if ($Uri -match 'sig=') { return [pscustomobject]@{ StatusCode = 401; Content = '{"error":"unauthorised"}' } }
+            return [pscustomobject]@{ StatusCode = 403; Content = '{"error":{"code":"Forbidden"}}' }
+        }
         & $script:VerifyIntake -Env acc | Out-Null
         $LASTEXITCODE | Should -Be 0
     }
 
-    It 'FAILS when the endpoint accepts an unauthenticated request — C-TECH-006 breached' {
-        Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 202; Content = '' } }
-
-        $output = & $script:VerifyIntake -Env acc
-        $LASTEXITCODE | Should -Be 1
-        ($output -join "`n") | Should -Match 'FAIL — Unauthenticated POST is rejected'
-        ($output -join "`n") | Should -Match 'C-TECH-006 \(HARD\) IS BREACHED'
-        ($output -join "`n") | Should -Match 'Specific users in my tenant'
-    }
-
-    It 'FAILS when the 401 came from the flow definition rather than the platform — this IS defect D-001' {
-        # A bare status-code check would call this a pass. The body is what distinguishes
-        # "the platform rejected the caller" from "the request ran and the client-id header
-        # check stopped it", which is the state where the only barrier is a non-secret id.
+    It 'probe A strips ONLY the sig: the other query values and the path are kept, and the signature is never sent' {
         Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 401; Content = '{"error":"unauthorised"}' } }
-
-        $output = & $script:VerifyIntake -Env acc
-        $LASTEXITCODE | Should -Be 1
-        ($output -join "`n") | Should -Match 'PASS — Unauthenticated POST is rejected'
-        ($output -join "`n") | Should -Match 'FAIL — Rejection happened before the workflow definition ran'
-        ($output -join "`n") | Should -Match "trigger's authentication.*parameter is set to 'Anyone'"
+        & $script:VerifyIntake -Env acc | Out-Null
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ParameterFilter {
+            $Uri -notmatch 'sig=' -and $Uri -match '/workflows/abc/triggers/manual/paths/invoke\?' -and
+            $Uri -match 'api-version=2016-06-01' -and $Uri -match 'sv=1\.0'
+        }
+        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ParameterFilter { $Uri -match 'sig=SECRETSIGNATUREVALUE' }
     }
 
-    It 'FAILS when a bearer token is required but not validated' {
-        # A mock body runs in its own scope, so the call counter has to be global.
-        $global:ProbeCallCount = 0
+    It 'FAILS when the unsigned call is ACCEPTED — C-TECH-006 breached' {
         Mock Invoke-WebRequest {
-            $global:ProbeCallCount++
-            if ($global:ProbeCallCount -eq 1) { return [pscustomobject]@{ StatusCode = 401; Content = '{"error":{"code":"x"}}' } }
+            if ($Uri -match 'sig=') { return [pscustomobject]@{ StatusCode = 401; Content = '{"error":"unauthorised"}' } }
             return [pscustomobject]@{ StatusCode = 202; Content = '' }
         }
-
         $output = & $script:VerifyIntake -Env acc
         $LASTEXITCODE | Should -Be 1
-        ($output -join "`n") | Should -Match 'FAIL — POST with an invalid bearer token is rejected'
-        ($output -join "`n") | Should -Match 'does not validate it, which is not authentication'
-        Remove-Variable -Name ProbeCallCount -Scope Global -ErrorAction SilentlyContinue
+        ($output -join "`n") | Should -Match 'FAIL — POST without the sig is refused by the platform'
+        ($output -join "`n") | Should -Match 'C-TECH-006 \(HARD\) IS BREACHED'
     }
 
-    It 'sends no Authorization header on the first probe and a bearer token on the second' {
-        Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 401; Content = '{"error":{"code":"x"}}' } }
-        & $script:VerifyIntake -Env acc | Out-Null
-
-        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ParameterFilter {
-            $Method -eq 'POST' -and -not $Headers.ContainsKey('Authorization')
-        }
-        Should -Invoke Invoke-WebRequest -Times 1 -Exactly -ParameterFilter {
-            $Headers.ContainsKey('Authorization') -and $Headers.Authorization -match '^Bearer '
-        }
+    It 'FAILS when the unsigned call reached the definition — the first control is not in force' {
+        Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 401; Content = '{"error":"unauthorised"}' } }
+        $output = & $script:VerifyIntake -Env acc
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match 'FAIL — POST without the sig is refused by the platform'
+        ($output -join "`n") | Should -Match 'UNSIGNED request reached the workflow definition'
     }
 
-    It 'sends a synthetic payload with no personal data and no client-id header (C-TECH-007)' {
+    It 'FAILS when the PLATFORM refuses the signed call — the trigger is not in mode Anyone (A-INT-11)' {
+        Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 401; Content = '{"error":{"code":"MisMatchingOAuthClaims"}}' } }
+        $output = & $script:VerifyIntake -Env acc
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match 'PASS — POST without the sig is refused by the platform'
+        ($output -join "`n") | Should -Match 'FAIL — Signed POST without x-rev-client-id is refused by the flow'
+        ($output -join "`n") | Should -Match "NOT in mode 'Anyone'"
+        ($output -join "`n") | Should -Match 'A-INT-11'
+    }
+
+    It 'FAILS when the signed, headerless call is admitted — the second control is absent' {
+        Mock Invoke-WebRequest {
+            if ($Uri -match 'sig=') { return [pscustomobject]@{ StatusCode = 400; Content = '{"error":"incomplete"}' } }
+            return [pscustomobject]@{ StatusCode = 401; Content = '{"error":{"code":"DirectApiAuthorizationRequired"}}' }
+        }
+        $output = & $script:VerifyIntake -Env acc
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match 'FAIL — Signed POST without x-rev-client-id is refused by the flow'
+        ($output -join "`n") | Should -Match 'anyone holding the URL is admitted'
+    }
+
+    It 'FAILS when the URL secret carries no sig at all' {
+        $env:INTAKE_ENDPOINT_URL_ACC = 'https://prod-99.uksouth.logic.azure.com/workflows/abc/triggers/manual/paths/invoke?api-version=2016-06-01'
         Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 401; Content = '{"error":{"code":"x"}}' } }
+        $output = & $script:VerifyIntake -Env acc
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match 'FAIL — \$env:INTAKE_ENDPOINT_URL_ACC carries a sig query value'
+    }
+
+    It 'sends no Authorization header and no client-id header on either probe, and a synthetic payload (C-TECH-007)' {
+        Mock Invoke-WebRequest { [pscustomobject]@{ StatusCode = 401; Content = '{"error":"unauthorised"}' } }
         & $script:VerifyIntake -Env acc | Out-Null
 
-        Should -Invoke Invoke-WebRequest -ParameterFilter {
+        Should -Invoke Invoke-WebRequest -Times 2 -Exactly -ParameterFilter {
             $payload = $Body | ConvertFrom-Json
+            $Method -eq 'POST' -and
             $payload.submission_id -match '^SMOKE-CTECH006-' -and
             ($payload.PSObject.Properties.Name.Count -eq 1) -and
-            -not $Headers.ContainsKey('x-rev-client-id')
+            -not $Headers.ContainsKey('x-rev-client-id') -and
+            -not $Headers.ContainsKey('Authorization')
         }
     }
 
@@ -607,3 +630,95 @@ Describe 'verify-intake-endpoint-auth.ps1 — C-TECH-006 Verify By, executable' 
         ($output -join "`n") | Should -Match 'the probe itself could not be sent: No such host is known'
     }
 }
+
+Describe 'verify-intake-callback-url.ps1 — the before/after hash compare (TAD rev 14, ADR-011 intervention 4)' {
+    BeforeEach {
+        Mock Get-ProvisioningCertificate { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } }
+        Mock Get-MsalToken { [pscustomobject]@{ AccessToken = 'fake-access-token' } }
+        $script:Snapshot = Join-Path ([IO.Path]::GetTempPath()) "intake-callback-$([guid]::NewGuid()).json"
+        $global:RevCallbackUrlA = 'https://prod-99.uksouth.logic.azure.com/workflows/abc/triggers/manual/paths/invoke?api-version=2016-06-01&sig=SIGNATUREAAAA'
+        $global:RevCallbackUrlB = 'https://prod-99.uksouth.logic.azure.com/workflows/abc/triggers/manual/paths/invoke?api-version=2016-06-01&sig=SIGNATUREBBBB'
+    }
+    AfterEach {
+        Remove-Item -Path $script:Snapshot -ErrorAction SilentlyContinue
+        Remove-Item Env:INTAKE_ENDPOINT_URL_ACC -ErrorAction SilentlyContinue
+        # A mock body runs in its own scope, so the two URLs are global (as ProbeCallCount above).
+        Remove-Variable -Name RevCallbackUrlA, RevCallbackUrlB -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'Capture writes the hash and NEVER the URL' {
+        Mock Invoke-RestMethod { [pscustomobject]@{ response = [pscustomobject]@{ value = $global:RevCallbackUrlA } } }
+        $out = (& $script:VerifyCallback -Env acc -Mode Capture -SnapshotPath $script:Snapshot) -join "`n"
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Match 'PASS — Before-import hash captured'
+        $written = Get-Content -Path $script:Snapshot -Raw
+        $written | Should -Not -Match 'SIGNATUREAAAA'
+        $written | Should -Not -Match 'logic\.azure\.com'
+        ($written | ConvertFrom-Json).sha256 | Should -Match '^[0-9a-f]{64}$'
+        $out | Should -Not -Match 'SIGNATUREAAAA'
+    }
+
+    It 'Compare PASSES when the live URL hashes the same as the snapshot' {
+        Mock Invoke-RestMethod { [pscustomobject]@{ response = [pscustomobject]@{ value = $global:RevCallbackUrlA } } }
+        & $script:VerifyCallback -Env acc -Mode Capture -SnapshotPath $script:Snapshot | Out-Null
+        $out = (& $script:VerifyCallback -Env acc -Mode Compare -SnapshotPath $script:Snapshot) -join "`n"
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Match 'PASS — Intake callback URL unchanged across the import'
+        $out | Should -Not -Match 'SIGNATUREAAAA'
+    }
+
+    It 'Compare FAILS with REVIEWER ACTION REQUIRED, and no rollback, when the import changed the URL' {
+        Mock Invoke-RestMethod { [pscustomobject]@{ response = [pscustomobject]@{ value = $global:RevCallbackUrlA } } }
+        & $script:VerifyCallback -Env acc -Mode Capture -SnapshotPath $script:Snapshot | Out-Null
+        Mock Invoke-RestMethod { [pscustomobject]@{ response = [pscustomobject]@{ value = $global:RevCallbackUrlB } } }
+        $out = (& $script:VerifyCallback -Env acc -Mode Compare -SnapshotPath $script:Snapshot) -join "`n"
+        $LASTEXITCODE | Should -Be 1
+        $out | Should -Match 'FAIL — Intake callback URL unchanged across the import'
+        $out | Should -Match 'REVIEWER ACTION REQUIRED: update the WordPress webhook URL and the CI secret'
+        $out | Should -Match 'do not roll back'
+        $out | Should -Not -Match 'SIGNATURE(AAAA|BBBB)'
+    }
+
+    It 'Compare -Baseline Secret hashes the CI secret the website was given (TST/ACC, PRD)' {
+        Mock Invoke-RestMethod { [pscustomobject]@{ value = $global:RevCallbackUrlA } }
+        $env:INTAKE_ENDPOINT_URL_ACC = $global:RevCallbackUrlA
+        $out = (& $script:VerifyCallback -Env acc -Mode Compare -Baseline Secret) -join "`n"
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Match 'PASS — Intake callback URL unchanged'
+        $env:INTAKE_ENDPOINT_URL_ACC = $global:RevCallbackUrlB
+        & $script:VerifyCallback -Env acc -Mode Compare -Baseline Secret | Out-Null
+        $LASTEXITCODE | Should -Be 1
+    }
+
+    It 'calls listCallbackUrl for the intake workflow in the settings environment, with a Power Automate token' {
+        Mock Invoke-RestMethod { [pscustomobject]@{ response = [pscustomobject]@{ value = $global:RevCallbackUrlA } } }
+        & $script:VerifyCallback -Env acc -Mode Capture -SnapshotPath $script:Snapshot | Out-Null
+        Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+            $Method -eq 'POST' -and
+            $Uri -match '/environments/55555555-5555-5555-5555-555555555555/flows/8f1c2a44-1001-4b7a-9e21-0a1b2c3d4e01/triggers/manual/listCallbackUrl'
+        }
+        Should -Invoke Get-MsalToken -Times 1 -Exactly -ParameterFilter { $Scopes -eq 'https://service.flow.microsoft.com//.default' }
+    }
+
+    It 'FAILS loudly, naming A-INT-13, when the API refuses or answers in an unexpected shape' {
+        Mock Invoke-RestMethod { [pscustomobject]@{ somethingElse = 'x' } }
+        $out = (& $script:VerifyCallback -Env acc -Mode Capture -SnapshotPath $script:Snapshot) -join "`n"
+        $LASTEXITCODE | Should -Be 1
+        $out | Should -Match 'FAIL — Live intake callback URL read'
+        $out | Should -Match 'A-INT-13'
+        Test-Path $script:Snapshot | Should -BeFalse -Because 'no hash may be written from a read that failed'
+
+        Mock Invoke-RestMethod { throw '403 Forbidden' }
+        $out = (& $script:VerifyCallback -Env acc -Mode Capture -SnapshotPath $script:Snapshot) -join "`n"
+        $LASTEXITCODE | Should -Be 1
+        $out | Should -Match '403 Forbidden'
+    }
+
+    It 'Compare -Baseline Snapshot FAILS when no Capture ran first' {
+        Mock Invoke-RestMethod { [pscustomobject]@{ response = [pscustomobject]@{ value = $global:RevCallbackUrlA } } }
+        $out = (& $script:VerifyCallback -Env acc -Mode Compare -SnapshotPath $script:Snapshot) -join "`n"
+        $LASTEXITCODE | Should -Be 1
+        $out | Should -Match 'run -Mode Capture before the import'
+    }
+}
+

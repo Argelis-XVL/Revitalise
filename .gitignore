@@ -18,6 +18,8 @@ __pycache__/
 # ── OS / editor ───────────────────────────────────────────────────────────────
 .DS_Store
 .vscode/
+# Pester -CI writes this at the repo root; never track it (IMP-1030)
+testResults.xml
 
 # ── Node (Code Apps — React/Vite) ────────────────────────────────────────────
 # Code App build outputs (node_modules/, dist/) are ignored by the patterns below.

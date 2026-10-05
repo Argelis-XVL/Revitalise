@@ -1431,6 +1431,8 @@ Describe 'Dataverse write actions — the shape the connector actually accepts' 
     #   CreateRecord with a NESTED "item": { ... } object WORKS. REV | Ops | Failure Alert
     #   wrote eleven rev_errorlog rows with all seven columns populated, so that shape is
     #   verified and the three CreateRecord actions in this solution keep it.
+    #   ^ SUPERSEDED 2026-10-02 (TAD rev 14 section 5 rule): verified at RUNTIME only. A designer
+    #     save empties a nested CreateRecord too — see the second test in this block.
     #
     #   UpdateRecord with the same nested shape DOES NOT. The reviewer opened
     #   Write_score_and_status in the designer and found the action with NO PROPERTIES
@@ -1477,5 +1479,48 @@ Describe 'Dataverse write actions — the shape the connector actually accepts' 
         }
         Test-ActionTree -Actions $def.properties.definition.actions -Offenders $offenders
         $offenders | Should -BeNullOrEmpty -Because 'the nested shape leaves the action with no properties configured and writes nothing'
+    }
+
+    # TAD rev 14 section 5 rule (2026-10-02). The block comment above records the belief this
+    # suite held until then: nested item is fine for CreateRecord. That held AT RUNTIME only.
+    # A designer save of the intake flow at 08:51 UTC on 2026-10-02 emptied BOTH nested
+    # CreateRecord actions while the flat Refresh_existing_applicant in the same flow kept every
+    # column — the designer binds only the flat form and writes back only what it bound. So the
+    # rule is now the same for every Dataverse write, in every flow, not only these four.
+    #
+    # No exceptions. The last one (intake Create_application, the only lookup bind) was removed
+    # when A-INT-15 closed: the designer-written flat key is item/rev_applicantid@odata.bind.
+    It 'no Dataverse CreateRecord / UpdateRecord / UpdateOnlyRecord in any flow nests its columns under item' {
+        $writes = @('CreateRecord', 'UpdateRecord', 'UpdateOnlyRecord')
+        $nested = [System.Collections.Generic.List[string]]::new()
+        $flat   = [System.Collections.Generic.List[string]]::new()
+
+        function Get-WriteActions {
+            param($Actions, [string]$Flow)
+            if ($null -eq $Actions) { return }
+            foreach ($name in @($Actions.Keys)) {
+                $a = $Actions[$name]
+                if ($a['type'] -eq 'OpenApiConnection' -and $a['inputs'] -and $a['inputs']['host'] -and
+                    $writes -contains $a['inputs']['host']['operationId']) {
+                    $keys = @($a['inputs']['parameters'].Keys)
+                    if ($keys -contains 'item') { $nested.Add("$Flow/$name") } else { $flat.Add("$Flow/$name") }
+                }
+                if ($a['actions']) { Get-WriteActions -Actions $a['actions'] -Flow $Flow }
+                if ($a['else'] -and $a['else']['actions']) { Get-WriteActions -Actions $a['else']['actions'] -Flow $Flow }
+                if ($a['cases']) { foreach ($c in @($a['cases'].Keys)) { Get-WriteActions -Actions $a['cases'][$c]['actions'] -Flow $Flow } }
+                if ($a['default'] -and $a['default']['actions']) { Get-WriteActions -Actions $a['default']['actions'] -Flow $Flow }
+            }
+        }
+
+        $workflows = Join-Path (Get-SolutionRoot) 'Workflows'
+        foreach ($file in Get-ChildItem -Path $workflows -Filter '*.json') {
+            $flowName = ($file.BaseName -split '-')[0]
+            $def = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json -AsHashtable
+            Get-WriteActions -Actions $def.properties.definition.actions -Flow $flowName
+        }
+
+        $flat.Count | Should -BeGreaterThan 10 -Because 'the walk must actually find the solution''s Dataverse writes, or this test passes vacuously'
+        @($nested) | Should -BeNullOrEmpty `
+            -Because 'a designer save empties a nested item object; write item/<column> keys (TAD section 5 rule)'
     }
 }

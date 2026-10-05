@@ -1157,6 +1157,134 @@
             <Description description="The telephone number of the person providing a reference for this application." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="rev_refereefirstname">
+          <Type>nvarchar</Type>
+          <Name>rev_refereefirstname</Name>
+          <LogicalName>rev_refereefirstname</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee First Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The referee's first name. Added 2026-10-04 at the reviewer's request; filled by the grant administrator. Prefills the referee's First name on the DocuSign acceptance form; when empty, the flow uses Referee Name up to the first space." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereelastname">
+          <Type>nvarchar</Type>
+          <Name>rev_refereelastname</Name>
+          <LogicalName>rev_refereelastname</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Last Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The referee's last name. Added 2026-10-04 at the reviewer's request; filled by the grant administrator. Prefills the referee's Last name on the DocuSign acceptance form; when empty, the flow uses Referee Name after the first space." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereetitle">
+          <Type>nvarchar</Type>
+          <Name>rev_refereetitle</Name>
+          <LogicalName>rev_refereetitle</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>50</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Title" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The referee's title (for example Dr or Mrs). Added 2026-10-03 at the reviewer's request; filled by the grant administrator, not by the website form. Prefills the referee's Title on the DocuSign acceptance form." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereejobtitle">
+          <Type>nvarchar</Type>
+          <Name>rev_refereejobtitle</Name>
+          <LogicalName>rev_refereejobtitle</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Job Title" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The referee's job title. Added 2026-10-03 at the reviewer's request; filled by the grant administrator. Prefills the referee's Job title on the DocuSign acceptance form." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereecompany">
+          <Type>nvarchar</Type>
+          <Name>rev_refereecompany</Name>
+          <LogicalName>rev_refereecompany</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Organisation" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The organisation the referee works for. Added 2026-10-03 at the reviewer's request; filled by the grant administrator. Prefills the referee's Company field on the DocuSign acceptance form." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereeaddress">
+          <Type>nvarchar</Type>
+          <Name>rev_refereeaddress</Name>
+          <LogicalName>rev_refereeaddress</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>250</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Address" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The referee's street address. Added 2026-10-03 at the reviewer's request; filled by the grant administrator. Prefills the referee's Address on the DocuSign acceptance form." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereetowncity">
+          <Type>nvarchar</Type>
+          <Name>rev_refereetowncity</Name>
+          <LogicalName>rev_refereetowncity</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Town/City" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The referee's town or city. Added 2026-10-03 at the reviewer's request; filled by the grant administrator. Prefills the referee's Town/City on the DocuSign acceptance form." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereepostcode">
+          <Type>nvarchar</Type>
+          <Name>rev_refereepostcode</Name>
+          <LogicalName>rev_refereepostcode</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>10</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Postcode" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The referee's postcode. Added 2026-10-03 at the reviewer's request; filled by the grant administrator. Prefills the referee's Postcode on the DocuSign acceptance form." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_emergencycontactname">
           <Type>nvarchar</Type>
           <Name>rev_emergencycontactname</Name>
@@ -1362,8 +1490,8 @@
           COST BREAKDOWN - raw export columns 119 to 122. The live form asks for three component
           costs and then a total, and the export's own header calls column 122 "Total estimated
           cost", so the total is the sum of the three rather than a fourth independent figure.
-          Making it calculated removes the class of defect where the parts and the total disagree
-          and a trustee has to guess which one is right.
+          rev_costs is a plain column the intake flow fills with that sum (it is NOT calculated;
+          see its own comment), so the parts and the total agree at intake.
         -->
         <attribute PhysicalName="rev_accommodationcost">
           <Type>money</Type>
@@ -1418,9 +1546,14 @@
         </attribute>
         <attribute PhysicalName="rev_costs">
           <!--
-            CALCULATED COLUMN. Was a directly-written figure the applicant supplied; converted to
-            the sum of the three component costs above, matching raw export column 122 "Total
-            estimated cost".
+            PLAIN WRITABLE COLUMN, NOT CALCULATED (corrected 2026-10-03, same class as IMP-1033). The
+            intake flow's Create_application WRITES it: the sum of the three component costs above
+            that are present, NULL when all three are null (blank = unknown, never zero; ADR-039).
+            Matches raw export column 122 "Total estimated cost" in meaning; the payload's own
+            total_estimated_cost is not transferred.
+
+            IF THIS COLUMN IS EVER CONVERTED TO CALCULATED, THE item/rev_costs WRITE IN THE INTAKE
+            FLOW MUST BE REMOVED IN THE SAME CHANGE - a write to a calculated column fails the create.
 
             SCHEMA NAME DELIBERATELY UNCHANGED so that nothing referencing rev_costs has to move -
             the form specification, the intake payload contract and any future view keep one name.
@@ -1428,13 +1561,9 @@
             the export and the data model both call it and what a trustee reading the record needs
             it to say.
 
-            SAME THREE CONSEQUENCES AS rev_applicant.rev_fullname, all deliberate:
-              1. It cannot be written - the intake flow no longer sends it, and Alex's site must
-                 not send a `costs` value. It sends the three components.
-              2. RequiredLevel stays None; a calculated column cannot be required.
-              3. IsAuditEnabled drops to 0, because a calculated value is computed on retrieve
-                 rather than stored. NO AUDIT COVERAGE IS LOST - all three source columns are
-                 audited (C-DOM-010/011).
+            Historic consequences of the original calculated design (kept for the conversion path):
+              RequiredLevel stays None; IsAuditEnabled is 0; all three source columns are audited
+              (C-DOM-010/011), so no audit coverage is lost.
 
             NOT CALCULATED YET — SourceType/Formula REMOVED 2026-08-14. Confirmed live against
             DEV that Dataverse's solution import rejects this exact form outright with a generic
@@ -1460,7 +1589,7 @@
             <displayname description="Total Cost" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The total estimated cost of the break. CALCULATED as accommodation plus travel plus other cost - it cannot be typed or written by a flow, so the parts and the total can never disagree." languagecode="1033" />
+            <Description description="The total estimated cost of the break: accommodation plus travel plus other cost, written by the intake flow (blank when none of the three was given). An ordinary column, not calculated; if it is ever converted to calculated the intake write must be removed." languagecode="1033" />
           </Descriptions>
         </attribute>
         <!--

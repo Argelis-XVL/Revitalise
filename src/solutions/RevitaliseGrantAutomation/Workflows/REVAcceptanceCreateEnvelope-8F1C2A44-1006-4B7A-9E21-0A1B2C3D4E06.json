@@ -23,7 +23,7 @@
     "definition": {
       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
       "contentVersion": "1.0.0.0",
-      "description": "REV | Acceptance | Create Envelope (wbs:3.2, DEV only per EX-006/EX-007). Builds and sends the DocuSign envelope (FR-041/042), then sets its reminder cadence from Setting.ReminderDays (FR-043, IMP-0618). See notes.md.",
+      "description": "REV | Acceptance | Create Envelope (wbs:3.2, DEV only per EX-006/EX-007). TAD rev 15: creates a DocuSign draft, binds both signers, sets the referee access code, fills and checks every tab, sets reminders, then sends (FR-041/042/043). See notes.md.",
       "parameters": {
         "$connections": {
           "type": "Object",
@@ -85,14 +85,60 @@
             ]
           }
         },
-        "Build_the_envelope": {
-          "type": "Scope",
+        "Initialise_check_problem": {
+          "type": "InitializeVariable",
           "runAfter": {
             "Initialise_failure_detail": [
               "Succeeded"
             ]
           },
-          "description": "One scope so one failure branch catches everything below it, same shape as REV | Scoring | Calculate & Flag's Score_and_flag.",
+          "description": "What a pre-send check found missing, in words, never a value. Empty means the check passed.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "checkProblem",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "Initialise_draft_envelope_id": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_check_problem": [
+              "Succeeded"
+            ]
+          },
+          "description": "The DocuSign draft's id once it exists, so every alert can name the orphaned draft (A-R74). Empty means no draft was created.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "draftEnvelopeId",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Initialise_draft_envelope_id": [
+              "Succeeded"
+            ]
+          },
+          "description": "Deep link to THIS run. Built before the scope so the in-scope check alerts can use it too; workflow() inside the child returns the child's own identity.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Build_the_envelope": {
+          "type": "Scope",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "One scope so one failure branch catches everything below it. TAD rev 15 5.8: draft, bind, fill, check, remind, send (ADR-067 C1-C10 option A, ADR-068).",
           "actions": {
             "Get_the_application": {
               "type": "OpenApiConnection",
@@ -107,7 +153,7 @@
                 "parameters": {
                   "entityName": "rev_applications",
                   "$filter": "@{concat('rev_applicationid eq ', triggerOutputs()?['body/_rev_applicationid_value'])}",
-                  "$select": "rev_name,rev_applicantid,rev_refereename,rev_refereeemail,rev_refereephone,rev_breaktype,rev_breaklocation"
+                  "$select": "rev_name,_rev_applicantid_value,rev_refereename,rev_refereeemail,rev_refereephone,rev_breaktype,rev_breaklocation,rev_refereetitle,rev_refereejobtitle,rev_refereecompany,rev_refereeaddress,rev_refereetowncity,rev_refereepostcode,rev_refereefirstname,rev_refereelastname"
                 },
                 "authentication": "@parameters('$authentication')",
                 "retryPolicy": {
@@ -132,7 +178,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "Reads the applicant's name and email (Tier 4, released to REV Admins/REV Service Accounts by REV_TrusteeRestricted). By primary key via ListRecords, same reason as Get_the_application.",
+              "description": "The applicant's name, email, title, address and phone for the envelope's tabs. Column-secured (REV_TrusteeRestricted): the service identity must be a member, or they read empty. By primary key via ListRecords.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -141,8 +187,8 @@
                 },
                 "parameters": {
                   "entityName": "rev_applicants",
-                  "$filter": "@{concat('rev_applicantid eq ', first(body('Get_the_application')?['value'])?['_rev_applicantid_value'])}",
-                  "$select": "rev_fullname,rev_email"
+                  "$filter": "@{concat('rev_applicantid eq ', first(outputs('Get_the_application')?['body/value'])?['_rev_applicantid_value'])}",
+                  "$select": "rev_fullname,rev_email,rev_firstname,rev_lastname,rev_title,rev_addressline,rev_addressline2,rev_towncity,rev_postcode,rev_phone"
                 },
                 "authentication": "@parameters('$authentication')",
                 "retryPolicy": {
@@ -203,85 +249,40 @@
                       "interval": "PT10S"
                     }
                   }
+                },
+                "Compose_provider_name": {
+                  "type": "Compose",
+                  "runAfter": {
+                    "Get_the_provider": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Falls back to a placeholder when no provider is set (rev_providerid RequiredLevel None), rather than failing a run the TAD does not require this field for.",
+                  "inputs": "@coalesce(first(outputs('Get_the_provider')?['body/value'])?['rev_name'], 'provider not yet named')"
                 }
               },
               "else": {
                 "actions": {}
               }
             },
-            "Compose_provider_name": {
-              "type": "Compose",
+            "Read_acceptance_email_settings": {
+              "type": "OpenApiConnection",
               "runAfter": {
                 "Skip_provider_lookup_if_none_is_set": [
                   "Succeeded"
                 ]
               },
-              "description": "Falls back to a placeholder when no provider is set (rev_providerid RequiredLevel None), rather than failing a run the TAD does not require this field for.",
-              "inputs": "@coalesce(first(body('Get_the_provider')?['value'])?['rev_name'], 'provider not yet named')"
-            },
-            "Compose_template_tab_values": {
-              "type": "Compose",
-              "runAfter": {
-                "Compose_provider_name": [
-                  "Succeeded"
-                ]
-              },
-              "description": "A-DS-2: VALUES ground-truthed against the template's own anchor-tag table (reviewer-supplied); the wire SHAPE is not - see notes.md. p_amt/p_dates read straight off this run.",
-              "inputs": {
-                "p_name": "@first(body('Get_the_applicant')?['value'])?['rev_fullname']",
-                "p_amt": "@{formatNumber(triggerOutputs()?['body/rev_amountawarded'], 'N2')}",
-                "p_type": "@coalesce(first(body('Get_the_application')?['value'])?['rev_breaktype@OData.Community.Display.V1.FormattedValue'], string(first(body('Get_the_application')?['value'])?['rev_breaktype']))",
-                "p_venue": "@first(body('Get_the_application')?['value'])?['rev_breaklocation']",
-                "p_dates": "@{concat(formatDateTime(triggerOutputs()?['body/rev_holidaystart'], 'd MMMM yyyy'), ' to ', formatDateTime(triggerOutputs()?['body/rev_holidayend'], 'd MMMM yyyy'))}"
-              },
-              "runtimeConfiguration": {
-                "secureData": {
-                  "properties": [
-                    "inputs"
-                  ]
-                }
-              }
-            },
-            "Create_and_send_the_envelope": {
-              "type": "OpenApiConnection",
-              "runAfter": {
-                "Compose_template_tab_values": [
-                  "Succeeded"
-                ]
-              },
-              "description": "A-DS-1/A-DS-2/A-DS-4/A-DS-5/A-DS-12: DocuSign SendEnvelope. Signers is a keyed OBJECT not array (A-DS-2/12 correction, 2026-09-25). Top-level tabs removed, moved into signer 0's tabs (A-DS-12, unverified). See notes.md.",
+              "description": "ADR-068 item 3: each signer's own email subject and body, from rev_setting rows AcceptanceEmailApplicant and AcceptanceEmailReferee (JSON {subject, body}). House ListRecords read. No personal column.",
               "inputs": {
                 "host": {
-                  "connectionName": "shared_docusign",
-                  "operationId": "SendEnvelope",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
                 },
                 "parameters": {
-                  "accountId": "@parameters('rev_DocuSignAccountId')",
-                  "templateId": "@parameters('rev_DocuSignAcceptanceTemplateId')",
-                  "status": "sent",
-                  "emailSubject": "@{concat('Your Revitalise grant acceptance - ', triggerOutputs()?['body/rev_name'])}",
-                  "emailBody": "Please review and sign your Revitalise grant acceptance. A referee or GP signature follows yours.",
-                  "signers": {
-                    "0": {
-                      "roleName": "Grant Acceptor",
-                      "routingOrder": "1",
-                      "name": "@first(body('Get_the_applicant')?['value'])?['rev_fullname']",
-                      "email": "@first(body('Get_the_applicant')?['value'])?['rev_email']",
-                      "tabs": "@outputs('Compose_template_tab_values')"
-                    },
-                    "1": {
-                      "roleName": "Grant Referee",
-                      "routingOrder": "2",
-                      "name": "@first(body('Get_the_application')?['value'])?['rev_refereename']",
-                      "email": "@first(body('Get_the_application')?['value'])?['rev_refereeemail']",
-                      "tabs": {
-                        "ph2": "@first(body('Get_the_application')?['value'])?['rev_refereephone']",
-                        "n2": "@first(body('Get_the_application')?['value'])?['rev_refereename']",
-                        "e2": "@first(body('Get_the_application')?['value'])?['rev_refereeemail']"
-                      }
-                    }
-                  }
+                  "entityName": "rev_settings",
+                  "$filter": "rev_name eq 'AcceptanceEmailApplicant' or rev_name eq 'AcceptanceEmailReferee'",
+                  "$select": "rev_name,rev_value"
                 },
                 "authentication": "@parameters('$authentication')",
                 "retryPolicy": {
@@ -289,6 +290,60 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              }
+            },
+            "Filter_applicant_email_setting": {
+              "type": "Query",
+              "runAfter": {
+                "Read_acceptance_email_settings": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The applicant's email row. Empty when the row is not seeded; Set_referee_details_problem then stops the run before any draft exists.",
+              "inputs": {
+                "from": "@outputs('Read_acceptance_email_settings')?['body/value']",
+                "where": "@equals(item()?['rev_name'], 'AcceptanceEmailApplicant')"
+              }
+            },
+            "Filter_referee_email_setting": {
+              "type": "Query",
+              "runAfter": {
+                "Filter_applicant_email_setting": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The referee's email row. Its body states the access-code RULE (last 6 digits of your phone number), never the digits (ADR-068 item 4).",
+              "inputs": {
+                "from": "@outputs('Read_acceptance_email_settings')?['body/value']",
+                "where": "@equals(item()?['rev_name'], 'AcceptanceEmailReferee')"
+              }
+            },
+            "Compose_acceptance_email_texts": {
+              "type": "Compose",
+              "runAfter": {
+                "Filter_referee_email_setting": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Subject and body per signer from the settings rows. Tokens: {grantReference}, {applicationReference}, {applicantName}, {refereeName}. Line breaks in the row (\\n) are kept.",
+              "inputs": {
+                "applicantSubject": "@replace(replace(replace(replace(coalesce(json(coalesce(first(body('Filter_applicant_email_setting'))?['rev_value'], '{}'))?['subject'], ''), '{grantReference}', coalesce(triggerOutputs()?['body/rev_name'], '')), '{applicationReference}', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_name'], '')), '{applicantName}', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))), '{refereeName}', if(empty(trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))), coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], ''), trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))))",
+                "applicantBody": "@replace(replace(replace(replace(coalesce(json(coalesce(first(body('Filter_applicant_email_setting'))?['rev_value'], '{}'))?['body'], ''), '{grantReference}', coalesce(triggerOutputs()?['body/rev_name'], '')), '{applicationReference}', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_name'], '')), '{applicantName}', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))), '{refereeName}', if(empty(trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))), coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], ''), trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))))",
+                "refereeSubject": "@replace(replace(replace(replace(coalesce(json(coalesce(first(body('Filter_referee_email_setting'))?['rev_value'], '{}'))?['subject'], ''), '{grantReference}', coalesce(triggerOutputs()?['body/rev_name'], '')), '{applicationReference}', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_name'], '')), '{applicantName}', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))), '{refereeName}', if(empty(trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))), coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], ''), trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))))",
+                "refereeBody": "@replace(replace(replace(replace(coalesce(json(coalesce(first(body('Filter_referee_email_setting'))?['rev_value'], '{}'))?['body'], ''), '{grantReference}', coalesce(triggerOutputs()?['body/rev_name'], '')), '{applicationReference}', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_name'], '')), '{applicantName}', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))), '{refereeName}', if(empty(trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))), coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], ''), trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))))"
+              }
+            },
+            "Select_referee_phone_digits": {
+              "type": "Select",
+              "runAfter": {
+                "Compose_acceptance_email_texts": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-068 item 4: keeps every DIGIT of rev_refereephone and drops everything else (spaces, +, -, brackets, letters). Padded by one space so substring() is total on either if() semantics.",
+              "inputs": {
+                "from": "@range(0, add(length(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereephone'], '')), 1))",
+                "select": "@if(contains('0123456789', substring(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereephone'], ''), ' '), item(), 1)), substring(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereephone'], ''), ' '), item(), 1), '')"
               },
               "runtimeConfiguration": {
                 "secureData": {
@@ -299,10 +354,1014 @@
                 }
               }
             },
+            "Compose_referee_phone_digits": {
+              "type": "Compose",
+              "runAfter": {
+                "Select_referee_phone_digits": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The referee's phone, digits only. Secure inputs: derived from personal data.",
+              "inputs": "@join(body('Select_referee_phone_digits'), '')",
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            },
+            "Set_referee_details_problem": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Compose_referee_phone_digits": [
+                  "Succeeded"
+                ]
+              },
+              "description": "TAD 5.8 step 1: names the FIRST missing item in words, never its value. Empty means all present. A variable action shows only this text in run history.",
+              "inputs": {
+                "name": "checkProblem",
+                "value": "@if(empty(outputs('Compose_acceptance_email_texts')?['applicantSubject']), 'the settings row AcceptanceEmailApplicant is missing or has no subject', if(empty(outputs('Compose_acceptance_email_texts')?['applicantBody']), 'the settings row AcceptanceEmailApplicant has no body', if(greater(length(outputs('Compose_acceptance_email_texts')?['applicantSubject']), 100), 'the AcceptanceEmailApplicant subject is longer than 100 characters', if(empty(outputs('Compose_acceptance_email_texts')?['refereeSubject']), 'the settings row AcceptanceEmailReferee is missing or has no subject', if(empty(outputs('Compose_acceptance_email_texts')?['refereeBody']), 'the settings row AcceptanceEmailReferee has no body', if(greater(length(outputs('Compose_acceptance_email_texts')?['refereeSubject']), 100), 'the AcceptanceEmailReferee subject is longer than 100 characters', if(empty(trim(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_email'], ''))), 'the applicant email is empty', if(empty(trim(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''))), 'the applicant first name is empty or not readable by the service identity', if(empty(trim(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], ''))), 'the referee name is empty', if(empty(trim(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereeemail'], ''))), 'the referee email is empty', if(less(length(outputs('Compose_referee_phone_digits')), 6), 'the referee phone number has fewer than six digits', '')))))))))))"
+              }
+            },
+            "Check_referee_details_are_present": {
+              "type": "If",
+              "runAfter": {
+                "Set_referee_details_problem": [
+                  "Succeeded"
+                ]
+              },
+              "description": "TAD 5.8 step 1 / ADR-068 items 3-4: anything missing -> alert, then stop (Failed). No draft exists yet, nobody is emailed, the grant stays at Awarded.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@not(empty(variables('checkProblem')))",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Alert_referee_details_missing": {
+                  "type": "Workflow",
+                  "runAfter": {},
+                  "description": "FR-010: the grant reference and WHICH item is missing, never a value. Same alert-then-stop shape as REV | Portal | Round Statistics.",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                    },
+                    "body": {
+                      "text": "REV | Acceptance | Create Envelope",
+                      "text_1": "@{workflow()?['run']?['name']}",
+                      "text_2": "@{concat('No envelope was created: ', variables('checkProblem'), '. Nothing was sent to DocuSign and the grant stays at Awarded.')}",
+                      "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-grant')}",
+                      "text_4": "Error",
+                      "text_5": "@{outputs('Compose_run_link')}"
+                    }
+                  }
+                },
+                "Stop_referee_details_missing": {
+                  "type": "Terminate",
+                  "runAfter": {
+                    "Alert_referee_details_missing": [
+                      "Succeeded",
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  },
+                  "description": "Stops the run whether or not the alert succeeded; the run's own error says why.",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "AcceptanceDetailsMissing",
+                      "message": "A settings row or a referee detail the envelope needs is missing. Nothing was sent to DocuSign."
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Compose_access_code": {
+              "type": "Compose",
+              "runAfter": {
+                "Check_referee_details_are_present": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-068 item 4: the last six digits of the normalised referee phone. Total on any length (padded); only reached when there are 6 or more. Secure inputs. A-DS-17.",
+              "inputs": "@substring(concat('000000', outputs('Compose_referee_phone_digits')), length(outputs('Compose_referee_phone_digits')), 6)",
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            },
+            "Compose_connector_tab_types": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_access_code": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Read tabType to update enum, every spelling (text/Text/textTabs); canon = textTabs-style key. neverSend: signature, full name, sign date (reviewer), email address (DocuSign fills it from the signer), tab groups.",
+              "inputs": {
+                "send": {
+                  "text": "Text",
+                  "Text": "Text",
+                  "textTabs": "Text",
+                  "checkbox": "Checkbox",
+                  "Checkbox": "Checkbox",
+                  "checkboxTabs": "Checkbox",
+                  "company": "Company",
+                  "Company": "Company",
+                  "companyTabs": "Company"
+                },
+                "canon": {
+                  "text": "textTabs",
+                  "Text": "textTabs",
+                  "textTabs": "textTabs",
+                  "checkbox": "checkboxTabs",
+                  "Checkbox": "checkboxTabs",
+                  "checkboxTabs": "checkboxTabs",
+                  "company": "companyTabs",
+                  "Company": "companyTabs",
+                  "companyTabs": "companyTabs"
+                },
+                "neverSend": [
+                  "DateSigned",
+                  "EmailAddress",
+                  "FullName",
+                  "SignHere",
+                  "TabGroup",
+                  "dateSigned",
+                  "dateSignedTabs",
+                  "dateSigneds",
+                  "emailAddress",
+                  "emailAddressTabs",
+                  "fullName",
+                  "fullNameTabs",
+                  "fullNames",
+                  "signHere",
+                  "signHereTabs",
+                  "signHeres",
+                  "tabGroup",
+                  "tabGroupTabs",
+                  "tabGroups"
+                ]
+              }
+            },
+            "Compose_tab_values": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_connector_tab_types": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every tab bar signature, full name, sign date (reviewer). Both roles take every placeholder; the role picks the source. '' = no source, clears it. Box sent UNTICKED. A-DS-4, A-DS-5, A-DS-15.",
+              "inputs": {
+                "label|p_name": {
+                  "id": "p_name",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))"
+                },
+                "prefill|Name": {
+                  "id": "p_name",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))"
+                },
+                "label|p_amt": {
+                  "id": "p_amt",
+                  "value": "@{formatNumber(triggerOutputs()?['body/rev_amountawarded'], 'N2')}"
+                },
+                "prefill|Amount": {
+                  "id": "p_amt",
+                  "value": "@{formatNumber(triggerOutputs()?['body/rev_amountawarded'], 'N2')}"
+                },
+                "label|p_type": {
+                  "id": "p_type",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_breaktype@OData.Community.Display.V1.FormattedValue'], string(first(outputs('Get_the_application')?['body/value'])?['rev_breaktype']), '')"
+                },
+                "prefill|Holiday type": {
+                  "id": "p_type",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_breaktype@OData.Community.Display.V1.FormattedValue'], string(first(outputs('Get_the_application')?['body/value'])?['rev_breaktype']), '')"
+                },
+                "label|p_venue": {
+                  "id": "p_venue",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_breaklocation'], '')"
+                },
+                "prefill|Holiday destination": {
+                  "id": "p_venue",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_breaklocation'], '')"
+                },
+                "label|p_dates": {
+                  "id": "p_dates",
+                  "value": "@{concat(formatDateTime(triggerOutputs()?['body/rev_holidaystart'], 'd MMMM yyyy'), ' to ', formatDateTime(triggerOutputs()?['body/rev_holidayend'], 'd MMMM yyyy'))}"
+                },
+                "prefill|Dates": {
+                  "id": "p_dates",
+                  "value": "@{concat(formatDateTime(triggerOutputs()?['body/rev_holidaystart'], 'd MMMM yyyy'), ' to ', formatDateTime(triggerOutputs()?['body/rev_holidayend'], 'd MMMM yyyy'))}"
+                },
+                "applicant|First name": {
+                  "id": "a_first",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], '')"
+                },
+                "applicant|Last name": {
+                  "id": "a_last",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], '')"
+                },
+                "applicant|Title": {
+                  "id": "a_title",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_title@OData.Community.Display.V1.FormattedValue'], '')"
+                },
+                "applicant|Email": {
+                  "id": "a_email",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_email'], '')"
+                },
+                "applicant|Phone": {
+                  "id": "a_phone",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_phone'], '')"
+                },
+                "applicant|Postcode": {
+                  "id": "a_postcode",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_postcode'], '')"
+                },
+                "applicant|Address": {
+                  "id": "a_address",
+                  "value": "@trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_addressline'], ''), if(empty(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_addressline2'], '')), '', concat(', ', first(outputs('Get_the_applicant')?['body/value'])?['rev_addressline2']))))"
+                },
+                "applicant|Adress": {
+                  "id": "a_address",
+                  "value": "@trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_addressline'], ''), if(empty(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_addressline2'], '')), '', concat(', ', first(outputs('Get_the_applicant')?['body/value'])?['rev_addressline2']))))"
+                },
+                "applicant|Town/City": {
+                  "id": "a_town",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_towncity'], '')"
+                },
+                "applicant|City/Town": {
+                  "id": "a_town",
+                  "value": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_towncity'], '')"
+                },
+                "applicant|Job title": {
+                  "id": "a_job",
+                  "value": ""
+                },
+                "applicant|type:companyTabs": {
+                  "id": "a_company",
+                  "value": ""
+                },
+                "applicant|type:checkboxTabs": {
+                  "id": "a_agreement",
+                  "value": "false"
+                },
+                "label|f2": {
+                  "id": "r_first",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], first(split(trim(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], '')), ' ')))"
+                },
+                "referee|First name": {
+                  "id": "r_first",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], first(split(trim(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], '')), ' ')))"
+                },
+                "label|l2": {
+                  "id": "r_last",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], trim(join(skip(split(trim(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], '')), ' '), 1), ' ')))"
+                },
+                "referee|Last name": {
+                  "id": "r_last",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], trim(join(skip(split(trim(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], '')), ' '), 1), ' ')))"
+                },
+                "label|t2": {
+                  "id": "r_title",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereetitle'], '')"
+                },
+                "referee|Title": {
+                  "id": "r_title",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereetitle'], '')"
+                },
+                "label|e2": {
+                  "id": "r_email",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereeemail'], '')"
+                },
+                "referee|Email": {
+                  "id": "r_email",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereeemail'], '')"
+                },
+                "label|ph2": {
+                  "id": "r_phone",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereephone'], '')"
+                },
+                "referee|Phone": {
+                  "id": "r_phone",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereephone'], '')"
+                },
+                "label|pc2": {
+                  "id": "r_postcode",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereepostcode'], '')"
+                },
+                "referee|Postcode": {
+                  "id": "r_postcode",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereepostcode'], '')"
+                },
+                "label|a2": {
+                  "id": "r_address",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereeaddress'], '')"
+                },
+                "referee|Address": {
+                  "id": "r_address",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereeaddress'], '')"
+                },
+                "referee|Adress": {
+                  "id": "r_address",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereeaddress'], '')"
+                },
+                "label|c2": {
+                  "id": "r_town",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereetowncity'], '')"
+                },
+                "referee|Town/City": {
+                  "id": "r_town",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereetowncity'], '')"
+                },
+                "referee|City/Town": {
+                  "id": "r_town",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereetowncity'], '')"
+                },
+                "label|j2": {
+                  "id": "r_job",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereejobtitle'], '')"
+                },
+                "referee|Job title": {
+                  "id": "r_job",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereejobtitle'], '')"
+                },
+                "label|o2": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "referee|type:companyTabs": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "referee|type:checkboxTabs": {
+                  "id": "r_agreement",
+                  "value": "false"
+                },
+                "referee|Company": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "referee|Organisation": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "referee|Organization": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "referee|organisation": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "referee|company": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "referee|Organisation ": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "label|Organisation": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "label|organisation": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "label|Organization": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "label|Company": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                },
+                "label|company": {
+                  "id": "r_company",
+                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereecompany'], '')"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            },
+            "Create_the_draft_envelope": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_tab_values": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-067 C1, E1 from TEST_Docusign v2c: a DRAFT (status Created) from the server template. Emails nobody. A-DS-14: that it carries both template roles as placeholder signers.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "CompositeTemplates",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "emailSubject": "@outputs('Compose_acceptance_email_texts')?['applicantSubject']",
+                  "status": "Created",
+                  "merge_roles_on_draft": "False",
+                  "body/compositeTemplates": [
+                    {
+                      "serverTemplates": [
+                        {
+                          "sequence": "1",
+                          "templateId": "@parameters('rev_DocuSignAcceptanceTemplateId')"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Set_draft_envelope_id": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Create_the_draft_envelope": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every later DocuSign call and every failure alert reads the id from here, so an orphaned draft can be found and deleted (A-R74). DocuSign-generated, not personal.",
+              "inputs": {
+                "name": "draftEnvelopeId",
+                "value": "@{body('Create_the_draft_envelope')?['envelopeId']}"
+              }
+            },
+            "List_the_envelope_recipients": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Set_draft_envelope_id": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-067 C2: the draft's signers with their DocuSign recipientId and roleName. Ids are read, never assumed (A-DS-14).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "GetRecipientStatus",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Filter_the_applicant_signer": {
+              "type": "Query",
+              "runAfter": {
+                "List_the_envelope_recipients": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The template role the applicant fills. Exactly one is required (checked below).",
+              "inputs": {
+                "from": "@body('List_the_envelope_recipients')?['signers']",
+                "where": "@equals(item()?['roleName'], 'Grant Acceptor')"
+              }
+            },
+            "Filter_the_referee_signer": {
+              "type": "Query",
+              "runAfter": {
+                "Filter_the_applicant_signer": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The template role the referee fills. Exactly one is required (checked below).",
+              "inputs": {
+                "from": "@body('List_the_envelope_recipients')?['signers']",
+                "where": "@equals(item()?['roleName'], 'Grant Referee')"
+              }
+            },
+            "Find_the_document": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Filter_the_referee_signer": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-067 C5, design req. 7: the template's FIRST document (the acceptance form), not a file name. Later documents (general T&Cs) carry no tabs and are not filled. A-DS-15: its documentId is the envelope's. No personal data.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "ListTemplateDocuments",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "templateId": "@parameters('rev_DocuSignAcceptanceTemplateId')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Set_draft_shape_problem": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Find_the_document": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Counts only, never a name. Empty means one signer per role and at least one document.",
+              "inputs": {
+                "name": "checkProblem",
+                "value": "@if(not(equals(length(body('Filter_the_applicant_signer')), 1)), concat('the draft has ', string(length(body('Filter_the_applicant_signer'))), ' signer(s) with role Grant Acceptor, expected 1'), if(not(equals(length(body('Filter_the_referee_signer')), 1)), concat('the draft has ', string(length(body('Filter_the_referee_signer'))), ' signer(s) with role Grant Referee, expected 1'), if(equals(length(coalesce(body('Find_the_document')?['templateDocuments'], json('[]'))), 0), 'the template has no documents, expected at least 1', '')))"
+              }
+            },
+            "Check_the_draft_matches_the_template": {
+              "type": "If",
+              "runAfter": {
+                "Set_draft_shape_problem": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A missing or doubled role would leave a signer with no fields (ADR-068 H2). Alert with the draft id, then stop. Nobody is emailed.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@not(empty(variables('checkProblem')))",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Alert_draft_does_not_match_template": {
+                  "type": "Workflow",
+                  "runAfter": {},
+                  "description": "FR-010 with the draft's envelope id (A-R74), counts only.",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                    },
+                    "body": {
+                      "text": "REV | Acceptance | Create Envelope",
+                      "text_1": "@{workflow()?['run']?['name']}",
+                      "text_2": "@{concat('The DocuSign draft does not match the template: ', variables('checkProblem'), '. Nobody was emailed. Delete draft envelope ', variables('draftEnvelopeId'), ' in DocuSign.')}",
+                      "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-grant')}",
+                      "text_4": "Error",
+                      "text_5": "@{outputs('Compose_run_link')}"
+                    }
+                  }
+                },
+                "Stop_draft_does_not_match_template": {
+                  "type": "Terminate",
+                  "runAfter": {
+                    "Alert_draft_does_not_match_template": [
+                      "Succeeded",
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  },
+                  "description": "Stops the run whether or not the alert succeeded.",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "DraftDoesNotMatchTemplate",
+                      "message": "The DocuSign draft's roles or documents are not what the flow expects. Nothing was sent."
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Bind_the_applicant": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Check_the_draft_matches_the_template": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-067 C3 (E1, v2c): fills the Grant Acceptor placeholder, routing order 1 (FR-042), own subject/body (ADR-068 item 3). A-DS-14 (fills, not adds); A-DS-16 (language string).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "UpdateEnvelopeRecipient",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "recipientId": "@first(body('Filter_the_applicant_signer'))?['recipientId']",
+                  "recipientType": "signers",
+                  "emailNotificationLanguage": "English UK (en_GB)",
+                  "emailNotificationSubject": "@outputs('Compose_acceptance_email_texts')?['applicantSubject']",
+                  "emailNotificationBody": "@outputs('Compose_acceptance_email_texts')?['applicantBody']",
+                  "additionalRecipientParams/name": "@coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], trim(concat(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_firstname'], ''), ' ', coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_lastname'], ''))))",
+                  "additionalRecipientParams/email": "@first(outputs('Get_the_applicant')?['body/value'])?['rev_email']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Bind_the_referee": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Require_referee_access_code": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-067 C3: Grant Referee. No routingOrder: the template locks it, and sending it made DocuSign reject the whole update (2026-10-04). Signing order comes from the template. No phoneNumber (design req. 3).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "UpdateEnvelopeRecipient",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "recipientId": "@first(body('Filter_the_referee_signer'))?['recipientId']",
+                  "recipientType": "signers",
+                  "emailNotificationLanguage": "English UK (en_GB)",
+                  "emailNotificationSubject": "@outputs('Compose_acceptance_email_texts')?['refereeSubject']",
+                  "emailNotificationBody": "@outputs('Compose_acceptance_email_texts')?['refereeBody']",
+                  "additionalRecipientParams/name": "@if(empty(trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], '')))), first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], trim(concat(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereefirstname'], ''), ' ', coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereelastname'], ''))))",
+                  "additionalRecipientParams/email": "@first(outputs('Get_the_application')?['body/value'])?['rev_refereeemail']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Require_referee_access_code": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Bind_the_applicant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-068 item 4 / ADR-067 C4 (E1, v2c): the referee must enter the code before the document opens. A-DS-17: that the account's access-code format accepts six digits.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "AddVerificationToRecipient",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "recipientId": "@first(body('Filter_the_referee_signer'))?['recipientId']",
+                  "recipientType": "signers",
+                  "verificationType": "Access Code",
+                  "additionalRecipientData/accessCode": "@outputs('Compose_access_code')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Read_the_tabs": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Check_both_signers_are_bound": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-067 C6: one read of every tab on the document, prefill and recipient. A-DS-15: tabLabel and recipientId on each tab are not yet observed.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "GetEnvelopeDocumentTabs",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "documentId": "@first(body('Find_the_document')?['templateDocuments'])?['documentId']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Filter_tabs_in_scope": {
+              "type": "Query",
+              "runAfter": {
+                "Read_the_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every tab except signature, full name and sign date for both signers (reviewer) and tabGroups, which hold no value.",
+              "inputs": {
+                "from": "@coalesce(body('Read_the_tabs')?['tabs'], json('[]'))",
+                "where": "@not(contains(outputs('Compose_connector_tab_types')?['neverSend'], string(coalesce(item()?['tabType'], ''))))"
+              }
+            },
+            "Select_tab_matches": {
+              "type": "Select",
+              "runAfter": {
+                "Filter_tabs_in_scope": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Each tab matched by Data Label, else placeholder within its owner (recipientId or recipientIdGuid), else type. tabType = connector enum, rawType = read form. Unmatched: id ''.",
+              "inputs": {
+                "from": "@body('Filter_tabs_in_scope')",
+                "select": {
+                  "tabId": "@item()?['tabId']",
+                  "tabType": "@coalesce(outputs('Compose_connector_tab_types')?['send']?[string(coalesce(item()?['tabType'], ''))], '')",
+                  "readType": "@string(coalesce(item()?['tabType'], ''))",
+                  "placeholder": "@concat(if(equals(item()?['prefill'], true), 'prefill', if(contains(createArray(string(coalesce(first(body('Filter_the_referee_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_referee_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'referee', if(contains(createArray(string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'applicant', 'other'))), ' ', string(coalesce(item()?['tabType'], '')), ' \"', string(coalesce(item()?['value'], '')), '\"')",
+                  "id": "@coalesce(outputs('Compose_tab_values')?[concat('label|', string(coalesce(item()?['tabLabel'], '')))]?['id'], outputs('Compose_tab_values')?[concat(if(equals(item()?['prefill'], true), 'prefill', if(contains(createArray(string(coalesce(first(body('Filter_the_referee_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_referee_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'referee', if(contains(createArray(string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'applicant', 'other'))), '|', string(coalesce(item()?['value'], '')))]?['id'], outputs('Compose_tab_values')?[concat(if(equals(item()?['prefill'], true), 'prefill', if(contains(createArray(string(coalesce(first(body('Filter_the_referee_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_referee_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'referee', if(contains(createArray(string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'applicant', 'other'))), '|type:', coalesce(outputs('Compose_connector_tab_types')?['canon']?[string(coalesce(item()?['tabType'], ''))], string(coalesce(item()?['tabType'], ''))))]?['id'], '')",
+                  "value": "@coalesce(outputs('Compose_tab_values')?[concat('label|', string(coalesce(item()?['tabLabel'], '')))]?['value'], outputs('Compose_tab_values')?[concat(if(equals(item()?['prefill'], true), 'prefill', if(contains(createArray(string(coalesce(first(body('Filter_the_referee_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_referee_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'referee', if(contains(createArray(string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'applicant', 'other'))), '|', string(coalesce(item()?['value'], '')))]?['value'], outputs('Compose_tab_values')?[concat(if(equals(item()?['prefill'], true), 'prefill', if(contains(createArray(string(coalesce(first(body('Filter_the_referee_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_referee_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'referee', if(contains(createArray(string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'applicant', 'other'))), '|type:', coalesce(outputs('Compose_connector_tab_types')?['canon']?[string(coalesce(item()?['tabType'], ''))], string(coalesce(item()?['tabType'], ''))))]?['value'], '')",
+                  "owner": "@if(equals(item()?['prefill'], true), 'prefill', if(contains(createArray(string(coalesce(first(body('Filter_the_referee_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_referee_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'referee', if(contains(createArray(string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientId'], '-')), string(coalesce(first(body('Filter_the_applicant_signer'))?['recipientIdGuid'], '-'))), string(coalesce(item()?['recipientId'], ''))), 'applicant', 'other')))",
+                  "rawType": "@coalesce(outputs('Compose_connector_tab_types')?['canon']?[string(coalesce(item()?['tabType'], ''))], string(coalesce(item()?['tabType'], '')))"
+                }
+              }
+            },
+            "Filter_tabs_to_fill": {
+              "type": "Query",
+              "runAfter": {
+                "Select_tab_matches": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tabs with a known source and a known connector type.",
+              "inputs": {
+                "from": "@body('Select_tab_matches')",
+                "where": "@and(not(equals(item()?['id'], '')), not(equals(item()?['tabType'], '')))"
+              }
+            },
+            "Filter_unmapped_tabs": {
+              "type": "Query",
+              "runAfter": {
+                "Filter_tabs_to_fill": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tabs on the template the flow has no mapping or type for. The reviewer requires every tab filled, so any here stops the run.",
+              "inputs": {
+                "from": "@body('Select_tab_matches')",
+                "where": "@or(equals(item()?['id'], ''), equals(item()?['tabType'], ''))"
+              }
+            },
+            "Select_unmapped_tab_descriptions": {
+              "type": "Select",
+              "runAfter": {
+                "Filter_unmapped_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Owner, tab type and the TEMPLATE's placeholder text of each unmapped tab, for the alert.",
+              "inputs": {
+                "from": "@body('Filter_unmapped_tabs')",
+                "select": "@item()?['placeholder']"
+              }
+            },
+            "Select_tab_array": {
+              "type": "Select",
+              "runAfter": {
+                "Select_unmapped_tab_descriptions": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The one {tabType, tabId, value} array (E1 body shape, v2c), connector enum from Compose_connector_tab_types. A-DS-16.",
+              "inputs": {
+                "from": "@body('Filter_tabs_to_fill')",
+                "select": {
+                  "tabType": "@item()?['tabType']",
+                  "tabId": "@item()?['tabId']",
+                  "value": "@item()?['value']"
+                }
+              }
+            },
+            "Re_read_the_tabs": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Fill_the_referee_company_tabs_if_any": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-067 C8: read every tab again after the fill.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "GetEnvelopeDocumentTabs",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "documentId": "@first(body('Find_the_document')?['templateDocuments'])?['documentId']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_re_read_values": {
+              "type": "Select",
+              "runAfter": {
+                "Re_read_the_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "tabId|value for every tab as DocuSign now holds it; a checkbox reads 'selected' (A-DS-16), lower-cased.",
+              "inputs": {
+                "from": "@coalesce(body('Re_read_the_tabs')?['tabs'], json('[]'))",
+                "select": "@concat(string(coalesce(item()?['tabId'], '')), '|', if(equals(coalesce(outputs('Compose_connector_tab_types')?['canon']?[string(coalesce(item()?['tabType'], ''))], string(coalesce(item()?['tabType'], ''))), 'checkboxTabs'), toLower(string(coalesce(item()?['selected'], item()?['value'], ''))), string(coalesce(item()?['value'], ''))))"
+              }
+            },
+            "Select_found_tab_ids": {
+              "type": "Select",
+              "runAfter": {
+                "Select_re_read_values": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Which expected tabs were found on the draft at all.",
+              "inputs": {
+                "from": "@body('Filter_tabs_to_fill')",
+                "select": "@item()?['id']"
+              }
+            },
+            "Filter_missing_tabs": {
+              "type": "Query",
+              "runAfter": {
+                "Select_found_tab_ids": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tabs that must exist: 5 prefill, and first/last name, title, postcode, phone for each signer. Every other tab is covered by the no-mapping check.",
+              "inputs": {
+                "from": [
+                  "p_name",
+                  "p_amt",
+                  "p_type",
+                  "p_venue",
+                  "p_dates",
+                  "a_first",
+                  "a_last",
+                  "a_title",
+                  "a_postcode",
+                  "a_phone",
+                  "r_first",
+                  "r_last",
+                  "r_title",
+                  "r_postcode",
+                  "r_phone"
+                ],
+                "where": "@not(contains(body('Select_found_tab_ids'), item()))"
+              }
+            },
+            "Filter_unfilled_tabs": {
+              "type": "Query",
+              "runAfter": {
+                "Filter_missing_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tabs whose re-read value differs from the value sent, company tabs included (they now get their own call).",
+              "inputs": {
+                "from": "@body('Filter_tabs_to_fill')",
+                "where": "@not(contains(body('Select_re_read_values'), concat(string(coalesce(item()?['tabId'], '')), '|', string(coalesce(item()?['value'], '')))))"
+              }
+            },
+            "Select_unfilled_tab_ids": {
+              "type": "Select",
+              "runAfter": {
+                "Filter_unfilled_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tab identifiers only, for the alert.",
+              "inputs": {
+                "from": "@body('Filter_unfilled_tabs')",
+                "select": "@item()?['id']"
+              }
+            },
+            "Set_tab_fill_problem": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Select_unfilled_tab_ids": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tab identifiers and template placeholder text only, never values. Empty means every tab is mapped and holds what was sent.",
+              "inputs": {
+                "name": "checkProblem",
+                "value": "@if(and(empty(body('Filter_missing_tabs')), empty(body('Select_unfilled_tab_ids')), empty(body('Select_unmapped_tab_descriptions'))), '', concat('tabs not found on the draft: [', join(body('Filter_missing_tabs'), ', '), ']; tabs not holding the value sent: [', join(body('Select_unfilled_tab_ids'), ', '), ']; template tabs with no mapping: [', join(body('Select_unmapped_tab_descriptions'), ', '), ']'))"
+              }
+            },
+            "Check_every_tab_was_filled": {
+              "type": "If",
+              "runAfter": {
+                "Set_tab_fill_problem": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-067 C8: a tab not found or not filled -> alert naming the TAB and the draft id, then stop. Option A cannot fail silently; switch C7 to option B if the first run stops here.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@not(empty(variables('checkProblem')))",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Alert_tabs_not_filled": {
+                  "type": "Workflow",
+                  "runAfter": {},
+                  "description": "FR-010 with the tab identifiers and the draft's envelope id (A-R74).",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                    },
+                    "body": {
+                      "text": "REV | Acceptance | Create Envelope",
+                      "text_1": "@{workflow()?['run']?['name']}",
+                      "text_2": "@{concat('The DocuSign draft was not filled as expected: ', variables('checkProblem'), '. Nobody was emailed. Delete draft envelope ', variables('draftEnvelopeId'), ' in DocuSign.')}",
+                      "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-grant')}",
+                      "text_4": "Error",
+                      "text_5": "@{outputs('Compose_run_link')}"
+                    }
+                  }
+                },
+                "Stop_tabs_not_filled": {
+                  "type": "Terminate",
+                  "runAfter": {
+                    "Alert_tabs_not_filled": [
+                      "Succeeded",
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  },
+                  "description": "Stops the run whether or not the alert succeeded.",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "TabsNotFilled",
+                      "message": "One or more envelope tabs were not found or do not hold the value sent. Nothing was sent."
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
             "Read_reminder_days": {
               "type": "OpenApiConnection",
               "runAfter": {
-                "Create_and_send_the_envelope": [
+                "Check_every_tab_was_filled": [
                   "Succeeded"
                 ]
               },
@@ -334,7 +1393,7 @@
                 ]
               },
               "description": "A-DS-11: falls back to [3,7] - the TAD's own literal (5.9/FR-043) - if the row is ever absent, same resilience pattern as A-DS-6 (EscalationDays).",
-              "inputs": "@json(coalesce(first(body('Read_reminder_days')?['value'])?['rev_value'], '[3,7]'))"
+              "inputs": "@json(coalesce(first(outputs('Read_reminder_days')?['body/value'])?['rev_value'], '[3,7]'))"
             },
             "Compose_reminder_cadence": {
               "type": "Compose",
@@ -356,7 +1415,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "A-DS-11 (IMP-0618): DocuSign AddReminders, per envelope. Overrides the template's own static setting (E2/E3: envelope-level notification settings take precedence). See notes.md.",
+              "description": "A-DS-11 (IMP-0618): DocuSign AddReminders on the DRAFT, before the send (ADR-067 C9). A-DS-16: accepted on a draft and kept after the send. Reads only the envelope id.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_docusign",
@@ -365,7 +1424,7 @@
                 },
                 "parameters": {
                   "accountId": "@parameters('rev_DocuSignAccountId')",
-                  "envelopeId": "@body('Create_and_send_the_envelope')?['envelopeId']",
+                  "envelopeId": "@variables('draftEnvelopeId')",
                   "reminderEnabled": true,
                   "reminderDelay": "@outputs('Compose_reminder_cadence')?['reminderDelay']",
                   "reminderFrequency": "@outputs('Compose_reminder_cadence')?['reminderFrequency']"
@@ -378,14 +1437,40 @@
                 }
               }
             },
-            "Write_the_envelope_id_and_issue_date": {
+            "Send_the_envelope": {
               "type": "OpenApiConnection",
               "runAfter": {
                 "Set_reminder_cadence": [
                   "Succeeded"
                 ]
               },
-              "description": "ADR-G04, WBS 3.2: writes rev_docusignenvelopeid and rev_acceptanceissuedon, moves rev_status from 1 (Awarded) to 2 (Acceptance Issued) - rev_grantstatus.xml's own comment assigns this exact write to this task.",
+              "description": "ADR-067 C10 (E1, v2c): draft -> sent. The applicant is emailed now, the referee after the applicant signs. A-DS-14: sends the draft as filled. Reads only the envelope id.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "SendDraftEnvelope",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Write_the_envelope_id_and_issue_date": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Send_the_envelope": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-G04, WBS 3.2: writes rev_docusignenvelopeid and rev_acceptanceissuedon and moves rev_status 1 -> 2, only after Send_the_envelope succeeded (ADR-067 consequence 7).",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -395,7 +1480,7 @@
                 "parameters": {
                   "entityName": "rev_grants",
                   "recordId": "@triggerOutputs()?['body/rev_grantid']",
-                  "item/rev_docusignenvelopeid": "@body('Create_and_send_the_envelope')?['envelopeId']",
+                  "item/rev_docusignenvelopeid": "@variables('draftEnvelopeId')",
                   "item/rev_acceptanceissuedon": "@utcNow()",
                   "item/rev_status": 2
                 },
@@ -405,6 +1490,594 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              }
+            },
+            "Set_tabs_to_fill_problem": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Filter_referee_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Empty unless no tab matched. Then names the tab types read and the unmatched tabs (template placeholders, no personal data), instead of DocuSign's bare 'No tabs specified'.",
+              "inputs": {
+                "name": "checkProblem",
+                "value": "@if(empty(body('Select_tab_array')), concat('no tab on the draft could be matched to a value; ', string(length(coalesce(body('Read_the_tabs')?['tabs'], json('[]')))), ' tab(s) read; tabs with no mapping: [', join(body('Select_unmapped_tab_descriptions'), ', '), ']'), if(empty(body('Filter_prefill_tabs')), 'no prefill tab could be matched', if(empty(body('Filter_applicant_tabs')), 'no Grant Acceptor tab could be matched', if(empty(body('Filter_referee_tabs')), 'no Grant Referee tab could be matched', ''))))"
+              }
+            },
+            "Check_there_are_tabs_to_fill": {
+              "type": "If",
+              "runAfter": {
+                "Set_tabs_to_fill_problem": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Nothing to fill means the template's tabs were not recognised. Alert with the draft id and what was read, then stop. Nobody is emailed.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@not(empty(variables('checkProblem')))",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Alert_no_tabs_to_fill": {
+                  "type": "Workflow",
+                  "runAfter": {},
+                  "description": "FR-010 with the draft's envelope id (A-R74), tab types and placeholders only.",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                    },
+                    "body": {
+                      "text": "REV | Acceptance | Create Envelope",
+                      "text_1": "@{workflow()?['run']?['name']}",
+                      "text_2": "@{concat('No DocuSign tab could be filled: ', variables('checkProblem'), '. Nobody was emailed. Delete draft envelope ', variables('draftEnvelopeId'), ' in DocuSign.')}",
+                      "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-grant')}",
+                      "text_4": "Error",
+                      "text_5": "@{outputs('Compose_run_link')}"
+                    }
+                  }
+                },
+                "Stop_no_tabs_to_fill": {
+                  "type": "Terminate",
+                  "runAfter": {
+                    "Alert_no_tabs_to_fill": [
+                      "Succeeded",
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  },
+                  "description": "Stops the run whether or not the alert succeeded.",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "NoTabsToFill",
+                      "message": "No tab on the DocuSign draft could be matched to a value. Nothing was sent."
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Filter_prefill_tabs": {
+              "type": "Query",
+              "runAfter": {
+                "Select_tab_array": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tabs to fill owned by prefill. The prefill action updates prefill tabs only; each signer's tabs go through Update recipient tab values.",
+              "inputs": {
+                "from": "@body('Filter_tabs_to_fill')",
+                "where": "@equals(item()?['owner'], 'prefill')"
+              }
+            },
+            "Filter_applicant_tabs": {
+              "type": "Query",
+              "runAfter": {
+                "Filter_prefill_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tabs to fill owned by applicant. The prefill action updates prefill tabs only; each signer's tabs go through Update recipient tab values.",
+              "inputs": {
+                "from": "@body('Filter_tabs_to_fill')",
+                "where": "@equals(item()?['owner'], 'applicant')"
+              }
+            },
+            "Filter_referee_tabs": {
+              "type": "Query",
+              "runAfter": {
+                "Filter_applicant_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Tabs to fill owned by referee. The prefill action updates prefill tabs only; each signer's tabs go through Update recipient tab values.",
+              "inputs": {
+                "from": "@body('Filter_tabs_to_fill')",
+                "where": "@equals(item()?['owner'], 'referee')"
+              }
+            },
+            "Select_the_prefill_tabs_array": {
+              "type": "Select",
+              "runAfter": {
+                "Check_there_are_tabs_to_fill": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Body for Fill_the_prefill_tabs: {tabType, tabId, value}.",
+              "inputs": {
+                "from": "@body('Filter_prefill_tabs')",
+                "select": {
+                  "tabType": "@item()?['rawType']",
+                  "tabId": "@item()?['tabId']",
+                  "value": "@item()?['value']"
+                }
+              }
+            },
+            "Fill_the_prefill_tabs": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_the_prefill_tabs_array": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Prefill tabs, tabType as read (textTabs), the reviewer's v2c shape. On failure the next action retries with the connector enum (Text). Which form works is not yet measured.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "UpdateEnvelopePrefillTabs",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "documentId": "@first(body('Find_the_document')?['templateDocuments'])?['documentId']",
+                  "body": "@body('Select_the_prefill_tabs_array')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_the_prefill_tabs_with_enum_array": {
+              "type": "Select",
+              "runAfter": {
+                "Fill_the_prefill_tabs": [
+                  "Failed"
+                ]
+              },
+              "description": "Body for Fill_the_prefill_tabs_with_enum: {tabType, tabId, value}.",
+              "inputs": {
+                "from": "@body('Filter_prefill_tabs')",
+                "select": {
+                  "tabType": "@item()?['tabType']",
+                  "tabId": "@item()?['tabId']",
+                  "value": "@item()?['value']"
+                }
+              }
+            },
+            "Fill_the_prefill_tabs_with_enum": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_the_prefill_tabs_with_enum_array": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Runs only if the read-form call failed: same tabs, tabType as the connector enum (Text).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "UpdateEnvelopePrefillTabs",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "documentId": "@first(body('Find_the_document')?['templateDocuments'])?['documentId']",
+                  "body": "@body('Select_the_prefill_tabs_with_enum_array')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_the_applicant_tabs_array": {
+              "type": "Select",
+              "runAfter": {
+                "Fill_the_prefill_tabs_with_enum": [
+                  "Succeeded",
+                  "Skipped"
+                ]
+              },
+              "description": "Body for Fill_the_applicant_tabs: {tabType, tabId, value}.",
+              "inputs": {
+                "from": "@body('Filter_applicant_tabs')",
+                "select": {
+                  "tabType": "@item()?['tabType']",
+                  "tabId": "@item()?['tabId']",
+                  "value": "@item()?['value']"
+                }
+              }
+            },
+            "Fill_the_applicant_tabs": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_the_applicant_tabs_array": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Grant Acceptor's tabs, tabType as the connector enum (Text, as the designer writes it, E1). On failure the next action retries with the read form.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "UpdateRecipientTabsValues",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "body": "@body('Select_the_applicant_tabs_array')",
+                  "recipientId": "@first(body('Filter_the_applicant_signer'))?['recipientId']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_the_applicant_tabs_as_read_array": {
+              "type": "Select",
+              "runAfter": {
+                "Fill_the_applicant_tabs": [
+                  "Failed"
+                ]
+              },
+              "description": "Body for Fill_the_applicant_tabs_as_read: {tabType, tabId, value}.",
+              "inputs": {
+                "from": "@body('Filter_applicant_tabs')",
+                "select": {
+                  "tabType": "@item()?['rawType']",
+                  "tabId": "@item()?['tabId']",
+                  "value": "@item()?['value']"
+                }
+              }
+            },
+            "Fill_the_applicant_tabs_as_read": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_the_applicant_tabs_as_read_array": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Runs only if the enum call failed: same tabs, tabType as read (textTabs).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "UpdateRecipientTabsValues",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "body": "@body('Select_the_applicant_tabs_as_read_array')",
+                  "recipientId": "@first(body('Filter_the_applicant_signer'))?['recipientId']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_the_referee_tabs_array": {
+              "type": "Select",
+              "runAfter": {
+                "Fill_the_applicant_tabs_as_read": [
+                  "Succeeded",
+                  "Skipped"
+                ]
+              },
+              "description": "Body for Fill_the_referee_tabs: {tabType, tabId, value}.",
+              "inputs": {
+                "from": "@body('Filter_referee_tabs')",
+                "select": {
+                  "tabType": "@item()?['tabType']",
+                  "tabId": "@item()?['tabId']",
+                  "value": "@item()?['value']"
+                }
+              }
+            },
+            "Fill_the_referee_tabs": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_the_referee_tabs_array": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Grant Referee's tabs, tabType as the connector enum (Text, E1). On failure the next action retries with the read form.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "UpdateRecipientTabsValues",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "body": "@body('Select_the_referee_tabs_array')",
+                  "recipientId": "@first(body('Filter_the_referee_signer'))?['recipientId']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_the_referee_tabs_as_read_array": {
+              "type": "Select",
+              "runAfter": {
+                "Fill_the_referee_tabs": [
+                  "Failed"
+                ]
+              },
+              "description": "Body for Fill_the_referee_tabs_as_read: {tabType, tabId, value}.",
+              "inputs": {
+                "from": "@body('Filter_referee_tabs')",
+                "select": {
+                  "tabType": "@item()?['rawType']",
+                  "tabId": "@item()?['tabId']",
+                  "value": "@item()?['value']"
+                }
+              }
+            },
+            "Fill_the_referee_tabs_as_read": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_the_referee_tabs_as_read_array": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Runs only if the enum call failed: same tabs, tabType as read (textTabs).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "UpdateRecipientTabsValues",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')",
+                  "body": "@body('Select_the_referee_tabs_as_read_array')",
+                  "recipientId": "@first(body('Filter_the_referee_signer'))?['recipientId']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Read_the_signers_after_binding": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Bind_the_referee": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Re-reads both signers after binding. DocuSign answers 200 even when it rejects a recipient update, so the check below compares what it holds with what was sent.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "GetRecipientStatus",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@variables('draftEnvelopeId')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Filter_the_bound_applicant": {
+              "type": "Query",
+              "runAfter": {
+                "Read_the_signers_after_binding": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The applicant signer as DocuSign holds it after binding.",
+              "inputs": {
+                "from": "@coalesce(body('Read_the_signers_after_binding')?['signers'], json('[]'))",
+                "where": "@equals(string(item()?['recipientId']), string(first(body('Filter_the_applicant_signer'))?['recipientId']))"
+              }
+            },
+            "Filter_the_bound_referee": {
+              "type": "Query",
+              "runAfter": {
+                "Filter_the_bound_applicant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The referee signer as DocuSign holds it after binding.",
+              "inputs": {
+                "from": "@coalesce(body('Read_the_signers_after_binding')?['signers'], json('[]'))",
+                "where": "@equals(string(item()?['recipientId']), string(first(body('Filter_the_referee_signer'))?['recipientId']))"
+              }
+            },
+            "Set_signer_binding_problem": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Filter_the_bound_referee": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Empty when DocuSign holds the email sent for each signer. Names the role only, never the address.",
+              "inputs": {
+                "name": "checkProblem",
+                "value": "@if(not(equals(toLower(trim(string(coalesce(first(body('Filter_the_bound_applicant'))?['email'], '')))), toLower(trim(string(coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_email'], '')))))), 'the Grant Acceptor signer does not hold the applicant email that was sent', if(not(equals(toLower(trim(string(coalesce(first(body('Filter_the_bound_referee'))?['email'], '')))), toLower(trim(string(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereeemail'], '')))))), 'the Grant Referee signer does not hold the referee email that was sent', ''))"
+              }
+            },
+            "Check_both_signers_are_bound": {
+              "type": "If",
+              "runAfter": {
+                "Set_signer_binding_problem": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A signer DocuSign did not update would get no email or the wrong one. Alert with the draft id, then stop. Nobody is emailed.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@not(empty(variables('checkProblem')))",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Alert_signer_not_bound": {
+                  "type": "Workflow",
+                  "runAfter": {},
+                  "description": "FR-010 with the draft's envelope id (A-R74), role only.",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                    },
+                    "body": {
+                      "text": "REV | Acceptance | Create Envelope",
+                      "text_1": "@{workflow()?['run']?['name']}",
+                      "text_2": "@{concat('A DocuSign signer was not updated: ', variables('checkProblem'), '. Nobody was emailed. Delete draft envelope ', variables('draftEnvelopeId'), ' in DocuSign.')}",
+                      "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-grant')}",
+                      "text_4": "Error",
+                      "text_5": "@{outputs('Compose_run_link')}"
+                    }
+                  }
+                },
+                "Stop_signer_not_bound": {
+                  "type": "Terminate",
+                  "runAfter": {
+                    "Alert_signer_not_bound": [
+                      "Succeeded",
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  },
+                  "description": "Stops the run whether or not the alert succeeded.",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "SignerNotBound",
+                      "message": "DocuSign did not take a signer's name and email. Nothing was sent."
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Filter_referee_company_tabs": {
+              "type": "Query",
+              "runAfter": {
+                "Fill_the_referee_tabs_as_read": [
+                  "Succeeded",
+                  "Skipped"
+                ]
+              },
+              "description": "The referee's company tabs. Sent in the same call as text tabs (type Company) DocuSign dropped them (2026-10-04), so they get their own call below.",
+              "inputs": {
+                "from": "@body('Filter_referee_tabs')",
+                "where": "@equals(item()?['rawType'], 'companyTabs')"
+              }
+            },
+            "Fill_the_referee_company_tabs_if_any": {
+              "type": "If",
+              "runAfter": {
+                "Filter_referee_company_tabs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Skips the call when the template has no referee company tab: DocuSign rejects an empty tab list.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@not(empty(body('Filter_referee_company_tabs')))",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Select_referee_company_tab_array": {
+                  "type": "Select",
+                  "runAfter": {},
+                  "description": "{tabType, tabId, value} for the company tabs, tabType as read.",
+                  "inputs": {
+                    "from": "@body('Filter_referee_company_tabs')",
+                    "select": {
+                      "tabType": "@item()?['rawType']",
+                      "tabId": "@item()?['tabId']",
+                      "value": "@item()?['value']"
+                    }
+                  }
+                },
+                "Fill_the_referee_company_tabs": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Select_referee_company_tab_array": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Company tabs only, tabType as the read returns it (companyTabs). The read-back check below shows whether DocuSign took it.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_docusign",
+                      "operationId": "UpdateRecipientTabsValues",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                    },
+                    "parameters": {
+                      "accountId": "@parameters('rev_DocuSignAccountId')",
+                      "envelopeId": "@variables('draftEnvelopeId')",
+                      "body": "@body('Select_referee_company_tab_array')",
+                      "recipientId": "@first(body('Filter_the_referee_signer'))?['recipientId']"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
               }
             }
           }
@@ -432,48 +2105,125 @@
           }
         },
         "Describe_the_failure": {
-          "type": "If",
+          "type": "Switch",
           "runAfter": {
             "Find_the_failed_action": [
               "Succeeded"
             ]
           },
-          "description": "When the failed child is the nested Skip_provider_lookup_if_none_is_set container, descend one level to the action that actually failed - same shape as the Scoring flow's Describe_the_failure (IMP-0349).",
-          "expression": {
-            "and": [
-              {
-                "equals": [
-                  "@first(body('Find_the_failed_action'))?['name']",
-                  "Skip_provider_lookup_if_none_is_set"
-                ]
-              }
-            ]
-          },
-          "actions": {
-            "Find_the_failed_step_inside_the_provider_lookup": {
-              "type": "Query",
-              "runAfter": {},
-              "description": "Only evaluated when Skip_provider_lookup_if_none_is_set is the failure, so result() on it is safe.",
-              "inputs": {
-                "from": "@result('Skip_provider_lookup_if_none_is_set')",
-                "where": "@equals(item()?['status'], 'Failed')"
+          "description": "When the failed child is a container, descend one level to the action that actually failed (IMP-0349, check 7). One case per container in Build_the_envelope; default = already a leaf.",
+          "expression": "@coalesce(first(body('Find_the_failed_action'))?['name'], 'none')",
+          "cases": {
+            "Case_provider_lookup": {
+              "case": "Skip_provider_lookup_if_none_is_set",
+              "actions": {
+                "Find_the_failed_step_inside_the_provider_lookup": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Skip_provider_lookup_if_none_is_set is the failure, so result() on it is safe.",
+                  "inputs": {
+                    "from": "@result('Skip_provider_lookup_if_none_is_set')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  }
+                },
+                "Set_failure_detail_from_the_provider_lookup": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_the_provider_lookup": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested container - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
               }
             },
-            "Set_failure_detail_from_the_provider_lookup": {
-              "type": "SetVariable",
-              "runAfter": {
-                "Find_the_failed_step_inside_the_provider_lookup": [
-                  "Succeeded"
-                ]
-              },
-              "description": "The leaf action inside the nested container - the one with the real message.",
-              "inputs": {
-                "name": "failureDetail",
-                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['error']?['message'], 'no message supplied by the platform'))}"
+            "Case_referee_check": {
+              "case": "Check_referee_details_are_present",
+              "actions": {
+                "Find_the_failed_step_inside_the_referee_check": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Check_referee_details_are_present is the failed child, so result() on it is safe (A-FLOW-13).",
+                  "inputs": {
+                    "from": "@result('Check_referee_details_are_present')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  }
+                },
+                "Set_failure_detail_from_the_referee_check": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_the_referee_check": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested container - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_referee_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_referee_check'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_referee_check'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              }
+            },
+            "Case_draft_check": {
+              "case": "Check_the_draft_matches_the_template",
+              "actions": {
+                "Find_the_failed_step_inside_the_draft_check": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Check_the_draft_matches_the_template is the failed child, so result() on it is safe (A-FLOW-13).",
+                  "inputs": {
+                    "from": "@result('Check_the_draft_matches_the_template')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  }
+                },
+                "Set_failure_detail_from_the_draft_check": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_the_draft_check": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested container - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_draft_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_draft_check'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_draft_check'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              }
+            },
+            "Case_tab_check": {
+              "case": "Check_every_tab_was_filled",
+              "actions": {
+                "Find_the_failed_step_inside_the_tab_check": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Check_every_tab_was_filled is the failed child, so result() on it is safe (A-FLOW-13).",
+                  "inputs": {
+                    "from": "@result('Check_every_tab_was_filled')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  }
+                },
+                "Set_failure_detail_from_the_tab_check": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_the_tab_check": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested container - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_tab_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_tab_check'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_tab_check'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
               }
             }
           },
-          "else": {
+          "default": {
             "actions": {
               "Set_failure_detail": {
                 "type": "SetVariable",
@@ -487,27 +2237,14 @@
             }
           }
         },
-        "Compose_run_link": {
-          "type": "Compose",
-          "runAfter": {
-            "Describe_the_failure": [
-              "Succeeded"
-            ]
-          },
-          "description": "Deep link to THIS run, built here because workflow() inside the child returns the child's own identity, not the caller's.",
-          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
-        },
         "Alert_on_failure": {
           "type": "Workflow",
           "runAfter": {
             "Describe_the_failure": [
               "Succeeded"
-            ],
-            "Compose_run_link": [
-              "Succeeded"
             ]
           },
-          "description": "FR-010. Passes the grant REFERENCE, never the row. A failure here leaves the grant at status 1 (Awarded) - no envelope was created, so nothing was half-sent (NFR-018 fail-closed).",
+          "description": "FR-010. Passes the grant REFERENCE, never the row, plus the DocuSign envelope id when a draft exists (A-R74). The grant stays at status 1 (Awarded): the write-back is the last action.",
           "inputs": {
             "host": {
               "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
@@ -515,7 +2252,7 @@
             "body": {
               "text": "REV | Acceptance | Create Envelope",
               "text_1": "@{workflow()?['run']?['name']}",
-              "text_2": "@{variables('failureDetail')}",
+              "text_2": "@{concat(variables('failureDetail'), if(empty(variables('draftEnvelopeId')), ' | No DocuSign envelope was created.', concat(' | DocuSign envelope id: ', variables('draftEnvelopeId'), '. Unless Send_the_envelope succeeded it is an unsent draft: delete it in DocuSign.')))}",
               "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-grant')}",
               "text_4": "Error",
               "text_5": "@{outputs('Compose_run_link')}"

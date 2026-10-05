@@ -85,19 +85,29 @@ run_with_poll() {
 # and not one of them is pac. Anyone following that advice reads a screen of Teams and VS Code
 # helpers and learns nothing — which may be exactly why three incidents in a row got as far as
 # blaming the hosted service. So compare the BASENAME of the executable against `pac` instead.
+# The process list sits behind a function so the self-test can supply one (case 7).
+RWT_PROCESS_FIXTURE="${RWT_PROCESS_FIXTURE:-}"
+process_list() {
+    if [ -n "$RWT_PROCESS_FIXTURE" ]; then
+        printf '%s\n' "$RWT_PROCESS_FIXTURE"
+    else
+        ps -Ao pid=,etime=,comm= 2>/dev/null || true
+    fi
+}
+
 report_stray_pac() {
     local found=0 pid etime comm
     while read -r pid etime comm; do
         case "$pid" in ''|*[!0-9]*) continue ;; esac
         [ "${comm##*/}" = "pac" ] || continue
         if [ "$found" -eq 0 ]; then
-            echo "  STRAY pac PROCESS(ES) FOUND — the usual cause (IMP-0215/0216/0226)." >&2
-            echo "  A long-lived pac holds the shared MSAL token cache, so every later pac" >&2
-            echo "  call that needs a token blocks forever. Kill these and retry:" >&2
+            echo "  STRAY pac PROCESS(ES) FOUND — a candidate, not yet the cause (IMP-1032)." >&2
+            echo "  A long-lived pac can hold the shared MSAL token cache, so a later pac call" >&2
+            echo "  that needs a token blocks (IMP-0215/0216/0226). Kill these, then confirm:" >&2
             found=1
         fi
         echo "    pid $pid  alive $etime  $comm" >&2
-    done < <(ps -Ao pid=,etime=,comm= 2>/dev/null || true)
+    done < <(process_list)
 
     if [ "$found" -eq 1 ]; then
         echo "  VS Code's Power Platform extension bundles its OWN pac binary, separate from" >&2
@@ -109,6 +119,11 @@ report_stray_pac() {
         echo "  (IMP-0217) — then run the cert-based control in build-and-deploy.md before" >&2
         echo "  concluding the hosted service is at fault." >&2
     fi
+    # Both branches (IMP-1032): on 2-3 October a stray pac and a Keychain prompt were present
+    # together, the kill changed nothing, and only the Keychain answer unblocked the build.
+    echo "  Also check for a pending macOS Keychain prompt (IMP-0217): no shell probe can see it." >&2
+    echo "  To confirm a kill fixed it: run \`scripts/run-with-timeout.sh 45 pac org who\` before" >&2
+    echo "  retrying. Still hangs → the stray was not the blocker; ask the person at the screen." >&2
 }
 
 main() {
@@ -200,9 +215,21 @@ selftest() {
             failures=$((failures + 1)) ;;
     esac
 
+    # 7. IMP-1032: a stray pac is a CANDIDATE. Even when one is found, the Keychain check and the
+    #    confirming probe are printed, because both causes were present at once on 2-3 October.
+    local stray_out
+    stray_out=$(RWT_PROCESS_FIXTURE="4242 01:02:03 /Users/x/.vscode/extensions/pac" report_stray_pac 2>&1)
+    case "$stray_out" in
+        *"a candidate, not yet the cause"*"Keychain prompt"*"pac org who"*)
+            echo "  ok    a found stray pac still prints the Keychain check and the confirming probe" ;;
+        *)
+            echo "  FAIL  a found stray pac still prints the Keychain check and the confirming probe"
+            failures=$((failures + 1)) ;;
+    esac
+
     echo ""
     if [ "$failures" -eq 0 ]; then
-        echo "run-with-timeout: SELFTEST PASS (6 cases, $impl)"
+        echo "run-with-timeout: SELFTEST PASS (7 cases, $impl)"
         return 0
     fi
     echo "run-with-timeout: SELFTEST FAILED — $failures case(s)"

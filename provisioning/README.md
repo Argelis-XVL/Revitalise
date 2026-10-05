@@ -23,8 +23,9 @@ provisioning/
 | `entra/` | `ensure-app-registration.ps1` | App registrations + service principals + federated credentials, least-privilege permissions from settings | `verify-entra.ps1` |
 | `entra/` | `grant-admin-consent.ps1` | Tenant-wide admin consent (appRoleAssignments / oauth2PermissionGrants) for declared permissions | `verify-entra.ps1` |
 | `entra/` | `ensure-groups.ps1` | Entra security groups, one per persona per environment (existence only — membership is business/IAM-owned) | `verify-entra.ps1` |
-| `entra/` | `ensure-intake-client.ps1` | The intake endpoint's OAuth caller identity (Alex's WordPress site) **plus the two identifiers its authentication needs**: the service principal *object* id for the trigger's Allowed users list, and the application *client* id for `rev_IntakeAllowedClientId`. Asserts a pre-existing registration really carries the declared Flow Service permission | `verify-intake-endpoint-auth.ps1` |
-| `entra/` | `verify-intake-endpoint-auth.ps1` | Read-only: POSTs to the intake endpoint with no credential and with an invalid bearer token, asserts 401/403 **and** that the rejection happened before the workflow definition ran (C-TECH-006 `Verify By`) → `PASS`/`FAIL` | — |
+| `entra/` | `ensure-intake-client.ps1` | The `rev-wordpress-intake` registration. **TAD rev 14 (ADR-011 re-decided 2026-10-02):** kept only because its application *client* id is the `rev_IntakeAllowedClientId` value the website sends as `x-rev-client-id`; the trigger is in mode *Anyone* (declared in the flow source), so the service principal object id and the client-credentials token no longer apply. Still asserts a pre-existing registration carries the declared permission | `verify-intake-endpoint-auth.ps1` |
+| `entra/` | `verify-intake-endpoint-auth.ps1` | Read-only: two probes for the TAD rev 14 trust model (C-TECH-006 `Verify By`) — the URL with its `sig` removed must be refused **by the platform** (401/403), and the signed URL with no `x-rev-client-id` must be refused **by the flow** with its own 401 body → `PASS`/`FAIL` | — |
+| `entra/` | `verify-intake-callback-url.ps1` | Read-only, two modes: `-Mode Capture` hashes the intake trigger's live callback URL (SHA-256 only) before an import; `-Mode Compare` re-reads it after and compares with that hash (DEV) or with the hash of the CI secret the website was given (TST/ACC, PRD). A changed URL → `FAIL` + `REVIEWER ACTION REQUIRED`, never a rollback (TAD rev 14, ADR-011 intervention 4). The URL is never printed or stored | — |
 | `entra/` | `verify-entra.ps1` | Read-only: apps, SPs, consent, groups → `PASS`/`FAIL` | — |
 | `dataverse/` | `ensure-group-teams.ps1` | Dataverse group teams (AAD Security Group type) backed by Entra groups | `verify-role-bindings.ps1` |
 | `dataverse/` | `bind-roles-to-groups.ps1` | Group teams **plus** security-role bindings (superset of `ensure-group-teams.ps1` — the script pipelines call; C-TECH-040) | `verify-role-bindings.ps1` |
@@ -105,9 +106,9 @@ its password is never printed, per `C-TECH-001`).
 Verification counterparts (`verify-*.ps1`) assert the expected state and are reused as
 pipeline smoke tests and by the test-agent's Provisioning layer. They are strictly
 read-only, print `PASS | FAIL — <check>` per check, and exit non-zero on any `FAIL`.
-`verify-intake-endpoint-auth.ps1` is read-only in effect rather than by method — it
-sends an HTTP POST — and its own header explains why every possible outcome of that
-POST writes nothing.
+`verify-intake-endpoint-auth.ps1` and `verify-intake-callback-url.ps1` are read-only in effect
+rather than by method — each sends an HTTP POST — and each header explains why every possible
+outcome of that POST writes nothing.
 
 ## Automated tests
 

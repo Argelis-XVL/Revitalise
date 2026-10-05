@@ -1319,6 +1319,19 @@ def main(argv: list[str] | None = None) -> int:
     if code == 2:
         return 2
 
+    # IMP-0989: a gate baseline about to expire is announced once per build, here at the
+    # preflight, on BOTH paths and before anything else — never changing the exit code. Eight
+    # baselines expired together on 2026-09-30 with no warning.
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+        from gate_baseline import expiring  # noqa: E402
+        for e in expiring(args.repo_root.resolve(), within_days=4):
+            print(f"NOTE: gate baseline {e.get('gate')} / {e.get('matches')} expires {e.get('expires')} "
+                  f"(owner {e.get('owner')}, finding {e.get('finding', '—')}) — clear it or re-decide "
+                  f"it before then; an expired baseline fails its gate (IMP-0989).")
+    except ImportError:
+        pass
+
     gates = [s.get("name", "") for s in (yaml.safe_load(args.config.read_text(encoding="utf-8")).get("steps") or []) if is_gate(s.get("name", ""), s.get("command", "") or "")]
 
     if violations:

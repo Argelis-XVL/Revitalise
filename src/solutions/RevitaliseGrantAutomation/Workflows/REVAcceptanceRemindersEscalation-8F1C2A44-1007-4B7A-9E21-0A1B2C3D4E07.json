@@ -124,7 +124,7 @@
                 ]
               },
               "description": "A-DS-6: falls back to 14 - the TAD's OWN literal (5.9/FR-044), not an invented number - if the row is ever absent, rather than failing every run over an unseeded setting.",
-              "inputs": "@int(coalesce(first(body('Read_escalation_threshold')?['value'])?['rev_value'], '14'))"
+              "inputs": "@int(coalesce(first(outputs('Read_escalation_threshold')?['body/value'])?['rev_value'], '14'))"
             },
             "Compose_escalation_cutoff": {
               "type": "Compose",
@@ -171,7 +171,7 @@
                 ]
               },
               "description": "Each iteration reads its own records and writes its own grant row - no shared-variable mutation across iterations, unlike the Scoring flow's point-accumulation loop, so concurrency is not pinned to 1.",
-              "foreach": "@body('List_overdue_grants')?['value']",
+              "foreach": "@outputs('List_overdue_grants')?['body/value']",
               "actions": {
                 "Get_the_application": {
                   "type": "OpenApiConnection",
@@ -186,7 +186,7 @@
                     "parameters": {
                       "entityName": "rev_applications",
                       "$filter": "@{concat('rev_applicationid eq ', item()?['_rev_applicationid_value'])}",
-                      "$select": "rev_name,rev_applicantid,rev_refereename"
+                      "$select": "rev_name,_rev_applicantid_value,rev_refereename"
                     },
                     "authentication": "@parameters('$authentication')",
                     "retryPolicy": {
@@ -220,7 +220,7 @@
                     },
                     "parameters": {
                       "entityName": "rev_applicants",
-                      "$filter": "@{concat('rev_applicantid eq ', first(body('Get_the_application')?['value'])?['_rev_applicantid_value'])}",
+                      "$filter": "@{concat('rev_applicantid eq ', first(outputs('Get_the_application')?['body/value'])?['_rev_applicantid_value'])}",
                       "$select": "rev_fullname"
                     },
                     "authentication": "@parameters('$authentication')",
@@ -267,7 +267,7 @@
                       "poster": "Flow bot",
                       "location": "Chat with Flow bot",
                       "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
-                      "body/messageBody": "{\"type\":\"AdaptiveCard\",\"$schema\":\"http://adaptivecards.io/schemas/adaptive-card.json\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"Acceptance overdue\",\"wrap\":true,\"weight\":\"Bolder\",\"size\":\"Medium\",\"color\":\"Attention\"},{\"type\":\"TextBlock\",\"text\":\"Unsigned past the escalation threshold - needs your attention.\",\"wrap\":true,\"isSubtle\":true,\"spacing\":\"None\"},{\"type\":\"FactSet\",\"spacing\":\"Medium\",\"separator\":true,\"facts\":[{\"title\":\"Grant reference\",\"value\":\"@{item()?['rev_name']}\"},{\"title\":\"Applicant\",\"value\":\"@{coalesce(first(body('Get_the_applicant')?['value'])?['rev_fullname'], 'not on file')}\"},{\"title\":\"Referee\",\"value\":\"@{coalesce(first(body('Get_the_application')?['value'])?['rev_refereename'], 'not on file')}\"},{\"title\":\"Days unsigned\",\"value\":\"@{string(outputs('Compose_days_overdue'))}\"},{\"title\":\"DocuSign envelope\",\"value\":\"@{coalesce(item()?['rev_docusignenvelopeid'], 'none')}\"}]},{\"type\":\"TextBlock\",\"text\":\"Follow up directly with the applicant and/or referee, or void and reissue the envelope if it has lapsed.\",\"wrap\":true,\"spacing\":\"Medium\",\"separator\":true},{\"type\":\"TextBlock\",\"text\":\"This message carries the applicant's name and the referee's name by design (FR-044) - unlike this solution's other Teams alerts, which withhold names.\",\"wrap\":true,\"isSubtle\":true,\"size\":\"Small\",\"spacing\":\"Medium\"}],\"actions\":[{\"type\":\"Action.OpenUrl\",\"title\":\"Open this grant\",\"url\":\"@{parameters('rev_GrantAdminAppUrl')}\"}]}"
+                      "body/messageBody": "{\"type\":\"AdaptiveCard\",\"$schema\":\"http://adaptivecards.io/schemas/adaptive-card.json\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"Acceptance overdue\",\"wrap\":true,\"weight\":\"Bolder\",\"size\":\"Medium\",\"color\":\"Attention\"},{\"type\":\"TextBlock\",\"text\":\"Unsigned past the escalation threshold - needs your attention.\",\"wrap\":true,\"isSubtle\":true,\"spacing\":\"None\"},{\"type\":\"FactSet\",\"spacing\":\"Medium\",\"separator\":true,\"facts\":[{\"title\":\"Grant reference\",\"value\":\"@{item()?['rev_name']}\"},{\"title\":\"Applicant\",\"value\":\"@{coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], 'not on file')}\"},{\"title\":\"Referee\",\"value\":\"@{coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], 'not on file')}\"},{\"title\":\"Days unsigned\",\"value\":\"@{string(outputs('Compose_days_overdue'))}\"},{\"title\":\"DocuSign envelope\",\"value\":\"@{coalesce(item()?['rev_docusignenvelopeid'], 'none')}\"}]},{\"type\":\"TextBlock\",\"text\":\"Follow up directly with the applicant and/or referee, or void and reissue the envelope if it has lapsed.\",\"wrap\":true,\"spacing\":\"Medium\",\"separator\":true},{\"type\":\"TextBlock\",\"text\":\"This message carries the applicant's name and the referee's name by design (FR-044) - unlike this solution's other Teams alerts, which withhold names.\",\"wrap\":true,\"isSubtle\":true,\"size\":\"Small\",\"spacing\":\"Medium\"}],\"actions\":[{\"type\":\"Action.OpenUrl\",\"title\":\"Open this grant\",\"url\":\"@{parameters('rev_GrantAdminAppUrl')}\"}]}"
                     },
                     "authentication": "@parameters('$authentication')",
                     "retryPolicy": {
@@ -305,7 +305,7 @@
                       "poster": "Flow bot",
                       "location": "Chat with Flow bot",
                       "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
-                      "body/messageBody": "<p><b>Acceptance overdue</b></p><p>Grant reference: @{item()?['rev_name']}<br/>Applicant: @{coalesce(first(body('Get_the_applicant')?['value'])?['rev_fullname'], 'not on file')}<br/>Referee: @{coalesce(first(body('Get_the_application')?['value'])?['rev_refereename'], 'not on file')}<br/>Days unsigned: @{string(outputs('Compose_days_overdue'))}<br/>DocuSign envelope: @{coalesce(item()?['rev_docusignenvelopeid'], 'none')}</p><p>Follow up directly, or void and reissue the envelope if it has lapsed.</p>@{if(empty(coalesce(parameters('rev_GrantAdminAppUrl'), '')), '', concat('<p><a href=\"', parameters('rev_GrantAdminAppUrl'), '\">Open this grant</a></p>'))}"
+                      "body/messageBody": "<p><b>Acceptance overdue</b></p><p>Grant reference: @{item()?['rev_name']}<br/>Applicant: @{coalesce(first(outputs('Get_the_applicant')?['body/value'])?['rev_fullname'], 'not on file')}<br/>Referee: @{coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_refereename'], 'not on file')}<br/>Days unsigned: @{string(outputs('Compose_days_overdue'))}<br/>DocuSign envelope: @{coalesce(item()?['rev_docusignenvelopeid'], 'none')}</p><p>Follow up directly, or void and reissue the envelope if it has lapsed.</p>@{if(empty(coalesce(parameters('rev_GrantAdminAppUrl'), '')), '', concat('<p><a href=\"', parameters('rev_GrantAdminAppUrl'), '\">Open this grant</a></p>'))}"
                     },
                     "authentication": "@parameters('$authentication')",
                     "retryPolicy": {

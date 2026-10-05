@@ -1,0 +1,139 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "4.2",
+    "4.3"
+  ],
+  "items": [],
+  "build_date": "2026-10-02",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20261002-1/",
+  "source_commit": "7cd080c32d37a382c41c6871c0b0140381de7a2f",
+  "source_commit_at_pack_time": "7cd080c32d37a382c41c6871c0b0140381de7a2f",
+  "source_tree_dirty_paths": 19,
+  "source_commit_note": "19 uncommitted paths under src/, provisioning/ and config/ at pack time. source_commit describes the build inputs only where they are unaffected by those dirty paths.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 27.0.0 arm64 (macOS)",
+  "constraint_check": "PASS",
+  "preflight": "PASS \u2014 99 steps executed, 1 out-of-context (auth), 100 declared, run via scripts/run-build.py",
+  "verification_level": "V2 \u2014 packaged; layout accepted by the packer. Content, platform acceptance and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "component-shape-packed",
+    "role-privilege-ownership",
+    "tad-coverage",
+    "forms-and-views-reachable",
+    "domain-invariants",
+    "no-special-category-data-in-scoring",
+    "receivesbenefits-scoped-to-income-flag",
+    "no-hardcoded-environment-values",
+    "flow-definition-language",
+    "no-hardcoded-thresholds",
+    "flow-reads-no-trigger-body",
+    "metadata-write-verbs",
+    "no-trustee-in-column-security-profile",
+    "no-secured-columns-in-code-app",
+    "code-app-data-sources",
+    "code-app-bundle-budget",
+    "lint (pac solution check)"
+  ],
+  "warnings": {
+    "total": 4,
+    "resolved": 0,
+    "accepted": 4,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-install-cards",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 1,210.18 kB (1210181 bytes) vs 1205 kB triaged and budget max 1241000 bytes; gzip 473.19 kB vs about 472 kB; byte budget gate PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build-cards",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 845.81 kB (845809 bytes) vs measured_bytes 845809 and budget max 871100 bytes; byte budget gate PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L484"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 166,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 1,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 8,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 4,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 49,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context \u2014 when: ci, needs GitHub OIDC token vars not present on a local run",
+      "level_not_established": "n/a \u2014 declared boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": [],
+  "improvement_log_drift": {
+    "at_activation": {
+      "unread": 5,
+      "deploy_open_blockers": 0,
+      "governance_blockers": 1
+    },
+    "at_manifest_time": {
+      "unread": 5,
+      "deploy_open_blockers": 0,
+      "governance_blockers": 1
+    },
+    "drift": "none; build config sha256 unchanged (a4e5f99e783a...) at re-hash"
+  },
+  "unit_tests": {
+    "pester_total": 1271,
+    "pester_failed": 0,
+    "pester_skipped": 1
+  },
+  "solution_checker": "0 Critical, 0 High, 1 Medium, 0 Low, 0 Informational \u2014 meets zero-Critical/zero-High policy",
+  "code_app_bundle": {
+    "trustee-review-portal": {
+      "js_bytes_measured": 1210181,
+      "js_budget_max_bytes": 1241000,
+      "css_bytes_measured": 77641,
+      "result": "PASS"
+    },
+    "trustee-review-portal-cards": {
+      "js_bytes_measured": 845809,
+      "js_budget_max_bytes": 871100,
+      "css_bytes_measured": 148639,
+      "css_budget_max_bytes": 152800,
+      "result": "PASS"
+    }
+  },
+  "artifact_checksums": {
+    "RevitaliseGrantAutomation-managed.zip": "sha256:b97e48dbfa026f74e6885f4e9429b867662a61ebd53b6705bcb0134d25cc5183",
+    "RevitaliseGrantAutomation.zip": "sha256:7e44d07384a513710a9785283208f462746013338e5b01baec63cf77cdfd225f"
+  },
+  "status": "SUCCESS"
+}

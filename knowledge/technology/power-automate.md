@@ -290,6 +290,7 @@ edge above is still reserved for whichever claim eventually loses.
 ### Trigger
 - Dataverse triggers: always filter to the **specific columns** that should trigger the flow — never trigger on "any column change"
 - Scheduled flows: store schedule configuration in a Dataverse configuration table, not hardcoded in the flow
+- The HTTP trigger's 'Who can trigger the flow?' is `triggers.<name>.inputs.triggerAuthenticationType` (IMP-1016); `All` is Anyone. It ships in source and the live re-read compares it.
 
 ### Error Handling
 - Every flow must have a top-level **Scope** action with a parallel **Run After (failed/timed out/skipped)** error branch
@@ -306,6 +307,25 @@ edge above is still reserved for whichever claim eventually loses.
 - Teams notifications use Adaptive Cards with a deep link into the app; no Tier 3/4 data in cards or emails (see `knowledge/technology/teams.md`)
 - All connectors must comply with the environment's DLP policies (`C-TECH-045`) — list every connector in TAD §4
 - Calling Microsoft Graph via the HTTP connector requires an app registration — see `knowledge/technology/entra-id.md`
+
+### DocuSign connector — what a flow can set, and what only the template or account can (IMP-1022)
+
+- **Tab values** are written by `tabId` through `UpdateRecipientTabsValues` (one recipient) or
+  `UpdateEnvelopePrefillTabs` (one document), as array bodies of `{tabType, tabId, value}` (E1,
+  designer-saved). The two take **different `tabType` spellings**: the prefill fill accepted
+  `textTabs` and the recipient fill accepted `Text` (E1, measured live 2026-10-03,
+  `logs/pipeline.log` L308).
+- **Neither sets *Required* or *Locked*;** those stay on the template (E2). A **Company** tab stores a
+  value the signer then sees EMPTY (E1, measured 2026-10-04, L314) — use a Text tab for an
+  organisation name.
+- **Reassignment** is a template or account setting no action exposes (E2). A template also locks
+  `routingOrder`: `UpdateEnvelopeRecipient` with one returns **200 with `RECIPIENT_UPDATE_FAILED`**
+  in the body and leaves the recipient unchanged (E1, measured 2026-10-04, L311) — check the body,
+  not the status.
+- **The referee's access code** is `AddVerificationToRecipient` (E1), and `UpdateEnvelopeRecipient`'s
+  `phoneNumber` makes SMS a delivery channel (E2).
+
+The measured table, with sources, is TAD ADR-067; correct it there first.
 
 ### Sensitive Data Flows
 > 📝 If your domain has flows that handle highly sensitive data (Tier 3/4), define specific rules in
@@ -360,6 +380,11 @@ sit, not what they do.
 - **A `coalesce(x, <fallback>)`:** test with `x` null. `createArray()` with no argument is invalid
   and throws `InvalidTemplate` only on that branch; use `json('[]')`. The flow-definition gate
   rejects the zero-argument form.
+- **An ordering comparison on a nullable value:** `greater`, `greaterOrEquals`, `less` and
+  `lessOrEquals` throw `InvalidTemplate` on an empty operand, where `equals()` returns false. Wrap it
+  in `coalesce()` with a value outside every band, and test with an unscored row (IMP-0980).
+- `string(<boolean>)` renders `True`/`False` (IMP-0981), which is invalid JSON spliced unquoted; use
+  `if(<cond>,'true','false')`.
 
 ### Performance
 - Flows processing > 100 rows must use **pagination** (OData `$top` + `@odata.nextLink`)
@@ -385,6 +410,9 @@ live environment, then discovering the gap once a real import and a real designe
 exist. If a real `pac solution unpack` of a working flow is available, trust it over this
 section - these are the traps that bite when it is not yet available.
 
+- **Write each column as its own `item/<column>` key (IMP-1010)** in a Dataverse create or update,
+  never a nested `item` object: the designer binds only the flat form and a save keeps only what it
+  bound. A lookup is `item/<navigation property>@odata.bind` with the value `/<entity set>(<guid>)`.
 - **Every `description` field has a hard 256-character limit — actions, triggers, trigger
   parameters, and trigger-schema properties, all of it.** This is a genuine platform limit,
   not a style guideline: exceeding it does not fail `pac solution pack` or `pac solution
@@ -484,6 +512,9 @@ pac env fetch --xml "<fetch><entity name='stringmap'>\
 fixed-width TABLE, so the column is truncated to a column width and cannot be recovered, and
 `pac` 2.4.1 has no `--dataFile` option (only `--environment`, `--xml`, `--xmlFile`). That trap is
 named here because it is the obvious first thing to try.
+
+Filtering on the column works: a `like` condition on `clientdata` (category 5) finds every live
+flow containing a shape in one query; `pac` rejects `fetch/@top` (IMP-1016).
 
 **An unmanaged import with `--force-overwrite` deactivates every cloud flow in the solution**
 while reporting success. Capture the statecodes before, re-assert them after, and re-activate in

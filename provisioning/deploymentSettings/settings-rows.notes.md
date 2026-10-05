@@ -225,6 +225,36 @@ wbs:3.2 Dev Summary revision, open for the reviewer to accept or to ask for a di
 since an unsigned envelope arguably SHOULD keep reminding until WBS 3.3's escalation takes over
 at day 14).
 
+**2026-10-02 (TAD rev 15, `ADR-067` C9):** `REV | Acceptance | Create Envelope` now calls
+`AddReminders` on the DocuSign **draft**, before the envelope is sent, not after a single
+create-and-send call. The row and its `[3,7]` reading are unchanged.
+
+## AcceptanceEmailApplicant / AcceptanceEmailReferee
+
+**Added 2026-10-02, TAD rev 15 (`ADR-068` item 3, item 4), `wbs:3.2`.** Each signer gets their own
+DocuSign email. `REV | Acceptance | Create Envelope` reads both rows and sets them on each signer
+with the connector's `UpdateEnvelopeRecipient` (`emailNotificationSubject`,
+`emailNotificationBody`).
+
+- **Shape.** `dataType` `JSON`, value `{"subject": "...", "body": "..."}`.
+- **`{grantReference}`** anywhere in the subject or body is replaced with the grant's reference
+- **`{applicationReference}`, `{applicantName}`, `{refereeName}`** (added 2026-10-04) are replaced the same way: the application's reference, the applicant's full name (first + last when the full name is empty) and the referee's first + last name (Referee Name when those are empty). A `\n` in the JSON string is a line break in the DocuSign email.
+  (`rev_grant.rev_name`, a pseudonymous reference per `ADR-013`). Nothing else is substituted: no
+  name, no amount.
+- **The subject must stay within 100 characters** after that replacement (DocuSign's limit). A longer
+  subject stops the flow before any draft is created.
+- **The referee's body states the access-code rule**, for example *"Open the agreement with the last
+  6 numbers of your phone number"*. It must never contain the digits themselves (`ADR-068` item 4).
+- **No fallback.** A missing row, or one with an empty subject or body, makes the flow alert the
+  process owner and stop. It does not fall back to the applicant's wording, because that wording
+  tells the reader a referee signature follows theirs.
+
+**Values per environment.** DEV and TST/ACC carry **provisional test wording** written by
+development-agent, marked as such in each row's description. PRD carries the pending token
+`{{PENDING_ACCEPTANCE_EMAIL_WORDING}}` in both rows, so `seed-settings.ps1 -Env prd` aborts before
+any write rather than emailing real applicants test text. **The wording is Emily's to supply**
+(`ADR-068` item 3); replace all three environments' values when she does.
+
 ## TitleLabelMap
 
 Added 2026-09-27, TAD rev 11 (`ADR-051` item 3, `wbs:4.3`). The website sends its native Gravity Forms entry, whose answers are display labels rather than option values, so the intake flow resolves each one through this row (`Setting_<Key>` -> `Map_<field>_label` or the multi-select map filter -> `Derive_<field>`), after trim, case-fold and dash-fold on both sides. Values are TAD Appendix C §C.4 verbatim. Only the labels marked E1 there appeared in the 2026-09-25 sample; the rest are E3 from the 2026-09-11 live-form capture and are `A-INT-06` until Alex posts one test entry per route. A mismatch never guesses: the column is left empty and the label is named in `rev_intakereviewnote`. The fix for a mismatch is a re-seed of this row, not a flow change. Policy/reference data, identical in every environment (DeploymentSettings.Tests.ps1). The intake's row-count guard is now 18. `Mr.` is E1. Every title carries a trailing-full-stop alias row.

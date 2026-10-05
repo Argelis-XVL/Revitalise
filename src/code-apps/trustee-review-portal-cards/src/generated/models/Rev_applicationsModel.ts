@@ -73,20 +73,25 @@ export const Rev_applicationsrev_hearaboutus = {
 } as const;
 export type Rev_applicationsrev_hearaboutus = keyof typeof Rev_applicationsrev_hearaboutus;
 export const Rev_applicationsrev_incomeband = {
-  1: 'Under 10,000 GBP',
-  2: '10,000 to 19,999 GBP',
-  3: '20,000 to 29,999 GBP',
-  4: '30,000 to 39,999 GBP',
-  5: '40,000 GBP or more',
-  6: 'Prefer not to say'
+  1: 'Under £15,000',
+  2: '£15,000 to £24,999',
+  3: '£25,000 to £34,999',
+  4: 'Over £35,000'
 } as const;
 export type Rev_applicationsrev_incomeband = keyof typeof Rev_applicationsrev_incomeband;
 export const Rev_applicationsrev_incomeflag = {
   1: 'Within income ceiling',
   2: 'Above income ceiling',
-  3: 'Not stated - cannot assess'
+  3: 'Not stated - cannot assess',
+  4: 'Qualifies on means-tested benefits'
 } as const;
 export type Rev_applicationsrev_incomeflag = keyof typeof Rev_applicationsrev_incomeflag;
+export const Rev_applicationsrev_otherfundingstatus = {
+  1: 'Yes',
+  2: 'No',
+  3: 'Applied and awaiting decision'
+} as const;
+export type Rev_applicationsrev_otherfundingstatus = keyof typeof Rev_applicationsrev_otherfundingstatus;
 export const Rev_applicationsrev_status = {
   1: 'Submitted',
   2: 'Auto-pass',
@@ -227,6 +232,7 @@ export interface Rev_applicationsBase {
   rev_applicantconsentdate?: string;
   "rev_applicantid@odata.bind"?: string;
   rev_applicationid: string;
+  rev_autorejectreason?: string;
   rev_awaitingdecisionfrom?: string;
   rev_benefitprovider?: string;
   rev_breakend?: string;
@@ -234,6 +240,7 @@ export interface Rev_applicationsBase {
   rev_breakstart?: string;
   rev_breaktype?: Rev_applicationsrev_breaktype;
   rev_carecostsexplanation?: string;
+  rev_carecostsexplanationredacted?: string;
   rev_carehoursperweek?: Rev_applicationsrev_carehoursperweek;
   rev_careprovidedexample?: string;
   rev_careprovidedexampleredacted?: string;
@@ -245,18 +252,22 @@ export interface Rev_applicationsBase {
   rev_consentexplanation?: string;
   rev_costs?: number;
   rev_decisiondate?: string;
+  rev_disabilityimpactdescription?: string;
+  rev_disabilityimpactdescriptionredacted?: string;
   rev_eligibleforround?: boolean;
   rev_emergencycontactname?: string;
   rev_emergencycontactphone?: string;
   rev_employmentstatus?: Rev_applicationsrev_employmentstatus;
   rev_exceptionalcircumstance?: Rev_applicationsrev_exceptionalcircumstance;
   rev_exceptionalfundingdetail?: string;
+  rev_exceptionalfundingdetailredacted?: string;
   rev_exceptionalfundingrequested?: boolean;
   rev_feelingscaleanswer?: number;
   rev_granttermsconsent?: boolean;
   rev_granttermsconsentdate?: string;
   rev_grouplinkage?: string;
   rev_groupmembernames?: string;
+  rev_hasequalityactdisability?: boolean;
   rev_hearaboutus?: Rev_applicationsrev_hearaboutus[];
   rev_helperdeclarationconsent?: boolean;
   rev_helperdeclarationconsentdate?: string;
@@ -278,15 +289,19 @@ export interface Rev_applicationsBase {
   rev_othercareprovidedtype?: string;
   rev_othercareprovidedtyperedacted?: string;
   rev_otherconditionraw?: string;
+  rev_otherconditionredacted?: string;
   rev_othercost?: number;
   rev_otherexceptionalcircumstance?: string;
+  rev_otherexceptionalcircumstanceredacted?: string;
   rev_otherfundingamount?: number;
   rev_otherfundingsource?: string;
+  rev_otherfundingstatus?: Rev_applicationsrev_otherfundingstatus;
   rev_otherhearaboutus?: string;
   "rev_overriddenby@odata.bind"?: string;
   rev_overriddenon?: string;
   rev_overridereason?: string;
   rev_providerpreference?: string;
+  rev_provisionaldate?: string;
   rev_receivedfundingbefore?: boolean;
   rev_receivesbenefits?: boolean;
   rev_receivingotherfunding?: boolean;
@@ -294,22 +309,43 @@ export interface Rev_applicationsBase {
   rev_refereeemail?: string;
   rev_refereename?: string;
   rev_refereephone?: string;
+  rev_reviewage?: boolean;
+  rev_reviewamount?: boolean;
+  rev_reviewcareinformation?: boolean;
+  rev_reviewdate?: boolean;
+  rev_reviewdisabilityinformation?: boolean;
+  rev_reviewernote?: string;
+  rev_reviewexceptionalcircumstance?: boolean;
+  rev_reviewgroup?: boolean;
+  rev_reviewlocation?: boolean;
   rev_reviewround?: string;
+  rev_safeguardingactioncompleted?: boolean;
+  "rev_safeguardingactioncompletedby@odata.bind"?: string;
+  rev_safeguardingactioncompletedon?: string;
   rev_safeguardingflag?: boolean;
   rev_safeguardingnotes?: string;
   rev_savingsover6000?: boolean;
   rev_scorebreakdown?: string;
   rev_scoredon?: string;
+  rev_scoringaudit?: string;
   rev_significantcarecosts?: boolean;
+  rev_someonehelping?: boolean;
   rev_sourcesubmissionid?: string;
   rev_status?: Rev_applicationsrev_status;
   rev_statusoverridden?: boolean;
   rev_submittedon?: string;
+  rev_supportrecipientageconfirmation?: boolean;
+  rev_supportrecipientageconfirmationdate?: string;
   rev_supportrecipientconditionprofile?: Rev_applicationsrev_supportrecipientconditionprofile[];
+  rev_supportrecipientdisabilityimpactdescription?: string;
+  rev_supportrecipientdisabilityimpactdescriptionredacted?: string;
+  rev_supportrecipienthasequalityactdisability?: boolean;
   rev_supportrecipientname?: string;
   rev_supportrecipientotherconditionraw?: string;
+  rev_supportrecipientotherconditionredacted?: string;
   rev_travelcost?: number;
   rev_unabletofundexplanation?: string;
+  rev_unabletofundexplanationredacted?: string;
   rev_wellbeinganswer1?: Rev_applicationsrev_wellbeinganswer1;
   rev_wellbeinganswer10?: Rev_applicationsrev_wellbeinganswer10;
   rev_wellbeinganswer2?: Rev_applicationsrev_wellbeinganswer2;
@@ -361,6 +397,7 @@ export interface Rev_applications extends Rev_applicationsBase {
   rev_exceptionalcircumstancename?: string;
   rev_exceptionalfundingrequestedname?: string;
   rev_granttermsconsentname?: string;
+  rev_hasequalityactdisabilityname?: string;
   rev_hearaboutusname?: string;
   rev_helperdeclarationconsentname?: string;
   rev_incomebandname?: string;
@@ -370,18 +407,33 @@ export interface Rev_applications extends Rev_applicationsBase {
   rev_needscaresupportpersonallyname?: string;
   rev_othercost_base?: number;
   rev_otherfundingamount_base?: number;
+  rev_otherfundingstatusname?: string;
   rev_overriddenbyname?: string;
   rev_overriddenbyyominame?: string;
   rev_receivedfundingbeforename?: string;
   rev_receivesbenefitsname?: string;
   rev_receivingotherfundingname?: string;
   rev_redactionreleasedname?: string;
+  rev_reviewagename?: string;
+  rev_reviewamountname?: string;
+  rev_reviewcareinformationname?: string;
+  rev_reviewdatename?: string;
+  rev_reviewdisabilityinformationname?: string;
+  rev_reviewexceptionalcircumstancename?: string;
+  rev_reviewgroupname?: string;
+  rev_reviewlocationname?: string;
+  rev_safeguardingactioncompletedbyname?: string;
+  rev_safeguardingactioncompletedbyyominame?: string;
+  rev_safeguardingactioncompletedname?: string;
   rev_safeguardingflagname?: string;
   rev_savingsover6000name?: string;
   rev_significantcarecostsname?: string;
+  rev_someonehelpingname?: string;
   rev_statusname?: string;
   rev_statusoverriddenname?: string;
+  rev_supportrecipientageconfirmationname?: string;
   rev_supportrecipientconditionprofilename?: string;
+  rev_supportrecipienthasequalityactdisabilityname?: string;
   rev_travelcost_base?: number;
   rev_wellbeinganswer10name?: string;
   rev_wellbeinganswer1name?: string;
@@ -416,6 +468,8 @@ export interface Rev_applications extends Rev_applicationsBase {
   _rev_applicantid_value?: string;
   rev_overriddenby?: object;
   _rev_overriddenby_value?: string;
+  rev_safeguardingactioncompletedby?: object;
+  _rev_safeguardingactioncompletedby_value?: string;
   transactioncurrencyid?: object;
   _transactioncurrencyid_value?: string;
 }

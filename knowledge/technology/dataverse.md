@@ -330,9 +330,48 @@ Applied 2026-08-18 from `logs/improvement-log.jsonl` (IMP-0017) — proposed whe
 never written down until this review. Both steps below were discovered by execution; no
 Microsoft document describes the sequence.
 
-**A type change is not importable.** Solution import rejects `Picklist` → `String`/`Boolean`
-outright: *"Attribute rev_helperrelationship is a Picklist, but a String type was specified."*
-There is no in-place conversion.
+*Generalised by improvement review 2026-09-27 (`IMP-0934`, `C-TECH-080`).*
+
+**A column's data type never changes once the column exists in an environment.** Microsoft
+documents it: you *"can't change the **Name** and **Data type** if you saved changes to the table
+to add the column"*, and *"once a column is saved, you can't change the data type except for
+converting text columns to autonumber columns"*
+([Microsoft Learn](https://learn.microsoft.com/power-apps/maker/data-platform/create-edit-field-portal#edit-a-column),
+re-read 2026-10-05). Solution import enforces it: *"Attribute rev_helperrelationship is a
+Picklist, but a String type was specified."* There is no in-place conversion. Measured here as
+picklist → nvarchar and picklist → bit (2026-08-16), int → picklist and bit → picklist (live in DEV
+2026-08-21), and nvarchar → ntext on ten columns (2026-09-27, commit `aa0594f`).
+
+**There are two routes, and the choice is declared before anyone edits source.**
+
+- **A new column under a new logical name.** Additive and import-safe. The old column stays until
+  its data has been moved and nothing references it.
+- **Delete and recreate**, using the procedure below, as a reviewer-authorised live operation in
+  every environment where the column is live.
+
+Either route is declared in `config/attribute-type-lock.json` → `planned_retypes` (route,
+`live_in`, who authorised it, date). The build step `attribute-type-stability`
+(`scripts/verify-attribute-type-stability.py`) fails on any `<Type>` change that is not declared
+there. Once the new type has shipped, `--update` records it and moves the declaration to
+`applied_retypes`.
+
+**A retype is only needed where the column is live.** In an environment that has had no import
+of the column yet, correct the source before its first import, and nothing is deleted.
+
+**What a delete costs.** The column's data is gone, and so is its audit history. Microsoft: *"the
+only way to recover data from a column that was deleted is to restore the database from a point
+before the column was deleted."* The delete is irreversible, so the harness refuses it until the
+reviewer authorises it, and the design states the loss before the reviewer is asked.
+
+**Two facts the 2026-08-21 sequence found:**
+
+- **`ensure-schema.ps1` reports `EXISTS` for a column whose live type differs from source.** It
+  checks only that an attribute of that name exists, never its type, and it has no delete logic.
+  An `EXISTS` line is therefore not evidence the type is right. Query `EntityDefinitions` for the
+  `AttributeType` instead.
+- **Deleting a secured column removes its field-permission rows.** Dataverse does this
+  automatically. Re-create them through the Web API (`C-TECH-050`) after the column is recreated;
+  on 2026-09-27 they came back with new ids.
 
 **The follow-up delete is blocked by any form that references the column** — the delete returns
 `400` while a `systemform` still names it, and the error does not say so plainly.
@@ -340,11 +379,14 @@ There is no in-place conversion.
 The working procedure, in order:
 
 1. **Transitional import** that removes the control from every form referencing the column,
-   leaving the column itself in place.
+   leaving the column itself in place. Where the source already carries the new type, revert it
+   in the transitional pack to the type that is live, or the import fails on the type change
+   (2026-08-21). Keep a backup of the target files and restore them byte-for-byte afterwards.
 2. **Delete the column** via the Web API, now that no form depends on it.
 3. **Recreate it at the correct type** via the Web API (`C-TECH-050`: attributes are created via
-   the API, never assumed creatable by a first solution import).
-4. Re-add the control to the form in the next ordinary import.
+   the API, never assumed creatable by a first solution import), then re-create its field
+   permissions if it is secured.
+4. Re-add the control to the form in the next ordinary import of the real target.
 
 Budget three imports for one type change, and prefer getting the type right before the first
 deploy — `skills/how-to-verify-a-platform-contract.md` exists because guessing it is what

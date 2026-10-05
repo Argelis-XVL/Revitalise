@@ -2131,3 +2131,35 @@ HANDOFF | from:pipeline-agent | to:commercial-agent | feature:revitalise-grant-a
 WBS deliverables re-confirmed live in DEV: **4.2**, **4.3** (level V3, this time with a full 81-key value diff rather than a spot check). V4/V5 outstanding, reviewer. `IMP-0956` open, routing to `improvement-agent` recommended. A PM or commercial failure never halts this deploy.
 
 NEXT: improvement-agent (post-deploy batch) — 2 finding(s) queued (IMP-0956 open, unread; IMP-0958 new this dispatch).
+
+## Addendum, 2026-10-03 (build `revitalise-grant-automation-20261003-2`) — wbs:3.2,3.5, TAD rev 15 Create Envelope, DEV ONLY
+
+**Result: PARTIAL, level DEPLOYED (V3) for the solution import; nothing at V4.** Items WI-0107, WI-0109 and WI-0111 are `deployed:dev`. No promotion.
+
+**Provenance.** `verify-artifact-provenance.py` PASS. The artifact differs from its manifest commit: manifest `source_commit` is 7cd080c, which holds the old flow, and the manifest records 25 uncommitted paths at pack time. The rev 15 flow is uncommitted by the reviewer's standing instruction (commit question unanswered). Content was verified byte-for-byte: the zip's `REVAcceptanceCreateEnvelope-…1006….json` and the source file both have sha256 `0be36af99c119f974819c5f9355a534e0a7b0940572aeeb95d7062669d708648`.
+
+**Assumptions (`C-TECH-058`).** OVERRIDE recorded for A-DS-14, A-DS-15, A-DS-16, A-DS-17, A-DS-18, DEV only. Reviewer's words, verbatim: "APPROVED with override of assumptions A-DS-14, A-DS-15, A-DS-16, A-DS-17, A-DS-18". Reason: each closes only by a real envelope in DEV (TAD §12.5 R1–R6). It covers no other assumption. All five stay OPEN.
+
+**Executed (DEV, pac profile svc_grantapplications, org REV-GrantApplications-DEV).**
+- `pac solution import` (async, force-overwrite, publish-changes): SUCCEEDED, op 58c8eee8-0abf-f111-aaaf-7ced8d43e87d, 52.8 s.
+- Idempotency re-run (`C-TECH-053`): SUCCEEDED, op 584a95c8-0bbf-f111-aaaf-7ced8d43e87d, 44.7 s.
+- `verify-live-flow-definitions.py --env dev`: PASS, 10 flows in source, 10 read live, 0 differences, none modified after the 09:21 UTC import. This is V3 evidence that live equals source. It does not show the flow runs.
+- Flow statecodes after: Create Envelope (1006) and Completion (1008) Draft, as before. Reminders & Escalation and Intake Activated.
+
+**Not run, and who owns each.**
+1. Access preflight and any `provisioning/` script: this session holds neither PROVISION_APP_ID nor PROVISION_CERT_THUMBPRINT. Owner: reviewer. The rev 15 diff changes no schema.
+2. Seeding AcceptanceEmailApplicant and AcceptanceEmailReferee: `seed-settings.ps1 -Env dev` needs the credential. A live read shows both rows ABSENT (EscalationDays = 14 is present). Without them the flow alerts and sends nothing. Owner: reviewer.
+3. `intake-callback-url-capture` and `-compare` (A-INT-13): need the credential. Not substituted. The intake flow was re-imported, so whether its callback URL changed is UNMEASURED this run.
+4. `code-app-push` (both apps): not run. The diff does not touch either Code App, and src/code-apps carries uncommitted trustee-portal changes outside this scope that a push would publish. Owner: lead to decide.
+5. All manual DEV steps in the config's post_deploy list for wbs:3.2 (DocuSign connection binding, template Required fields, flow turn-on from the designer, callbackregistration read-back).
+
+**REVIEWER ACTION REQUIRED, in this order**, shell zsh, reviewer's own terminal:
+```
+export PROVISION_APP_ID=<app id>
+export PROVISION_CERT_THUMBPRINT=<thumbprint>
+pwsh -NoProfile -File provisioning/dataverse/verify-environment-access.ps1 -Env dev
+pwsh -NoProfile -File provisioning/dataverse/seed-settings.ps1 -Env dev
+```
+Verify afterwards by reading `rev_setting` for the two names (value must be non-empty). Then, with TEST identities only: confirm the DocuSign template (every signer field Required, "change signing responsibility" off), turn "REV | Acceptance | Create Envelope" on from the designer (do not save the flow in the designer, risk A-R73), confirm a `callbackregistrations` row for `rev_grant`, then run R1–R6 per TAD §12.5 with a test grant and test mailboxes. Void the test envelopes afterwards. The DEV template's tab layout was not read by this session.
+
+**Not established.** That the flow runs, that option A fills the referee tabs, that the referee access code works, and that the reminders hold. TAD rev 15 is still at ARCHITECTURE REVIEW REQUIRED.

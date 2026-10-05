@@ -159,8 +159,8 @@
       },
       {
         "displayName": "rev-wordpress-intake",
-        "_comment": "ALEX'S WORDPRESS SITE AS AN OAUTH CLIENT-CREDENTIALS CALLER, and the identity the PRIMARY authentication control on the intake endpoint is built around (NFR-008, C-TECH-006). Created by provisioning/entra/ensure-intake-client.ps1, which also PRINTS the two identifiers the control needs: the application (client) id goes into the rev_IntakeAllowedClientId environment variable (the flow's second gate) and the SERVICE PRINCIPAL OBJECT ID goes into the trigger's 'Allowed users' field (the platform-level primary gate). They are different values and are not interchangeable.",
-        "_comment_adr011": "ADR-011 IS DECIDED (TAD rev 10, 2026-09-25): the Entra client-credentials route - this registration - on the reviewer's statement 'I have shared the url, clientid and secret with Alex'. The shared-secret and scheduled REST-pull routes are dead options, so their teardown instruction that stood here is retired (ADR-011 consequence 4). The caller's client secret lives in WordPress, outside our secret store: it needs a named rotation owner and a recorded expiry (C-TECH-044, SOFT, <= 180 days); a certificate stays preferred. When it expires every submission gets a 401 at the platform gate and the flow never runs (risk A-R68). ensure-intake-client.ps1 reports the credential count; verify-intake-endpoint-auth.ps1 is the per-environment check.",
+        "_comment": "TAD rev 14 (see _comment_adr011): this registration is now only the source of the x-rev-client-id value; the PRIMARY-control text that follows is the retired rev 10 route. ALEX'S WORDPRESS SITE AS AN OAUTH CLIENT-CREDENTIALS CALLER, and the identity the PRIMARY authentication control on the intake endpoint is built around (NFR-008, C-TECH-006). Created by provisioning/entra/ensure-intake-client.ps1, which also PRINTS the two identifiers the control needs: the application (client) id goes into the rev_IntakeAllowedClientId environment variable (the flow's second gate) and the SERVICE PRINCIPAL OBJECT ID goes into the trigger's 'Allowed users' field (the platform-level primary gate). They are different values and are not interchangeable.",
+        "_comment_adr011": "ADR-011 IS RE-DECIDED (TAD rev 14, 2026-10-02): trigger mode Anyone (the signed callback URL) plus the x-rev-client-id header. This registration is KEPT only because its application (client) id is the value the website sends as x-rev-client-id. Its client secret, given to Alex on 2026-09-25, is no longer needed by anything; revoking it is a reviewer/Wanstor action. SUPERSEDED (rev 10, retained): ADR-011 IS DECIDED (TAD rev 10, 2026-09-25): the Entra client-credentials route - this registration - on the reviewer's statement 'I have shared the url, clientid and secret with Alex'. The shared-secret and scheduled REST-pull routes are dead options, so their teardown instruction that stood here is retired (ADR-011 consequence 4). The caller's client secret lives in WordPress, outside our secret store: it needs a named rotation owner and a recorded expiry (C-TECH-044, SOFT, <= 180 days); a certificate stays preferred. When it expires every submission gets a 401 at the platform gate and the flow never runs (risk A-R68). ensure-intake-client.ps1 reports the credential count; verify-intake-endpoint-auth.ps1 is the per-environment check.",
         "_comment_credential": "THE CALLER'S OWN CLIENT CREDENTIAL IS NOT PROVISIONED HERE AND IS NOT IN THIS REPOSITORY. Alex's site needs a certificate (preferred, C-TECH-044) or a client secret to obtain a token; it is issued interactively by the tenant administrator and handed over out of band. A pipeline that mints a credential is a pipeline that prints one (C-TECH-001). ensure-intake-client.ps1 reports whether one exists, by COUNT only.",
         "signInAudience": "AzureADMyOrg",
         "requiredResourceAccess": [
@@ -204,53 +204,38 @@
   },
   "intake": {
     "_comment": [
-      "THE PRIMARY AUTHENTICATION CONTROL ON THE SOLUTION'S ONE PUBLIC ENDPOINT",
-      "(NFR-008, C-TECH-006). Added 2026-08-12 to close test-agent defect D-001, which",
-      "found that the control the design calls 'the primary control' existed nowhere in",
-      "the delivery chain: not in the flow source, not in a provisioning script, not a",
-      "TAD \u00a712 row, not a post_deploy step and not asserted by any smoke test.",
+      "THE AUTHENTICATION OF THE SOLUTION'S ONE PUBLIC ENDPOINT (NFR-008, C-TECH-006).",
+      "REWRITTEN 2026-10-02 FOR TAD rev 14: ADR-011 was re-decided by the reviewer. The website's",
+      "Gravity Forms webhook sends static headers only, so the Entra bearer token the rev 10 route",
+      "needed could not be refreshed. The trigger is now in mode 'Anyone': the caller presents the",
+      "signed callback URL (its sig is the FIRST control) and the fixed header x-rev-client-id (the",
+      "SECOND control, checked by the flow's first action).",
       "",
-      "IT IS A TRIGGER SETTING, NOT A SOLUTION COMPONENT. Microsoft documents it as the",
-      "'Who can trigger the flow?' authentication parameter on the 'When an HTTP request",
-      "is received' trigger and publishes no workflow-definition property for it",
-      "(https://learn.microsoft.com/en-us/power-automate/oauth-authentication). So it",
-      "cannot ship in the managed solution and cannot be asserted by reading the flow",
-      "JSON. It is therefore handled the only way such a control can be: declared here",
-      "as a value, applied by a NAMED OWNER as a post_deploy step, and VERIFIED after",
-      "every deployment by provisioning/entra/verify-intake-endpoint-auth.ps1.",
+      "IT IS NOW DECLARED IN THE SOLUTION SOURCE, not configured by hand: triggers.manual.inputs.",
+      "triggerAuthenticationType = \"All\" in the intake flow, the value the platform's own designer",
+      "wrote into the live DEV definition. So every import applies it; nobody sets it in the designer.",
+      "Whether import honours it is A-INT-11 (Dev Summary section 10).",
       "",
-      "WHETHER THE SETTING SURVIVES A SOLUTION IMPORT IS UNVERIFIED \u2014 there is no",
-      "environment yet. The pipeline therefore CONFIGURES IT AND VERIFIES IT on every",
-      "deployment rather than assuming it carried across. If it turns out to survive,",
-      "the post_deploy step becomes a no-op confirmation and the smoke test still earns",
-      "its place.",
-      "",
-      "ADR-011 IS DECIDED (2026-09-25): the Entra client-credentials route. See the",
-      "_comment_adr011 note on the rev-wordpress-intake registration above."
+      "SUPERSEDED (rev 10, retained so the change is visible): mode 'Specific users in my tenant'",
+      "with the rev-wordpress-intake service principal object id, audience",
+      "https://service.flow.microsoft.com/, scope https://service.flow.microsoft.com//.default, and",
+      "\"'Anyone' is a defect\". The post_deploy step that configured it is retired."
     ],
     "clientAppDisplayName": "rev-wordpress-intake",
     "flowName": "REV | Intake | WordPress to Dataverse",
     "triggerAuthentication": {
-      "mode": "Specific users in my tenant",
-      "_comment_mode": "The three documented modes are 'Any user in my tenant', 'Specific users in my tenant' and 'Anyone'. 'Anyone' is a defect. 'Any user in my tenant' would let ANY identity in the Revitalise tenant write applications into Dataverse, which is not least privilege for a single external caller. 'Specific users in my tenant' with one service principal object id is the narrowest available option and is what NFR-008 ('only the charity website') actually means. \u26a0 Leaving the Allowed users field BLANK under this mode silently widens the scope back to the whole tenant, per Microsoft's own note \u2014 the smoke test cannot detect that, so it is called out here.",
-      "allowedCallerSource": "Service principal OBJECT id of intake.clientAppDisplayName \u2014 printed by provisioning/entra/ensure-intake-client.ps1. Not the application (client) id, and not the App-registrations Object ID: the Enterprise-applications one.",
-      "expectedAudience": "https://service.flow.microsoft.com/",
-      "callerTokenScope": "https://service.flow.microsoft.com//.default",
-      "_comment_scope": "Public-cloud values, and both are exact-match sensitive: the aud claim keeps its trailing slash, and the client-credentials scope therefore carries a DOUBLE slash before .default. A single slash yields a MisMatchingOAuthClaims failure that reads like a permissions problem and is not one.",
-      "requiredClaims": [
-        "aud",
-        "iss",
-        "tid",
-        "oid"
-      ],
+      "mode": "Anyone",
+      "definitionValue": "All",
+      "declaredIn": "src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json -> triggers.manual.inputs.triggerAuthenticationType",
+      "_comment_mode": "The reviewer's decision (TAD rev 14, ADR-011). The URL is the real credential: the x-rev-client-id value is a public identifier. Risk A-R71 (the URL leaks) and A-R72 (an import changes the URL) are in the TAD.",
       "unauthenticatedExpectedStatusCodes": [
         401,
         403
       ],
-      "configuredBy": "Wanstor (tenant administration) applies it in the Power Automate designer for the TST/ACC environment; Xander Lykopoulos (maker / Argelis Consultancy) supplies the service principal object id from the ensure-intake-client.ps1 output and confirms the smoke test passes. Recorded per C-TECH-041 so the control has a named owner, which is what D-001 found missing."
+      "configuredBy": "Nobody by hand: declared in the solution source and applied by every import into TST/ACC. development-agent owns the source value; pipeline-agent verifies it after each import (verify-intake-endpoint-auth.ps1 probes, the callback-URL hash compare). Changing it is a reviewer decision under ADR-011, never a designer edit."
     },
     "endpointUrlEnvVar": "INTAKE_ENDPOINT_URL_TEST",
-    "_comment_endpointUrl": "THE TRIGGER URL IS A CREDENTIAL AND IS DELIBERATELY NOT A VALUE IN THIS FILE. A Power Automate HTTP trigger URL carries its own SAS signature in the `sig=` query parameter \u2014 Microsoft documents regenerating it (https://learn.microsoft.com/en-us/power-automate/regenerate-sas-key), which is only meaningful for a secret. It is held as a CI secret under this name, like PROVISION_APP_ID (C-TECH-001/047). Read it once from the trigger card after the flow is turned on."
+    "_comment_endpointUrl": "THE TRIGGER URL IS A CREDENTIAL AND IS DELIBERATELY NOT A VALUE IN THIS FILE. A Power Automate HTTP trigger URL carries its own SAS signature in the `sig=` query parameter — Microsoft documents regenerating it (https://learn.microsoft.com/en-us/power-automate/regenerate-sas-key), which is only meaningful for a secret. It is held as a CI secret under this name, like PROVISION_APP_ID (C-TECH-001/047). Read it once from the trigger card after the flow is turned on."
   },
   "dataverse": {
     "_comment_environmentUrl": "The pipeline's $ENV_URL_TEST \u2014 one value for the combined TST/ACC environment (ADR-006). Environment REV-GrantApplications-ACC, created 2026-08-14, confirmed via `pac admin list` and now a Managed Environment (protection-level Standard, set 2026-08-14).",
@@ -606,6 +591,20 @@
         "dataType": "JSON",
         "value": "[3,7]",
         "description": "IMP-0618 RESOLVED 2026-09-06: reviewer decision - the seeded table drives the reminder cadence dynamically, discarding the DocuSign template's own static 2/5-day configuration entirely. [first, second] reminder day (FR-043, TAD 5.9). Read by REV | Acceptance | Create Envelope (wbs:3.2), which calls the DocuSign connector's AddReminders action once per envelope right after creation - not read by wbs:3.3, which remains escalation-only. Added to DEV 2026-09-06; mirrored here 2026-09-08 per reviewer confirmation (same EX-006/EX-007 DEV-only scoping applies to the flow itself, not to this settings row). See settings-rows.notes.md#ReminderDays for the delay/frequency shape mismatch this produces."
+      },
+      {
+        "key": "AcceptanceEmailApplicant",
+        "displayName": "Acceptance email: applicant",
+        "dataType": "JSON",
+        "value": "{\"subject\": \"Revitalise grant acceptance - {grantReference}\", \"body\": \"Please review and sign your Revitalise grant acceptance. After you have signed, your referee or GP will be asked to sign too.\"}",
+        "description": "TAD rev 15, ADR-068 item 3 (wbs:3.2): the applicant's own DocuSign email, JSON {subject, body}. Read by REV | Acceptance | Create Envelope and set with UpdateEnvelopeRecipient. {grantReference} is replaced with the grant reference (ADR-013); the subject must stay within 100 characters after that. No row, no subject or no body -> the flow alerts and sends nothing. PROVISIONAL TEST WORDING, not Emily's: replace with the wording Emily supplies. See settings-rows.notes.md#AcceptanceEmailApplicant--AcceptanceEmailReferee."
+      },
+      {
+        "key": "AcceptanceEmailReferee",
+        "displayName": "Acceptance email: referee",
+        "dataType": "JSON",
+        "value": "{\"subject\": \"Revitalise grant acceptance - referee signature - {grantReference}\", \"body\": \"You have been named as the referee for a Revitalise grant. Please review and sign the grant acceptance. Open the agreement with the last 6 numbers of your phone number.\"}",
+        "description": "TAD rev 15, ADR-068 items 3-4 (wbs:3.2): the referee's own DocuSign email, JSON {subject, body}. The body must state the access-code RULE (the last 6 numbers of your phone number) and never the digits. {grantReference} is replaced with the grant reference; subject within 100 characters. No row -> the flow alerts and sends nothing. PROVISIONAL TEST WORDING, not Emily's: replace with the wording Emily supplies. See settings-rows.notes.md#AcceptanceEmailApplicant--AcceptanceEmailReferee."
       },
       {
         "key": "LocalAuthorityRegisterMultiAuthorityThresholdPercent",

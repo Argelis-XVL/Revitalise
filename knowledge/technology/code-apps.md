@@ -533,14 +533,28 @@ Administrator does this once, before the first push. This stopped a DEV deploy o
    (`pac code push --solutionName RevitaliseGrantAutomation`). The replacement command takes only
    a GUID, so that step fails on migration until someone reads the real id.
 
-   ⚠️ **And `pac code push --solutionName` does not do what it says on this tenant.** Verified
-   live: 49 `solutioncomponents` on the target solution and the pushed app's `appId` absent from
-   all of them. The confirmed route to get a Code App into a named solution here is the maker
-   portal's **Add existing component**. So treat every environment as needing its own push plus
-   that manual step, not a managed-import ride-along.
+   ⚠️ **And `pac code push --solutionName` does not do what it says on this tenant.** The dated
+   readings, all of `solutioncomponent` (componenttype 300) for the target solution:
+   - **22 Aug, after the first app's push:** absent — 49 components, the app's `appId` in none.
+   - **22 Aug, after the reviewer's manual *Add existing*:** present (component `createdon`
+     22 Aug 11:28 UTC, four hours after the app's `canvasapp` row).
+   - **23 Aug read:** present — and credited to the push. It was the manual add of the day before.
+   - **01 Oct, first push of a second app:** absent from every solution, and no `canvasapp` row at
+     all, after a repeat push too.
+   - **02 Oct 09:10 UTC:** the second app's component appears (`createdon`), a day after its push
+     and with no deploy logged at that time — the manual *Add existing* again. Re-read
+     2026-10-05: two componenttype-300 rows, one per appId.
+
+   membership came from the maker portal, not the push (IMP-1008). The confirmed route to get a
+   Code App into a named solution here is the maker portal's **Add existing component**. So treat
+   every environment as needing its own push plus that manual step, not a managed-import
+   ride-along. **The check:** after a first push, read `solutioncomponent` by the app's id in any
+   solution; before crediting a push with membership, compare the component's `createdon` with the
+   push time.
 2. **Later pushes** do not change solution membership unless `--solution-id` is passed again.
-3. **Promotion.** The code app is a solution component and travels in the managed solution
-   through Test/Acc/Prd like every other component. Code apps do **not** support Power Platform
+3. **Promotion.** Once it has been added to the solution (above), the code app is a solution
+   component and travels in the managed solution through Test/Acc/Prd like every other component;
+   an app that was only pushed travels nowhere. Code apps do **not** support Power Platform
    Git integration or source-code integration — the solution is the only transport.
 4. **Environment-independent data sources.** Prefer a connection reference (`--connection-ref`
    with `--solution-id`) over a per-user connection, and `@envvar:<schema-name>` for dataset and
@@ -640,6 +654,8 @@ the defect is obsoleted rather than fixed, and its upstream priority is correspo
 - Use **CSS Modules** or **Tailwind CSS** — one approach per project, set in `stack-overview.md`
 - No inline styles except for dynamic/computed values
 - Fluent UI v9 (`@fluentui/react-components`) for components that must match Power Platform visual language
+- A heading that is the first child of its own group wrapper loses its top margin to a `:first-child` reset; space the wrappers (`.group + .group`), and assert in Chromium that the gap between groups is clearly larger than the gap between rows (IMP-0979).
+- A horizontally scrolling wrapper clips an absolutely positioned descendant, such as visually hidden `.srOnly` text, only if it is that descendant's containing block: give every `overflow-x: auto` wrapper `position: relative` (IMP-0999).
 
 #### An `auto-fit` floor is a MINIMUM TRACK WIDTH, never a MAXIMUM COLUMN COUNT
 

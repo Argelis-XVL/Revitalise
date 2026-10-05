@@ -4,8 +4,25 @@
 **Findings processed:** 1 `NEW` → 1 cluster
 **Trigger:** reviewer request (relayed by lead-agent as a blocker escalation; see §0 — the finding is governance-lane, so the blocker rung did not require this dispatch)
 **Gate:** `APPROVE IMPROVEMENTS`
-**Status:** DRAFT — parked at the gate, nothing applied.
+**Status:** APPLIED 2026-10-05 on `APPROVE IMPROVEMENTS` (Xander Lykopoulos, relayed by lead-agent 10:41), as revalidated the same day. See §9 *Applied record*. Drafted 2026-09-27; revalidated 2026-10-05.
 **WBS:** `wbs:4.2,4.3` (the TAD revision this finding blocks). The rule changes themselves are system work and map to no billable task.
+
+---
+
+## Revalidation — 2026-10-05 (read this first)
+
+Re-measured against the working tree and DEV, read-only. **The three proposed changes are still needed: none is on disk.** What happened since makes the critical finding closable, not the rules unnecessary.
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| Row 1: the type-stability check and lock file | **VALID, details CHANGED** | Neither file exists, in `scripts/` or `.engine/scripts/`. Two inputs moved. (a) The eleven retypes were executed on 27 September and committed in `aa0594f` (10 columns `nvarchar` to `ntext`, plus `rev_provisionaldate` created as `ntext`), so a lock seeded from HEAD records them as `ntext`. (b) The replay gains a third historical commit: a lock seeded from `aa0594f^` must fail on exactly those 10 columns. The working tree adds 8 new columns and changes no type, so 0 findings is still the expected current result. `component-shape` is now at [build L398](config/revitalise-grant-automation-build.yml#L398) |
+| Row 2: `C-TECH-080` | **VALID** | The id is still free (highest live row is `C-TECH-079`). Its rationale should count the 27 September retype as executed, not planned |
+| Row 3: knowledge section | **CHANGED — partly overtaken** | Review 2026-09-28 added a block under the section ([dataverse.md L395](knowledge/technology/dataverse.md#L395); it was at L353 when revalidated) covering the publish step, `auto="true"`, the transitional package and the row-size cost. Still absent: the general rule with the Microsoft Learn quotation, the 2026-08-21 sequence, `EXISTS` on a type mismatch, the environment rule, and the two routes. Apply only those, and keep the 2026-09-28 block as that review asked |
+| §3.1 handed-on `TYPE-MISMATCH` outcome in `ensure-schema.ps1` | **VALID** | not present in either provisioning file |
+| *What is still open*: rev 13's claim that field permissions survive | **ANSWERED by measurement** | Step 5 on 27 September found 10 permission rows **with new ids** ([routing L1055](logs/routing.log#L1055)), so they were recreated, not kept. Today each of the five secured columns has two rows. Whether the TAD wording needs correcting is architect-agent's call |
+| *What is still open*: rev 13 not yet approved | **ALREADY RESOLVED** | TAD rev 13 approved 2026-09-27 ([TAD status](docs/architecture/revitalise-grant-automation-architecture.md#L6)) |
+
+**§8 disposition of the critical finding: DEFER becomes CLOSE.** Its `revisit_when` has two parts and both are now met. The TAD revision is approved. A solution export of DEV (2026-10-05 10:17) shows all eleven columns as `ntext`, the five named ones secured, and FetchXML on `fieldpermission` shows two rows for each. The `reobserved` record (V3) is written at apply, after re-running both reads. The `evidence_grep` is on the approved TAD's rev 13 line. **The rules in rows 1–3 are still proposed**, because the finding's class (a design that changes a live column's type) has no check today.
 
 ---
 
@@ -216,4 +233,67 @@ Respond APPROVE IMPROVEMENTS to apply, or give feedback for revision.
 
 Nothing has been done yet. This section records what happens on `APPROVE IMPROVEMENTS`, so that the decision is visible before approval. The record of what was actually done is added below it afterwards.
 
-**IMP-0934 — DEFER, not CLOSE.** Its `observable_at` is V3 and its defect is in the TAD. The three changes above stop a recurrence at build time, but they do not correct rev 12, and nobody in this session can observe the corrected design shipping. On approval it gets a `deferred_reason` recording what landed. It also gets a `revisit_when`: *"the reviewer approves the TAD revision replacing ADR-053 point 3, and, if the delete-and-recreate route is taken, a live DEV `EntityDefinitions` query shows the eleven columns as MemoType with their field permissions present"*. A later review closes it with an `evidence_grep` on the approved TAD and a `reobserved` record from that query.
+**IMP-0934 — CLOSE (revalidation 2026-10-05: both parts of the `revisit_when` below are met live; see *Revalidation*).** Was drafted: DEFER, not CLOSE. Its `observable_at` is V3 and its defect is in the TAD. The three changes above stop a recurrence at build time, but they do not correct rev 12, and nobody in this session can observe the corrected design shipping. On approval it gets a `deferred_reason` recording what landed. It also gets a `revisit_when`: *"the reviewer approves the TAD revision replacing ADR-053 point 3, and, if the delete-and-recreate route is taken, a live DEV `EntityDefinitions` query shows the eleven columns as MemoType with their field permissions present"*. A later review closes it with an `evidence_grep` on the approved TAD and a `reobserved` record from that query.
+
+---
+
+## 9. Applied record — 2026-10-05
+
+**Approved by:** Xander Lykopoulos, verbatim *"Agreed with all suggested improvements for the questions 1 - 6 and D1 - 3 / Approve Improvements for all reviews, process them one by one."*, relayed by lead-agent ([routing.log](logs/routing.log), 2026-10-05 10:41). Applied as dispatch 2 of 4, after review 2026-09-23-7 and before 2026-09-30-2 and 2026-10-05. Not committed.
+
+### Summary
+
+All three changes landed as revalidated, none narrowed or withheld. The check proves itself on its own fixtures and over the whole history: 24 commits that touch `Entities/`, 14 findings, 14 true positives, and 0 findings on today's working tree. `IMP-0934` is closed, with a V3 re-observation made in DEV this morning.
+
+### What has been built
+
+1. **The build check fails on any undeclared change to an existing column's type** ([verify-attribute-type-stability.py](scripts/verify-attribute-type-stability.py#L1), engine copy byte-identical at `.engine/scripts/`, [lock file](config/attribute-type-lock.json#L1), wired HARD at [build L410](config/revitalise-grant-automation-build.yml#L410) directly after `component-shape`). The lock was seeded from the committed `Entity.xml` files at HEAD, 265 attributes, so the eleven `rev_application` columns retyped in `aa0594f` are recorded as `ntext`. One detail beyond the draft: when a declared retype has shipped, `--update` records the new type and moves the declaration to `applied_retypes`. Without that, a correct, landed retype would warn on every build forever, and it would leave no record of who authorised it. Undeclared type changes are still refused.
+2. **`C-TECH-080` is live** ([technology-constraints.md L150](constraints/technology/technology-constraints.md#L150)), worded as in §3.2. The rationale now counts the 27 September retype as executed (10 retyped plus one created as `ntext`, commit `aa0594f`, permission rows recreated with new ids), as the revalidation asked.
+3. **The knowledge section now states the general rule** ([dataverse.md L327](knowledge/technology/dataverse.md#L327)). Only the items the revalidation listed as missing were added: the Microsoft Learn rule (quotation re-read on the live page today), the two routes and the lock, the environment rule, what a delete costs, `EXISTS` on a type mismatch, and the fact that deleting a secured column removes its permission rows. The 2026-08-21 transitional-pack step went into the existing procedure. The 2026-09-28 block is kept unchanged ([L395](knowledge/technology/dataverse.md#L395)), and its "String cannot become Memo in place" sentence is not repeated.
+
+### Elements added
+
+| Element | What it is |
+|---|---|
+| `scripts/verify-attribute-type-stability.py` + `.engine/scripts/` copy | The check, with `--selftest`, `--update` and `--seed` |
+| `config/attribute-type-lock.json` | 265 recorded attributes, empty `planned_retypes` and `applied_retypes` |
+| `C-TECH-080` | The constraint row |
+
+### Elements changed
+
+| Element | Change |
+|---|---|
+| `config/revitalise-grant-automation-build.yml` | Step `attribute-type-stability`, HARD |
+| `knowledge/technology/dataverse.md` | Retype section generalised, procedure step 1 and 3 extended |
+| `agents/improvement-agent.md` | Registered `verify-*.py` count 67 → 71 (it had drifted to 70 before this review; this review adds one) |
+| `logs/improvement-log.jsonl` | `IMP-0934` → `APPLIED`, with `evidence_grep` and `reobserved` |
+
+### Verification, as numbers
+
+| Run | Result |
+|---|---|
+| `--selftest` | 12 of 12 cases correct; exit 0 |
+| Replay `1faf2b47` (lock from its parent) | 2 findings, 2 true positives: `rev_helperrelationship`, `rev_exceptionalcircumstance` |
+| Replay `35521fb2` | 2 findings, 2 true positives: `rev_carehoursperweek`, `rev_exceptionalcircumstance` |
+| Replay `aa0594f` (the third commit the revalidation added) | 10 findings, 10 true positives, all `nvarchar` → `ntext`. `rev_provisionaldate` is a NOTE, because it was a new column |
+| Sweep of all 24 commits touching `Entities/` | Only those three commits flagged: 14 findings, 14 true positives, 0 false |
+| Current working tree against the HEAD-seeded lock | PASS, 0 findings. A NOTE for 8 uncommitted, unshipped `rev_referee*` columns, as expected |
+| `verify-build-config.py` on the build config | exit 0 |
+| `verify-improvement-log.py --check` | exit 0. 311 NEW / 710 APPLIED / 16 REJECTED; governance blockers open 1 → 0 |
+| `generate-known-failure-modes.py --check` | current |
+| `verify-class-defences.py` | exit 0 |
+| `verify-derived-counts.py` | 6 drifts remain, all pre-existing and in delivery-owned files (pipeline config ×2, Dev Summary ×2, Trustee role header, supplied-assets doc). This review fixed the one in its own file |
+
+### Disposition
+
+**`IMP-0934` — CLOSED (`APPLIED`).** Both parts of its `revisit_when` are met. `evidence_grep` is on the approved TAD's rev 13 status line. The `reobserved` record (V3) comes from two reads re-run at apply time against DEV (2026-10-05 08:50 UTC). A `pac solution export` shows all eleven columns as `ntext`, with the five named ones `IsSecured=1`. A `pac env fetch` on `fieldpermission` shows two rows for each of those five, 10 in total.
+
+### Handed on, not built here
+
+**`ensure-schema.ps1` should report `TYPE-MISMATCH` rather than `EXISTS`** when a live column's type differs from source. Re-measured at apply: there is still no `TYPE-MISMATCH` anywhere under `provisioning/` or `src/tests/`, and no work item for it. **To development-agent, with the next data-layer dispatch.** Requirement: one new outcome word. Verification: a Pester case with a mocked `AttributeType` mismatch. It authenticates, so this agent does not write it.
+
+### What is still open
+
+**The field-permission wording in TAD rev 13 is architect-agent's call.** Rev 13 says permissions survive the delete-and-recreate. The measurement says they were recreated with new ids. The end state is correct, so this is a wording question about the design, not a defect in DEV.
+
+**What was not verified.** The check runs on committed source only, so a type changed by hand in the maker portal is invisible to it. That is the handed-on item above. CI has not yet run the new step; the first build after this change will be its first execution there.

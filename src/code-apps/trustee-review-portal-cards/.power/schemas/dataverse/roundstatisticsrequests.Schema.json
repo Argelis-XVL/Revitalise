@@ -180,7 +180,6 @@
           "x-ms-dataverse-type": "StringType",
           "x-ms-schema-name": "rev_name",
           "x-ms-dataverse-primary-name": true,
-          "required": true,
           "maxLength": 100
         },
         "rev_resultjson": {
@@ -334,7 +333,6 @@
         "modifiedbyyominame",
         "modifiedonbehalfbyyominame",
         "organizationidname",
-        "rev_name",
         "rev_roundstatisticsrequestid",
         "statecode"
       ]

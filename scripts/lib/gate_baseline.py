@@ -149,6 +149,34 @@ def load_baselines(repo_root: Path, gate: str, today: _dt.date | None = None) ->
     return b
 
 
+def expiring(repo_root: Path, within_days: int = 4, today: _dt.date | None = None) -> list[dict]:
+    """Entries, for ANY gate, whose `expires` is within `within_days` days and not yet past:
+    expires within 4 days (IMP-0989) by default.
+
+    Eight baselines expired together on 2026-09-30 with no warning and were renewed the next
+    morning "to unblock the build". This is the warning, printed once per build from the
+    preflight (verify-build-config.py), never changing an exit code. Malformed entries are
+    skipped here — load_baselines() is the one that fails on them.
+    """
+    path = repo_root / "config" / "gate-baselines.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    today = today or _dt.date.today()
+    out = []
+    for e in (data.get("baselines") or []) if isinstance(data, dict) else []:
+        if not isinstance(e, dict):
+            continue
+        try:
+            expires = _dt.date.fromisoformat(str(e.get("expires")))
+        except ValueError:
+            continue
+        if today <= expires <= today + _dt.timedelta(days=within_days):
+            out.append(e)
+    return out
+
+
 def _selftest() -> int:
     """Proves a baseline CAN suppress, CANNOT be unowned, CANNOT be expired, and is EXACT."""
     import tempfile
@@ -218,6 +246,13 @@ def _selftest() -> int:
             raised = True
         check("an unparseable expiry FAILS rather than being treated as absent", raised,
               f"raised={raised}")
+
+        t0 = _dt.date(2026, 10, 1)
+        write(root, [dict(good, matches="soon", expires="2026-10-04"),
+                     dict(good, matches="later", expires="2026-10-06")])
+        names = [e["matches"] for e in expiring(root, today=t0)]
+        check("an entry 3 days out is reported by expiring(); one 5 days out is not (IMP-0989)",
+              names == ["soon"], f"reported {names}")
 
         (root / "config/gate-baselines.json").write_text("{not json", encoding="utf-8")
         raised = False

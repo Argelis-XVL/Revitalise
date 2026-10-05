@@ -176,6 +176,70 @@ function Test-DataverseRowExists {
     }
 }
 
+function Get-SourceOptionSetMembers {
+    <# value -> 1033 label, read from OptionSets/<name>.xml (the only producer of "what source says"). #>
+    param([string]$Name)
+    $path = Join-Path $SolutionRoot 'OptionSets' "$Name.xml"
+    $members = [ordered]@{}
+    if (-not (Test-Path -Path $path -PathType Leaf)) { return $null }
+    $xml = [xml](Get-Content -Path $path -Raw -Encoding utf8)
+    foreach ($opt in @($xml.SelectNodes('//options/option'))) {
+        $lbl = $opt.SelectSingleNode("labels/label[@languagecode='1033']")
+        $members[[string]$opt.GetAttribute('value')] = if ($lbl) { $lbl.GetAttribute('description') } else { $null }
+    }
+    return $members
+}
+
+function Test-OptionSetMembers {
+    <#
+      Live members of a global option set must EQUAL source: no extra live values (orphans),
+      no missing values, no 1033 label mismatch. Prints one PASS/FAIL line naming the option
+      set and each offending value. (Local picklists: none exist in Entities/*/Entity.xml —
+      every picklist/multiselect attribute names a global set via <OptionSetName> — so this
+      one check covers them all. Re-measure if a local one is ever added.)
+    #>
+    param([string]$Name)
+    $check = "Global option set '$Name' live members equal source (value + 1033 label)"
+    $source = Get-SourceOptionSetMembers -Name $Name
+    if ($null -eq $source) {
+        Write-CheckResult -Status FAIL -Check $check -Detail "source file OptionSets/$Name.xml not found"
+        return
+    }
+    try {
+        $def = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
+            -Path "GlobalOptionSetDefinitions(Name='$Name')"
+    }
+    catch {
+        Write-CheckResult -Status FAIL -Check $check -Detail "live members unreadable: $_"
+        return
+    }
+    $live = @{}
+    if ($def.PSObject.Properties.Name -contains 'Options') {
+        foreach ($o in @($def.Options)) {
+            $text = $null
+            if ($o.PSObject.Properties.Name -contains 'Label' -and $o.Label -and $o.Label.PSObject.Properties.Name -contains 'LocalizedLabels') {
+                $hit = @($o.Label.LocalizedLabels | Where-Object { $_.LanguageCode -eq 1033 }) | Select-Object -First 1
+                if ($hit) { $text = $hit.Label }
+            }
+            $live[[string]$o.Value] = $text
+        }
+    }
+    $problems = @()
+    foreach ($v in @($live.Keys | Sort-Object { [int]$_ })) {
+        if (-not $source.Contains($v)) { $problems += "orphan live value $v ('$($live[$v])') not in source" }
+    }
+    foreach ($v in @($source.Keys | Sort-Object { [int]$_ })) {
+        if (-not $live.ContainsKey($v)) { $problems += "missing live value $v ('$($source[$v])')" }
+        elseif ($live[$v] -cne $source[$v]) { $problems += "label mismatch on value ${v}: live '$($live[$v])' vs source '$($source[$v])'" }
+    }
+    if ($problems.Count -eq 0) {
+        Write-CheckResult -Status PASS -Check "$check ($($source.Count) members)"
+    }
+    else {
+        Write-CheckResult -Status FAIL -Check $check -Detail (($problems -join '; ') + ' — IMP-0019: import never deletes; remove orphans in the maker portal')
+    }
+}
+
 # ── STEP 2: live existence per declared type ────────────────────────────────────────────
 foreach ($ctype in @($targets.declared.PSObject.Properties.Name | Sort-Object { [int]$_ })) {
     $entry = $targets.declared.$ctype
@@ -216,6 +280,12 @@ foreach ($ctype in @($targets.declared.PSObject.Properties.Name | Sort-Object { 
             '9' {
                 Test-DataverseRowExists -Path "GlobalOptionSetDefinitions(Name='$identifier')?`$select=Name" `
                     -Check "Global option set '$identifier' ($label) exists"
+                if ($script:LastRow) {
+                    # IMP-0019 / IMP-1034: solution import relabels matching values but NEVER deletes
+                    # omitted ones, so existence alone passed while live orphans survived. Compare
+                    # the live member list (value + 1033 label) with source, both directions.
+                    Test-OptionSetMembers -Name $identifier
+                }
             }
             '10' {
                 $name = ConvertTo-ODataLiteral -Value $identifier

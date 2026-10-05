@@ -121,10 +121,13 @@ SCAN_GLOBS = ("docs/development/*.md", "docs/architecture/*.md")
 # files only: an untracked scratch file is not a shipped guess, and a gate whose verdict depends
 # on local filesystem state differs between this machine and CI (`IMP-0410`).
 SRC_ROOTS = ("src",)
-MARKER_IN_SOURCE = re.compile(r"\bA-(?:[A-Z]{2,4}-)?\d{1,3}\b")
+# Id grammar: a digit or up to eight characters in the prefix (IMP-0990) — `A-001`, `A-FIN-07`,
+# `A-D2-1`, `A-ATYPE-1`, and the hyphenless `A-G03`. The narrower `[A-Z]{2,4}-` prefix left 11
+# register rows unread (measured 2026-10-01: 97 -> 108 rows, 0 new failures, 1 true new note).
+MARKER_IN_SOURCE = re.compile(r"\bA-(?:[A-Z][A-Z0-9]{0,7}-|[A-Z]{1,3}(?=\d))?\d{1,3}\b")
 
-# A register row's id. `A-001`, `A-FIN-07`, `A-TR-12`.
-ROW_ID = re.compile(r"^(~~)?\s*(A-(?:[A-Z]{2,4}-)?\d{1,3})\s*(~~)?$")
+# A register row's id, optionally struck through and/or bold: `A-001`, `~~A-TR-12~~`, `**A-X-1**`.
+ROW_ID = re.compile(r"^(~~)?\s*(?:\*\*)?(A-(?:[A-Z][A-Z0-9]{0,7}-|[A-Z]{1,3}(?=\d))?\d{1,3})(?:\*\*)?\s*(~~)?$")
 
 # Header cells that carry the two things this gate reads. "Where" also matches "Where in source";
 # "Status" also matches "Status this dispatch".
@@ -136,7 +139,7 @@ MD_LINK = re.compile(r"\]\(([^)\s]+)\)")
 # A bare repo path inside a code span: `` `OptionSets/rev_conditionprofile.xml` ``
 CODE_SPAN = re.compile(r"`([^`]+)`")
 PATHISH = re.compile(
-    r"^[\w./\-{} ]+\.(?:ps1|psm1|py|md|xml|json|ts|tsx|js|yml|yaml)(?::\d+(?:-\d+)?)?$")
+    r"^[\w./\-{} ]+\.(?:ps1|psm1|py|md|xml|json|ts|tsx|js|css|yml|yaml)(?::\d+(?:-\d+)?)?$")
 # Three ways this register points at a line, all of which are noise to a file lookup:
 # `#L171`, `:279-292`, `:6-25`.
 LINE_SUFFIX = re.compile(r"(?:#L?\d+(?:-L?\d+)?|:\d+(?:-\d+)?)$")
@@ -397,6 +400,21 @@ def scan(repo_root: Path) -> tuple[list[str], list[str], dict]:
 # against a row closed at V3 against a live org.
 _CASES: list[tuple[str, str, str, int]] = [
     # (name, register markdown, source file body, expected failures)
+    # ── IMP-0990 ──────────────────────────────────────────────────────────────────────────
+    # Ids the narrow grammar never read: a digit in the prefix, a five-letter prefix, a hyphenless
+    # prefix, a bold id. Each OPEN row's marker is MISSING from source, so each must FAIL — a row
+    # the gate cannot parse is a row it silently passes.
+    ("wider-id-grammar-reads-A-D2-1-A-ATYPE-1-A-G03-and-bold-ids",
+     "| ID | Claim | Where | Status |\n|---|---|---|---|\n"
+     "| A-D2-1 | a guess | [`s.ps1`](provisioning/s.ps1) | OPEN |\n"
+     "| A-ATYPE-1 | a guess | [`s.ps1`](provisioning/s.ps1) | OPEN |\n"
+     "| A-G03 | a guess | [`s.ps1`](provisioning/s.ps1) | OPEN |\n"
+     "| **A-X-1** | a guess | [`s.ps1`](provisioning/s.ps1) | OPEN |\n",
+     "# no markers here\n", 4),
+    ("a-css-code-span-Where-is-read-as-a-path-so-a-missing-one-fails",
+     "| ID | Claim | Where | Status |\n|---|---|---|---|\n"
+     "| A-052 | a guess | `provisioning/s.css` | OPEN |\n",
+     "# A-052\n", 1),
     # ── IMP-0452 ──────────────────────────────────────────────────────────────────────────
     # A percent-encoded target MUST resolve. A markdown link to a Dataverse FormXml file has to
     # encode the GUID's braces, and undecoded that path resolved to nothing: the row fell into

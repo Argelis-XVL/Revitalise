@@ -373,21 +373,29 @@
           "required": true,
           "x-ms-keyType": "primary"
         },
+        "rev_autorejectreason": {
+          "type": "string",
+          "title": "Auto-reject Reason",
+          "x-ms-dataverse-attribute": "rev_autorejectreason",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_autorejectreason",
+          "maxLength": 1000
+        },
         "rev_awaitingdecisionfrom": {
           "type": "string",
           "title": "Awaiting Decision From",
           "x-ms-dataverse-attribute": "rev_awaitingdecisionfrom",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_awaitingdecisionfrom",
-          "maxLength": 200
+          "maxLength": 1048576
         },
         "rev_benefitprovider": {
           "type": "string",
           "title": "Benefit Provider",
           "x-ms-dataverse-attribute": "rev_benefitprovider",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_benefitprovider",
-          "maxLength": 200
+          "maxLength": 1048576
         },
         "rev_breakend": {
           "type": "string",
@@ -400,9 +408,9 @@
           "type": "string",
           "title": "Break Location or Activity",
           "x-ms-dataverse-attribute": "rev_breaklocation",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_breaklocation",
-          "maxLength": 250
+          "maxLength": 1048576
         },
         "rev_breakstart": {
           "type": "string",
@@ -457,7 +465,15 @@
           "x-ms-dataverse-attribute": "rev_carecostsexplanation",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_carecostsexplanation",
-          "maxLength": 2000
+          "maxLength": 1048576
+        },
+        "rev_carecostsexplanationredacted": {
+          "type": "string",
+          "title": "Care or Medical Costs Explanation (Redacted)",
+          "x-ms-dataverse-attribute": "rev_carecostsexplanationredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_carecostsexplanationredacted",
+          "maxLength": 4000
         },
         "rev_carehoursperweek": {
           "type": "string",
@@ -505,7 +521,7 @@
           "x-ms-dataverse-attribute": "rev_careprovidedexample",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_careprovidedexample",
-          "maxLength": 2000
+          "maxLength": 1048576
         },
         "rev_careprovidedexampleredacted": {
           "type": "string",
@@ -579,7 +595,7 @@
           "x-ms-dataverse-attribute": "rev_caresupportdescription",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_caresupportdescription",
-          "maxLength": 2000
+          "maxLength": 1048576
         },
         "rev_caresupportdescriptionredacted": {
           "type": "string",
@@ -657,7 +673,7 @@
           "x-ms-dataverse-attribute": "rev_consentexplanation",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_consentexplanation",
-          "maxLength": 2000
+          "maxLength": 1048576
         },
         "rev_costs": {
           "type": "string",
@@ -680,6 +696,22 @@
           "x-ms-dataverse-attribute": "rev_decisiondate",
           "x-ms-dataverse-type": "DateTimeType",
           "x-ms-schema-name": "rev_decisiondate"
+        },
+        "rev_disabilityimpactdescription": {
+          "type": "string",
+          "title": "Disability Impact Description (Raw)",
+          "x-ms-dataverse-attribute": "rev_disabilityimpactdescription",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_disabilityimpactdescription",
+          "maxLength": 1048576
+        },
+        "rev_disabilityimpactdescriptionredacted": {
+          "type": "string",
+          "title": "Disability Impact Description (Redacted)",
+          "x-ms-dataverse-attribute": "rev_disabilityimpactdescriptionredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_disabilityimpactdescriptionredacted",
+          "maxLength": 4000
         },
         "rev_eligibleforround": {
           "type": "string",
@@ -811,7 +843,15 @@
           "x-ms-dataverse-attribute": "rev_exceptionalfundingdetail",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_exceptionalfundingdetail",
-          "maxLength": 2000
+          "maxLength": 1048576
+        },
+        "rev_exceptionalfundingdetailredacted": {
+          "type": "string",
+          "title": "Exceptional Funding Detail (Redacted)",
+          "x-ms-dataverse-attribute": "rev_exceptionalfundingdetailredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_exceptionalfundingdetailredacted",
+          "maxLength": 4000
         },
         "rev_exceptionalfundingrequested": {
           "type": "string",
@@ -903,7 +943,38 @@
           "x-ms-dataverse-attribute": "rev_groupmembernames",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_groupmembernames",
-          "maxLength": 2000
+          "maxLength": 1048576
+        },
+        "rev_hasequalityactdisability": {
+          "type": "string",
+          "title": "Has Equality Act Disability",
+          "x-ms-dataverse-attribute": "rev_hasequalityactdisability",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_hasequalityactdisability",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "3910c7c3-65ba-f111-aaae-7ced8d43e87d",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Has Equality Act Disability",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_hasequalityactdisabilityname": {
+          "type": "string",
+          "title": "rev_hasequalityactdisabilityname",
+          "x-ms-dataverse-attribute": "rev_hasequalityactdisabilityname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_hasequalityactdisabilityName",
+          "x-ms-read-only": true
         },
         "rev_hearaboutus": {
           "type": "string",
@@ -1007,17 +1078,17 @@
           "type": "string",
           "title": "Helper Name",
           "x-ms-dataverse-attribute": "rev_helpername",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_helpername",
-          "maxLength": 100
+          "maxLength": 1048576
         },
         "rev_helperorganisation": {
           "type": "string",
           "title": "Helper Organisation",
           "x-ms-dataverse-attribute": "rev_helperorganisation",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_helperorganisation",
-          "maxLength": 200
+          "maxLength": 1048576
         },
         "rev_helperphone": {
           "type": "string",
@@ -1031,9 +1102,9 @@
           "type": "string",
           "title": "Helper Relationship",
           "x-ms-dataverse-attribute": "rev_helperrelationship",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_helperrelationship",
-          "maxLength": 200
+          "maxLength": 1048576
         },
         "rev_incomeband": {
           "type": "string",
@@ -1042,24 +1113,18 @@
           "x-ms-dataverse-type": "PicklistType",
           "x-ms-schema-name": "rev_incomeband",
           "enum": [
-            "Under 10,000 GBP",
-            "10,000 to 19,999 GBP",
-            "20,000 to 29,999 GBP",
-            "30,000 to 39,999 GBP",
-            "40,000 GBP or more",
-            "Prefer not to say"
+            "Under £15,000",
+            "£15,000 to £24,999",
+            "£25,000 to £34,999",
+            "Over £35,000"
           ],
           "x-ms-enum-values": [
             1,
             2,
             3,
-            4,
-            5,
-            6
+            4
           ],
           "Color": [
-            null,
-            null,
             null,
             null,
             null,
@@ -1087,14 +1152,17 @@
           "enum": [
             "Within income ceiling",
             "Above income ceiling",
-            "Not stated - cannot assess"
+            "Not stated - cannot assess",
+            "Qualifies on means-tested benefits"
           ],
           "x-ms-enum-values": [
             1,
             2,
-            3
+            3,
+            4
           ],
           "Color": [
+            null,
             null,
             null,
             null
@@ -1197,7 +1265,7 @@
           "x-ms-dataverse-attribute": "rev_narrativeraw",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_narrativeraw",
-          "maxLength": 4000
+          "maxLength": 1048576
         },
         "rev_narrativeredacted": {
           "type": "string",
@@ -1242,9 +1310,9 @@
           "type": "string",
           "title": "Other Break Type",
           "x-ms-dataverse-attribute": "rev_otherbreaktype",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_otherbreaktype",
-          "maxLength": 200
+          "maxLength": 1048576
         },
         "rev_othercareprovidedtype": {
           "type": "string",
@@ -1252,7 +1320,7 @@
           "x-ms-dataverse-attribute": "rev_othercareprovidedtype",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_othercareprovidedtype",
-          "maxLength": 2000
+          "maxLength": 1048576
         },
         "rev_othercareprovidedtyperedacted": {
           "type": "string",
@@ -1268,7 +1336,15 @@
           "x-ms-dataverse-attribute": "rev_otherconditionraw",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_otherconditionraw",
-          "maxLength": 2000
+          "maxLength": 1048576
+        },
+        "rev_otherconditionredacted": {
+          "type": "string",
+          "title": "Other Condition Notes (Redacted)",
+          "x-ms-dataverse-attribute": "rev_otherconditionredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_otherconditionredacted",
+          "maxLength": 4000
         },
         "rev_othercost": {
           "type": "string",
@@ -1289,9 +1365,17 @@
           "type": "string",
           "title": "Other Exceptional Circumstance",
           "x-ms-dataverse-attribute": "rev_otherexceptionalcircumstance",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_otherexceptionalcircumstance",
-          "maxLength": 200
+          "maxLength": 1048576
+        },
+        "rev_otherexceptionalcircumstanceredacted": {
+          "type": "string",
+          "title": "Other Exceptional Circumstance (Redacted)",
+          "x-ms-dataverse-attribute": "rev_otherexceptionalcircumstanceredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_otherexceptionalcircumstanceredacted",
+          "maxLength": 4000
         },
         "rev_otherfundingamount": {
           "type": "string",
@@ -1312,17 +1396,51 @@
           "type": "string",
           "title": "Other Funding Source",
           "x-ms-dataverse-attribute": "rev_otherfundingsource",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_otherfundingsource",
-          "maxLength": 200
+          "maxLength": 1048576
+        },
+        "rev_otherfundingstatus": {
+          "type": "string",
+          "title": "Other Funding Status",
+          "x-ms-dataverse-attribute": "rev_otherfundingstatus",
+          "x-ms-dataverse-type": "PicklistType",
+          "x-ms-schema-name": "rev_otherfundingstatus",
+          "enum": [
+            "Yes",
+            "No",
+            "Applied and awaiting decision"
+          ],
+          "x-ms-enum-values": [
+            1,
+            2,
+            3
+          ],
+          "Color": [
+            null,
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "18228fab-65ba-f111-aaae-7ced8d43e87d",
+          "x-ms-isGlobal": true,
+          "x-ms-optionsetdisplayname": "Other Funding Status",
+          "x-ms-optionSetType": "Picklist"
+        },
+        "rev_otherfundingstatusname": {
+          "type": "string",
+          "title": "rev_otherfundingstatusname",
+          "x-ms-dataverse-attribute": "rev_otherfundingstatusname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_otherfundingstatusName",
+          "x-ms-read-only": true
         },
         "rev_otherhearaboutus": {
           "type": "string",
           "title": "Other - How Did You Hear About Us",
           "x-ms-dataverse-attribute": "rev_otherhearaboutus",
-          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_otherhearaboutus",
-          "maxLength": 200
+          "maxLength": 1048576
         },
         "rev_overriddenby": {
           "type": "string",
@@ -1371,6 +1489,14 @@
           "x-ms-dataverse-type": "StringType",
           "x-ms-schema-name": "rev_providerpreference",
           "maxLength": 200
+        },
+        "rev_provisionaldate": {
+          "type": "string",
+          "title": "Provisional Date",
+          "x-ms-dataverse-attribute": "rev_provisionaldate",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_provisionaldate",
+          "maxLength": 1048576
         },
         "rev_receivedfundingbefore": {
           "type": "string",
@@ -1520,6 +1646,262 @@
           "x-ms-schema-name": "rev_refereephone",
           "maxLength": 25
         },
+        "rev_reviewage": {
+          "type": "string",
+          "title": "Age Checked",
+          "x-ms-dataverse-attribute": "rev_reviewage",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_reviewage",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "2e54ae34-24b4-f111-aaac-7ced8d43e1b4",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Age Checked",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_reviewagename": {
+          "type": "string",
+          "title": "rev_reviewagename",
+          "x-ms-dataverse-attribute": "rev_reviewagename",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_reviewageName",
+          "x-ms-read-only": true
+        },
+        "rev_reviewamount": {
+          "type": "string",
+          "title": "Amount Checked",
+          "x-ms-dataverse-attribute": "rev_reviewamount",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_reviewamount",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "fc1d412e-24b4-f111-aaac-7ced8d43e1b4",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Amount Checked",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_reviewamountname": {
+          "type": "string",
+          "title": "rev_reviewamountname",
+          "x-ms-dataverse-attribute": "rev_reviewamountname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_reviewamountName",
+          "x-ms-read-only": true
+        },
+        "rev_reviewcareinformation": {
+          "type": "string",
+          "title": "Care Information Checked",
+          "x-ms-dataverse-attribute": "rev_reviewcareinformation",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_reviewcareinformation",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "2854ae34-24b4-f111-aaac-7ced8d43e1b4",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Care Information Checked",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_reviewcareinformationname": {
+          "type": "string",
+          "title": "rev_reviewcareinformationname",
+          "x-ms-dataverse-attribute": "rev_reviewcareinformationname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_reviewcareinformationName",
+          "x-ms-read-only": true
+        },
+        "rev_reviewdate": {
+          "type": "string",
+          "title": "Date Checked",
+          "x-ms-dataverse-attribute": "rev_reviewdate",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_reviewdate",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "1c825d2b-24b4-f111-aaac-7ced8d43e87d",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Date Checked",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_reviewdatename": {
+          "type": "string",
+          "title": "rev_reviewdatename",
+          "x-ms-dataverse-attribute": "rev_reviewdatename",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_reviewdateName",
+          "x-ms-read-only": true
+        },
+        "rev_reviewdisabilityinformation": {
+          "type": "string",
+          "title": "Disability Information Checked",
+          "x-ms-dataverse-attribute": "rev_reviewdisabilityinformation",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_reviewdisabilityinformation",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "091e412e-24b4-f111-aaac-7ced8d43e1b4",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Disability Information Checked",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_reviewdisabilityinformationname": {
+          "type": "string",
+          "title": "rev_reviewdisabilityinformationname",
+          "x-ms-dataverse-attribute": "rev_reviewdisabilityinformationname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_reviewdisabilityinformationName",
+          "x-ms-read-only": true
+        },
+        "rev_reviewernote": {
+          "type": "string",
+          "title": "Review Note",
+          "x-ms-dataverse-attribute": "rev_reviewernote",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_reviewernote",
+          "maxLength": 2000
+        },
+        "rev_reviewexceptionalcircumstance": {
+          "type": "string",
+          "title": "Exceptional Circumstance Checked",
+          "x-ms-dataverse-attribute": "rev_reviewexceptionalcircumstance",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_reviewexceptionalcircumstance",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "011e412e-24b4-f111-aaac-7ced8d43e1b4",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Exceptional Circumstance Checked",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_reviewexceptionalcircumstancename": {
+          "type": "string",
+          "title": "rev_reviewexceptionalcircumstancename",
+          "x-ms-dataverse-attribute": "rev_reviewexceptionalcircumstancename",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_reviewexceptionalcircumstanceName",
+          "x-ms-read-only": true
+        },
+        "rev_reviewgroup": {
+          "type": "string",
+          "title": "Group Checked",
+          "x-ms-dataverse-attribute": "rev_reviewgroup",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_reviewgroup",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "a64a5831-24b4-f111-aaac-7ced8d43e87d",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Group Checked",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_reviewgroupname": {
+          "type": "string",
+          "title": "rev_reviewgroupname",
+          "x-ms-dataverse-attribute": "rev_reviewgroupname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_reviewgroupName",
+          "x-ms-read-only": true
+        },
+        "rev_reviewlocation": {
+          "type": "string",
+          "title": "Location Checked",
+          "x-ms-dataverse-attribute": "rev_reviewlocation",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_reviewlocation",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "f6815d2b-24b4-f111-aaac-7ced8d43e87d",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Location Checked",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_reviewlocationname": {
+          "type": "string",
+          "title": "rev_reviewlocationname",
+          "x-ms-dataverse-attribute": "rev_reviewlocationname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_reviewlocationName",
+          "x-ms-read-only": true
+        },
         "rev_reviewround": {
           "type": "string",
           "title": "Review Round",
@@ -1527,6 +1909,69 @@
           "x-ms-dataverse-type": "StringType",
           "x-ms-schema-name": "rev_reviewround",
           "maxLength": 50
+        },
+        "rev_safeguardingactioncompleted": {
+          "type": "string",
+          "title": "Action Completed",
+          "x-ms-dataverse-attribute": "rev_safeguardingactioncompleted",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_safeguardingactioncompleted",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "3d54ae34-24b4-f111-aaac-7ced8d43e1b4",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Action Completed",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_safeguardingactioncompletedby": {
+          "type": "string",
+          "title": "Action Completed By",
+          "x-ms-dataverse-attribute": "rev_safeguardingactioncompletedby",
+          "x-ms-dataverse-type": "LookupType",
+          "x-ms-schema-name": "rev_safeguardingactioncompletedby"
+        },
+        "rev_safeguardingactioncompletedbyname": {
+          "type": "string",
+          "title": "rev_safeguardingactioncompletedbyname",
+          "x-ms-dataverse-attribute": "rev_safeguardingactioncompletedbyname",
+          "x-ms-dataverse-type": "StringType",
+          "x-ms-schema-name": "rev_safeguardingactioncompletedbyName",
+          "x-ms-read-only": true,
+          "maxLength": 200
+        },
+        "rev_safeguardingactioncompletedbyyominame": {
+          "type": "string",
+          "title": "rev_safeguardingactioncompletedbyyominame",
+          "x-ms-dataverse-attribute": "rev_safeguardingactioncompletedbyyominame",
+          "x-ms-dataverse-type": "StringType",
+          "x-ms-schema-name": "rev_safeguardingactioncompletedbyYomiName",
+          "x-ms-read-only": true,
+          "maxLength": 200
+        },
+        "rev_safeguardingactioncompletedname": {
+          "type": "string",
+          "title": "rev_safeguardingactioncompletedname",
+          "x-ms-dataverse-attribute": "rev_safeguardingactioncompletedname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_safeguardingactioncompletedName",
+          "x-ms-read-only": true
+        },
+        "rev_safeguardingactioncompletedon": {
+          "type": "string",
+          "title": "Action Completed On",
+          "x-ms-dataverse-attribute": "rev_safeguardingactioncompletedon",
+          "x-ms-dataverse-type": "DateTimeType",
+          "x-ms-schema-name": "rev_safeguardingactioncompletedon"
         },
         "rev_safeguardingflag": {
           "type": "string",
@@ -1613,6 +2058,14 @@
           "x-ms-dataverse-type": "DateTimeType",
           "x-ms-schema-name": "rev_scoredon"
         },
+        "rev_scoringaudit": {
+          "type": "string",
+          "title": "Scoring Audit Trail",
+          "x-ms-dataverse-attribute": "rev_scoringaudit",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_scoringaudit",
+          "maxLength": 4000
+        },
         "rev_significantcarecosts": {
           "type": "string",
           "title": "Has Significant Care or Medical Costs",
@@ -1642,6 +2095,37 @@
           "x-ms-dataverse-attribute": "rev_significantcarecostsname",
           "x-ms-dataverse-type": "VirtualType",
           "x-ms-schema-name": "rev_significantcarecostsName",
+          "x-ms-read-only": true
+        },
+        "rev_someonehelping": {
+          "type": "string",
+          "title": "Someone Helping With Application",
+          "x-ms-dataverse-attribute": "rev_someonehelping",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_someonehelping",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "c976a1bd-65ba-f111-aaae-7ced8d43e87d",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Someone Helping With Application",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_someonehelpingname": {
+          "type": "string",
+          "title": "rev_someonehelpingname",
+          "x-ms-dataverse-attribute": "rev_someonehelpingname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_someonehelpingName",
           "x-ms-read-only": true
         },
         "rev_sourcesubmissionid": {
@@ -1748,6 +2232,44 @@
           "x-ms-dataverse-type": "DateTimeType",
           "x-ms-schema-name": "rev_submittedon"
         },
+        "rev_supportrecipientageconfirmation": {
+          "type": "string",
+          "title": "Support Recipient Age Confirmation Given",
+          "x-ms-dataverse-attribute": "rev_supportrecipientageconfirmation",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_supportrecipientageconfirmation",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "7adb29dd-0ab8-f111-aaae-7ced8d43e87d",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Support Recipient Age Confirmation Given",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_supportrecipientageconfirmationdate": {
+          "type": "string",
+          "title": "Support Recipient Age Confirmation Given On",
+          "x-ms-dataverse-attribute": "rev_supportrecipientageconfirmationdate",
+          "x-ms-dataverse-type": "DateTimeType",
+          "x-ms-schema-name": "rev_supportrecipientageconfirmationdate"
+        },
+        "rev_supportrecipientageconfirmationname": {
+          "type": "string",
+          "title": "rev_supportrecipientageconfirmationname",
+          "x-ms-dataverse-attribute": "rev_supportrecipientageconfirmationname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_supportrecipientageconfirmationName",
+          "x-ms-read-only": true
+        },
         "rev_supportrecipientconditionprofile": {
           "type": "string",
           "title": "Support Recipient Condition Profile",
@@ -1803,6 +2325,53 @@
           "x-ms-schema-name": "rev_supportrecipientconditionprofileName",
           "x-ms-read-only": true
         },
+        "rev_supportrecipientdisabilityimpactdescription": {
+          "type": "string",
+          "title": "Person Supported Disability Impact Description (Raw)",
+          "x-ms-dataverse-attribute": "rev_supportrecipientdisabilityimpactdescription",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_supportrecipientdisabilityimpactdescription",
+          "maxLength": 1048576
+        },
+        "rev_supportrecipientdisabilityimpactdescriptionredacted": {
+          "type": "string",
+          "title": "Person Supported Disability Impact Description (Redacted)",
+          "x-ms-dataverse-attribute": "rev_supportrecipientdisabilityimpactdescriptionredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_supportrecipientdisabilityimpactdescriptionredacted",
+          "maxLength": 4000
+        },
+        "rev_supportrecipienthasequalityactdisability": {
+          "type": "string",
+          "title": "Person Supported Has Equality Act Disability",
+          "x-ms-dataverse-attribute": "rev_supportrecipienthasequalityactdisability",
+          "x-ms-dataverse-type": "BooleanType",
+          "x-ms-schema-name": "rev_supportrecipienthasequalityactdisability",
+          "enum": [
+            "No",
+            "Yes"
+          ],
+          "x-ms-enum-values": [
+            0,
+            1
+          ],
+          "Color": [
+            null,
+            null
+          ],
+          "x-ms-optionsetmetadataid": "e53fbdc9-65ba-f111-aaae-7ced8d43e87d",
+          "x-ms-isGlobal": false,
+          "x-ms-optionsetdisplayname": "Person Supported Has Equality Act Disability",
+          "x-ms-optionSetType": "Boolean"
+        },
+        "rev_supportrecipienthasequalityactdisabilityname": {
+          "type": "string",
+          "title": "rev_supportrecipienthasequalityactdisabilityname",
+          "x-ms-dataverse-attribute": "rev_supportrecipienthasequalityactdisabilityname",
+          "x-ms-dataverse-type": "VirtualType",
+          "x-ms-schema-name": "rev_supportrecipienthasequalityactdisabilityName",
+          "x-ms-read-only": true
+        },
         "rev_supportrecipientname": {
           "type": "string",
           "title": "Support Recipient Name",
@@ -1817,7 +2386,15 @@
           "x-ms-dataverse-attribute": "rev_supportrecipientotherconditionraw",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_supportrecipientotherconditionraw",
-          "maxLength": 2000
+          "maxLength": 1048576
+        },
+        "rev_supportrecipientotherconditionredacted": {
+          "type": "string",
+          "title": "Support Recipient Other Condition Notes (Redacted)",
+          "x-ms-dataverse-attribute": "rev_supportrecipientotherconditionredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_supportrecipientotherconditionredacted",
+          "maxLength": 4000
         },
         "rev_travelcost": {
           "type": "string",
@@ -1840,7 +2417,15 @@
           "x-ms-dataverse-attribute": "rev_unabletofundexplanation",
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_unabletofundexplanation",
-          "maxLength": 2000
+          "maxLength": 1048576
+        },
+        "rev_unabletofundexplanationredacted": {
+          "type": "string",
+          "title": "Why Unable to Fund the Break (Redacted)",
+          "x-ms-dataverse-attribute": "rev_unabletofundexplanationredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_unabletofundexplanationredacted",
+          "maxLength": 4000
         },
         "rev_wellbeinganswer1": {
           "type": "string",

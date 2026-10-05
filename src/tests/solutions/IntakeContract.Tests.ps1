@@ -55,8 +55,11 @@ BeforeAll {
     $script:Cases = (Get-Content -Path (Join-Path (Get-RepositoryRoot) 'src' 'tests' 'data' `
         'intake-payloads.json') -Raw | ConvertFrom-Json -AsHashtable).cases
 
-    $script:AppItem  = $script:Scope.Create_application.inputs.parameters.item
-    $script:NewAppl  = $script:Scope.Create_or_refresh_the_applicant.else.actions.Create_new_applicant.inputs.parameters.item
+    # Read through the shape-aware reader, never .inputs.parameters.item: TAD rev 14's section 5
+    # rule flattened Create_new_applicant to item/<column> keys, and a direct .item read of a flat
+    # action returns nothing, so every column assertion below would pass vacuously.
+    $script:AppItem  = Get-DataverseWritePayload -Action $script:Scope.Create_application
+    $script:NewAppl  = Get-DataverseWritePayload -Action $script:Scope.Create_or_refresh_the_applicant.else.actions.Create_new_applicant
     $script:Refresh  = Get-DataverseWritePayload -Action $script:Scope.Create_or_refresh_the_applicant.actions.Refresh_existing_applicant
 
     # ── TAD Appendix C C.1, typed from the TAD (not generated from the flow) ─────────────
@@ -417,42 +420,61 @@ Describe 'The intake trigger is the solution''s one public endpoint' {
     }
 }
 
-Describe 'C-TECH-006 / NFR-008 — the trigger authentication control is recorded in the source (D-001, ADR-011)' {
+Describe 'C-TECH-006 / NFR-008 — the trigger authentication mode is DECLARED in the source (ADR-011 rev 14)' {
+    # REWRITTEN 2026-10-02 against TAD rev 14. The rev 10 version of this block asserted the
+    # Entra client-credentials route: "Specific users in my tenant", the service principal object
+    # id, the double-slash scope, and that "'Anyone' is a defect". The reviewer measured that the
+    # website's Gravity Forms webhook sends static headers only, so a bearer token could not be
+    # refreshed, and re-decided ADR-011: trigger mode Anyone (the signed callback URL) plus the
+    # x-rev-client-id header check. Every assertion here encodes the rev 14 decision; the rev 10
+    # wording survives only as SUPERSEDED text in notes.md, which the last test pins.
 
-    It 'the trigger description itself names the control and points to the full record' {
-        $script:Trigger.description | Should -Match 'Entra ID auth'
+    It 'declares the trigger mode in the definition: inputs.triggerAuthenticationType = All (intervention 1)' {
+        # E1 for name, location and value: the live DEV definition written by the platform's own
+        # designer on 2026-10-02. Whether import honours it is A-INT-11, which no static test can close.
+        $script:Trigger.inputs.Keys | Should -Contain 'triggerAuthenticationType'
+        $script:Trigger.inputs.triggerAuthenticationType | Should -BeExactly 'All'
+    }
+
+    It 'keeps the trigger''s run history secured exactly as source declares (intervention 3)' {
+        @($script:Trigger.runtimeConfiguration.secureData.properties) | Should -Be @('outputs')
+    }
+
+    It 'the trigger description names the signed URL as the FIRST control and points to the full record' {
+        $script:Trigger.description | Should -Match 'signed callback URL'
+        $script:Trigger.description | Should -Match 'FIRST control'
+        $script:Trigger.description | Should -Match 'A-INT-11'
         $script:Trigger.description | Should -Match 'notes\.md'
+        $script:Trigger.description | Should -Not -Match 'Entra ID auth'
     }
 
-    It 'names the exact authentication parameter value that must be configured' {
-        $script:TriggerNotes | Should -Match "Specific users in my tenant"
-        $script:TriggerNotes | Should -Match 'SERVICE PRINCIPAL OBJECT ID'
-        $script:TriggerNotes | Should -Match 'rev-wordpress-intake'
+    It 'the caller check and the environment variable both call themselves the SECOND control (intervention 2)' {
+        $script:CallerGate.description | Should -Match 'SECOND control'
+        $script:CallerGate.description | Should -Match 'signed callback URL'
+        $script:CallerGate.description | Should -Not -Match 'Entra'
+        $script:Definition.parameters.rev_IntakeAllowedClientId.metadata.description | Should -Match 'x-rev-client-id'
+        $script:Definition.parameters.rev_IntakeAllowedClientId.metadata.description | Should -Not -Match "trigger's Entra auth"
     }
 
-    It 'records that "Anyone" is a defect rather than an option' {
-        $script:TriggerNotes | Should -Match "'Anyone' is a defect"
+    It 'records ADR-011 as RE-DECIDED (rev 14), quotes the basis, and claims no V-level for the route' {
+        $script:TriggerNotes | Should -Match 'ADR-011 IS RE-DECIDED \(TAD rev 14, 2026-10-02\)'
+        $script:TriggerNotes | Should -Match 'Gravity Forms webhook headers are static'
+        $script:TriggerNotes | Should -Match 'no V-level is claimed'
+        $script:TriggerNotes | Should -Match 'x-rev-client-id'
     }
 
-    It 'names the exact audience and the double-slash client-credentials scope' {
-        $script:TriggerNotes | Should -Match ([regex]::Escape('https://service.flow.microsoft.com/'))
-        $script:TriggerNotes | Should -Match ([regex]::Escape('https://service.flow.microsoft.com//.default'))
-    }
-
-    It 'points at the provisioning script that produces the value and the one that verifies it' {
-        $script:TriggerNotes | Should -Match 'ensure-intake-client\.ps1'
+    It 'records the URL as a credential: CI secret only, hash-compared across imports, never printed' {
+        $script:TriggerNotes | Should -Match 'INTAKE_ENDPOINT_URL_TEST'
+        $script:TriggerNotes | Should -Match 'SHA-256'
+        $script:TriggerNotes | Should -Match 'A-INT-13'
         $script:TriggerNotes | Should -Match 'verify-intake-endpoint-auth\.ps1'
     }
 
-    It 'cites the Microsoft documentation the configuration was verified against' {
-        $script:TriggerNotes | Should -Match 'learn\.microsoft\.com/en-us/power-automate/oauth-authentication'
-    }
-
-    It 'records ADR-011 as DECIDED (client credentials, TAD rev 10) and claims no V-level for the route' {
-        $script:TriggerNotes | Should -Match 'ADR-011 IS DECIDED'
-        $script:TriggerNotes | Should -Not -Match 'ADR-011 IS STILL OPEN'
-        $script:TriggerNotes | Should -Match 'no V-level is claimed'
-        $script:TriggerNotes | Should -Match 'x-rev-client-id'
+    It 'retains the superseded rev 10 decision only as SUPERSEDED text' {
+        # A retired decision kept as live text is how the rev 10 block came to fail on the
+        # reviewer's own configuration. Kept, so the change is visible; labelled, so it is not read as current.
+        $script:TriggerNotes | Should -Match 'SUPERSEDED \(rev 10, retained\): "ADR-011 IS DECIDED'
+        $script:TriggerNotes | Should -Not -Match "(?m)^'Anyone' is a defect"
     }
 
     It 'does NOT surface the Authorization header into trigger outputs' {
@@ -460,14 +482,12 @@ Describe 'C-TECH-006 / NFR-008 — the trigger authentication control is recorde
         $script:IntakeExec | Should -Not -Match 'IncludeAuthorizationHeadersInOutputs'
     }
 
-    It 'the environment variable holds the APPLICATION id and says so, distinct from the object id' {
+    It 'the environment variable holds the APPLICATION id the header carries, and is not a secret' {
         $parameter = $script:Definition.parameters.rev_IntakeAllowedClientId
         $parameter | Should -Not -BeNullOrEmpty
         $parameter.type | Should -Be 'String'
         $parameter.metadata.description | Should -Match 'notes\.md'
-        $script:TriggerNotes | Should -Match 'APPLICATION \(CLIENT\) ID'
-        $script:TriggerNotes | Should -Match 'SERVICE PRINCIPAL OBJECT ID'
-        $script:TriggerNotes | Should -Match 'not interchangeable'
+        $script:TriggerNotes | Should -Match 'application \(client\) ID of the rev-wordpress-intake registration'
     }
 
     It 'the client id is a plain environment variable, never a secret-typed one, and no secret is in the definition' {
@@ -1407,6 +1427,19 @@ Describe 'ADR-054 (TAD rev 13) — a returning applicant keeps what this submiss
         foreach ($k in @('rev_firstname', 'rev_lastname', 'rev_email')) { $script:RefreshPayload.Keys | Should -Not -Contain $k }
     }
 
+    It 'rev_fullname is a plain column, so BOTH create and refresh write trim(first + space + last) (defect 2026-10-03)' {
+        $expr = "@trim(concat(coalesce(outputs('Normalise_payload')?['first_name'], ''), ' ', coalesce(outputs('Normalise_payload')?['last_name'], '')))"
+        "$($script:RefreshPayload.rev_fullname)" | Should -Be $expr
+        "$($script:NewAppl.rev_fullname)" | Should -Be $expr
+    }
+
+    It 'rev_costs is a plain column, so Create_application writes the sum of the present components, null when all three are null (defect 2026-10-03, IMP-1033 class)' {
+        $a = "outputs('Normalise_payload')?['accommodation_cost']"; $t = $a.Replace('accommodation', 'travel'); $o = $a.Replace('accommodation', 'other')
+        $expr = "@if(and(equals($a, null), equals($t, null), equals($o, null)), null, add(add(coalesce($a, 0), coalesce($t, 0)), coalesce($o, 0)))"
+        "$($script:AppItem.rev_costs)" | Should -Be $expr
+        "$($script:AppItem.rev_costs)" | Should -Not -Match 'total_estimated_cost'
+    }
+
     It 'the first-time create is unaffected: Create_new_applicant reads nothing stored' {
         (Get-Json $script:Scope.Create_or_refresh_the_applicant.else.actions.Create_new_applicant) | Should -Not -Match 'Find_existing_applicant'
         (Get-Json $script:Scope.Create_application) | Should -Not -Match "first\(body\('Find_existing_applicant'\)\?\['value'\]\)\?\['rev_"
@@ -1440,7 +1473,8 @@ Describe 'ADR-051 item 12 — only what the applicant enters is transferred' {
 
     It 'the columns the native payload cannot supply are no longer written (C.3)' {
         foreach ($column in @('rev_supportrecipientname', 'rev_breakstart', 'rev_breakend', 'rev_providerpreference',
-                              'rev_grouplinkage', 'rev_costs')) {
+                              'rev_grouplinkage')) {
+            # rev_costs was listed here until 2026-10-03: it is a plain column the flow DOES write (asserted above).
             $script:AppItem.Keys | Should -Not -Contain $column
         }
     }

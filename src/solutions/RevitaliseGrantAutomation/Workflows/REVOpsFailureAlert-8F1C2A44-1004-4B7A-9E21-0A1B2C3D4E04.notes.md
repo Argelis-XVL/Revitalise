@@ -38,6 +38,12 @@ than no link. When it is absent the message says so in words.
 
 ## `/properties/definition/actions/Write_error_log_row/description`
 
+WRITE SHAPE (TAD rev 14 section 5 rule, 2026-10-02): the eight columns are flat item/<column>
+parameters beside entityName. The nested item object this action used until now works at runtime -
+it wrote rev_errorlog rows - but the designer binds only the flat form and writes back only what it
+bound, so any designer save would have emptied it. SUPERSEDED (retained): the shipped description
+read "Nested item is correct for CreateRecord; only UpdateRecord needs item/<column>."
+
 `rev_runurl` was added to `rev_errorlog` on 2026-08-20 and is on the Error Log main form, so a
 row is actionable on its own: the reader clicks through to the failing run without going via the
 Teams alert. It replaces an earlier attempt that appended the link to `rev_errormessage`, which

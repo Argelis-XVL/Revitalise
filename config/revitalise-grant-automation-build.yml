@@ -401,6 +401,18 @@ steps:
       src/solutions/RevitaliseGrantAutomation
       --shapes constraints/technology/component-shapes.yml
 
+  # HARD — C-TECH-080 (IMP-0934, review 2026-09-27). An existing attribute's <Type> must not change:
+  # solution import rejects it, and every measured retype needed a transitional import, a live
+  # DELETE and a recreate. Compares Entity.xml against the COMMITTED lock, not git history (CI
+  # checks out at depth 1) and not build manifests (they record no types). A planned retype is
+  # declared in the lock's planned_retypes with its route; new attributes are recorded with
+  # --update once they ship. Replayed over 24 commits: 14 findings, 14 true positives.
+  - name: attribute-type-stability
+    command: >
+      python3 scripts/verify-attribute-type-stability.py
+      src/solutions/RevitaliseGrantAutomation
+      --lock config/attribute-type-lock.json
+
   # C-TECH-066. Every column the approved TAD §3.1 names must exist in Entity.xml, or carry an owned,
   # dated deferral in contract/tad-deferrals.json; and every column §3.1 marks trustee-visible must
   # sit on a table the REV Trustee role can actually read.
@@ -522,6 +534,14 @@ steps:
   # History: docs/development/revitalise-grant-automation-build-config-history.md#declared-property-reaches-creation-path
   - name: declared-property-reaches-creation-path
     command: python3 scripts/verify-declared-property-reaches-creation-path.py .
+
+  # IMP-1033 and its recurrence (rev_costs), 2026-10-03. A column shipped PLAIN ("NOT CALCULATED YET")
+  # while its Description, comment and flow all assumed it was calculated, so nothing wrote it.
+  # Rule A: a plain column's Description must not claim CALCULATED / "cannot be written".
+  # Rule B: a column that admits "NOT CALCULATED YET" must be written by a flow or provisioning step.
+  # IT DERIVES from each Entity.xml; no column list. RESIDUAL: reads that a write exists, not its value.
+  - name: plain-column-not-claimed-calculated
+    command: python3 scripts/verify-plain-column-not-claimed-calculated.py src/solutions/RevitaliseGrantAutomation .
 
   # C-TECH-042, second clause. IDEMPOTENT IS NOT CONVERGENT: a create-only step reports EXISTS and
   # skips forever, so it cannot deliver a property corrected in source later.

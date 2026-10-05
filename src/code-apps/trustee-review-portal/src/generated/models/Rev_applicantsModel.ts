@@ -20,6 +20,15 @@ export const Rev_applicantsrev_applicanttype = {
   3: 'A carer applying for yourself'
 } as const;
 export type Rev_applicantsrev_applicanttype = keyof typeof Rev_applicantsrev_applicanttype;
+export const Rev_applicantsrev_ethnicgroup = {
+  1: 'White',
+  2: 'Asian or Asian British',
+  3: 'Black, African, Caribbean or Black British',
+  4: 'Mixed or Multiple ethnic groups',
+  5: 'Other ethnic group',
+  6: 'Prefer not to say'
+} as const;
+export type Rev_applicantsrev_ethnicgroup = keyof typeof Rev_applicantsrev_ethnicgroup;
 export const Rev_applicantsrev_gender = {
   1: 'Female',
   2: 'Male',
@@ -28,6 +37,12 @@ export const Rev_applicantsrev_gender = {
   5: 'Prefer not to say'
 } as const;
 export type Rev_applicantsrev_gender = keyof typeof Rev_applicantsrev_gender;
+export const Rev_applicantsrev_localauthoritystatus = {
+  100001: 'Resolved',
+  100002: 'Multi-Authority',
+  100003: 'Not Known'
+} as const;
+export type Rev_applicantsrev_localauthoritystatus = keyof typeof Rev_applicantsrev_localauthoritystatus;
 export const Rev_applicantsrev_locationarea = {
   1: 'North East',
   2: 'North West',
@@ -81,12 +96,16 @@ export interface Rev_applicantsBase {
   rev_applicantid: string;
   rev_applicanttype?: Rev_applicantsrev_applicanttype;
   rev_dateofbirth?: string;
+  rev_derivedcity?: string;
   rev_email?: string;
+  rev_ethnicgroup?: Rev_applicantsrev_ethnicgroup;
   rev_firstname?: string;
   rev_fullname?: string;
   rev_gender?: Rev_applicantsrev_gender;
   rev_lastcontactdate?: string;
   rev_lastname?: string;
+  rev_localauthority?: string;
+  rev_localauthoritystatus?: Rev_applicantsrev_localauthoritystatus;
   rev_locationarea?: Rev_applicantsrev_locationarea;
   rev_name?: string;
   rev_phone?: string;
@@ -119,7 +138,9 @@ export interface Rev_applicants extends Rev_applicantsBase {
   owningbusinessunitname: string;
   rev_agerangename?: string;
   rev_applicanttypename?: string;
+  rev_ethnicgroupname?: string;
   rev_gendername?: string;
+  rev_localauthoritystatusname?: string;
   rev_locationareaname?: string;
   rev_preferredcontactmethodname?: string;
   rev_titlename?: string;

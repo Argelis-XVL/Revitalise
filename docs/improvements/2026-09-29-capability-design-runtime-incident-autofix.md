@@ -399,6 +399,23 @@ parallel versions of them.
   nothing: the reviewer's later *verified* (D-8, which closes a work item) and anything the lane hands to
   `human` because it is outside §4's scope.
 
+### Settled by the reviewer, 2026-10-05 (do not re-ask)
+
+- **A reviewer-directed hotfix carries two obligations; the override itself stays the reviewer's.**
+  Decided as decision D-1 of [improvement review 2026-10-05](docs/improvements/2026-10-05-improvement-review.md#L215),
+  answer "agreed with suggested" (Xander Lykopoulos, relayed 2026-10-05 10:41). Basis: eighteen hotfix
+  imports reached DEV on 2026-10-03/04 with every gate skipped and no lesson logged (IMP-1038, second
+  instance of IMP-0981's class). Any session that imports to an environment "by reviewer instruction,
+  gates overridden":
+  - **(a)** runs `python3 scripts/run-source-gates.py` over the source it is about to import, before the
+    first import, and records in its `logs/pipeline.log` line which gates were red (or `0 red`);
+  - **(b)** logs each surprise to `logs/improvement-log.jsonl` (capture contract) before the session ends,
+    not afterwards.
+
+  The override is not narrowed: a red gate is recorded, it does not stop the hotfix. **Status of this
+  bullet:** a recorded decision inside a DRAFT design. Nothing enforces it until the lane's Phase A is
+  approved; until then it binds by being read here and in the 2026-10-05 review's D-1 record.
+
 ### Open — recommendation first
 
 | # | Decision | Recommendation | Blocks |

@@ -75,6 +75,9 @@ improvement:
 work_items:
   id_prefix: WI
   tracker: none
+  # Who may give verdicts on the work board (W8, improvement review 2026-10-02, reviewer
+  # decision D-V1). work-items.py apply-verdicts refuses any other name.
+  reviewers: [Anna Southern, Xander Lykopoulos]
 
 # Phase 3f instance configs — client-specific facts feeding the engine's generic
 # checkers (see docs/plans/engine-instance-classification.md § "Phase 3f resolution").

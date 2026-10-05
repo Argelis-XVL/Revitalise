@@ -23,7 +23,7 @@ export interface Rev_roundstatisticsrequestsBase {
   importsequencenumber?: number;
   overriddencreatedon?: string;
   rev_computedon?: string;
-  rev_name: string;
+  rev_name?: string;
   rev_resultjson?: string;
   rev_roundstatisticsrequestid: string;
   rev_status?: Rev_roundstatisticsrequestsrev_status;

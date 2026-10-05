@@ -357,6 +357,17 @@ pending_adjudication:
   - { entity: rev_application, name: rev_refereeemail }
   - { entity: rev_application, name: rev_refereename }
   - { entity: rev_application, name: rev_refereephone }
+  # Added 2026-10-05 (IMP-1038, improvement review 2026-10-05 row 6): eight referee columns the
+  # 2026-10-03/04 DEV hotfixes added as secured. Referee columns are personal data (reviewer ruling
+  # 2026-09-30); Article 9 status is not adjudicated, so they sit here beside the three above.
+  - { entity: rev_application, name: rev_refereeaddress }
+  - { entity: rev_application, name: rev_refereecompany }
+  - { entity: rev_application, name: rev_refereefirstname }
+  - { entity: rev_application, name: rev_refereejobtitle }
+  - { entity: rev_application, name: rev_refereelastname }
+  - { entity: rev_application, name: rev_refereepostcode }
+  - { entity: rev_application, name: rev_refereetitle }
+  - { entity: rev_application, name: rev_refereetowncity }
   - { entity: rev_application, name: rev_supportrecipientname }
   - { entity: rev_application, name: rev_unabletofundexplanation }
 

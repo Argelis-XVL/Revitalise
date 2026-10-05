@@ -3,7 +3,7 @@
 **Feature Slug:** revitalise-grant-automation
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **Date:** 2026-08-10
-**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below
+**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.**
 **Revision:** rev 1 — 2026-08-10. Reviewer decisions applied to ADR-003 (Code App confirmed), ADR-006
 (three environments: DEV, TST/ACC, PRD), §6.1 (group-team pattern confirmed), §6.5 (audit retention
 confirmed at 6 years), role-membership review cadence (confirmed at 6 months), and §4.2 (SAR mechanism
@@ -280,6 +280,60 @@ blocker) **closed.** Four corrections, all inside `ADR-053`/`ADR-054`; no new AD
 | `verify-field-security-coverage.py` | Re-run after the DEV recreation, per §12.4 — asserts the five secured columns are still members of `REV_TrusteeRestricted` post-recreation, before the final import |
 | `flow-definition-language` check 3 (nested `item` on `UpdateRecord`) | Not tripped — the narrowed coalesce is still one scalar expression per flat `item/<column>` key (`if(empty(...), stored, derived)` in place of `coalesce(derived, stored)`); no key becomes a nested object |
 | `no-hardcoded-environment-values` | Unaffected — the DEV-only scoping of the delete-and-recreate sequence is stated in §12.4 as a procedure, not as an environment value in source |
+
+**Revision:** rev 14 — 2026-10-02. **Reviewer decision on the intake endpoint's trust, and one design rule
+from `IMP-1010`** (`wbs:4.2,4.3`, warranty-class rework). No new column, no `IsSecured` change, no new flow.
+
+1. **`ADR-011` is re-decided: the trigger accepts *Anyone* holding the signed callback URL, plus the
+   `x-rev-client-id` header check.** The rev 10 Entra client-credentials route is superseded. The basis is the
+   reviewer's statement of 2026-10-02, quoted in `ADR-011`. The reason: Gravity Forms webhooks send only fixed
+   header values, so an Entra token that expires within the hour cannot be refreshed. `ADR-011` states the
+   residual risk, the effect on `NFR-008`, and what changes downstream. §6, §7 (`NFR-008`), §11 (`A-R68`
+   superseded; `A-R71`–`A-R73` added), §12 (two rows superseded, one added) and §12.3 (`A-INT-11`–`A-INT-15`)
+   are amended to match.
+2. **The intake trigger's secure outputs stay on, as source declares.** A designer save removed them in DEV; the
+   next import is expected to restore them. Recorded in `ADR-011`.
+3. **New design rule in §5: every Dataverse create or update action writes its columns as flat `item/<column>`
+   parameters, never as a nested `item` object.** A designer save drops the nested form. Three actions need
+   converting: the intake flow's `Create_application` and `Create_new_applicant`, and the Ops Failure Alert
+   flow's `Write_error_log_row`.
+
+**Revision:** rev 15 — 2026-10-02. **`REV | Acceptance | Create Envelope` redesigned, and the referee's
+signature bound to the referee** (`wbs:3.1,3.2,3.5`; recipient authentication is a `commercial-agent`
+decision, see `ADR-068` item 4). Raised by the reviewer (single-call `SendEnvelope` no longer accepts tabs)
+and by Emily Sheardown's test feedback of 2026-10-02 (mandatory fields could be left empty; a forwarded
+referee email could be signed by someone else and was recorded as the referee). No new column, no
+`IsSecured` change, no new connector, no new connection reference.
+
+1. **`ADR-067` added: the envelope is created as a draft, filled, then sent** — three DocuSign steps instead
+   of one, with each tab addressed by the recipient's DocuSign id and the tab's label, both read back from
+   the draft rather than assumed. §5.8–5.10 rewritten to the new action sequence.
+2. **`ADR-068` added: four controls so only the named referee can sign.** (1) Mandatory fields are set on the
+   **template**, which is the only place the connector can set them. (2) "Assign to someone else" is
+   switched off. (3) Each signer gets their own email subject and message. (4) **Decided by the reviewer
+   the same day:** the referee must enter an access code, the last six digits of the referee's phone number,
+   before the document opens.
+3. **`ADR-043` gains a rev 15 note**: the referee-entered tabs it leaves blank must be *required* on the template.
+4. §4 (DocuSign row), §11 (`A-R74`–`A-R79`) and §12 (one row amended, two added; new §12.5 verification plan)
+   amended to match. New open platform-contract markers `A-DS-14`–`A-DS-18`.
+5. **Amended the same day, after the reviewer's throwaway DEV flow `TEST_Docusign`** (evidence only — the reviewer states it is not the intended design) (read-only by
+   lead-agent, 2026-10-02). Its designer-written definition is the first E1 for three DocuSign operations.
+   `ADR-067`'s ground truth, its Decision step 1, §5.8–5.10 step 3 and §12.5 are reconciled with it. The
+   rest of rev 15, `ADR-068` included, is unchanged.
+6. **Revised again the same day, after the reviewer's designer check** (*"create envelope from template with
+   recipients and tabs" can create the envelope and the recipients' tabs, but not the prefill tabs and not a
+   custom email*). `ADR-067` now carries the definitive action list D1–D10: `SendEnvelopeWithRecipientFields`
+   creates the draft with recipient tabs; prefill tabs, per-signer email, authentication and reminders are set
+   on the draft; `SendDraftEnvelope` sends. Reminders move before the send. §5.8–5.10 and §12.5 (T2–T4) are
+   rewritten to match.
+7. **Revised a third time, the same day, to the reviewer's `TEST_Docusign` v2c and three decisions.** The create is
+   `CompositeTemplates` (`status: Created`). Each signer is bound by `UpdateEnvelopeRecipient`. Tabs are read once
+   and written as one array through `UpdateEnvelopePrefillTabs` (**option A**, the reviewer's choice), with
+   **option B** (prefill array + one `UpdateRecipientTabsValues` array per signer) as the measured fallback. The
+   D1–D10 list is superseded by C1–C10. Rev 15's *"one tab per call"* for `UpdateRecipientTabsValues` is corrected:
+   it takes an array per signer (E1). **`ADR-068` item 4 becomes an access code** (the last six digits of the
+   referee's phone, free per the reviewer), and it sits within `wbs:3.2`/`3.5` — no change order. §5.8–5.10,
+   §11 (`A-R76`, `A-R78`, `A-R79`), §12 and §12.5 are amended.
 
 ---
 
@@ -825,8 +879,8 @@ every one has a documented fallback so no single external dependency can stop th
 
 | Integration | Direction | Protocol / Connector | Tier | Trigger / method | Auth method | Fallback |
 |---|---|---|---|---|---|---|
-| **WordPress / Gravity Forms → Dataverse** | Inbound | Request (HTTP) trigger; or Gravity Forms REST API v2; or parsed structured email. **Rev 9: the body is the website's native entry, keys and label values as the site sends them** (`ADR-051`, Appendix C) | **Premium** | Webhook POST on form submit | **Bearer token / shared secret held in a Key Vault-backed secret environment variable — see §6.3.** Caller restricted to the charity website (NFR-008) | Scheduled REST pull (service-account-initiated, reverses the trust direction) or structured-email trigger — no downstream component changes |
-| **DocuSign** | Bi-directional | DocuSign connector | Premium | Outbound: create envelope on approval. Inbound: envelope-completed event | OAuth 2.0, service account owns the connection | Manual print-sign-scan route recorded on the Grant record (FR-046) |
+| **WordPress / Gravity Forms → Dataverse** | Inbound | Request (HTTP) trigger; or Gravity Forms REST API v2; or parsed structured email. **Rev 9: the body is the website's native entry, keys and label values as the site sends them** (`ADR-051`, Appendix C) | **Premium** | Webhook POST on form submit | ~~Bearer token / shared secret held in a Key Vault-backed secret environment variable — see §6.3.~~ **Rev 14 (`ADR-011`): signed callback URL (*Anyone*) + `x-rev-client-id` header check.** Caller restricted to the charity website (NFR-008) | Scheduled REST pull (service-account-initiated, reverses the trust direction) or structured-email trigger — no downstream component changes |
+| **DocuSign** | Bi-directional | DocuSign connector | Premium | Outbound: create envelope on approval — **rev 15: draft, fill, send (`ADR-067`)**. Inbound: envelope-completed event | OAuth 2.0, service account owns the connection. **Rev 15: signer controls are DocuSign-side — required fields and no reassignment on the template/account; recommended phone authentication on the referee (`ADR-068`)** | Manual print-sign-scan route recorded on the Grant record (FR-046) |
 | **QuickBooks Online** | Inbound (read only) | QuickBooks Online connector | Premium | Query by applicant name / email at intake, re-checked before payment issue | OAuth 2.0, **read-only scope** | Quarterly export into `rev_granthistory` + Power Automate cross-reference (ADR-017) |
 | **AI Builder (prebuilt PII detection model)** | Internal | AI Builder connector, invoked from `REV \| Narrative \| Scrub Free-Text` | Premium | Synchronous call within the redaction flow | Environment AI Builder credits; runs as the service account | Human-only redaction: every narrative routes to the process owner for manual review (degraded, not broken) |
 | **SharePoint Online — signed-acceptance library** | Outbound (write) + read | SharePoint connector | Standard | Store signed PDF on envelope completion; URL written to `rev_grant.rev_signedpdfurl` | Service account connection | Attach the PDF as a Dataverse note/annotation on the Grant row |
@@ -902,6 +956,48 @@ bulk-delete jobs**, which are environment configuration and not flows at all (§
 Every flow: runs as the service account; validates its input before processing; calls
 `REV | Ops | Failure Alert` from its configured error path; retries transient external failures with
 exponential back-off to a capped retry count; and writes no personal data to any log (NFR-012).
+
+**Design rule — Dataverse write shape (rev 14, `IMP-1010`).** Every Dataverse `CreateRecord`, `UpdateRecord`
+or `UpdateOnlyRecord` action in a solution flow writes its columns as **flat `item/<column>` parameters**,
+alongside `entityName` (and `recordId` for an update). It never writes them as a nested `item: { … }` object.
+
+- *Why.* The Power Automate designer binds only the flat form to the table's columns, and a designer save
+  writes back only what the designer bound. A nested `item` object therefore comes back empty after any
+  designer save. The run that follows still succeeds and writes a row with no columns. This was measured in
+  DEV at 08:51 UTC on 2026-10-02: in one designer save of the intake flow, both nested `CreateRecord` actions
+  lost every column, while the flat `Refresh_existing_applicant` in the same flow kept all of its columns. At
+  runtime the nested form does work for `CreateRecord` — the Ops Failure Alert flow has written
+  `rev_errorlog` rows that way. So no test run can catch this. The failure appears only after someone saves
+  the flow in the designer.
+- *This replaces the "asymmetric connector" belief.* Until now this project treated nested `item` as valid
+  for `CreateRecord` and invalid only for `UpdateRecord`. The rule is now the same for both.
+- *Affected actions.* Measured 2026-10-02 by scanning every `Workflows/*.json`: 3 nested and 12 flat.
+  | Flow | Action | Table | Columns | Lookup binds |
+  |---|---|---|---|---|
+  | `REV \| Intake \| WordPress to Dataverse` | `Create_application` | `rev_applications` | 81 | 1 — `rev_applicantid@odata.bind` |
+  | `REV \| Intake \| WordPress to Dataverse` | `Create_new_applicant` | `rev_applicants` | 20 | 0 |
+  | `REV \| Ops \| Failure Alert` | `Write_error_log_row` | `rev_errorlogs` | 8 | 0 |
+- *Conversion.* Each nested key `<column>` becomes `item/<column>` with its expression unchanged; nothing
+  else moves (`runAfter`, `secureData`, `runtimeConfiguration`). **The one lookup bind is the exception and
+  needs checking against the real platform first.** No flat `@odata.bind` key exists anywhere in this
+  solution today, so the flat key that the designer writes for the Applicant lookup is unverified
+  (`A-INT-15`). Do not guess it.
+- *Gates over these actions* (from `config/revitalise-grant-automation-build.yml`):
+  `flow-definition-language` check 3 rejects a nested `item` on `UpdateRecord` only. Its engine docstring
+  and its positive self-test both assert that a nested `CreateRecord` passes. That check now encodes a
+  superseded belief, so improvement-agent widens it to every Dataverse write and turns the positive fixture
+  into a known-bad one (`IMP-1010` proposed change 2). Separately,
+  `src/tests/solutions/IntakeContract.Tests.ps1` reads `Create_application` and `Create_new_applicant`
+  through `.inputs.parameters.item` directly. After the conversion those reads return nothing, so they must
+  switch to the harness's flat-aware payload reader in `_harness/SolutionSource.psm1`. That reader's comment
+  calling the nested `CreateRecord` form *"VERIFIED WORKING"* is true at runtime only, and is corrected in
+  the same change. `ScoringInvariants.Tests.ps1`'s existing "nests its columns under item" check is the
+  model to extend. `verify-shipped-content.py` and `flow-reads-no-trigger-body` do not depend on the key
+  shape.
+- *Operating rule this does not replace.* A designer save also strips trigger secure outputs, parameter
+  names and `inputs.authentication`, and the flat form does not protect any of those. **Never save a
+  solution flow in the designer in DEV to inspect or test it.** After anyone has opened one, run
+  `verify-live-flow-definitions.py --env dev` before trusting a test run (risk `A-R73`).
 
 | # | Flow | Automation | Trigger | Requirements served |
 |---|---|---|---|---|
@@ -1047,6 +1143,39 @@ sequence**: applicant first, then referee or GP (FR-041, FR-042). Writes `rev_do
 `rev_acceptanceissuedon`. **The Grant Referee (Signer 2)'s own Title, Address, Town/City and Postcode
 anchor tabs are deliberately left for the referee to complete during signing, not pre-populated from
 Dataverse — see ADR-043.**
+
+**Rev 15 — the action sequence (`ADR-067` C1–C10, `ADR-068`; revised to the reviewer's `TEST_Docusign` v2c,
+2026-10-02).** The single `Create_and_send_the_envelope` is replaced. Inside the existing `Build_the_envelope` scope,
+after the three unchanged reads and `Compose_provider_name`:
+
+| # | Action | Connector operation (`ADR-067`) | What it does |
+|---|---|---|---|
+| 1 | `Read_acceptance_email_settings`, `Check_referee_details_are_present` | `ListRecords` on `rev_settings`, then If | Both `AcceptanceEmail*` rows must exist (`ADR-068` item 3). Referee name and email must be non-empty. The phone, **after removing non-digits, must have at least six digits** (`ADR-068` item 4). Missing → call `REV \| Ops \| Failure Alert` with the grant reference and *which field* is missing (never its value), **then** `Terminate` (Failed) — the alert-then-stop shape `REV \| Portal \| Round Statistics` uses. Nobody is emailed; the grant stays at Awarded |
+| 2 | `Compose_access_code`, `Compose_tab_values` | Compose | The last six digits of the normalised referee phone (inputs secured). The expected values by tab identifier: five prefill tabs and the referee's `n2`, `e2`, `ph2`, values as rev 14 composes them (amount awarded, formatted dates) |
+| 3 | `Create_the_draft_envelope` | C1 `CompositeTemplates`, `status: Created` | Draft from the server template. Nobody is emailed |
+| 4 | `List_the_envelope_recipients` → `Foreach` → `Switch` on `roleName` | C2 `GetRecipientStatus` | One branch per template role |
+| 5 | `Bind_the_applicant` / `Bind_the_referee` | C3 `UpdateEnvelopeRecipient` | Name, email, **routing order 1 / 2**, own subject and body from the settings rows, language as the designer writes it. **No `phoneNumber`** |
+| 6 | `Require_referee_access_code` (referee branch only) | C4 `AddVerificationToRecipient`, `Access Code` | The code from step 2 |
+| 7 | `Find_the_document`, `Read_the_tabs` | C5 `ListTemplateDocuments` (or `ListEnvelopeDocuments`), C6 `GetEnvelopeDocumentTabs` | One read of every tab on the document, prefill and recipient |
+| 8 | `Build_the_tab_array` | `Foreach` + `Switch`, or `Select` | One `{tabType, tabId, value}` per expected tab, matched by `tabLabel`, else by placeholder value |
+| 9 | `Fill_the_tabs` | **Option A:** C7-A `UpdateEnvelopePrefillTabs`, one array. **Option B:** prefill array to the same action, plus C7-B `UpdateRecipientTabsValues`, one array per signer | Option A unless the first run shows it leaves recipient tabs unchanged |
+| 10 | `Re-read_the_tabs`, `Check_every_tab_was_filled` | C8 `GetEnvelopeDocumentTabs`, then If | Every expected tab must hold the value sent. Otherwise → alert (naming the **tab** and the draft's envelope id), then `Terminate` (Failed) |
+| 11 | `Read_reminder_days` … `Set_reminder_cadence` | C9 `AddReminders` | Before the send |
+| 12 | `Send_the_envelope` | C10 `SendDraftEnvelope` | Draft → sent: the applicant is emailed; the referee once the applicant has signed |
+| 13 | `Write_the_envelope_id_and_issue_date` | unchanged (`UpdateRecord`) | Status 1 → 2 only after step 12 succeeded |
+
+**What a person sees when an action after step 3 fails:** the applicant and referee receive nothing (a draft sends
+no email); the grant stays at Awarded; the process owner gets the failure alert, which **also carries the
+draft's DocuSign envelope id** (a DocuSign-generated identifier, not personal data) so she can find and
+delete the orphaned draft in DocuSign. A re-run creates a new draft; it does not reuse the old one (risk
+`A-R74`).
+
+**Run-history protection (`C-DOM-004`) extends to every new action that carries a name, email, phone or tab
+value or the access code:** every connector and `Query`/`Select` action in steps 3–10 gets `secureData`
+on inputs and outputs; the Composes in step 2 get inputs only, the precedent this flow already uses. `Foreach`, `If`, `Switch` and variable actions cannot carry the
+setting and get none. Steps 11–13 read only the envelope id and stay readable, as this flow's existing rule
+already states.
+
 **Reminders & Escalation** — scheduled daily, plus DocuSign events. Reminders at **3 and 7 days**
 (`Setting.ReminderDays`), escalation to the process owner with the applicant's details at **14 days**
 (`Setting.EscalationDays`) (FR-043, FR-044). Idempotent: a reminder-sent stamp prevents a duplicate on a
@@ -1155,7 +1284,7 @@ Architecture differ in detail, the Security Model is adopted. Checked against
 | Concern | Control | Where applied |
 |---|---|---|
 | **Authentication** | Entra ID sign-in with **MFA for every staff, trustee and service-identity sign-in** (NFR-004). Staff and trustees use their own tenant accounts. The service account `svc-grantautomation` signs in with MFA and holds a **documented, scoped Conditional Access exception** so unattended flows are not blocked by an interactive-sign-in policy (Security Model §7) | Entra ID / Conditional Access (tenant). Provisioned in WBS 0.3 — **outstanding with Wanstor** |
-| | The one public endpoint is the intake HTTP trigger. It accepts submissions **only from the authenticated charity website** (NFR-008, C-TECH-006) — bearer token / shared secret validated in the first flow action, request rejected before any Dataverse write | `REV \| Intake` flow; secret held per §6.3 |
+| | The one public endpoint is the intake HTTP trigger. It accepts submissions **only from the authenticated charity website** (NFR-008, C-TECH-006). **Rev 14 (`ADR-011`):** the caller is authenticated by the platform-issued `sig` in the signed callback URL (trigger set to *Anyone*), then by the `x-rev-client-id` header checked in the first flow action. The request is rejected before any Dataverse write. Possession of the URL and header, not an identity, is the trust boundary | `REV \| Intake` flow; secret held per §6.3 |
 | **Authorisation — outer gate** | Membership of a per-environment **Entra ID security group** is required to reach the environment at all, before any role permission applies (NFR-005). Group membership is the outer gate; the security role is the inner one (Security Model §7) | Power Platform admin centre, per environment |
 | **Authorisation — inner gate** | Dataverse security roles, assigned **only through Entra-group-backed group teams** in PROD (C-TECH-040). Four roles — see §6.1 and §6.2 | Solution component (roles) + `post_deploy` config (group teams) |
 | **Authorisation — column level** | Two column security profiles: `REV_TrusteeRestricted` hides every identifying column from the Trustee role so identity **never reaches the trustee app**; `REV_FinanceOnly` restricts all Bank Account and Payment columns to the Finance role, with one platform-forced exception — see the note directly below. This is the control that replaces manual anonymisation (ADR-002) | Solution component; profile *membership* applied per environment |
@@ -1426,7 +1555,7 @@ and what input is still needed.
 | NFR-005 | Per-environment Entra security groups (`REV-GrantApplications-DEV/PROD`) gate environment access ahead of any role | Outer gate / inner gate model; membership managed in one place (§6.1) |
 | NFR-006 | All external connections are OAuth connections owned by `svc-grantautomation`, bound via the four connection references | Survives staff changes; governed centrally; no personal login in the runtime path |
 | NFR-007 | Environment-level DLP policy on all three environments (DEV, TST/ACC, PRD), business group as §6.4 — **with Request/HTTP and Word Online (Business) added** | The source's group omits two used connectors; a DLP gap silently disables flows on import |
-| NFR-008 | Bearer token / shared secret validated as the first action of the intake flow, before any Dataverse write; secret held per §6.3 | Rejects unauthenticated callers at the boundary (C-TECH-006) |
+| NFR-008 | **Rev 14 (`ADR-011`):** signed callback URL — the platform rejects a missing or wrong `sig` before the flow runs (`A-INT-12`) — then the `x-rev-client-id` header compared with `rev_IntakeAllowedClientId` as the flow's first action, 401 + *Cancelled*, before any Dataverse write. The trace is now possession-based (URL + header), not identity-based; the reviewer accepted the lower assurance on 2026-10-02. No solution-side secret; the URL is held only as a CI secret | Rejects unauthenticated callers at the boundary (C-TECH-006) |
 | NFR-009 | UK region for all three environments; UK residency configured for AI Builder, DocuSign and QuickBooks; **verified at setup and recorded as evidence**, not assumed | No source evidences verification; DPIA action A5 is open (risk A-R19) |
 | NFR-010 | Four native recurring Dataverse bulk-delete jobs — 6-year, 12-month, 6-month, **plus the derived orphaned-Applicant sweep** — running monthly against status-plus-date queries; cascade removes the case | Native, status-aware, no licence beyond Dataverse, logged as system jobs (ADR-004). No deletion depends on a person remembering |
 | NFR-011 | Dataverse point-in-time restore window (7 days by default) sits far inside every retention period; backups remain in the UK region. Third-party backup tooling, if any, must be confirmed | A backup that outlives the retention period is an ungoverned copy. SDD OQ-019 open |
@@ -1946,7 +2075,7 @@ every threshold change against the decisions it affected. *Negative* — one mor
 at run time rather than binding at import. *Neutral* — the source permitted either.
 
 ### ADR-011: Intake channel and endpoint trust
-**Status:** `Adopted` — **decided 2026-09-25 by reviewer statement (rev 10): Entra client credentials.** Open from the 2026-08-10 gate until then · **Date:** 2026-08-10, decided 2026-09-25
+**Status:** `Adopted` — **re-decided 2026-10-02 by reviewer statement (rev 14): signed callback URL (*Anyone*) plus the `x-rev-client-id` header check.** This supersedes the rev 10 decision of 2026-09-25 (Entra client credentials), which is kept below as history. Open from the 2026-08-10 gate until 2026-09-25 · **Date:** 2026-08-10, decided 2026-09-25, re-decided 2026-10-02
 **Context:** The source's primary intake is a WordPress webhook to an HTTP request trigger, trusted by a
 "shared secret" with no named store — which does not satisfy C-TECH-002 (HARD).
 **Decision:** Webhook remains the recommended primary for latency, with the secret held in a **Key
@@ -2034,7 +2163,8 @@ snake_case strings generated from question wording, and the values are display l
 applies unchanged to a push channel. A pull channel reopens Appendix C.
 
 **Decision 2026-09-25 (rev 10) — ADOPTED: the Entra client-credentials route, which was already the
-provisioned default.** The basis is the reviewer's statement, quoted verbatim:
+provisioned default.** **⚠ SUPERSEDED 2026-10-02 (rev 14) — see the rev 14 decision at the end of this ADR.
+Consequences 1–3 below describe the retired route.** The basis is the reviewer's statement, quoted verbatim:
 
 > *"I have shared the url, clientid and secret with Alex"* — Xander Lykopoulos, 2026-09-25
 
@@ -2088,6 +2218,124 @@ answer:
 | 7 | One test entry per route | Open — the reviewer approved asking |
 | 8 *(new)* | Are the Name field's middle and suffix sub-fields, and the address State/Province and Country, shown to applicants? | Open — decides whether §C.8's two conditional columns are built (`ADR-051` item 12) |
 | 9 *(new, his question)* | Unseen questions: omit, null, or empty? | **Our answer: whichever is easiest.** Absent, null, `""`, `[]` and `false` are all read as *not answered* (`ADR-051` item 11). One request: keep a consent box that WAS shown as an explicit `true`/`false` |
+
+**Decision 2026-10-02 (rev 14) — ADOPTED: the signed callback URL (*Anyone*), plus the `x-rev-client-id`
+header check. Supersedes the rev 10 decision above.** The basis is the reviewer's statement, quoted verbatim:
+
+> *"I was troubleshooting the webhook problem for the wordpress website form. The gravity forms plugin only has
+> static fields. So the token didn't got a refresh. I changed the trigger to anyone to receive a url with sig
+> value. I added the client ID in the header of the webook so that the conditional step still works. So the
+> trigger needs to stay as it is right now. but the properties of the actions need to be imported again."*
+> — Anna Southern, 2026-10-02
+
+*Why.* Rev 9's inference 2 has now been confirmed by measurement on the sender's side. Gravity Forms
+webhook headers are fixed values, and an Entra access token expires within the hour, so the bearer token
+the rev 10 route depended on could not be refreshed. The route was never going to work with this plugin
+unless Alex wrote custom PHP for it.
+
+*What was measured in DEV on 2026-10-02 (lead-agent, read-only).* The live intake flow's trigger carries
+`inputs.triggerAuthenticationType: "All"`, the definition's own value for *Anyone*. The second-gate
+condition `Reject_caller_that_is_not_the_charity_website` still compares the `x-rev-client-id` header with
+`rev_IntakeAllowedClientId`, unchanged. This also refutes a rev 2-era claim in §12: the trigger's
+authentication mode **is** a property in the workflow definition, so source can declare it.
+
+*Decision — five interventions, numbered so that Consequences can follow the same order.*
+
+1. **Trigger authentication = *Anyone*, declared in source.** development-agent adds
+   `"triggerAuthenticationType": "All"` to the `manual` trigger's `inputs` in the intake flow's source. Today
+   source does not declare the property, so an import would apply whatever the platform default is. Declaring
+   it makes the import reproduce the reviewer's live setting instead of relying on a default (`A-INT-11`). A
+   caller authenticates by presenting the callback URL with its `sig` query value, a signature the platform
+   issues and checks. A request with no `sig` or a wrong one is rejected by the platform before the flow runs
+   (`A-INT-12`).
+2. **The second control is unchanged.** `Reject_caller_that_is_not_the_charity_website` stays the flow's first
+   action: 401 and *Cancelled* unless `x-rev-client-id` equals `rev_IntakeAllowedClientId`, and it fails closed
+   when the variable is empty. Its description and the trigger's description currently call it the "second
+   gate" behind *Entra* auth. development-agent rewords both to name the signed URL as the first control.
+3. **Secure outputs on the trigger stay on, exactly as source declares.** Source declares
+   `runtimeConfiguration.secureData.properties: ["outputs"]` on the trigger (`A-INT-01`), and every action
+   that carries applicant values declares its own `secureData`. The 08:51 UTC designer save removed the
+   trigger's setting in DEV (`IMP-1010`). The next import is expected to restore it, and
+   `verify-live-flow-definitions.py --env dev` confirms that by reporting zero differences. This is a privacy
+   control: the body is personal data, including special-category answers (risk `A-R67`). It is not
+   relaxed by this decision.
+4. **The pipeline compares the callback URL before and after every import of the intake flow.** A
+   solution import, a trigger change or a regeneration may change the URL, and the website would then post
+   to an address that no longer exists (`A-INT-13`, risk `A-R72`). In each environment, pipeline-agent
+   reads the trigger's callback URL before and after the import and compares **SHA-256 hashes only**. The
+   URL is a credential, so it is never printed, logged or written to an artefact (C-TECH-001). In TST/ACC and
+   PRD the "before" value is the CI secret `INTAKE_ENDPOINT_URL_TEST` / `INTAKE_ENDPOINT_URL_PRD`, which is
+   what the website was given. If the hashes differ, the deploy is reported `PARTIAL` with
+   `REVIEWER ACTION REQUIRED: update the WordPress webhook URL and the CI secret`. The deploy is not rolled
+   back: the new URL works, and the website simply has not been told it yet.
+5. **The Entra client-credentials route is retired.** The following no longer apply: the §12 *"Specific
+   users in my tenant"* `post_deploy` item; the `triggerAuthentication` block in
+   `provisioning/deploymentSettings/{test,prd}-settings.json`, which records *Anyone* as "a defect"; and the
+   assertion in `verify-intake-endpoint-auth.ps1` that fails on *Anyone*. Each is a CHECK that encodes the
+   superseded decision, so it is corrected by its owner (development-agent) and is not grounds to reopen
+   this decision. The `rev-wordpress-intake` registration is **kept**, because its application id is the
+   value `x-rev-client-id` carries. Its **client secret, which was given to Alex on 2026-09-25, is no longer
+   needed by anything.** Revoking it is a reviewer/Wanstor action.
+
+*Consequences, in the same order.*
+
+1. **Residual risk, stated plainly: two fixed shared values in the WordPress configuration are now the
+   entire trust boundary.** Anyone who has the signed URL and the header value is indistinguishable from
+   the charity website, and can create applications in that environment.
+   - **The two values are not equally strong.** The `sig` is a platform-issued signature, so it is a real
+     secret. The header value is the `rev-wordpress-intake` application id, which is an identifier. Anyone in
+     the Revitalise tenant who can read app registrations can see it, and the deployment settings already
+     describe it as *"Not a secret — a client id is a public identifier"*. In practice the header stops a
+     caller who has the URL but has not seen the configuration. It does not stop anyone who has read the
+     WordPress webhook settings. **The real credential is the URL.**
+   - **The URL has no forced expiry** that this design depends on or has measured. So a leaked URL keeps
+     working until someone rotates it.
+   - **Rotation = regenerate the trigger key, then update the WordPress webhook URL and the CI secret.**
+     The regeneration mechanism in Power Automate is **unverified** (`A-INT-14`). Until it is verified, the
+     only proven way to invalidate a leaked URL is to replace the trigger, and that also changes the URL.
+   - **Where the URL can leak:** the WordPress database and its admin screens, plugin or HTTP request logs on
+     the website, a backup or staging copy of the site, and any CI or pipeline log that printed it.
+     Intervention 4's hash-only rule covers the last one. The rest are on the website's side (risk
+     `A-R71`).
+   - **Options to strengthen it**, offered and not decided: (a) replace the header value with a random
+     high-entropy secret. That makes `rev_IntakeAllowedClientId` a secret, which C-TECH-002 would send to a
+     Key Vault-backed secret environment variable, and so brings back the out-of-palette Azure dependency
+     (§6.3). (b) Gravity Forms REST pull, which removes the public endpoint but reopens Appendix C (`A-R64`).
+2. **`NFR-008`'s trace changes from identity to possession.** *"Accept submissions only from the
+   authenticated charity website"* now means *"from a caller holding the website's signed URL and its
+   header value"*. C-TECH-006's test still applies and is still met: a request with no `sig` gets 401/403
+   from the platform (`A-INT-12`), and a request with the `sig` but the wrong header gets 401 from the flow,
+   before any Dataverse write. The assurance is lower than the retired route's, because the caller is no
+   longer identified by Entra. The reviewer has decided to accept that. §7's `NFR-008` row is updated.
+   - **C-TECH-002 is unaffected on our side.** The solution consumes no secret. The `sig` is issued and held
+     by the platform, and the repository holds the URL only as a CI secret. The website's copy is the
+     caller's credential, by the same reasoning as rev 10 consequence 1.
+3. **Run history stays protected.** Once the next import has run, intervention 3 restores the trigger's
+   secure outputs. Until then, DEV runs since 08:51 UTC on 2026-10-02 show the trigger body in run history
+   for 28 days. **Whether those bodies are real applicant data is not established here.** The website was
+   posting to DEV during the troubleshooting, and C-TECH-007 requires DEV to hold no real Tier 3+ data. If
+   the entries were real, deleting those runs is the reviewer's decision. Any further designer save would
+   remove the setting again (risk `A-R73`).
+4. **A changed URL fails silently on our side.** A request to a URL that no longer exists never starts a
+   run, so nothing reaches `rev_errorlog` and FR-010 does not alert. The website holds the entry. Intervention
+   4 is what makes the change visible, at deploy time instead of on the first missing application. DEV has no
+   CI secret holding its URL, so in DEV the comparison is between the before-import and after-import reads
+   of the live URL.
+5. **Rev 10's risk `A-R68` (client secret expiry) is superseded** by `A-R71`, because no expiring credential
+   is involved any more. Rev 10's consequence 2 still holds in a different form: each environment's flow has
+   its own `sig`, so **the URL now does separate the environments**. The header value does not, because one
+   registration serves TST/ACC and PRD. Risk `A-R63`'s mitigation is unchanged.
+
+*Gate interactions* (from `config/revitalise-grant-automation-build.yml` and the pipeline config):
+`verify-intake-endpoint-auth.ps1` (pipeline smoke test, TST/ACC and PRD) **will fail** on *Anyone* until
+development-agent rewrites it. The rewrite asserts two things: a POST with the `sig` removed gets 401/403
+and creates no run, and a POST with the `sig` but no header gets 401 and a *Cancelled* run. Neither probe
+writes anything. `verify-live-flow-definitions.py` is not tripped, because once intervention 1 is in source,
+live and source agree. `flow-definition-language`, `flow-reads-no-trigger-body` (it targets only the Round
+Statistics flow) and `verify-shipped-content.py` are not affected by a trigger-input property.
+
+**Status: `Adopted`, rev 14.** V-level for the route: **none claimed**. One authenticated post from the
+website, and the two rejection probes, are V5. Neither is evidenced in this repository since the reviewer's change.
 
 ### ADR-012: AI Builder treated as in-palette, invoked from a Power Automate flow
 **Status:** `Derived` · **Date:** 2026-08-10
@@ -2241,6 +2489,12 @@ reverses and the schema work CO-002 deferred still has to happen. *Neutral* — 
 Signer 1's remaining personal-detail tabs (Phone/Email) also stay signer-entered" question is
 unrelated and stays open exactly as the dev summary's own product-decision item records it; this
 ADR closes only the four referee fields CO-002 raised.
+
+**Rev 15 note (2026-10-02, `ADR-068` item 1).** "Left for the referee to complete" only holds if DocuSign
+refuses to finish while those tabs are empty. Emily Sheardown's test on 2026-10-02 showed it does not
+today: both signers could finish with fields empty. The tabs this ADR leaves blank (`t2`, `j2`, `o2`, `a2`,
+`c2`, `pc2`, and the applicant's equivalents) must be marked **Required** on the template. This ADR's
+decision is unchanged.
 
 **CO-002 disposition:** Closes as **not needed** — no schema change, no new capture surface, no
 hours to price. `wbs:3.2` is unaffected and continues under its existing scope (envelope creation
@@ -3055,6 +3309,306 @@ field or an explicit "clear this" affordance), out of this flow's control, and i
   re-answered but unmatched choice label must write a null column plus the `ADR-024` note, not silently
   keep the prior value.
 
+### ADR-067: Create Envelope creates a DRAFT from a composite template, binds each signer and fills every tab on the draft, then sends it
+**Status:** `Proposed` (rev 15) · **Date:** 2026-10-02 · **WBS:** `wbs:3.2` · **Raised by:** reviewer, 2026-10-02
+
+**Context.** The reviewer reports that the single `SendEnvelope` call can no longer create, fill and send
+in one step, and that `tabs` is no longer in the action's signer schema in the designer. That matches what
+was already E1 for the top level (the designer rejected a top-level `tabs` on 2026-09-25, `A-DS-12`). The
+per-signer half is the reviewer's observation in the designer and is treated as true. The connector's whole
+action list was enumerated, not only the action in use.
+
+**Ground truth.** Source: Microsoft's DocuSign connector reference
+(`https://learn.microsoft.com/connectors/docusign/`, page updated 2026-07-11, read 2026-10-02) and DocuSign's
+own eSignature REST v2.1 OpenAPI specification (`github.com/docusign/OpenAPI-Specifications`,
+`esignature.rest.swagger-v2.1.json`, read 2026-10-02). Neither is E1. The live connector's dynamic schemas
+can only be read in the designer (`IMP-0614`).
+
+**E1 since the same day — the reviewer's DEV flow `TEST_Docusign`**, saved in the designer on 2026-10-02,
+read read-only by lead-agent. **The reviewer states it is not the intended design** (*"this workflow is not how
+its supposed to be... this gives some insight for the analysis"*). So it is used only as E1 for **which
+operations exist, their static parameter names, and the draft status value**. Its action order is not
+evidence of intent and is not copied. None of its dynamic fields are filled, it is not known to have run,
+and it names only one role.
+
+| Designer-written fact | Level |
+|---|---|
+| `CreateEnvelopeFromTemplateNoRecipients` takes `accountId`, `templateId`, `status`; the draft value the designer writes is **`Created`** (capital C) | E1 (saved). That DocuSign accepts it at run time is not yet observed |
+| `AddRecipientToEnvelopeV2` takes `accountId`, `envelopeId` (bound to the create's `body/envelopeId`), **`recipientType: "signers"`**, `roleName: "Grant Acceptor"` | E1 (saved) |
+| `SendEnvelopeWithRecipientFields` takes `accountId`, `templateId`, `merge_roles_on_draft: "False"`. **It has no `envelopeId` parameter** | E1 (saved) + E2 (reference lists no `envelopeId` either) |
+| Connection reference `rev_SharedDocuSign`, api `shared_docusign` — the same as this solution's | E1 |
+
+**Three conclusions from those facts.** The reviewer's three steps — draft, fill per recipient, send — stand.
+The facts only decide which operation serves step 1:
+
+1. **`SendEnvelopeWithRecipientFields` cannot be the fill step.** With no `envelopeId` it cannot address the
+   draft made before it. Every call makes a **new** envelope from the template, so placed after a create, one run would make
+   **two** envelopes. It is a candidate only to *replace* create and fill
+   together, as one call.
+2. **~~Whether it exposes per-recipient tabs is still unverified.~~ Settled by the reviewer's designer check
+   (T1, below): it does, for recipient tabs only.** Whether it drafts or sends is still unmeasured (`A-DS-14`).
+3. **`AddRecipientToEnvelopeV2` adds a recipient; it is not documented to fill a template's placeholder
+   role.** After `CreateEnvelopeFromTemplateNoRecipients` the envelope already carries the template's two
+   roles, and their tabs belong to those roles' recipient ids. A recipient added with the same `roleName`
+   may become a **third, tab-less signer** rather than filling the role. A tab-less signer is exactly the
+   case that lets someone finish with no fields at all (`ADR-068`, H2). This is unverified either way
+   (`A-DS-15`), and it is the first thing to measure.
+
+| Fact | Level | Marker |
+|---|---|---|
+| `SendEnvelope` takes `accountId`, `templateId`, **`status` (required)**, `signers` (dynamic), `emailSubject`, `emailBody`. No `tabs` parameter | E2; top-level `tabs` absence is E1 | `A-DS-12` |
+| DocuSign envelope status `created` = draft (no email sent, can be modified), `sent` = send now | E2 (REST spec) | — |
+| The draft literal is `Created` on `CreateEnvelopeFromTemplateNoRecipients` (E1, above). Whether `SendEnvelope`'s `status` offers the same value, and whether DocuSign accepts it at run time | E4 by symmetry; **unverified** | `A-DS-14` |
+| `GetRecipientStatus` (accountId, envelopeId) returns `signers[]` with `roleName` and `recipientId` | E2 | `A-DS-15` |
+| A template recipient's `recipientId` is whatever the template assigned — an integer **or a GUID**, not necessarily `1`/`2` | E2 (REST spec, `signer.recipientId`) | — |
+| `GetEnvelopeRecipientTabs` (accountId, envelopeId, **recipientId**) returns `recipientTabs[]` with `tabLabel`, `tabId`, `tabType`, `value`, `prefill`, `documentId` | E2 | `A-DS-15` |
+| A tab's `tabLabel` is a separate property from its anchor string, and defaults to the tab type if never set. So the template's labels may **not** equal the anchor names `p_name`…`ph2` | E2 (REST spec, `text.tabLabel`, `text.anchorString`) | `A-DS-15` |
+| `UpdateRecipientTabsValues` (accountId, envelopeId, recipientId, …): ~~one tab per call, addressed by `tabId`~~ **corrected the same day: an array of `{tabType, tabId, value}` per signer (E1, `TEST_Docusign` v2c, below)**. **No `required` or `locked` parameter** | E2; array shape E1 | `A-DS-16` |
+| `UpdateEnvelopePrefillTabs` (accountId, envelopeId, documentId, tabType, tabId, value): sender prefill tabs, which belong to no recipient | E2 | `A-DS-15` |
+| `AddRecipientTabs` *adds new* tabs (dynamic `tabDetails`); it does not fill the template's existing ones | E2 | — |
+| `SendDraftEnvelope` (accountId, envelopeId) sends an existing draft | E2 | `A-DS-14` |
+| The connector has **no raw HTTP action** — none of its 50 listed actions is one | E2, whole list | — |
+| 250 calls per connection per 60 seconds | E2 | risk `A-R76` |
+
+**Superseded the same day — the reviewer's designer check (T1) and the D1–D10 list.** T1 found that
+`SendEnvelopeWithRecipientFields` fills recipient tabs but neither prefill tabs nor a per-recipient email. The
+D1–D10 list built on it is **replaced** by the list below, taken from the reviewer's later DEV flow.
+
+**Ground truth — `TEST_Docusign` v2c** (saved by the reviewer in the DEV designer 2026-10-02 18:25 UTC, read
+read-only by lead-agent). It is evidence, not the target design: its record ids, test values and hard-coded
+texts are test artefacts. It is **E1 for operation ids, static parameter names, and the literal values the
+designer writes.** It is **not** evidence of run behaviour: no run history was read.
+
+| Designer-written fact (v2c) | Level |
+|---|---|
+| `CompositeTemplates` takes `accountId`, `emailSubject`, **`status: "Created"`**, `merge_roles_on_draft: "False"`, `body/compositeTemplates` = `[{serverTemplates: [{sequence: "1", templateId}]}]` | E1 (saved) |
+| `UpdateEnvelopeRecipient` takes the name and email as **`additionalRecipientParams/name`** and **`/email`**, plus `recipientId`, `recipientType: "signers"`, `routingOrder`, `emailNotificationSubject`, `emailNotificationBody`, and `emailNotificationLanguage: "English UK (en_GB)"` | E1 (saved). That DocuSign accepts that language string: not observed |
+| `AddVerificationToRecipient` takes `verificationType: "Access Code"` and **`additionalRecipientData/accessCode`** | E1 (saved) |
+| **`UpdateRecipientTabsValues` takes an ARRAY `body` of `{tabType, tabId, value}` for one `recipientId`** — one call per signer, **not one tab per call** as D6 said. The designer writes `tabType: "Text"` | E1 (saved). Corrects rev 15's E2 reading |
+| `UpdateEnvelopePrefillTabs` takes `documentId` and an array `body` of the same `{tabType, tabId, value}` shape | E1 (saved) |
+| `ListTemplateDocuments` (`accountId`, `templateId`) returns `templateDocuments[]` with `name` and `documentId` | E1 (saved) |
+| `GetEnvelopeDocumentTabs` returns `tabs[]` carrying `prefill`, `tabType`, `tabId` and `value` (the flow filters on `prefill eq true` and switches on `value`) | E1 for the field names the flow binds; their contents are not observed |
+| The `tabType` string returned by the GET (reported as `textTabs`) differs from the update actions' `Text` | Reported by lead-agent; which one each update accepts is unmeasured |
+
+**The reviewer's point that the two update actions look like the same action.** In the designer, their tab bodies
+are identical. Their addressing is not:
+- `UpdateRecipientTabsValues` takes a `recipientId`. The documented endpoint is `PUT …/recipients/{recipientId}/tabs`.
+- `UpdateEnvelopePrefillTabs` takes a `documentId`. The documented endpoint is `PUT …/documents/{documentId}/tabs`.
+
+Both mappings are E2/E3. DocuSign's document-tabs endpoint updates the tabs on a document, and those include
+recipient tabs (E3). So one array through the prefill action **may** update both kinds. That depends on how the
+connector wraps the array — as `prefillTabs`, or by tab type — and nothing read here shows which. **Identical
+bodies show that the two share a body schema, not that they call the same endpoint.**
+
+**Decision — the action list.** Reviewer's three steps: create the draft, fill the tabs, send.
+
+| # | Step | Connector action (display name) | operationId | Required parameters | REST endpoint (documented mapping) | Level |
+|---|---|---|---|---|---|---|
+| C1 | **Create the draft** | Create envelope using composite templates | `CompositeTemplates` | `accountId`, `emailSubject`, `status: Created`, `merge_roles_on_draft: False`, one server template (`sequence 1`, `templateId`) | `POST …/envelopes` with `compositeTemplates` | E1 static. **That the draft carries both template roles as placeholder recipients with their tabs: run-unverified, `A-DS-14`** |
+| C2 | Find each signer's id | List recipients from an envelope | `GetRecipientStatus` | `accountId`, `envelopeId` | `GET …/recipients` | E1 static |
+| C3 | **Name, email, routing and own email, per role** — a `Foreach` over the signers, then a `Switch` on `roleName` | Update recipient on an envelope | `UpdateEnvelopeRecipient` | `recipientId`, `recipientType: signers`, `routingOrder`, `additionalRecipientParams/name` and `/email`, `emailNotificationSubject`, `emailNotificationBody`, `emailNotificationLanguage` | `PUT …/recipients` (draft) with `emailNotification` | E1 static; language literal run-unverified |
+| C4 | **Referee access code** (`ADR-068` item 4) | Add verification type to a recipient | `AddVerificationToRecipient` | `recipientId`, `recipientType: signers`, `verificationType: Access Code`, `additionalRecipientData/accessCode` | `PUT …/recipients` with `signers[].accessCode` | E1 static. That the account's access-code format accepts 6 digits: run-unverified, `A-DS-17` |
+| C5 | Find the document id | List documents from a template | `ListTemplateDocuments` | `accountId`, `templateId` | `GET …/templates/{templateId}/documents` | E1 static. That the template's document id equals the envelope's is E3 |
+| C6 | Read the tabs | Get document tabs from envelope | `GetEnvelopeDocumentTabs` | `accountId`, `envelopeId`, `documentId` | `GET …/documents/{documentId}/tabs` | E1 static |
+| C7-A | **Option A (reviewer's choice): fill every tab in one call** | Update envelope prefill tabs | `UpdateEnvelopePrefillTabs` | `accountId`, `envelopeId`, `documentId`, `body` = one array of all prefill **and** recipient tabs | `PUT …/documents/{documentId}/tabs` | E1 static. **That it updates recipient tabs: unmeasured, settled by the first run (`A-DS-16`)** |
+| C7-B | **Option B: separate calls** | Update envelope prefill tabs + Update recipient tab values on an envelope | `UpdateEnvelopePrefillTabs` (prefill array) + `UpdateRecipientTabsValues` (one array per signer, by `recipientId`) | as C7-A; plus `recipientId` | `PUT …/documents/{id}/tabs` + `PUT …/recipients/{id}/tabs` | E1 static |
+| C8 | **Check every value landed** | Get document tabs from envelope | `GetEnvelopeDocumentTabs` | as C6 | as C6 | E1 static |
+| C9 | Reminders, before the send | Add reminders for an envelope | `AddReminders` | `envelopeId`, `reminderEnabled`, `reminderDelay`, `reminderFrequency` | `PUT …/notification` | E2; accepted on a draft: run-unverified |
+| C10 | **Send** | Send envelope | `SendDraftEnvelope` | `accountId`, `envelopeId` | `PUT …/envelopes/{id}` `{"status":"sent"}` | E1 static |
+
+**Option A or B.** Build **A**, the reviewer's choice. C8 re-reads every tab after the update and compares each
+expected `tabId`'s value with the value sent. If the first run shows A leaves recipient tabs unchanged, the
+re-read fails and the flow alerts and stops. A cannot fail silently. Development-agent then switches C7 to **B**.
+The choice is one action. The tab-identification step before it is the same either way.
+
+**Does a filled field keep its template "Required" flag? (WI-0108)** Yes, on the documentation; not yet observed.
+Both update actions send `tabType`, `tabId` and `value` only (E1, v2c), so neither can set Required. DocuSign's
+tab update changes only the properties sent (E2), so the template's `required` and `locked` stay. **Required is
+set on the template and nowhere else**, which is `ADR-068` item 1 unchanged. One caveat: updating a tab whose
+template *Restrict changes* (`templateLocked`) is on is an error (E2). C7 would then fail, and the flow alerts
+and stops.
+
+**The reassignment lock: no connector action can set it.** `allowReassign` is an envelope and template property,
+and `allowSignerReassign` is an account setting (E2). DocuSign has no per-recipient equivalent, and none of the
+connector's actions exposes either. It stays a template or account setting (`ADR-068` item 2).
+
+**Design requirements the reviewer's test flow does not carry yet.** None of these changes `TEST_Docusign`;
+they bind the solution flow.
+
+1. **The referee's `routingOrder` is `2`.** v2c sets `1` on both roles, which would make them sign in
+   parallel. FR-042 requires applicant first, then referee.
+2. **Values come from the grant, as in rev 14**: amount = `rev_grant.rev_amountawarded` formatted `N2`, not
+   the application's amount requested. Dates = the grant's holiday start and end formatted `d MMMM yyyy`. The
+   name is as rev 14 composes it.
+3. **Do not set `UpdateEnvelopeRecipient`'s `phoneNumber` on the referee.** v2c sets it. The connector reference
+   labels it *"SMS Phone Number — Signer email or SMS phone required"*: a **delivery channel** for the signing
+   notification, not a contact field (E2). It is not needed for the access code. It would send the link by text,
+   possibly as a charged add-on, and re-open the UK-delivery question (`NFR-009`) that the access code closed.
+4. **Identify tabs by `tabLabel` where the template sets a Data Label, else by the placeholder value.** v2c keys
+   the five prefill tabs on their placeholder `value` (*Name*, *Amount*, *Holiday type*, *Holiday destination*,
+   *Dates*). That works, but any edit to a placeholder text in DocuSign silently stops the match. C8's
+   completeness check is what catches it. Expected set: five prefill tabs, plus the referee's `n2`, `e2`,
+   `ph2`.
+5. **Settings rows, not literals**, for both subjects and bodies (`ADR-068` item 3).
+6. **`secureData`** on C2–C4, C6–C8 and any `Select` that builds the tab array: they carry names, emails and the
+   access code. Variable actions cannot carry the setting, so the array is best built with `Select`.
+7. **Find the document by a stable key, not the file name.** v2c filters on the name `Grant Acceptance Form.docx`.
+   Use `ListEnvelopeDocuments` on the envelope, or the template's only document. If no document matches, the
+   flow alerts and stops.
+
+**Rejected.** *`SendEnvelopeWithRecipientFields`* as the create step — it cannot fill prefill tabs or set a
+per-recipient email (reviewer, T1). *`AddRecipientToEnvelopeV2`* to bind a role — it adds a recipient.
+`UpdateEnvelopeRecipient` on the placeholder's id fills the role instead. *`SendEnvelope`* — superseded by
+`CompositeTemplates`, whose draft status is E1. *A raw HTTP call* — unchanged reason (`C-TECH-002`).
+
+**Consequences**, in the action list's order:
+
+1. **C1:** a draft emails nobody. A failure after it leaves an **orphaned draft**, and the alert carries its
+   envelope id (risk `A-R74`).
+2. **C2–C3:** signers are bound by role name to their template placeholders. Each gets their own email, and the
+   referee signs second.
+3. **C4:** the forwarded-email case Emily tested is closed for anyone who does not know the referee's number
+   (`ADR-068` item 4).
+4. **C5–C6:** one read of the document's tabs serves both options.
+5. **C7:** about 12 calls per envelope under A, about 13 under B (risk `A-R76` eases further).
+6. **C8:** a renamed placeholder, or an option-A update that is silently ignored, stops the flow before sending.
+7. **C9–C10:** reminders are set before anyone is emailed, and `rev_status` moves to 2 only after the send.
+
+**Gate interactions** (from `config/revitalise-grant-automation-build.yml`'s `steps:` that name this
+solution's source):
+
+| Gate | Tripped? |
+|---|---|
+| `verify-source-parses.py` | No — parse only |
+| `verify-solution-root-components.py`, `verify-guid-syntax.py` | No — no new component, no new id |
+| `verify-flow-definition-language.py` checks 1–7 | Not expected. Every function and action type used is already used in this solution's flows — `Query` (8 flows), `Foreach` (3), `Switch` (3), `item()` (8), `length` (5), `replace` (2), `substring` (3), `sub` (4), `variables` (8) — **except `AppendToArrayVariable`, used by no flow here**. Run the gate on the first build, or build the arrays with `Select` instead. Check 5 is met by the alert-then-`Terminate` shape `REV \| Portal \| Round Statistics` already passes |
+| Pester `AcceptanceEnvelopeContract.Tests.ps1` | **Yes, by design.** It names `Create_and_send_the_envelope` throughout. One test asserts *"no Apply-to-each/Foreach exists anywhere in this flow"* — a check about the 2026-09-25 diagnosis, not a design rule. `development-agent` rewrites these against the new action names. The secured-closure test (every action reading a personal column or a secured output is secured) keeps its meaning and must pass unchanged in kind |
+| `assumption-register`, `assumption-markers`, `assumption-id-collisions` | Yes, as intended — `A-DS-14`–`A-DS-18` need register rows and source markers |
+
+### ADR-068: Only the named referee can sign — required fields, no reassignment, own message, and an access code
+**Status:** `Proposed` (rev 15). Items 1–4 are within `wbs:3.1,3.2,3.5`. **Item 4 was decided by the reviewer on
+2026-10-02 (access code), replacing the earlier phone-authentication recommendation.** · **Date:** 2026-10-02
+
+**Context.** Emily Sheardown's test feedback, 2026-10-02: *"the referee didn't have many of their fields
+completed despite it being mandatory. I tested it myself and I was also able to complete it without filling in
+the fields - this is the same for the applicant too"*; and a referee email sent to a Revitalise mailbox,
+forwarded to another address, *"I was able to sign it and it marked me as the original referee"*. Her concern:
+*"anyone could complete it and we would therefore need to add further verification"*. Both are live
+behaviour observed in DocuSign (E1 for what happened; the cause of the first is not yet measured).
+
+**Ground truth** (sources as `ADR-067`, plus DocuSign Community answers by DocuSign staff, which are E3):
+
+| Fact | Level |
+|---|---|
+| A tab's `required` flag is a property of the tab. The connector's fill action (`UpdateRecipientTabsValues`) cannot set it, and the connector's `Tab` read shape does not return it. **The template is the only place this flow can rely on it** | E2 |
+| The emailed signing link opens that recipient's signing session for whoever clicks it, unless the recipient must authenticate | E1 (Emily's test) + E3 |
+| `allowReassign` exists on the envelope and on the template. The account has `allowSignerReassign` (admin-only) and `allowSignerReassignOverride`. In the DocuSign web app this is *"Allow recipients to change signing responsibility"* | E2 (REST spec), E3 (UI wording) |
+| **No connector action exposes `allowReassign`** | E2, whole list (only the undocumented dynamic `body` of `CreateBlankEnvelopeV2`/`CompositeTemplates` could, and neither is used) |
+| A recipient can have its own email subject and body (`emailNotification`). A language must be given with it. Recipients without one get the envelope's subject and body. Subject maximum 100 characters | E2 (REST spec) |
+| The connector exposes it as `emailNotificationSubject`, `emailNotificationBody`, `emailNotificationLanguage` on `UpdateEnvelopeRecipient` and `AddRecipientToEnvelopeV2` | E2; live shape `A-DS-16` |
+| Authentication methods: **access code** (sender sets it; DocuSign never sends it); **phone authentication** (DocuSign sends a one-time code by text or voice call to a number the sender supplies; the sender can forbid the recipient choosing another number); **ID Verification** (government ID document check); **ID Check / knowledge-based** (questions from US public records) | E2 (REST spec: `accessCode`, `phoneAuthentication.senderProvidedNumbers`, `recipMayProvideNumber`, `identityVerification`) |
+| Knowledge-based ID Check is for US recipients only | E3 |
+| The connector's `AddVerificationToRecipient` (recipientId, recipientType, `verificationType`, dynamic `additionalRecipientData`) applies one. Its allowed values and phone shape are dynamic | E2; `A-DS-17` |
+| Phone numbers are given as digits only, without the country code, with the country code separately (UK `44`) | E2 (REST spec, `recipientIdentityPhoneNumber`) |
+| The access code is free on this account | **Reviewer's statement, 2026-10-02** (*"The access code solution is free"*) — not read from a price list or contract |
+| `AddVerificationToRecipient` with `verificationType: "Access Code"` and `additionalRecipientData/accessCode` | E1 (designer-saved, `TEST_Docusign` v2c) |
+| An access code must conform to the account's access-code format setting, maximum 50 characters | E2 (REST spec, `signer.accessCode`) |
+
+**Why both signers could finish with fields empty.** Most likely the template's fields are not marked
+Required (H1). Nothing in the flow could have made them optional or required. The fields Emily left empty are
+the ones the flow never fills. A role-name mismatch (H2) would instead have given a signer *no* template
+fields at all, and she saw them. H1 is measured by opening the template in DocuSign and checking each field's
+*Required* box (§12.5, M4). This is a template finding (`wbs:3.1`), not a flow defect.
+
+**Decision**, four items:
+
+1. **Required fields live on the template.** Every signer-entered field on both roles is marked Required —
+   for the referee `t2`, `j2`, `o2`, `a2`, `c2`, `pc2`, and the pre-filled `n2`, `e2`, `ph2` so they cannot be
+   blanked. The applicant's equivalents likewise. The flow sets values only. **Owner:** the reviewer, who built
+   the template (`EX-006`), with Emily.
+2. **"Assign to someone else" is switched off** in DocuSign, not in the flow: at **account** level (Admin →
+   Signing Settings, *Allow recipients to change signing responsibility* off) if every envelope this account
+   sends should behave so, otherwise on the **template**. No flow action — the connector cannot set it.
+3. **Each signer gets their own email.** Two new `rev_setting` rows, `AcceptanceEmailApplicant` and
+   `AcceptanceEmailReferee`, data type `JSON`, `{"subject": "...", "body": "..."}`, read by the flow and applied with
+   `UpdateEnvelopeRecipient`, language `en`. The subject may carry the grant reference (`ADR-013`), and must stay
+   within 100 characters. **If either row is absent, the flow alerts and stops before creating the draft**, the
+   precedent of the scoring flow's missing-setting check. The process owner sees *"seed settings"*; no envelope
+   goes out. Not falling back is deliberate: the fallback is the applicant's wording, which tells the referee
+   *"A referee or GP signature follows yours"*. Wording is Emily's to supply.
+4. **Decided by the reviewer: an access code on the referee, derived from the referee's phone number.** In the
+   reviewer's words: *"The access code solution is free. I have configured the last 6 numbers of the phone
+   number. Those are unique to the person opening the envelope. That will be added to the mail body in the
+   settings table."*
+   - The referee must enter the last six digits of `rev_refereephone` before the document opens.
+   - The referee's email body, held in the `AcceptanceEmailReferee` settings row, tells them **the rule**:
+     *"Open the agreement with the last 6 numbers of your phone number"*.
+   - Applied with C4 (`ADR-067`).
+
+   **Design requirements (they do not change the reviewer's flow; they bind the solution flow):**
+   - **Normalise first.** Remove every non-digit character (spaces, `+`, `-`, `(`, `)`, `.`, `/`), then take the
+     last six digits. v2c takes the last six *characters* of the raw value, so `07700 900 12` would give
+     ` 900 12`, spaces included.
+   - **A missing number, or one with fewer than six digits after normalising, means alert and stop.** It is
+     §5.8–5.10 step 1's check. Nobody is emailed, and the grant stays at Awarded. Without this check the
+     `substring` call fails on a short value with an unhelpful error.
+   - **The digits never appear in any email, alert or log.** The body states only the rule. C4 carries
+     `secureData`, because the code is derived from personal data.
+   - **The referee's `phoneNumber` is not set** (`ADR-067` design requirement 3), because that parameter is
+     an SMS delivery channel.
+
+   Applying the same to the applicant from `rev_applicant.rev_phone` is a reviewer option, not part of this
+   decision.
+
+**Rejected for item 4.**
+- *Phone authentication* — rev 15's earlier recommendation. It is superseded by the reviewer's decision. It
+  sends a one-time code by text or call, which proves the referee holds the phone rather than merely knows the
+  number. But its cost and its UK delivery (`NFR-009`) were both unverified. The access code is free (reviewer)
+  and needs no delivery channel.
+- *An access code delivered separately* — a code sent by email, by the applicant or by phone call. Deriving it
+  from a number the referee already knows removes the delivery problem.
+- *ID Verification* — per-use cost, and biometric processing of a third party.
+- *Knowledge-based ID Check* — US records only.
+
+**Consequences**, in the Decision's order:
+
+1. A signer cannot select *Finish* while a required field is empty. Pre-filled required fields count as
+   completed. No flow or schema change.
+2. The referee's *Other Actions* menu no longer offers *Assign to someone else*. At account level this binds
+   every envelope the account sends, which is why it is a reviewer choice.
+3. The applicant and the referee each receive wording written for them. Adds two settings rows to seed per
+   environment (`provisioning/dataverse/seed-settings.ps1`, existing mechanism).
+4. A forwarded referee email no longer opens for someone who does not know the referee's phone number. That
+   is Emily's tested case. DocuSign's certificate of completion records the access-code authentication (E3).
+   **What it does not do, stated plainly:**
+   - **It proves knowledge of a number, not possession of it.** Anyone who knows the referee's number can
+     open the document.
+   - **That includes the applicant**, who supplied the number. An applicant can still sign as their referee, or
+     invent one (risk `A-R77`, unchanged).
+   - **It is weaker when the number is public.** If the referee gave an organisation's published number, such
+     as a GP practice switchboard, the last six digits are public knowledge (risk `A-R78`, replacing the old
+     UK-delivery risk). Mitigation: the process owner prefers the referee's direct or mobile number.
+
+   Using the phone number this way sits within the stated basis, *"necessary to administer and verify the
+   application"* (SDD §7). DocuSign already receives it as tab `ph2`.
+
+**Scope.** All four items sit inside `wbs:3.2` and `wbs:3.5`. **No change-order decision is needed under
+`C-COM-002`**, which reads: *"No delivery work proceeds, and no hour is billed, against a WBS task id absent from
+the locked baseline, unless an approved change order in `contract/change-orders/` covers it."*
+- Both tasks are in the locked baseline. `wbs:3.5` reads *"Send test envelopes through full cycle (create, sign,
+  complete). Walkthrough with Emily. Process feedback and adjust"*, and this is Emily's walkthrough feedback.
+- `wbs:3.2` reads *"creates a DocuSign envelope from template with pre-populated fields"*, and the access code
+  is two parameters on an action in that envelope's own build.
+- The two reasons rev 15 gave for a referral no longer hold. The cost was a possible per-use licence, and the
+  reviewer now states the access code is free. The new requirement is a traceability gap, which belongs to
+  `plan-agent`, not `commercial-agent`.
+- **Recommended:** a plan-agent SDD amendment adding a requirement *"the referee must authenticate before
+  signing"*, so the control traces to a requirement.
+- Hours against the `wbs:3.2`/`3.5` estimates remain `commercial-agent`'s to report, as for any task.
+
+**It needs no intake or data-model change.** `rev_refereephone` already exists (`nvarchar(25)`, secured). It
+does depend on the process owner always entering it.
+
 ---
 
 ## 11. Risks & Mitigations
@@ -3096,9 +3650,18 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R65** **Label strings on routes the sample did not take are unverified** (rev 9): carer route care types, condition areas, helper details, income band, employment status, care-hours band, title variants other than `Mr.`, and gender self-describe. The map rows come from the 2026-09-11 live-form capture, which shows what the page renders, not what the plugin sends | Medium | Medium | `ADR-024` failure mode: the column is left empty and flagged, never mapped wrongly. `A-INT-06`: one test entry per route from Alex before TST/ACC. The maps are settings, so a correction is a re-seed, not a deploy |
 | **A-R66** **The sender may time out before the flow responds** (rev 9). The 201 is returned only after the Dataverse writes and the Teams post, and a WordPress HTTP call typically waits a few seconds | Medium | Low | Idempotency absorbs any resend (it returns the original reference and writes nothing). Confirm the timeout and retry behaviour with Alex (`ADR-011` confirmations 3–4). If they are short, moving the Response ahead of the notification is a later, separate decision, not part of rev 9 |
 | **A-R67** **Every intake answer, special-category ones included, is readable in 28 days of run history** (found in rev 9; existing since the flow was built). This payload adds an IP address and a user agent | High (until fixed) | Medium | `ADR-051` item 7: secure outputs on the trigger, and secure inputs/outputs on every action carrying applicant values. Open until `A-INT-01`/`A-INT-02` are verified at V3 in DEV |
-| **A-R68** **The intake client secret held in WordPress expires or leaks** (rev 10, `ADR-011` decision). On expiry every submission gets a 401 at the platform gate, before the flow runs. So nothing reaches `rev_errorlog` and no one is alerted, and the website holds the entry. A leak lets anyone call TST/ACC and PRD, because one registration serves both | Medium | High | A named rotation owner and a recorded expiry (C-TECH-044, ≤ 180 days); a certificate if Alex can use one. `ensure-intake-client.ps1` already reports the credential count. Proposed for development-agent: an expiry check in the `verify-entra.ps1` report, so an expiry within 30 days is visible before it lands. A leak is contained by the second gate only as far as the header, which is not a secret: the real containment is rotation |
+| **A-R68** ~~**The intake client secret held in WordPress expires or leaks**~~ **SUPERSEDED rev 14 by `A-R71`** — the client-credentials route is retired (`ADR-011` rev 14); the secret given to Alex is to be revoked. Original text kept: (rev 10, `ADR-011` decision). On expiry every submission gets a 401 at the platform gate, before the flow runs. So nothing reaches `rev_errorlog` and no one is alerted, and the website holds the entry. A leak lets anyone call TST/ACC and PRD, because one registration serves both | Medium | High | A named rotation owner and a recorded expiry (C-TECH-044, ≤ 180 days); a certificate if Alex can use one. `ensure-intake-client.ps1` already reports the credential count. Proposed for development-agent: an expiry check in the `verify-entra.ps1` report, so an expiry within 30 days is visible before it lands. A leak is contained by the second gate only as far as the header, which is not a secret: the real containment is rotation |
 | **A-R69** **A deliberate clear on a returning applicant's re-answer is indistinguishable from not answered** (rev 12, `ADR-054`). `Refresh_existing_applicant`'s coalesce keeps the stored value whenever the payload shape reads as "not answered" — which is also what an applicant sending a genuinely blank re-answer produces. The old value is kept when the applicant meant to remove it | Low (no observed applicant intent to clear a field has been reported) | Low | Named, not solved: no sentinel value is invented without reviewer sign-off, because the current form sends no signal that distinguishes the two cases. A website-side change (an explicit "clear this" affordance) would resolve it; out of this flow's control |
 | **A-R70** **Eleven columns widened to Memo's 1,048,576-character ceiling remove any length check on those fields** (rev 12, `ADR-053`). An adversarial or malfunctioning sender could post a very large body on any of them; nothing in this flow gates request size independently of Dataverse's own column ceiling | Low | Low | `runtimeConfiguration.secureData` (`ADR-051` item 7) already hides the body from run history regardless of size. No additional control is designed here — flagged for a future revision if evidence of abuse appears |
+| **A-R71** **The signed intake URL leaks** (rev 14, `ADR-011`). The URL, together with a header value that is not secret, is the whole trust boundary, and it has no forced expiry. Anyone holding it can create applications in that environment, and they look exactly like the website | Medium | High | Hash-only handling in the pipeline: the URL is never printed or logged (`ADR-011` intervention 4). Ask Alex where Gravity Forms stores and logs the webhook URL, and that backups and staging copies of the site are covered. Rotate by regenerating the trigger key and updating WordPress and the CI secret, but the rotation mechanism is unverified (`A-INT-14`). The flow's existing checks bound the damage: `Reject_incomplete_payload`, the `rev_sourcesubmissionid` idempotency key and human screening before any decision. Stronger options are in `ADR-011` rev 14 consequence 1 |
+| **A-R72** **An import or trigger change silently changes the intake URL** (rev 14). The website keeps posting to the old URL, no run starts, nothing reaches `rev_errorlog` and FR-010 does not alert. The website holds the entry | Medium | High | The pipeline compares the callback URL's SHA-256 before and after each import. If it changed, the deploy is reported `PARTIAL` with `REVIEWER ACTION REQUIRED: update the WordPress webhook URL and the CI secret` (`ADR-011` intervention 4, `A-INT-13`) |
+| **A-R73** **A designer save on a solution flow between deploys rewrites its live definition** (`IMP-1010`). Measured in DEV on 2026-10-02: one save emptied both nested `CreateRecord` actions, removed the trigger's secure outputs, renamed parameters and stripped `inputs.authentication`. The next run succeeded and wrote an empty application | High (if anyone opens the designer) | High | §5 write-shape rule (flat `item/<column>`). No designer saves on solution flows. `verify-live-flow-definitions.py --env dev` before any test run and before any build is put on top of DEV, not only after a deploy (`IMP-1010` proposed change 3) |
+| **A-R74** **A failed run leaves an orphaned DocuSign draft holding personal data** (rev 15, `ADR-067`). Any action after the draft is created (§5.8–5.10 steps 4–10) can fail; a draft cannot be voided, and the connector has no delete-draft action. A re-run makes a second draft | Medium | Low | The failure alert carries the draft's envelope id; the process owner deletes it in DocuSign. The retention helper's envelope purge (FR-049) is the backstop. Nobody outside Revitalise is ever emailed by a draft |
+| **A-R75** **The template differs between environments** (rev 15). Each environment's `rev_DocuSignAcceptanceTemplateId` names its own template. Required flags, tab labels and the reassignment setting are hand-configured in each | Medium | Medium | §12.5 T2 and M4 run per environment before activation. A label mismatch is caught at run time by `ADR-067` step 4 (alert, no send); a missing *Required* flag is not caught by anything in the flow |
+| **A-R76** **A large approved batch exceeds DocuSign's 250 calls per minute per connection** (rev 15). About 12 calls per envelope under option A (13 under B); around 20 grants finalised within one minute can exceed it | Low | Low | Every DocuSign action keeps the existing exponential retry (4). The `wbs:3.7` bulk test (five at once) measures it; a trigger concurrency limit is added only if that test shows failures |
+| **A-R77** **An applicant supplies their own contact details as the referee's** (rev 15, `ADR-068`). Every factor the system can check — email, phone — comes from the applicant, who therefore also knows the access code. The access code stops a forwarded email being opened by someone who does not know the number; it does not stop a fabricated referee | Low | High | A process control, not a system one: the process owner checks the referee's number is plausibly theirs before approving. Only ID Verification binds to a named real person, and it was rejected as disproportionate |
+| **A-R78** **The access code is guessable when the referee's number is public** (rev 15, `ADR-068` item 4; **replaces** the phone-authentication UK-delivery risk, which no longer applies because nothing is sent to the phone). The code is the last six digits of a number; an organisation's published number (a GP practice switchboard) makes it public knowledge | Medium | Medium | The process owner records the referee's direct or mobile number in preference to a switchboard. If a stronger factor is ever wanted, DocuSign phone authentication (one-time code to the phone) is the upgrade, with its cost and UK delivery to be confirmed first |
+| **A-R79** **The referee's phone is missing or has fewer than six digits, so no envelope goes out** (rev 15, `ADR-068` item 4). Nothing in Phase 1 writes `rev_refereephone`; the process owner types it | Medium | Low | Step 1 normalises it to digits and alerts and stops below six, naming the field. The grant stays at Awarded until it is corrected |
 
 ---
 
@@ -3127,8 +3690,9 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | Environment DLP connector policy (business / blocked groups per §6.4, **including Request/HTTP and Word Online**) | DLP policy | Power Platform Admin PowerShell | tenant, applied per-env | `APPROVE TENANT` |
 | AI Builder credit / capacity assignment to the PROD environment | Capacity allocation | Power Platform admin centre | per-env | `APPROVE TENANT` (SDD OQ-017) |
 | SharePoint site `/sites/grants` + "Signed Acceptances" document library; **Trustee role denied** | SPO site collection + library | `provisioning/sharepoint/` — PnP.PowerShell | tenant (site collection) | `APPROVE TENANT` |
-| **`rev-wordpress-intake` app registration + service principal + `Microsoft Flow Service` `User` permission and admin consent — NEW 2026-08-12, closes test-agent defect D-001 (C-TECH-006 HARD).** The OAuth client-credentials identity Alex's WordPress site presents to the intake endpoint. Two identifiers come out of it and they are **not interchangeable**: the application (client) id → the `rev_IntakeAllowedClientId` environment variable (the flow's *second* gate); the **service principal object id** → the trigger's Allowed users list (the *primary* gate). The permission exists so Entra will issue a token for `https://service.flow.microsoft.com//.default`; without it the endpoint is unreachable, not merely unauthenticated. ⚠ The caller's own certificate/secret is **deliberately outside this pipeline** — issued interactively and handed to Alex out of band, because a pipeline that mints a credential prints one (C-TECH-001). ⚠ ADR-011 remains **open**: this is the default implementation, not the settled channel | Entra app registration + SP + admin consent | `provisioning/entra/ensure-intake-client.ps1` (per settings file) + `grant-admin-consent.ps1` | tenant | `APPROVE TENANT` |
-| **Intake trigger authentication parameter on `REV \| Intake \| WordPress to Dataverse` — NEW 2026-08-12, the primary control D-001 found unassigned (NFR-008, C-TECH-006 HARD).** Set the trigger's *"Who can trigger the flow?"* parameter to **"Specific users in my tenant"** with **Allowed users = the `rev-wordpress-intake` service principal object id**. This is a **trigger setting, not a solution component** — Microsoft documents it at [`/power-automate/oauth-authentication`](https://learn.microsoft.com/en-us/power-automate/oauth-authentication) and publishes no workflow-definition property for it, so it cannot ship in the managed solution and cannot be asserted by reading the flow JSON. **Owner: Wanstor (tenant administration); value supplied by the maker from the `ensure-intake-client.ps1` output.** Apply it **before** the flow is turned on. ⚠ A blank Allowed users list silently means *any user in the tenant*; read the field back after saving. ⚠ Whether the setting survives a solution import is **unverified** (no environment exists), so it is configured **and** verified on every deployment rather than assumed | Power Automate trigger setting | Manual in the designer, then **verified** by `provisioning/entra/verify-intake-endpoint-auth.ps1` as a smoke test on TST/ACC and PRD | per-env | `post_deploy` + `smoke_tests` (C-TECH-006 `Verify By`) |
+| **Rev 14 (`ADR-011`): RETAINED only as the source of the `x-rev-client-id` header value; the token route is retired, and the client secret issued to Alex is to be revoked (reviewer/Wanstor). The "Allowed users" use below no longer applies.** `rev-wordpress-intake` app registration + service principal + `Microsoft Flow Service` `User` permission and admin consent — NEW 2026-08-12, closes test-agent defect D-001 (C-TECH-006 HARD).** The OAuth client-credentials identity Alex's WordPress site presents to the intake endpoint. Two identifiers come out of it and they are **not interchangeable**: the application (client) id → the `rev_IntakeAllowedClientId` environment variable (the flow's *second* gate); the **service principal object id** → the trigger's Allowed users list (the *primary* gate). The permission exists so Entra will issue a token for `https://service.flow.microsoft.com//.default`; without it the endpoint is unreachable, not merely unauthenticated. ⚠ The caller's own certificate/secret is **deliberately outside this pipeline** — issued interactively and handed to Alex out of band, because a pipeline that mints a credential prints one (C-TECH-001). ⚠ ADR-011 remains **open**: this is the default implementation, not the settled channel | Entra app registration + SP + admin consent | `provisioning/entra/ensure-intake-client.ps1` (per settings file) + `grant-admin-consent.ps1` | tenant | `APPROVE TENANT` |
+| ~~SUPERSEDED rev 14~~ **(`ADR-011`): the trigger mode is now *Anyone*, declared in source as `inputs.triggerAuthenticationType: "All"`, which was measured live in DEV on 2026-10-02. The claim below that no workflow-definition property exists is refuted. This `post_deploy` item is retired. `verify-intake-endpoint-auth.ps1` is rewritten to the two rejection probes in `ADR-011` rev 14 (gate interactions).** Intake trigger authentication parameter on `REV \| Intake \| WordPress to Dataverse` — NEW 2026-08-12, the primary control D-001 found unassigned (NFR-008, C-TECH-006 HARD).** Set the trigger's *"Who can trigger the flow?"* parameter to **"Specific users in my tenant"** with **Allowed users = the `rev-wordpress-intake` service principal object id**. This is a **trigger setting, not a solution component** — Microsoft documents it at [`/power-automate/oauth-authentication`](https://learn.microsoft.com/en-us/power-automate/oauth-authentication) and publishes no workflow-definition property for it, so it cannot ship in the managed solution and cannot be asserted by reading the flow JSON. **Owner: Wanstor (tenant administration); value supplied by the maker from the `ensure-intake-client.ps1` output.** Apply it **before** the flow is turned on. ⚠ A blank Allowed users list silently means *any user in the tenant*; read the field back after saving. ⚠ Whether the setting survives a solution import is **unverified** (no environment exists), so it is configured **and** verified on every deployment rather than assumed | Power Automate trigger setting | Manual in the designer, then **verified** by `provisioning/entra/verify-intake-endpoint-auth.ps1` as a smoke test on TST/ACC and PRD | per-env | `post_deploy` + `smoke_tests` (C-TECH-006 `Verify By`) |
+| **Intake callback URL — before/after import comparison (rev 14, `ADR-011` intervention 4, `A-INT-13`).** Before and after each import of the intake flow, read the trigger's callback URL and compare SHA-256 hashes. Never print, log or store the URL itself (C-TECH-001). In TST/ACC and PRD the "before" value is `INTAKE_ENDPOINT_URL_TEST` / `INTAKE_ENDPOINT_URL_PRD`; in DEV it is the live read taken just before the import. If they differ: `PARTIAL` + `REVIEWER ACTION REQUIRED: update the WordPress webhook URL and the CI secret`. No rollback. **Owner:** development-agent writes the step; pipeline-agent runs it. The API used to read the callback URL is part of `A-INT-13` | Pipeline step (read-only) | New step in `config/revitalise-grant-automation-pipeline.yml`, adjacent to `verify-intake-endpoint-auth.ps1` | per-env | `post_deploy` (reports, never halts) |
 | **Intake endpoint URL as a CI secret (`INTAKE_ENDPOINT_URL_TEST` / `_PRD`) — NEW 2026-08-12.** A Power Automate HTTP trigger URL carries its own SAS signature in `sig=`, so the URL **is** a credential (Microsoft documents regenerating it). Held as a per-environment CI secret, never as a value in a settings file (C-TECH-001/047); consumed only by the auth smoke test | CI secret | Manual, read once from the trigger card | per-env | `post_deploy` |
 | Azure Key Vault + secret-type environment variable for the intake secret — **OUT-OF-PALETTE; only if ADR-011 keeps the webhook** | Azure resource | Manual | tenant | `APPROVE TENANT` — reviewer decision first (§6.3) |
 | Purview **basic** retention labels on the Application table and the signed-PDF library — **OUT-OF-PALETTE** | Purview configuration | Manual, Purview portal | tenant | `APPROVE TENANT` (ADR-005) |
@@ -3143,8 +3707,10 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | Environment variable values + connection reference bindings | Deployment settings | **CHANGED 2026-08-12 (ADR-007): supplied in the Power Platform Pipelines deployment pane, which validates them before the import. Pipelines does not accept a `--settings-file`.** `provisioning/deploymentSettings/pac-import-tstacc.json` and `pac-import-prd.json` are retained as the reviewed record of the values to enter — C-TECH-047 stays satisfied, but its enforcement moves from a tool to a human reading a code-reviewed file | per-env | During promotion (was `post_deploy`) |
 | `rev_setting` seed rows — thresholds, Likert map, income ceiling, redaction threshold, reminder/escalation days | Reference data | `provisioning/dataverse/` — idempotent upsert | per-env | `post_deploy` — ⚠️ values await SDD OQ-001, OQ-002, OQ-003, OQ-011 |
 | **Rev 9/10 — twelve new intake label-map rows** (`OtherFundingStatusLabelMap` added in rev 10, `TitleLabelMap`, `ApplicantTypeLabelMap`, `GenderLabelMap`, `EthnicGroupLabelMap`, `LikertResponseLabelMap`, `AgreementResponseLabelMap`, `BreakTypeLabelMap`, `IncomeBandLabelMap`, `HearAboutUsLabelMap`, `ConditionProfileLabelMap`, `CareProvidedTypeLabelMap`), **plus one alias entry in the existing `ExceptionalCircumstanceLabelMap`**. Values in Appendix C §C.4. `wbs:4.3` | Reference data | `provisioning/deploymentSettings/{dev,test,prd}-*-settings.json` → the existing idempotent upsert | per-env | `post_deploy`. **Must land before, or with, the flow version that reads them**, or the intake's row-count guard (now 18) stops every submission |
+| **Rev 15 — two acceptance email rows, `AcceptanceEmailApplicant` and `AcceptanceEmailReferee`** (`JSON`, `{subject, body}`, subject ≤ 100 characters; `ADR-068` item 3). Wording supplied by Emily. Absent row → the flow alerts and sends nothing. `wbs:3.2` | Reference data | `provisioning/dataverse/seed-settings.ps1` — idempotent upsert, existing mechanism | per-env | `post_deploy`, before activation |
+| ~~**Rev 15 — phone authentication available on the DocuSign account**~~ **Superseded the same day: `ADR-068` item 4 is an access code**, free per the reviewer, with no delivery channel to confirm. Remaining per-environment check: the account's access-code format accepts six digits (§12.5 R5) | External SaaS | Manual — Revitalise's DocuSign administrator | external | Reviewer, before activation |
 | **Rev 9 — one WordPress instance per intake endpoint.** The live site posts only to PRD. Any staging or test site posts only to DEV or TST/ACC, never crossed (§4.1, risk A-R63). `wbs:4.1` | Operating rule | Manual — recorded with Alex | external, per-env | Reviewer, before PRD go-live |
-| **DocuSign**: account, acceptance template replicating the Canva form, UK residency, envelope purge aligned to the retention schedule | External SaaS | Manual — Revitalise procures | external | Reviewer / before Automation #3 go-live |
+| **DocuSign**: account, acceptance template replicating the Canva form, UK residency, envelope purge aligned to the retention schedule. **Rev 15 (`ADR-068` items 1–2), per environment's template: every signer-entered field and `n2`/`e2`/`ph2` marked Required; tab labels equal to the anchor names the flow fills, or reported (§12.5 T2); *Allow recipients to change signing responsibility* off (account or template). `wbs:3.1`** | External SaaS | Manual — Revitalise procures | external | Reviewer / before Automation #3 go-live |
 | **QuickBooks Online**: read-only OAuth connection; confirm edition and that payments carry a searchable applicant identifier | External SaaS | Manual | external | Reviewer (SDD OQ-015) |
 | **WordPress / Gravity Forms**: **rev 9 — supplies its native entry payload (`ADR-051`, Appendix C); the seven `ADR-011` confirmations are Alex's to answer.** Form built to the field-by-field specification (incl. WCAG + reading-age acceptance criteria), webhook or REST credential issued | External, **OUT-OF-PALETTE** | Alex, website designer | external | Reviewer (SDD OQ-014, ADR-020) |
 | Licences: Power Apps Premium ×2 (maker/service + Emily), Power Apps pay-as-you-go (trustees), Power Automate Premium (service account) | Licensing | Manual — Revitalise procures | tenant | Reviewer (SDD OQ-017, OQ-025) |
@@ -3215,6 +3781,11 @@ each into Dev Summary §10 and marks it at the point of use in source.
 | `A-INT-05` | The map-filter multi-select shape (`ADR-051` item 4) yields the de-duplicated comma-separated option list the Dataverse connector writes to a multi-select column | **E4** composition of pieces used elsewhere in this flow (Query + `item()` over a settings map; `contains` on an array; `join`). `union(x,x)` de-duplication: one existing use, of a different shape | DEV run with `how_did_you_hear_about_us` set to two labels plus one unknown label. Expect `rev_hearaboutus` = two options and a note naming the unknown one |
 | `A-INT-06` | The label strings in Appendix C §C.4 for **routes the sample left empty** are what the website sends | **E3** — the 2026-09-11 live-form capture (rendered page), not a payload. Only `are_you`, `age_range`, the ten wellbeing answers, `type_of_break`, `exceptional_circumstance`, `gender`, `ethnic_group`, `preferred_contact_method`, `name_title` (`Mr.` only) and two hear-about-us labels are E1 from the sample | Alex posts one test entry per route (disabled person with helper, carer on behalf, carer for self, every multi-select ticked, every income/employment/care-hours option across the set). Re-seed any map row that did not match. **Before TST/ACC** |
 | `A-INT-07` | ~~The website sends every key on every submission~~ **Withdrawn as a dependency in rev 10.** The covering note says unseen questions are *currently* sent as `""`/`[]`/`false`, and asks whether to omit or null them. `ADR-051` item 11 treats all of these as *not answered*, and item 5 checks only always-shown keys (§C.1a) | E2 (sender's note) + E1 (one sample) | The route payloads (`A-INT-06`) confirm §C.1a: every key in it is present on every route |
+| `A-INT-11` *(rev 14)* | `"triggerAuthenticationType": "All"` declared in the source of the `manual` Request trigger's `inputs` is accepted by solution import and leaves the trigger in *Anyone* mode in DEV, TST/ACC and PRD | **E1 for the property's name, location and value**: the live DEV definition, written by the platform's own designer on 2026-10-02. **None** for import honouring it — zero uses in source (grepped) | DEV import, then `verify-live-flow-definitions.py --env dev` reports 0 differences, and the designer's *Who can trigger the flow?* shows *Anyone* (read only, no save) |
+| `A-INT-12` *(rev 14)* | With *Anyone*, a POST whose `sig` is missing or wrong is rejected by the platform with 401/403 **before a run is created** | **E3** — Logic Apps/Power Automate SAS behaviour as generally documented. Not measured on this flow | The rewritten `verify-intake-endpoint-auth.ps1`: strip the `sig`, POST, expect 401/403, and confirm the run list gained no entry. Then POST with the `sig` and no header: expect 401 and one *Cancelled* run |
+| `A-INT-13` *(rev 14)* | (a) Whether an upgrade import into the **same** environment preserves the callback URL, and what changes it. (b) Which API returns the callback URL so the pipeline can hash it | **None** — the reviewer's brief states that an import *may* change it. No measurement exists | Hash the live URL before and after the next DEV import (`ADR-011` intervention 4). Repeat on the first TST/ACC import. Record which API was used |
+| `A-INT-14` *(rev 14)* | The signed URL can be rotated (the trigger key regenerated) without replacing the trigger or the flow, after which the old URL gets 401/403 | **None** — `ADR-011` assumes it. Power Automate's mechanism is not established here | DEV: perform the rotation, then confirm the old URL is rejected and the new one is accepted. Until that is done, `A-R71`'s rotation step is unproven |
+| `A-INT-15` *(rev 14)* | The flat key the designer writes for a `CreateRecord` lookup bind (expected to be of the form `item/<navigation property>@odata.bind`, with a `/<entityset>(<guid>)` value) — the exact case and spelling for `rev_application` → Applicant | **None** — zero flat `@odata.bind` keys in this solution (grepped 2026-10-02). The nested form `rev_applicantid@odata.bind` works at runtime | DEV: in a throwaway flow **outside** the solution (C-TECH-056, created and removed with both recorded), bind the Applicant lookup in *Add a new row* through the designer, save, and read the key from the definition. Copy it exactly into `Create_application` |
 
 ### 12.4 Environment Prerequisites — the rev 10 intake schema (`wbs:4.3`)
 
@@ -3251,6 +3822,39 @@ this flow, so their first import creates all eleven directly as `Memo`, no delet
 | 7. Final import | build-agent / pipeline-agent | `config/revitalise-grant-automation-build.yml` / `-pipeline.yml` as normal |
 | 8. Independent verification by direct Web API query: `AttributeType`, `MaxLength`, `IsSecured` per column | development-agent | Not satisfied by the import's own exit code (2026-08-16 precedent) |
 
+
+### 12.5 Platform Contract Verification Plan — Create Envelope rev 15 (`wbs:3.1,3.2`)
+
+Three operation ids are now E1 from the reviewer's DEV flow `TEST_Docusign` (`ADR-067`). Its dynamic fields
+are not, and no run has been observed. R1–R6 use **that flow as a measurement harness only** — not as a draft of the design — so the lead can
+re-read it after each save. All of it happens before `development-agent` authors the new actions. **Test identities
+only** — no real applicant or referee data, and no env-specific DocuSign ids copied into solution source
+(`C-TECH-047`). `TEST_Docusign` uses designer-only connection authentication (`runtimeSource: invoker`);
+none of its action shapes is copied into solution source verbatim.
+
+| # | Measurement | Closes | How | By |
+|---|---|---|---|---|
+| T1 | **Done 2026-10-02 (reviewer, designer).** `SendEnvelopeWithRecipientFields` fills recipient tabs only; superseded by `CompositeTemplates` (`ADR-067`) | — | Recorded | Reviewer |
+| R1 | **First run — the draft and its roles.** After C1–C2: is the envelope in **Drafts**, and does `GetRecipientStatus` return exactly two signers named `Grant Acceptor` and `Grant Referee`, each with the template's tabs? After C3: the same two, now with names, emails and routing orders 1 and 2 — not four signers | `A-DS-14` | The run's outputs | Reviewer runs; lead reads the run history |
+| R2 | **Option A or B.** After C7-A, does C8's re-read show the referee's `n2`, `e2`, `ph2` with the values sent, as well as the five prefill tabs? If not, switch to B and re-run | `A-DS-16` | C8's re-read | Reviewer |
+| R3 | **The `tabType` string.** Which value does each update action accept: the GET's own `tabType` passed through, or the designer's `Text`? Also record the checkbox literal from the designer's `tabType` list, for any checkbox tab added later | `A-DS-16` | Run with the GET value passed through. If refused, map it to the designer's literal | Reviewer |
+| R4 | **Tab identification.** Record each tab's `tabLabel` next to its placeholder `value`. If labels are set, the flow keys on them | `A-DS-15` | The C6 output | Reviewer |
+| R5 | **The access code.** Run with a test referee whose phone is entered with spaces and a `+44` prefix. Is the code taken from the digits only, and does DocuSign accept a six-digit code under the account's format setting? Forward the test email and open the link: it must ask for the code. Then try a test referee with a five-digit phone: the flow must alert and stop | `A-DS-17`, `ADR-068` item 4 | One sent test envelope to test mailboxes, then void it | Reviewer |
+| R6 | **Email and reminders.** Each test mailbox gets its own subject and body, and the language string `English UK (en_GB)` is accepted. C9 is accepted on the draft and holds after C10 | `A-DS-16` | The same R5 envelope | Reviewer |
+| M4 | Open the template in DocuSign: each field's *Required* box and *Data Label*; the reassignment option in the template's advanced options and in Admin → Signing Settings | H1 (`ADR-068`); `A-DS-18` | Reading the template, per environment | Reviewer with Emily |
+| M5 | ~~Phone authentication values and a test code to a phone~~ **Superseded: `ADR-068` item 4 is an access code, measured by R5** | — | — | — |
+| M6 | After M4 is fixed: send one test envelope to a test referee mailbox, forward it, open the forwarded link | `ADR-068` items 2 and 4 | The forwarded link must ask for the phone code (if item 4) and must not offer *Assign to someone else* | Emily (`wbs:3.5`) |
+
+**New open markers** (register rows to be added to Dev Summary §10 by `development-agent`, next free ids
+checked across both documents on 2026-10-02):
+
+| ID | Unverified contract | Closed by |
+|---|---|---|
+| `A-DS-14` | `CompositeTemplates` with `status: Created` produces a draft carrying both template roles as placeholder signers with their tabs; `UpdateEnvelopeRecipient` fills those placeholders rather than adding signers; `SendDraftEnvelope` sends the draft unchanged | R1, R5 |
+| `A-DS-15` | How each tab is identified (Data Label or only its placeholder `value`); which tabs are prefill and which recipient; that the template's document id is the envelope's | R4, R1 |
+| `A-DS-16` | `UpdateEnvelopePrefillTabs` updates recipient tabs when given them (option A), else option B; which `tabType` string each update accepts, and the checkbox literal; the language string `English UK (en_GB)` is accepted; `AddReminders` works on a draft | R2, R3, R6 |
+| `A-DS-17` | A six-digit access code conforms to the account's access-code format setting, and the signing link requires it | R5 |
+| `A-DS-18` | An envelope created from a template whose reassignment option is off inherits it, when the account setting is left on | M4, M6 |
 ---
 
 ## Appendix A — Requirement Traceability (SDD → TAD)
@@ -3459,7 +4063,7 @@ its `pending_adjudication:` block (identifying, secured); `—` = neither.
 | `accommodation_or_activity_cost` | `"345"` | `accommodation_cost` | `rev_application.rev_accommodationcost` | MONEY | — | |
 | `travel_costs` | `"345"` | `travel_cost` | `rev_application.rev_travelcost` | MONEY | — | |
 | `other_costs` | `"55"` | `other_cost` | `rev_application.rev_othercost` | MONEY | — | |
-| `total_estimated_cost` | `"745"` | — | **NOT TRANSFERRED** — form-calculated, not applicant-entered (§C.6). `rev_costs` is calculated on our side | — | — | Rev 9's comparison against the sum is withdrawn |
+| `total_estimated_cost` | `"745"` | — | **NOT TRANSFERRED** — form-calculated, not applicant-entered (§C.6). `rev_costs` is a plain column WRITTEN by the intake flow (sum of the present accommodation/travel/other costs; null when all three are null, ADR-039). Remove that write in the same change if the column is ever converted to calculated | — | — | Rev 9's comparison against the sum is withdrawn |
 | `amount_requesting_from_revitalise` | `"545"` | `amount_requested` | `rev_application.rev_amountrequested` | MONEY | — | |
 | `are_you_receiving_funding_from_any_other_sources_for_this_break` | `"Yes"` | `other_funding_status` (**new**) + `receiving_other_funding` | `rev_application.rev_otherfundingstatus` (**new**, §C.8) — MAP `OtherFundingStatusLabelMap`; **and** `rev_receivingotherfunding` — Yes → true, No → false, awaiting → null | MAP + YESNO | — | All three answers are now stored (closes spec M-08 on the data side) |
 | `please_specify_source_of_additional_funding` | `"Test"` | `other_funding_source` | `rev_application.rev_otherfundingsource` | TEXT | — | |
@@ -3755,3 +4359,10 @@ resolves: the retype mechanism, the two missing C.10 rows, the removed length gu
 derived-output coalesce. Rev 13 corrects `ADR-053` points 3–4 and `ADR-054`'s Decision in place — same
 two ADRs, same WBS tasks (`4.2`, `4.3`), no new column, no `IsSecured` change beyond what rev 12 already
 approved. Presented for review below; not yet approved.
+
+**Rev 14 — status at this gate: awaiting reviewer response.** This revision records the reviewer's
+2026-10-02 decision on the intake endpoint's trust (`ADR-011`, re-decided: signed callback URL *Anyone*
+plus the `x-rev-client-id` header check). It confirms that the trigger's secure outputs stay on, and adds
+§5's Dataverse write-shape rule (`IMP-1010`). New risks `A-R71`–`A-R73`; `A-R68` is superseded. New
+verification rows `A-INT-11`–`A-INT-15`. `wbs:4.2`, `4.3`. Presented for review; not yet approved.
+

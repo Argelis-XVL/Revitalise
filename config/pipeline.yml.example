@@ -169,6 +169,8 @@ environments:
       - description: >
           (c) V4 — a named person opens every flow, app and editable component in the
           designer and SAVES it. Record who, when, and any component that would not save.
+          Then re-read live (IMP-1020) — `python3 scripts/verify-live-flow-definitions.py --env <env>` —
+          and re-import from source on any difference: a designer save rewrites the definition.
         script: manual
         owner: <name — this step has an owner, not just a checkbox>
 

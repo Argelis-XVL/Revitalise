@@ -303,6 +303,78 @@
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
       <FieldPermission>
+        <!-- Referee contact detail (added 2026-10-04, personal data per the 2026-09-30 ruling). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_refereefirstname</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail (added 2026-10-04, personal data per the 2026-09-30 ruling). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_refereelastname</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail (added 2026-10-03, personal data per the 2026-09-30 ruling). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_refereetitle</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail (added 2026-10-03, personal data per the 2026-09-30 ruling). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_refereejobtitle</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail (added 2026-10-03, personal data per the 2026-09-30 ruling). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_refereecompany</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail (added 2026-10-03, personal data per the 2026-09-30 ruling). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_refereeaddress</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail (added 2026-10-03, personal data per the 2026-09-30 ruling). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_refereetowncity</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail (added 2026-10-03, personal data per the 2026-09-30 ruling). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_refereepostcode</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
         <!-- Identity of a third party captured with the application. Named in FR-051 as data an erasure request must reach. -->
         <EntityName>rev_application</EntityName>
         <AttributeName>rev_emergencycontactname</AttributeName>

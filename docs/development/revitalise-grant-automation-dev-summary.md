@@ -12129,3 +12129,444 @@ passes 44 files and 792 tests. Chromium passes 8 specs. `verify-css-arithmetic` 
 `operation:code-app-push`. Assumptions register: no row added or changed. Tool warnings: unchanged,
 with 0 untriaged. **Hours proposal (commercial-agent, not a booking):** wbs:6.8 +0.5 h, with this
 diff as evidence. Finding logged: `IMP-0979`.
+
+---
+
+## Revision — TAD rev 14: intake trigger mode declared in source, flat Dataverse writes, rev 14 auth probes and the callback-URL hash compare, wbs:4.2/4.3 (2026-10-02)
+
+**Trigger.** TAD rev 14, approved by the reviewer on 2026-10-02 ("Approved."). The approval re-decides `ADR-011`: the trigger is set to *Anyone*, so the caller authenticates with the signed callback URL, and the `x-rev-client-id` header check stays as the second control. It also adds the §5 rule that every Dataverse write uses flat `item/<column>` keys. Findings carried in: `IMP-1010`, `IMP-1011`. **Build config decision (`IMP-0836`):** this revision amends `config/revitalise-grant-automation-build.yml` and `config/revitalise-grant-automation-pipeline.yml` (same slug). The build config needed no change.
+
+**Ground truth taken first (read-only, DEV, 2026-10-02, pac profile `svc_grantapplications`).** In the live intake definition (`modifiedon` 08:51 UTC), `triggers.manual.inputs` starts with `"triggerAuthenticationType": "All"`. The trigger's `runtimeConfiguration` has no `secureData`. `Create_application` and `Create_new_applicant` each hold only `entityName`, and the flat `Refresh_existing_applicant` still has all 18 keys. A FetchXML `like` search over every cloud flow's `clientdata` found **no** flat `@odata.bind` key anywhere in DEV. A control query (`%item/rev_%` → 7 flows) proved that the search works.
+
+### What changed
+
+| Change | Where |
+|---|---|
+| Trigger mode declared in source, as the first key of `inputs`, matching live (intervention 1) | [intake flow#L59](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L59) |
+| Trigger, `rev_IntakeAllowedClientId` and caller-check descriptions now name the signed URL as the first control (intervention 2). All three are 256 characters or fewer. `secureData` and the `x-rev-client-id` condition are unchanged (intervention 3) | intake flow JSON; [notes.md](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md) |
+| `Create_new_applicant`: 20 columns → flat `item/<column>`, expressions unchanged | [intake flow#L2806](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2806) |
+| `Write_error_log_row`: 8 columns → flat; its description no longer says "nested item is correct for CreateRecord" | [Ops Failure Alert#L152](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.json#L152) |
+| `Create_application` **not converted** (see below). Its description now marks it as still nested, pending `A-INT-15` | [intake flow#L2870](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2870); [notes.md#L101](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md#L101) |
+| `rev_IntakeAllowedClientId` definition text: it no longer claims an "appid claim on the incoming token" check | `environmentvariabledefinitions/rev_IntakeAllowedClientId/environmentvariabledefinition.xml` |
+| `verify-intake-endpoint-auth.ps1` rewritten to the two rev 14 probes. **A:** the URL with `sig` removed must get 401/403 from the **platform**. **B:** the signed URL with no header must get the **flow's own** 401 body; a platform refusal here means the trigger is not in mode *Anyone* (`A-INT-11`) | [probe A#L146](../../provisioning/entra/verify-intake-endpoint-auth.ps1#L146), [probe B#L188](../../provisioning/entra/verify-intake-endpoint-auth.ps1#L188) |
+| New `verify-intake-callback-url.ps1`. `-Mode Capture` and `-Mode Compare` work on SHA-256 hashes only, and the URL is never printed or stored. A changed URL → `FAIL` + `REVIEWER ACTION REQUIRED: update the WordPress webhook URL and the CI secret`, with no rollback | [listCallbackUrl#L107](../../provisioning/entra/verify-intake-callback-url.ps1#L107) |
+| Pipeline: a new DEV `pre_deploy` capture and a `post_deploy` compare next to `flow-definition-reread`, each with an `operation:` and an `evidence:` key | [capture#L1109](../../config/revitalise-grant-automation-pipeline.yml#L1109), [compare#L1553](../../config/revitalise-grant-automation-pipeline.yml#L1553) |
+| Pipeline: both manual "Specific users in my tenant" steps are retired (intervention 5) and the smoke-test descriptions are reworded | [TST/ACC#L2102](../../config/revitalise-grant-automation-pipeline.yml#L2102), [PRD#L2328](../../config/revitalise-grant-automation-pipeline.yml#L2328) |
+| Settings `intake.triggerAuthentication` rewritten to rev 14. Mode `Anyone` and `definitionValue` `All` are added, and the Entra audience, scope, claims and allowed-caller fields are removed. The `_comment_adr011` notes are updated | [test-settings#L227](../../provisioning/deploymentSettings/test-settings.json#L227), [prd-settings#L259](../../provisioning/deploymentSettings/prd-settings.json#L259) |
+| `ensure-intake-client.ps1` now prints the `x-rev-client-id` value and the rev 14 mode, not "Allowed users" or a token scope. Its header leads with rev 14 | `provisioning/entra/ensure-intake-client.ps1` |
+| Tests: `IntakeContract` reads both creates through `Get-DataverseWritePayload` ([#L61](../../src/tests/solutions/IntakeContract.Tests.ps1#L61)), and its auth block is rewritten to rev 14 ([#L432](../../src/tests/solutions/IntakeContract.Tests.ps1#L432)). `DeploymentSettings`, `EntraScripts`, `ScriptContract` and the harness fixture move to rev 14. The harness reader's "VERIFIED WORKING" comment is corrected | `src/tests/` |
+| Regression test (`skills/how-to-write-a-test-plan.md` line 80): no `CreateRecord`/`UpdateRecord`/`UpdateOnlyRecord` in **any** flow may nest `item`, with one named exception (`Create_application`, `A-INT-15`). The exception is asserted to still be nested, so it cannot outlive its reason | [ScoringInvariants#L1495](../../src/tests/solutions/ScoringInvariants.Tests.ps1#L1495) |
+| `provisioning/README.md`: inventory rows for the two probe scripts and the intake client | `provisioning/README.md` |
+
+**Proof that the regression test can fail.** It was run against the pre-change `REVOpsFailureAlert` from HEAD. It failed and named `REVOpsFailureAlert/Write_error_log_row`. On this revision it passes.
+
+### Not done, and why
+
+- **`Create_application` stays nested — `A-INT-15` could not be closed by ground truth, and the TAD says not to guess.** The schema name is lowercase and the nested `rev_applicantid@odata.bind` works at runtime, so `item/rev_applicantid@odata.bind` is the likely key. What is unverified is whether the **designer** binds that key, and that is the question that matters here. The TAD's method needs a designer save in a throwaway flow, and this dispatch can do neither. Until it is closed, a designer save of the intake flow empties this action again; the next import restores it. The reviewer action is below (`IMP-1014`).
+- **The callback-URL compare is wired for DEV only**, as the dispatch instructed. TAD §12 describes it per environment. The script already supports TST/ACC and PRD (`-Baseline Secret` hashes `INTAKE_ENDPOINT_URL_TEST` / `_PRD`), but no step calls it there yet.
+- **No source gate in `scripts/` was added for nested `item`.** The `flow-definition-language` mechanism (check 3) lives in `.engine/` and belongs to improvement-agent (`IMP-1010` proposed change 2). The Pester test above enforces the rule over this solution's source in the meantime.
+- **Left alone:** the `rev-wordpress-intake` Flow Service permission and its client secret. Revoking the secret is the reviewer's action, as she stated.
+
+### Reviewer action — closing `A-INT-15` (for the next dispatch)
+
+```text
+# DEV only. A throwaway flow OUTSIDE the solution (C-TECH-056: record its creation and removal).
+1. make.powerautomate.com -> REV-GrantApplications-DEV -> My flows -> New -> Instant (manual trigger).
+2. Add "Add a new row" (Dataverse) -> Table: Applications -> fill Applicant with "rev_applicants(00000000-0000-0000-0000-000000000001)". Save.
+3. Read the key the designer wrote (read-only):
+   pac env fetch --xml "<fetch><entity name='workflow'><attribute name='clientdata'/><filter><condition attribute='name' operator='eq' value='<your flow name>'/></filter></entity></fetch>"
+   -> look for the parameter key ending in @odata.bind, e.g. "item/rev_applicantid@odata.bind" (exact case matters).
+4. Delete the throwaway flow. Send the key; development-agent converts Create_application and removes the test's exception.
+```
+
+### §10 Unvalidated Assumptions Register — rev 14 rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-INT-11 | An import honours the declared `inputs.triggerAuthenticationType: "All"` and leaves the trigger in mode *Anyone* | `src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json` | E1 for name, place and value (live DEV definition, designer-written, 2026-10-02); none for import | No import since | Next DEV import, then `python3 scripts/verify-live-flow-definitions.py --env dev` → 0 differences | OPEN |
+| A-INT-12 | Under *Anyone*, a POST without a valid `sig` is refused by the platform before any run is created | `provisioning/entra/verify-intake-endpoint-auth.ps1` | E3 (Logic Apps SAS behaviour) | No probe has run since the reviewer's change | Probe A in the TST/ACC smoke test, plus the flow's run list read by hand (the script does not read run history) | OPEN |
+| A-INT-13 | `listCallbackUrl` (path, api-version) with an app-only Power Automate token for the provisioning identity returns the URL in `response.value` or `value` | `provisioning/entra/verify-intake-callback-url.ps1` | E3 (Power Automate management API shape); no use in this repository | No live call made from this dispatch | The first DEV `intake-callback-url-capture` run; a FAIL naming A-INT-13 means use the manual fallback | OPEN |
+| A-INT-15 | The flat key the designer writes for the Applicant lookup bind on `CreateRecord` | `src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json` | **E-level, live designer-written definition (2026-10-02):** `TEST_Binding` in DEV holds `item/rev_applicantid@odata.bind` = `/rev_applicants('<guid>')` | Closed by the follow-up below | A-INT-15 CLOSED: `Create_application` converted | CLOSED |
+
+### §11 Verification evidence
+
+**Highest level executed: V2.** The solution packs (`pac solution pack --packagetype Unmanaged`, 0 warnings). The packed intake JSON carries `triggerAuthenticationType: All` and 20 flat columns on `Create_new_applicant`, and the packed Ops flow carries 8 flat columns. **Not yet observed:** that an import keeps the mode (V3, `A-INT-11`), the two probes against a live endpoint (V5, `A-INT-12`), and the callback-URL read (`A-INT-13`). All three arrive with the next deploy, so they are deferred to the pipeline rather than missing. **Human open-and-save (V4): not performed, and must not be:** the operating rule is never to save this flow in the designer.
+
+**Tests.** The Pester provisioning suite passes 762 of 762 (1 skipped). The solutions suite passes 364 of 364. `run-source-gates.py` passes 17 of 17. `verify-pipeline-config.py` PASS, 129 steps. `verify-post-deploy-completeness.py --audit` reports one finding, which predates this change (L241, 2026-09-29).
+
+**Tool warnings (`C-TECH-055`).** The local pack emitted 0. The shared build config's one standing warning (Vite's 500 kB chunk advisory) is unchanged and already triaged ([#L4893](revitalise-grant-automation-dev-summary.md#L4893)). Untriaged: 0.
+
+**After the next DEV import, in this order:** run `verify-live-flow-definitions.py --env dev` and expect 0 differences. That also confirms the trigger's secure outputs are restored (intervention 3). Then check that the callback-URL compare passes. Then have the website post one test entry (V5). The reviewer has said the DEV runs since 08:51 UTC are test data, so no run deletion is needed.
+
+**Hours proposal (for commercial-agent, not a booking):** wbs:4.2 2.0 h, wbs:4.3 1.5 h. Evidence: this revision's diff. `IMP-1010` classes the work as warranty rework, so whether it is billable is commercial-agent's call. Findings logged: `IMP-1014`, `IMP-1015`, `IMP-1016`.
+
+### Follow-up (2026-10-02, same dispatch chain) — A-INT-15 closed, `Create_application` flat, wbs:4.2/4.3
+
+**Ground truth (taken by lead-agent, read-only `pac env fetch`).** The reviewer's flow `TEST_Binding` (workflow `d630108d-52be-f111-aaae-7ced8d43e87d`, DEV, outside the solution, created 11:15 UTC, modified 11:19 UTC in the designer) holds this *Add a new row* parameter set, verbatim: `{"entityName": "rev_applications", "item/rev_applicantid@odata.bind": "/rev_applicants('00000000-0000-0000-0000-000000000001')"}`. The designer's flat key is therefore the nested key with the `item/` prefix. The designer quotes the GUID; the source's unquoted `/rev_applicants(<guid>)` is valid OData key syntax and ran successfully on 2026-09-29, so the value expression is **unchanged**. `TEST_Binding` is the reviewer's flow and was not touched or deleted.
+
+| Change | Where |
+|---|---|
+| `Create_application`: all 81 columns, including the lookup, now flat `item/<column>`; expressions unchanged; description no longer says "still nested" | [intake flow#L2863](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2863) |
+| notes.md "WRITE SHAPE" paragraph rewritten to flat, with the evidence | [notes.md#L101](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md#L101) |
+| Nested-item Pester test: the `Create_application` exception and its "must still be nested" assertion are removed, so it covers every Dataverse write with no exceptions | [ScoringInvariants#L1485](../../src/tests/solutions/ScoringInvariants.Tests.ps1#L1485) |
+| Harness comment: no nested action remains | `src/tests/solutions/_harness/SolutionSource.psm1` |
+| §10 row `A-INT-15` above set to CLOSED. TAD §12.3 row `A-INT-15` is architect-owned and not edited here: it still reads "None" and needs an architect-agent evidence update (E-level, the evidence above) | TAD L3404 |
+
+The "Not done" bullet for `Create_application` and the "Reviewer action" block in the rev 14 section above are superseded by this follow-up.
+
+**Verification.** See the results block at the end of this follow-up. Highest level executed: V2 (pack). Not observed: a DEV import of the flat `Create_application` and a live intake run (V3/V5), which arrive with the next deploy. A designer save of the intake flow is still not performed.
+
+**Results of the follow-up.** Pester solutions suite 364 of 364 (the nested-item test now has no exception and passes). Pester provisioning suite 762 of 762 (1 skipped). `run-source-gates.py` passes. `verify-assumption-markers.py` PASS, `verify-assumption-register.py` PASS, `verify-build-config.py` PASS (100 steps, 73 gates), `verify-pipeline-config.py` exits with the same accepted baselines as before, and `verify-improvement-log.py --check` OK with 0 deploy-lane blockers. `pac solution pack --packagetype Unmanaged` succeeds with 0 warnings, and the packed intake JSON carries `item/rev_applicantid@odata.bind`. Tool warnings: 0 new, 0 untriaged. Assumptions register: `A-INT-15` CLOSED; `A-INT-11`, `A-INT-12`, `A-INT-13` stay OPEN. **Hours proposal (commercial-agent, not a booking):** wbs:4.2 +0.5 h, wbs:4.3 +0.5 h, evidence: this diff.
+
+---
+
+## Revision — TAD rev 15: Create Envelope builds a draft, binds each signer, sets the referee's access code, fills and checks every tab, then sends, wbs:3.2/3.5 (2026-10-02)
+
+**Status of the design, stated plainly.** TAD rev 15 (§5.8–5.10, `ADR-067` C1–C10 option A, `ADR-068`) is at
+ARCHITECTURE REVIEW REQUIRED. **The reviewer has not replied "APPROVED".** This revision is the reviewer directing
+implementation, in her words of 2026-10-02: *"The whole point is that I gave the actions necessary to add to the
+current workflow "Rev acceptance create envelope. Not a seperate flow. These steps would then land in the build the
+envelope scope."* Work items: WI-0107, WI-0108, WI-0109, WI-0110, WI-0111. **Build config decision (`IMP-0836`):**
+amends `config/revitalise-grant-automation-build.yml` and `config/revitalise-grant-automation-pipeline.yml` (same
+slug); the build config needed no change. **Sub-agent fan-out not performed** — one flow, its contract test and two
+settings rows are one tightly coupled change, and the guards were tested against the same expressions they define.
+
+### Summary
+
+The single `SendEnvelope` call is gone from [`REV | Acceptance | Create Envelope`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L544).
+The `Build_the_envelope` scope now runs the reviewer's DocuSign actions from `TEST_Docusign` in the TAD's order, with
+three stop-and-alert checks and nothing emailed until the last DocuSign call. Two of the five items are template
+settings no flow action can make, so they are deferred to the reviewer; the rest wait on a first DEV run.
+
+### What has been built
+
+1. **Nothing is sent until every check has passed** — [draft](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L544), [send](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1340).
+   The envelope is created as a DocuSign draft, which emails nobody. Binding, the access code, the tabs and the
+   reminders are all set on the draft, and the send is the last DocuSign call. The Dataverse write-back still runs
+   only after the send.
+2. **Each signer is bound to their own template role, the referee second** — [applicant](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L772), [referee](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L814).
+   The recipient ids are read from the draft by role name, never typed in. The referee has routing order 2, so they
+   sign after the applicant. No SMS phone number is set.
+3. **The referee must type an access code before the document opens** — [code](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L449), [verification](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L856).
+   The code is the last six digits of the referee's phone, after every non-digit is removed. A phone with fewer than
+   six digits stops the run before anything reaches DocuSign, and the alert names the field, never the number.
+4. **Each signer gets their own email, from two new settings rows** — [read](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L268), [rows](../../provisioning/deploymentSettings/dev-scoring-settings.json#L248), [notes](../../provisioning/deploymentSettings/settings-rows.notes.md#L232).
+   `AcceptanceEmailApplicant` and `AcceptanceEmailReferee` hold `{subject, body}`; `{grantReference}` is replaced with
+   the grant reference. A missing row, an empty subject or body, or a subject over 100 characters stops the run. The
+   referee's body states the access-code rule, never the digits.
+5. **Every tab is filled in one call and read back before the send** — [match](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L929), [fill](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1001), [check](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1199).
+   Tabs are matched by their Data Label, else by their placeholder text within the right signer. The amount is the
+   awarded amount and the dates are formatted. If any expected tab is missing or does not hold the value sent, the
+   run stops and the alert names the tab and the draft's envelope id.
+6. **Every alert names the orphaned draft, so it can be deleted** — [outer alert](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1552).
+   The envelope id is kept in a variable from the moment the draft exists. The failure branch also descends into the
+   three new checks, so an alert names the action that actually failed.
+7. **The contract test now runs the guards on real inputs** — [phone cases](../../src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1#L276), [tab read-back](../../src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1#L409), [evaluator](../../src/tests/solutions/_harness/WdlExpression.psm1#L1).
+   A small evaluator executes the flow's own expressions, treating every `if()` as evaluating both branches, which
+   is the stricter of the two semantics this repository records. Putting the reviewer's test-flow access-code
+   expression and routing order back into source failed 8 tests. The old "no loop anywhere" test is gone: the TAD
+   calls it a check on a past diagnosis, and its replacement asserts the rule the TAD does state (the tab array is a
+   `Select`, so it can be secured).
+
+### Elements added
+
+| Element | Where |
+|---|---|
+| 41 actions inside `Build_the_envelope`, 2 top-level variables (`checkProblem`, `draftEnvelopeId`) | [flow](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L106) |
+| Settings rows `AcceptanceEmailApplicant`, `AcceptanceEmailReferee` (DEV, TST/ACC provisional wording; PRD pending token, declared `_unresolved`) | [dev](../../provisioning/deploymentSettings/dev-scoring-settings.json#L248), [test](../../provisioning/deploymentSettings/test-settings.json#L596), [prd](../../provisioning/deploymentSettings/prd-settings.json#L656) |
+| WDL test evaluator | [WdlExpression.psm1](../../src/tests/solutions/_harness/WdlExpression.psm1#L1) |
+
+### Elements changed
+
+| Element | Change |
+|---|---|
+| `Create_and_send_the_envelope`, `Compose_template_tab_values` | Removed; replaced by the sequence above |
+| `Describe_the_failure` | `If` → `Switch`, one case per container in the scope ([#L1419](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1419)) |
+| `Compose_run_link` | Moved before the scope so the in-scope alerts can use it |
+| `Set_reminder_cadence`, write-back | Read the envelope id from `draftEnvelopeId`; reminders now precede the send |
+| `AcceptanceEnvelopeContract.Tests.ps1` | Rewritten: 52 tests (was 16) |
+| Flow notes | New rev 15 section, including all 18 differences from `TEST_Docusign` v2c ([notes#L439](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.notes.md#L439)) |
+| DEV pipeline steps | The three stale "open `Create_and_send_the_envelope` in the designer" steps are replaced by the template check (M4) and the R1–R6 test run ([#L1385](../../config/revitalise-grant-automation-pipeline.yml#L1385), [#L1402](../../config/revitalise-grant-automation-pipeline.yml#L1402)) |
+
+### Where the TAD and the reviewer's test flow differ, and what was followed
+
+The TAD was followed in every case. All 18 are listed in the [flow notes](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.notes.md#L439).
+The ten the dispatch named are all in source: referee routing 2, no SMS phone number, digits-only code with a stop
+below six, settings-row emails, awarded amount and formatted dates, `secureData` with a `Select`-built array, label
+then placeholder matching, the document found by count, no typed recipient ids, and environment-variable ids.
+Beyond those, three are judgement calls worth your eye:
+
+- **Signers are found with two filters, not a loop over the signers.** Same DocuSign actions and role names, but a
+  missing or doubled role now stops the run before anyone is bound, where the loop would have skipped it silently.
+- **The template's document is read before the signers are bound,** not after, so the shape check can stop the run
+  first. It is a read; every call that changes the draft is in the TAD's order.
+- **Only the TAD's tab set is filled**: five prefill tabs and the referee's `n2`, `e2`, `ph2`. The dispatch, and the
+  v5A draft built on the reviewer's flow, also filled every recipient text tab and the referee's checkbox. TAD §5.8
+  step 2 does not, and whether the applicant's own details are pre-filled is an open product decision. Adding a tab
+  is one line in each of two actions.
+
+### What is still open
+
+**Nothing here has run.** Every DocuSign behaviour the design relies on is unmeasured: that the draft carries both
+roles, that option A fills the referee's tabs, which tab-type string the update accepts, that a six-digit code is
+accepted, and that the language string is accepted. Each is a register row below, and each is settled by the
+R1–R6 run.
+
+**Two items are DocuSign settings, not flow work, and are deferred.** WI-0108 (required fields) and WI-0110 (no
+reassignment) can only be set on the template or the DocuSign account; no connector action can set either.
+
+**The email wording is provisional.** DEV and TST/ACC carry wording development-agent wrote. PRD is withheld behind a
+pending token, so its settings seed stops rather than emailing real applicants test text.
+
+**WI-0109's control has a stated limit.** The access code stops a forwarded email being opened by someone who does not
+know the referee's number. It does not stop the applicant, who supplied the number (TAD risks A-R77 and A-R78).
+
+### What you need to decide
+
+**How is the envelope issued after a pre-send stop is fixed?**
+
+**Problem** — The flow starts only when a grant is created, so after a missing phone or settings row is corrected nothing issues the envelope; the TAD's risk A-R79 assumes something does.
+**Suggested fix** — Ask architect-agent to name the route in TAD rev 15, either a re-issue trigger on the grant or one DEV test of run-history Resubmit (this flow's reads are live, so it may work).
+**What happens if you don't** — A grant stopped by a missing referee phone stays at Awarded with no way back but the manual print-sign-scan route. The alert text now promises nothing it cannot do.
+[`Check_referee_details_are_present`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L387)
+
+---
+
+**Should the applicant's own details be pre-filled, and the referee's checkbox set?**
+
+**Problem** — The dispatch asked for every recipient text tab and the referee checkbox; the TAD fills only the five prefill tabs and `n2`/`e2`/`ph2`.
+**Suggested fix** — Keep the TAD's set until you decide; if you want more, say which tabs, and it is two lines.
+**What happens if you don't** — The applicant types their own address and phone at signing, as today.
+[`Compose_tab_values`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L466)
+
+---
+
+**Set the template's Required fields and switch reassignment off (WI-0108, WI-0110).**
+
+**Problem** — Only the DocuSign template or account can make fields mandatory and stop "Assign to someone else".
+**Suggested fix** — With Emily, mark every signer-entered field and `n2`/`e2`/`ph2` Required and switch the option off, per TAD §12.5 M4.
+**What happens if you don't** — Signers can still finish with fields empty, and a referee can still hand the envelope to someone else.
+[pipeline step](../../config/revitalise-grant-automation-pipeline.yml#L1385)
+
+---
+
+### §10 Unvalidated Assumptions Register — rev 15 rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-DS-2 | `SendEnvelope` wire shape for tab values | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | Role-name half closed earlier; the action no longer exists | — | — | CLOSED — superseded by A-DS-14..A-DS-16 (rev 15 removed `SendEnvelope`) |
+| A-DS-12 | `signers` object keys and per-signer `tabs` on `SendEnvelope` | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | The action no longer exists | — | — | WITHDRAWN — rev 15 removed `Create_and_send_the_envelope` |
+| A-DS-14 | `CompositeTemplates` with `status: Created` gives a draft holding both template roles as placeholder signers; `UpdateEnvelopeRecipient` fills them rather than adding signers; `SendDraftEnvelope` sends the draft as filled | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | E1 for operation ids and static parameters (`TEST_Docusign` v2c, designer-saved); E2 for behaviour | No run of either flow has been observed | TAD §12.5 R1, R5 | OPEN |
+| A-DS-15 | The connector's tab read carries `tabLabel` and `recipientId`; prefill tabs are `prefill: true`; the template's only document id is the envelope's | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | E1 for `prefill`, `tabType`, `tabId`, `value`; E2 for the rest | No run observed | TAD §12.5 R4, R1; a mismatch stops the run at the read-back check | OPEN |
+| A-DS-16 | `UpdateEnvelopePrefillTabs` updates recipient tabs (option A); the read's own `tabType` is accepted by the update; `English UK (en_GB)` is accepted; `AddReminders` works on a draft | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | E1 static shape; behaviour unmeasured | No run observed | TAD §12.5 R2, R3, R6; switch to option B if the read-back check stops naming referee tabs | OPEN |
+| A-DS-17 | A six-digit access code conforms to the account's access-code format, and the signing link asks for it | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | E1 static (`Access Code`, `additionalRecipientData/accessCode`); E2 format rule | No envelope sent | TAD §12.5 R5 | OPEN |
+| A-DS-18 | An envelope from a template whose reassignment option is off inherits it when the account setting is on | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.notes.md` | E2 | Template setting not yet checked | TAD §12.5 M4, M6 | OPEN |
+
+`A-DS-3`, `A-DS-4`, `A-DS-5` and `A-DS-11` are unchanged and keep their markers in source. Ids `A-DS-14`–`A-DS-18`
+were checked across every Dev Summary before use (`IMP-0768`); `A-DS-12` also names an unrelated row in the
+trustee-portal Dev Summary, which this revision does not touch.
+
+**Proposed for `constraints/domain/special-category-register.yml` (C-DOM-033):** none. No column was newly secured.
+
+### §11 Verification evidence
+
+**Highest level executed: V1.** Source well-formed and every source gate green; the guard expressions executed by the
+test evaluator. **Not packaged (V2), not imported (V3), not opened (V4), not run (V5)** — the dispatch excluded
+packaging and DEV import. **Human open-and-save (V4): must not be performed** on this solution flow (risk A-R73);
+the DEV measurement is a run, per the replaced pipeline steps.
+
+| Check | Result |
+|---|---|
+| Pester `src/tests/solutions` (Pester 5.7.1) | 0 failures; `AcceptanceEnvelopeContract.Tests.ps1` 52 of 52 |
+| Pester `DeploymentSettings` + `DataverseScripts` | 0 failures (with the solutions suite: 519 passed, 1 skipped) |
+| Mutation: v2c access-code expression, referee routing 1, `phoneNumber` put back | 8 tests fail, as they should |
+| `verify-flow-definition-language.py` | OK; check 7 proven to fail when one descent case is removed |
+| `run-source-gates.py` | 17 of 17 pass (it first failed `shipped-content` on an alert that promised a re-run; fixed) |
+| `verify-pipeline-config.py` | PASS, 129 steps |
+| `verify-work-items.py --check --scope WI-0107..WI-0111 --at-least built` | exit 0 |
+
+**Tool warnings (`C-TECH-055`).** No pack or build tool ran, so none were emitted. The shared build config's standing
+warning (Vite's 500 kB chunk advisory) is unchanged and triaged at [#L4893](revitalise-grant-automation-dev-summary.md#L4893). Untriaged: 0.
+
+### Items
+
+| Item | State | Evidence or reason |
+|---|---|---|
+| WI-0108 | **deferred** | Required fields live on the template only (`ADR-068` item 1); reviewer with Emily, TAD §12.5 M4 |
+| WI-0110 | **deferred** | No connector action can block reassignment (`ADR-068` item 2); template or account setting, M4/M6 |
+| WI-0107 | built | Clause 1 → draft `status: Created` (L561); clause 2 → `SendDraftEnvelope` (L1351). Clause 2's real proof, a run that completes, arrives at `verified:dev` |
+| WI-0109 | built (reopened once, from deferred) | Scope decided by `ADR-068` item 4 (no change order). Access Code (L875). Limit: knowledge of the number, not possession (A-R77, A-R78) |
+| WI-0111 | built | Per-signer subject and body from the settings rows (L794, L836) |
+
+Components declared for WI-0107, WI-0109, WI-0111: `deploy`, `script:seed-settings.ps1`. Out of scope: WI-0009's
+evidence has drifted (trustee portal, not this change). WI-0107's `source_ref` points at line 14 of the feedback
+file, where DS-01 is on line 15 (pm-agent's record).
+
+### Hours proposal (for `commercial-agent`, not a booking)
+
+wbs:3.2 4.5 h, wbs:3.5 1.0 h (Emily's walkthrough feedback turned into the access code and per-signer email).
+Evidence: this revision's diff to the flow, its notes, the contract test and evaluator, and the settings rows.
+
+### Constraint check
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 10 passed / 10 evaluable of 10 in scope  |  violations: NONE
+                                                        |  unevaluable: NONE
+Domain   SOFT: 0 in scope                               |  warnings:   NONE
+Tech     HARD: 39 passed / 39 evaluable of 39 in scope  |  violations: NONE
+                                                        |  unevaluable: NONE
+Tech     SOFT: 2 in scope                               |  warnings:   NONE
+Overall: PASS
+```
+
+Rows this change exercises: C-DOM-004 (run history secured across the closure; alerts and check variables carry words,
+never values). C-TECH-004 (the referee phone is normalised and checked before use). C-TECH-006 (the referee now
+authenticates with an access code). C-TECH-007 (the R1–R6 run uses test identities only). C-TECH-047 (account and
+template ids stay environment variables; the test asserts no other id is in the flow). C-TECH-052 (A-DS-14–A-DS-18
+carry markers; `verify-assumption-markers.py` PASS). C-TECH-053 (V1 claimed, nothing higher). C-TECH-060 (every
+description within 256 characters; settings descriptions within 1,000; subjects checked at run time against 100).
+C-TECH-062 (pipeline preflight PASS). C-TECH-067 (the check-7 test derives its container set from source; a
+hand-typed count was removed in self-review). C-TECH-079 (three items `built` on evidence, two deferred with reasons).
+No column, role, connector, connection reference or provisioning script was added.
+
+### Code-review revision — every template tab filled, matched without assuming which signer holds which set (2026-10-02, WI-0107/WI-0109/WI-0111 reopened)
+
+**Reviewer decisions, verbatim, 2026-10-02.** They override TAD §5.8 step 2's tab set. The TAD is not edited here;
+the delta is routed to architect-agent through the improvement log.
+
+- *"The array with tabs are all the tabs on the template. Skipping them is not ok. They should all be populated by
+  the workflow. Except the signer full name, sign date and signature for both recipients."*
+- *"It's a checkbox for the applicant. Not the referee. To agree with the grant."*
+- *"On the template there are pre-fill tabs, acceptor tabs and referee tabs. In this order."*
+
+This supersedes, in the section above: "Only the TAD's tab set is filled", and the decision "Should the applicant's
+own details be pre-filled, and the referee's checkbox set?" Both are answered.
+
+#### Summary
+
+The flow now fills every tab on the template except signatures, full names and sign dates, sending `""` where no
+Dataverse value exists so the placeholder text is cleared. The two role statements can be read against each other,
+so the flow does not assume which signer owns which placeholder set: both roles accept every placeholder, and the
+signer's role, read from the draft, decides only which value goes in.
+
+#### What has been built
+
+1. **Every tab except signature, full name and sign date is sent** — [type map](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L466), [in-scope filter](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1084).
+   One action holds both the never-send list and the mapping from the read's tab type to the connector's enum
+   (`Text`, `Checkbox`, `Company`, `EmailAddress`), used for the prefill tabs too. The tab group is not sent: it is a
+   validation group with no value.
+2. **Matching works whichever signer holds which placeholder set** — [values](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L489), [matching](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1105).
+   Data Label first, then placeholder text under the tab's own signer, then tab type for the tabs with no
+   placeholder. Both spellings are accepted ("Address"/"Adress", "Town/City"/"City/Town").
+3. **A tab the flow cannot map stops the run before the send, naming its placeholder** — [unmapped](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1154), [check text](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L1413).
+   That is how "every tab is filled" is enforced without a hard-coded list per role. The read-back still covers every
+   tab sent; a checkbox is read back from `selected`.
+4. **The grant-agreement checkbox is sent unticked under either role.** The flow never agrees on the applicant's
+   behalf.
+5. **The run stops if the applicant's email or first name reads empty** — [check](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L374).
+   Every applicant column used here is column-secured. If the service identity is not in that column-security
+   profile they read empty, and without this check the tabs would be cleared silently.
+6. **The tests run the reviewer's 31-tab template through the flow's own expressions under both role readings** — [both roles](../../src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1#L236), [sources](../../src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1#L249), [exclusions](../../src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1#L273), [template run](../../src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1#L399).
+   Each reading sends 24 tabs, leaves nothing unmapped, never sends the 7 excluded tabs, and gives each tab the right
+   person's value. Two source changes put in on purpose (signature tabs allowed back into the array, an applicant
+   address given to the referee) made 8 tests fail.
+
+#### Mapping
+
+| Role | Tab (placeholder, or tab type) | Source | Notes |
+|---|---|---|---|
+| prefill | Name | `rev_applicant.rev_fullname` | |
+| prefill | Amount | `rev_grant.rev_amountawarded`, `N2` | awarded, not requested |
+| prefill | Holiday type | `rev_application.rev_breaktype`, formatted label | |
+| prefill | Holiday destination | `rev_application.rev_breaklocation` | |
+| prefill | Dates | `rev_grant.rev_holidaystart` to `rev_holidayend`, `d MMMM yyyy` | |
+| Grant Acceptor | First name / Last name | `rev_firstname` / `rev_lastname` | column-secured |
+| Grant Acceptor | Title | `rev_title`, formatted label | column-secured |
+| Grant Acceptor | Email; `emailAddressTabs` | `rev_email` | |
+| Grant Acceptor | Phone | `rev_phone` | |
+| Grant Acceptor | Postcode | `rev_postcode` | |
+| Grant Acceptor | Address / Adress | `rev_addressline` + ", " + `rev_addressline2` when present | |
+| Grant Acceptor | Town/City / City/Town | `rev_towncity` | |
+| Grant Acceptor | Job title; `companyTabs` | `""` | no column (question below) |
+| Grant Acceptor | `checkboxTabs` | unticked (`false`) | the grant agreement; never ticked by the flow |
+| Grant Referee | First name / Last name | `rev_refereename`, split at the first space | a one-word name gives last name `""` |
+| Grant Referee | Email; `emailAddressTabs` | `rev_refereeemail` | A-DS-5 |
+| Grant Referee | Phone | `rev_refereephone`, as typed | |
+| Grant Referee | Title, Postcode, Address / Adress, Town/City / City/Town | `""` | ADR-043, no column (question below) |
+| Grant Referee | Job title; `companyTabs` | `""` | no column (question below) |
+| Grant Referee | `checkboxTabs` | unticked (`false`) | applies only if a checkbox turns out to sit on the referee |
+| either | `signHereTabs`, `fullNameTabs`, `dateSignedTabs` | not sent | reviewer |
+| either | `tabGroups` | not sent | holds no value; the connector enum is not known to accept it |
+
+**Unmeasured, settled on the first DEV run:** which recipient group carries which placeholder set. Compare each
+tab's `recipientId` with the `roleName` that `GetRecipientStatus` returns for it (A-DS-15, §12.5 R4).
+
+#### What you need to decide
+
+**Should a Dataverse column or intake field exist for the tabs the flow now clears to empty?**
+
+**Problem** — The applicant's Job title and Company, and the referee's Title, Address, Town/City, Postcode, Job title and Company, have no source; the flow sends `""`, so the signer types them.
+**Suggested fix** — Keep `""` for now (ADR-043 already decided the referee's address fields), and name any field you want captured; that would be an intake and schema change, priced by commercial-agent first.
+**What happens if you don't** — Nothing breaks: those tabs arrive empty and the signer fills them in.
+[`Compose_tab_values`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L489)
+
+---
+
+**Mark the applicant's grant-agreement checkbox Required on the template (part of WI-0108).**
+
+**Problem** — The flow must not tick the agreement, so only the template's Required flag stops an applicant finishing without agreeing.
+**Suggested fix** — Mark that checkbox Required (or a minimum of one in its tab group) during the §12.5 M4 template pass.
+**What happens if you don't** — An applicant can sign the acceptance without ticking the agreement.
+[pipeline step](../../config/revitalise-grant-automation-pipeline.yml#L1385)
+
+---
+
+**Confirm the tab group needs nothing from the flow.**
+
+**Problem** — The tab group on the applicant is probably the checkbox's validation group, which has no value to fill.
+**Suggested fix** — Leave it out of the array, as built; tell me if it is anything else.
+**What happens if you don't** — Nothing: it is not sent, and the read-back does not expect it.
+[type map](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L466)
+
+---
+
+#### §10 register — code-review updates
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-DS-4 | Leaving the referee's first/last name tabs blank rather than splitting `rev_refereename` is acceptable | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | Reviewer decision 2026-10-02: every tab is populated; the name is split at the first space | — | — | CLOSED — reviewer decision, the name is now split |
+| A-DS-15 | Tabs carry `tabLabel` and `recipientId`; which recipient group holds which placeholder set; prefill tabs are `prefill: true`; the template's only document id is the envelope's | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | E1 for `prefill`, `tabType`, `tabId`, `value`; the role grouping is ambiguous between two reviewer statements | No run observed | §12.5 R4: tab `recipientId` against `roleName`; the matching works either way, so this is a record, not a gate | OPEN |
+| A-DS-16 | Option A updates recipient tabs; the connector enum strings `Text` (E1), `Checkbox`, `Company`, `EmailAddress` are accepted; a checkbox reads back from `selected`; an `emailAddressTabs` update is honoured; `English UK (en_GB)` accepted; `AddReminders` works on a draft | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` | `Text` E1 (v2c); the other three by analogy | No run observed | §12.5 R2, R3, R6; a refusal fails `Fill_the_tabs` before the send, and a silent ignore stops at the read-back | OPEN |
+
+`A-DS-5` stands unchanged in kind: `rev_refereeemail` now fills the referee's email tabs.
+
+#### Verification (second run, after the last edit)
+
+**Highest level executed: V1.** Pester: solutions suite plus the settings tests, 528 passed, 0 failed, 1 skipped;
+`AcceptanceEnvelopeContract.Tests.ps1` 61 of 61. `run-source-gates.py` 17 of 17. `verify-flow-definition-language.py` OK.
+`verify-field-length-limits.py` OK. Not packaged, imported, opened or run.
+
+#### Items after this revision
+
+| Item | State | Evidence |
+|---|---|---|
+| WI-0108 | **deferred** (unchanged) | Required fields, now including the applicant's agreement checkbox, are template settings (§12.5 M4) |
+| WI-0110 | **deferred** (unchanged) | Reassignment is a template or account setting |
+| WI-0107 | built (reopened 1) | draft `status: Created`, `SendDraftEnvelope`; lines re-traced |
+| WI-0109 | built (reopened 2) | Access Code; lines re-traced. **Two reopens is an escalation trigger** for development-agent; this dispatch already runs on the strategic tier |
+| WI-0111 | built (reopened 1) | per-signer body from the settings rows; lines re-traced |
+
+**Hours proposal, added to the one above (commercial-agent, not a booking):** wbs:3.2 +1.5 h for this revision.
+
+---
+
+## Defect fix 2026-10-03 — `rev_applicant.rev_fullname` empty after intake (wbs:4.2, 4.3)
+
+**Cause.** `rev_fullname` shipped as a plain writable nvarchar on 2026-08-14 (calculated form rejected by import; manual conversion never done). The intake flow, its notes and this summary (§2.3, §3, §7 above) still say it is calculated, so nothing wrote it. Those statements are superseded here.
+
+**Fix (source only, not deployed).** `REVIntakeWordPressToDataverse` now writes `item/rev_fullname = trim(concat(first,' ',last))` (null parts coalesced to empty, so no stray space) in `Create_new_applicant` and `Refresh_existing_applicant` (existing applicants are backfilled on their next submission). Action descriptions, `notes.md` and the `Entity.xml` comment corrected; the comment states the writes MUST be removed if the column is ever converted to calculated. New test in `IntakeContract.Tests.ps1` asserts both payloads.
+
+**Backfill for existing DEV rows (NOT run).** One-off PowerShell against DEV with the Dataverse Web API: GET `rev_applicants?$select=rev_applicantid,rev_firstname,rev_lastname,rev_fullname&$filter=rev_fullname eq null or rev_fullname eq ''`, then PATCH each with `rev_fullname = (firstname + ' ' + lastname).Trim()`. Run only with the reviewer's approval, `-WhatIf` first, log the row count. Not needed for rows whose applicant re-submits.
+
+**Verification.** V1 only: IntakeContract 157/157. Not packaged, imported or run. Other readers (Create Envelope, Reminders/Escalation) only read `rev_fullname` and are unaffected.

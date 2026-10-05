@@ -31,6 +31,15 @@ a sibling of identical shape whose name matches no such deliverable, and it is c
 reported; flagging every uncited folder would have reported 16 in this drop alone. The
 negative control is what makes the measurement meaningful rather than tautological.
 
+EVERY TOP-LEVEL DROP, BY ITS ROOT PATH (improvement review 2026-09-30-2, IMP-0984)
+-------------------------------------------------------------------------------
+The name match above passed with `Designsystem/Design-2.0/` present and uncited, because none of
+its folders is named after an app. So, in addition:
+every top-level drop is in scope by its root path (IMP-0984)
+— `Designsystem/<drop>` must appear in some architecture document, with a boundary
+so a drop `<name>` is not satisfied by a citation of a sibling drop `<name> (1)`.
+Measured 2026-10-05: 3 drops, 0 findings; against the TADs before the Design 2.0 TAD, 2, both true.
+
 RESIDUAL, stated because it is not covered: this checks that a matching folder is CITED, not
 that it was OBEYED. A TAD can cite `ui_kits/trustee-review-portal/` and still convert the
 wrong thing. Citation is the floor — it makes the artefact's existence impossible to miss —
@@ -40,6 +49,7 @@ and the design judgement above it belongs to architect-agent.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -85,6 +95,23 @@ def architecture_text(root: Path) -> tuple[str, int]:
     return "\n".join(d.read_text(encoding="utf-8", errors="replace") for d in docs), len(docs)
 
 
+def top_level_drops(root: Path) -> list[Path]:
+    """Every top-level folder of every supplied design root (IMP-0984)."""
+    out: list[Path] = []
+    for name in SUPPLIED_ROOTS:
+        base = root / name
+        if base.is_dir():
+            out += [p for p in sorted(base.iterdir()) if p.is_dir() and p.name not in SKIP_DIRS]
+    return out
+
+
+def drop_cited(drop: Path, root: Path, text: str) -> bool:
+    """`<root>/<drop>` cited, and not merely as the prefix of a longer drop name such as
+    `<drop> (1)` — the next character must end the name."""
+    needle = drop.relative_to(root).as_posix()
+    return re.search(re.escape(needle) + r"(?!\s\(|[^\s/`'\")\]>,.;:|])", text) is not None
+
+
 def citation_key(path: Path, root: Path) -> str:
     """The value a TAD writes when it cites this directory: `<parent>/<name>`.
 
@@ -111,6 +138,16 @@ def scan(root: Path) -> tuple[list[str], dict[str, int]]:
     }
 
     findings: list[str] = []
+    drops = top_level_drops(root)
+    stats["drops"] = len(drops)
+    for drop in drops:
+        if not drop_cited(drop, root, text):
+            findings.append(
+                f"{drop.relative_to(root)}: a top-level supplied design drop is cited by no "
+                f"document in {ARCHITECTURE_DIR}/ ({doc_count} searched) by its root path. Every "
+                f"top-level drop is in scope by its root path, whatever it is named (IMP-0984): "
+                f"cite `{drop.relative_to(root).as_posix()}` and say what was read from it, or "
+                f"record that it is out of scope and why.")
     if not subdirs:
         return findings, stats
 
@@ -135,7 +172,8 @@ def scan(root: Path) -> tuple[list[str], dict[str, int]]:
 
 # ── selftest ──────────────────────────────────────────────────────────────────────────────
 
-def build_fixture(root: Path, *, cite: bool) -> None:
+def build_fixture(root: Path, *, cite: bool, drop_named_after_screen: str | None = None,
+                  cite_drop: bool = False) -> None:
     (root / DELIVERABLE_DIR / "widget-portal" / "src").mkdir(parents=True, exist_ok=True)
     drop = root / "Designsystem" / "Some Design System"
     (drop / "ui_kits" / "widget-portal").mkdir(parents=True, exist_ok=True)
@@ -146,9 +184,13 @@ def build_fixture(root: Path, *, cite: bool) -> None:
 
     arch = root / ARCHITECTURE_DIR
     arch.mkdir(parents=True, exist_ok=True)
-    body = "# TAD\n\nThe drop supplies tokens/colors.css.\n"
+    body = "# TAD\n\nThe drop `Designsystem/Some Design System/` supplies tokens/colors.css.\n"
     if cite:
         body += "ADR-040 reads `ui_kits/widget-portal/` in full.\n"
+    if drop_named_after_screen is not None:
+        (root / "Designsystem" / drop_named_after_screen / "handoff").mkdir(parents=True, exist_ok=True)
+        if cite_drop:
+            body += f"The handoff in `Designsystem/{drop_named_after_screen}/` is read in full.\n"
     (arch / "thing-architecture.md").write_text(body, encoding="utf-8")
 
 
@@ -171,6 +213,25 @@ def selftest() -> int:
                 failures += 1
                 for finding in findings:
                     print(f"        {finding}")
+    # IMP-0984: a drop named after a screen, not an app, is in scope by its root path.
+    for name, cite_drop, expected in (("a top-level drop named after a screen, uncited, FAILS", False, 1),
+                                      ("the same drop, cited by its root path, PASSES", True, 0)):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            build_fixture(root, cite=True, drop_named_after_screen="Design-9.0", cite_drop=cite_drop)
+            findings, _ = scan(root)
+            ok = len(findings) == expected
+            print(f"  {'ok  ' if ok else 'FAIL'} {name}: expected {expected}, got {len(findings)}")
+            if not ok:
+                failures += 1
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        build_fixture(root, cite=True, drop_named_after_screen="Some Design System (1)", cite_drop=False)
+        findings, _ = scan(root)
+        ok = any("Some Design System (1)" in f for f in findings)
+        print(f"  {'ok  ' if ok else 'FAIL'} boundary: citing `<drop>` does not cover `<drop> (1)`")
+        if not ok:
+            failures += 1
     # The negative control is load-bearing: assert it explicitly, not by arithmetic.
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -181,7 +242,7 @@ def selftest() -> int:
               f"deliverable is NOT reported")
         if not ok:
             failures += 1
-    print(f"verify-design-source-coverage: selftest 3 fixture(s), {failures} failure(s)")
+    print(f"verify-design-source-coverage: selftest 6 fixture(s), {failures} failure(s)")
     return 1 if failures else 0
 
 
@@ -200,7 +261,8 @@ def main() -> int:
     findings, stats = scan(root)
 
     if not findings:
-        print(f"verify-design-source-coverage: PASS — {stats['subdirectories']} supplied "
+        print(f"verify-design-source-coverage: PASS — {stats.get('drops', 0)} top-level drop(s) cited by "
+              f"root path; {stats['subdirectories']} supplied "
               f"subdirectory(ies), {stats['in_scope']} matching a deliverable, all cited "
               f"across {stats['architecture_docs']} architecture document(s).")
         return 0

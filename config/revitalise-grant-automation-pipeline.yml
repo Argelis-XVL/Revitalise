@@ -355,7 +355,11 @@ tenant_prerequisites:
             See ADR-007 and the ci.yml header, section 4;
         (b) REV-MS-Provisioning — Graph Group.Create +
             GroupMember.ReadWrite.All, SharePoint Sites.Selected;
-        (c) rev-wordpress-intake — the identity Alex's WordPress site uses to call the
+        (c) rev-wordpress-intake — TAD rev 14 (ADR-011 re-decided 2026-10-02): KEPT only as the
+            source of the x-rev-client-id value (its application id). The trigger is in mode
+            Anyone, declared in the flow source, so the token, the Flow Service permission and
+            the Allowed users field below no longer apply; the client secret is to be revoked
+            by the reviewer/Wanstor. Rev 10 text, retained as history: the identity Alex's WordPress site uses to call the
             intake endpoint as an OAuth client-credentials caller. It now declares ONE
             API permission (Microsoft Flow Service `User`), because without a permission
             on that resource Entra will not issue it a token for the Power Automate
@@ -399,6 +403,9 @@ tenant_prerequisites:
     # value and no test anywhere in the delivery chain. These two steps give it the
     # first two, and the smoke tests under each environment give it the third.
     - description: >
+        TAD rev 14: the trigger is in mode Anyone (declared in source), so of what this step prints
+        only the APPLICATION (CLIENT) id still matters — it is the x-rev-client-id value. The rest
+        of this description is the rev 10 route, retained as history.
         INTAKE CALLER IDENTITY, AND THE VALUES THE PRIMARY AUTH CONTROL NEEDS. Ensures the
         rev-wordpress-intake registration and its service principal exist (idempotent,
         check-before-create) and PRINTS the two identifiers that ensure-app-registration.ps1
@@ -1087,6 +1094,24 @@ environments:
     # prerequisite. The trustee Code App is the first component that must be published
     # AFTER the solution import: it is not packed by `pac solution pack`, and its Dataverse
     # data source resolves against schema the import brings.
+
+    # ── Pre-deploy — TAD rev 14 (ADR-011 intervention 4) ──────────────────────
+    pre_deploy:
+      - description: >
+          READ-ONLY. Hash the intake trigger's live callback URL (SHA-256 only — the URL is
+          a credential and is never printed, logged or written) IMMEDIATELY BEFORE the DEV
+          import, so the post_deploy compare can tell whether the import changed it. DEV has
+          no CI secret holding its URL, so the before value is this live read (TAD section 12,
+          "Intake callback URL — before/after import comparison"). The API used is itself
+          unverified (A-INT-13): a FAIL naming A-INT-13 means the read was refused, not that the
+          URL changed — fall back to reading it from the trigger card (look, never save) and
+          hashing it locally, and record which route worked in the Deployment Summary.
+        operation: intake-callback-url-capture
+        evidence: verify-intake-callback-url.ps1
+        script: >
+          pwsh provisioning/entra/verify-intake-callback-url.ps1 -Env dev -Mode Capture
+          -SnapshotPath intake-callback-dev-before.json
+
     post_deploy:
       - description: >
           Publish the trustee Code App to DEV. `pac code push --solutionName
@@ -1113,6 +1138,7 @@ environments:
           target environment after the first promotion and record the result, rather than
           inferring it from this line (C-TECH-053).
         operation: code-app-push   # check 13 matches this key, never the prose (IMP-0182)
+        app: src/code-apps/trustee-review-portal   # check 15 / deploy label operation:code-app-push@<folder> (IMP-0986)
         script: manual   # SATISFIED 2026-09-05 — see satisfied_on below
         # blocked_on REMOVED 2026-09-05 (IMP-0604), not re-dated: the note's ORIGINAL two causes
         # (a harness refusal of live writes; `appId: null` in power.config.json) were already
@@ -1209,6 +1235,7 @@ environments:
           "Add existing component" (knowledge/technology/code-apps.md fallback) and re-read.
           wbs:6.3 unbilled.
         operation: code-app-push   # check 13 matches this key, never the prose (IMP-0182)
+        app: src/code-apps/trustee-review-portal-cards   # check 15 / deploy label operation:code-app-push@<folder> (IMP-0986)
         script: manual   # live environment write — pipeline-agent's, not development-agent's (WI-0079)
         owner: pipeline-agent (a session holding the DEV pac profile), or the reviewer
       - description: >
@@ -1332,6 +1359,7 @@ environments:
           live; a verbatim match between a "live" report and old source is itself the tell
           (IMP-0365).
         operation: code-app-push   # check 13 matches this key, never the prose (IMP-0182)
+        app: src/code-apps/trustee-review-portal   # check 15 / deploy label operation:code-app-push@<folder> (IMP-0986)
         script: manual   # live environment write; depends on step 3 landing first
         owner: reviewer (or a session holding live-write permission)
 
@@ -1357,44 +1385,35 @@ environments:
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
-          BEFORE turning the flow on, open `Create_and_send_the_envelope` in the DEV designer
-          and let it resolve the template's real signer roles against
-          b832b15e-489d-4b13-a78b-0abef700803a. Dev Summary section 10 (A-DS-1/A-DS-2) records
-          that this flow's `signers` array and role names ("Grant Acceptor", "Grant Referee" —
-          corrected from the source template's own anchor-tag table, superseding an earlier
-          TAD-prose-derived guess) are still NOT verified against the connector's own dynamic
-          schema resolution — no design surface was reachable in this session to resolve
-          DocuSign's dynamic per-template schema, only the template's documentation. Correct
-          the action in the designer, save, then `pac solution export` + `unpack` and
-          reconcile this file per `skills/how-to-verify-a-platform-contract.md`'s
-          three-direction diff before relying on it.
+          TAD rev 15 (ADR-067, ADR-068; Dev Summary section 10 A-DS-14..A-DS-18), BEFORE turning
+          the flow on: open the DEV acceptance template in DocuSign (TAD section 12.5 M4). Every
+          signer-entered field on both roles, and the referee's n2/e2/ph2, must be marked Required;
+          record each field's Data Label next to its placeholder text; switch "Allow recipients to
+          change signing responsibility" off on the template or under Admin > Signing Settings.
+          This replaces the 2026-09-25 designer steps for `Create_and_send_the_envelope`
+          (A-DS-1/A-DS-2/A-DS-12), which no longer exists. Do NOT open the solution flow in the
+          designer and save it (risk A-R73): measure through runs instead.
+        script: manual
+        owner: reviewer (with Emily)
+      - description: >
+          TAD rev 15, BEFORE turning the flow on: confirm the two rows AcceptanceEmailApplicant and
+          AcceptanceEmailReferee were seeded by the seed-settings.ps1 -Env dev step above (they
+          carry provisional test wording in DEV). Without them the flow alerts and sends nothing.
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
-          BEFORE turning the flow on, also confirm the `signers` OBJECT KEYS on
-          `Create_and_send_the_envelope` (2026-09-25 fix, Dev Summary section 10 A-DS-12) —
-          the designer's own errors confirmed `signers` must be a keyed object, not the array
-          this flow originally shipped with, and it now ships re-keyed as `"0"`/`"1"`, a
-          best-effort correction with no live route in this session to the connector's
-          resolved schema. Also confirm in the same designer session where the document-level
-          template merge fields (`p_name`/`p_amt`/`p_type`/`p_venue`/`p_dates`) actually belong
-          — this fix places them inside signer `"0"`'s own `tabs`, inferred rather than
-          confirmed, because the top-level `tabs` property the flow previously used was itself
-          one of the three rejected errors. Correct whatever the designer resolves, save, then
-          `pac solution export` + `unpack` and reconcile.
+          TAD rev 15 section 12.5 R1-R6, after turning the flow on, with TEST identities only: create
+          one grant whose referee phone is typed with spaces and a +44 prefix. Read the run: R1 the
+          draft has exactly two signers, Grant Acceptor and Grant Referee, bound with routing orders
+          1 and 2 (A-DS-14); R2/R3 Check_every_tab_was_filled passed, i.e. option A filled the
+          referee's tabs and the read's own tabType was accepted (A-DS-16; if it stopped naming
+          n2/e2/ph2, switch Fill_the_tabs to option B); R4 record each tab's tabLabel (A-DS-15); R5
+          forward the referee email and open it: it must ask for the access code (the last six
+          digits), and a second test grant with a five-digit phone must alert and stop (A-DS-17);
+          R6 each mailbox got its own subject and body, and the reminders hold after the send. Void
+          the test envelopes afterwards.
         script: manual
-        owner: reviewer (or a session holding live-write permission)
-      - description: >
-          BEFORE turning the flow on, also re-check the referee (signer `"1"`) picker
-          specifically — the reviewer's third 2026-09-25 error described an Apply-to-each over
-          signers where the referee's name/email could not be selected, but no loop exists
-          anywhere in this flow's source; the referee has always read
-          `rev_refereename`/`rev_refereeemail` directly off `Get_the_application`. The working
-          theory (Dev Summary section 10 A-DS-12) is that this was a side effect of the
-          `signers` array-vs-object error and should disappear once that is fixed, but this has
-          not been confirmed live — do not assume it is resolved just because the flow saves.
-        script: manual
-        owner: reviewer (or a session holding live-write permission)
+        owner: reviewer
       - description: >
           BEFORE turning the flow on, also confirm `Read_reminder_days`/`Set_reminder_cadence`
           in the DEV designer resolve against the real `rev-docusign` connection (A-DS-11,
@@ -1514,6 +1533,22 @@ environments:
         operation: flow-definition-reread
         evidence: verify-live-flow-definitions.py
         script: python3 scripts/verify-live-flow-definitions.py --env dev
+
+      # ══ TAD rev 14 (ADR-011 intervention 4, A-INT-13) — the callback URL across the import ══
+      - description: >
+          READ-ONLY, REPORTS, NEVER HALTS. Re-read the intake trigger's callback URL and compare
+          its SHA-256 with the pre_deploy capture. Unchanged → PASS. Changed → FAIL with
+          "REVIEWER ACTION REQUIRED: update the WordPress webhook URL and the CI secret"; report
+          the stage PARTIAL and do NOT roll back — the new URL works, the website has simply not
+          been told it. A changed URL fails silently otherwise: no run starts, nothing reaches
+          rev_errorlog and FR-010 never alerts (risk A-R72). This first DEV run is also the
+          measurement A-INT-13 asks for — (a) does an upgrade import into the same environment keep
+          the URL, (b) which API returns it. Record both in the Deployment Summary.
+        operation: intake-callback-url-compare
+        evidence: verify-intake-callback-url.ps1
+        script: >
+          pwsh provisioning/entra/verify-intake-callback-url.ps1 -Env dev -Mode Compare
+          -SnapshotPath intake-callback-dev-before.json
 
     # ── Verification — no stage may claim a level it did not execute ──────────
     verification:
@@ -2058,48 +2093,24 @@ environments:
           only after this step (TAD §12). ⚠ Blocked until the WBS 0.3 Conditional
           Access exception is confirmed for unattended sign-in.
         script: manual
-      # ── NEW 2026-08-12 — closes test-agent defect D-001 (C-TECH-006 HARD) ──────
-      - description: >
-          MANUAL, ONCE PER ENVIRONMENT, AND BEFORE THE INTAKE FLOW IS TURNED ON —
-          CONFIGURE TRIGGER AUTHENTICATION ON `REV | Intake | WordPress to Dataverse`.
-          This is the PRIMARY authentication control on the solution's only public
-          endpoint (NFR-008, C-TECH-006). It is a trigger SETTING, not a solution
-          component: Microsoft documents it as the "Who can trigger the flow?"
-          authentication parameter and publishes no workflow-definition property for it
-          (https://learn.microsoft.com/en-us/power-automate/oauth-authentication), so it
-          cannot ship in the managed solution and it is applied here instead.
-          WHO: Wanstor (tenant administration), with the maker supplying the value.
-          WHAT: set the authentication parameter to "Specific users in my tenant" and
-          set Allowed users to the SERVICE PRINCIPAL OBJECT ID of rev-wordpress-intake —
-          printed by the ensure-intake-client.ps1 step in tenant_prerequisites. Not the
-          application (client) id: that one goes to rev_IntakeAllowedClientId.
-          ⚠ Leaving Allowed users BLANK under this mode silently widens the scope back
-          to the whole tenant (Microsoft's own note), and no test can detect that — so
-          read the field back after saving.
-          ⚠ ORDER MATTERS: configure this BEFORE turning the flow on. Between switch-on
-          and configuration the endpoint is live under whatever default the trigger
-          carries.
-          WHETHER THIS SETTING SURVIVES A SOLUTION IMPORT IS UNVERIFIED — no environment
-          exists yet — so it is configured and then verified on every deployment rather
-          than assumed to have carried across. The smoke test below is what closes it.
-          Record the value applied in the Deployment Summary (C-TECH-041).
-        script: manual
+      # ── RETIRED 2026-10-02 (TAD rev 14, ADR-011 intervention 5) ───────────────
+      # The manual step that stood here configured the intake trigger as "Specific users in
+      # my tenant" with the rev-wordpress-intake service principal object id, on the belief
+      # that no workflow-definition property existed for it. Both are superseded: the trigger
+      # mode is Anyone and is DECLARED in the flow source (inputs.triggerAuthenticationType
+      # "All", read from the live DEV definition 2026-10-02), so every import applies it and
+      # nobody sets it in the designer. The smoke test below verifies it.
 
     smoke_tests:
       - description: Imported solution version matches the artifact (C-TECH-030)
         command: pac solution list --environment $ENV_URL_TEST | grep -E 'RevitaliseGrantAutomation[[:space:]]+1\.0\.0\.0'
-      # ── NEW 2026-08-12 — the executable form of C-TECH-006's `Verify By` ───────
-      # "Security test: unauthenticated request → 401/403". Test-agent recorded this
-      # as absent (D-001 / TC-401): no smoke test asserted it anywhere. It runs after
-      # the trigger setting is applied and after the flow is turned on, and it fails
-      # the deployment if the endpoint answers anything else.
-      #
-      # It does three things, and the second is the one that matters. A 401 alone is
-      # not proof, because the flow's OWN second gate also answers 401 — so the check
-      # asserts the response is NOT the definition's {"error":"unauthorised"} body,
-      # which is how it distinguishes "the platform rejected this" from "the request
-      # got into the workflow and the client-id header check stopped it". The latter is
-      # precisely the state D-001 describes and it fails the smoke test.
+      # ── C-TECH-006's `Verify By`, executable — REWRITTEN 2026-10-02 for TAD rev 14 ──
+      # "Security test: unauthenticated request → 401/403". Two probes, one per control:
+      # the URL with its sig removed must be refused by the PLATFORM (no run starts), and
+      # the signed URL with no x-rev-client-id must be refused by the FLOW with its own
+      # {"error":"unauthorised"} body (one Cancelled run). The rev 10 version treated that
+      # flow body as defect D-001; under rev 14 it is the pass, and a platform refusal of
+      # the signed call is the failure (the trigger is not in mode Anyone — A-INT-11).
       #
       # Safe against a live environment: the probe carries no personal data, omits the
       # x-rev-client-id header, and is incomplete against the trigger's `required`
@@ -2107,10 +2118,10 @@ environments:
       # secret — the trigger URL carries its own SAS `sig=` and is a credential, so it
       # is never a value in a settings file (C-TECH-001/047).
       - description: >
-          C-TECH-006 / NFR-008 — the intake endpoint rejects an unauthenticated caller
-          with 401/403, and rejects it BEFORE the workflow definition runs. Also
-          asserts an invalid bearer token is rejected, i.e. the token is validated
-          rather than merely required.
+          C-TECH-006 / NFR-008 — TAD rev 14 probes: a POST without the sig gets 401/403
+          from the platform, and a signed POST without x-rev-client-id gets the flow's
+          own 401 (proving the trigger accepts the website's signed call and the second
+          control refuses a caller without the header).
         command: pwsh provisioning/entra/verify-intake-endpoint-auth.ps1 -Env test
       - description: >
           Group teams exist, hold exactly the TAD §6.1 roles, and no feature role
@@ -2305,23 +2316,11 @@ environments:
           MANUAL, once — bind the three connection references to service-account
           connections (interactive OAuth), then turn the four flows on.
           ⚠ Requires the WBS 0.3 Conditional Access exception.
-          ⚠ CONFIGURE TRIGGER AUTHENTICATION (next step) BEFORE TURNING THE INTAKE
-          FLOW ON — not after.
+          The intake trigger's mode (Anyone, TAD rev 14) ships in the solution, so there
+          is no trigger setting to configure first; the smoke test verifies it.
         script: manual
-      # ── NEW 2026-08-12 — closes test-agent defect D-001 (C-TECH-006 HARD) ──────
-      - description: >
-          MANUAL — CONFIGURE TRIGGER AUTHENTICATION on `REV | Intake | WordPress to
-          Dataverse` in PRD, inside the APPROVE PRD gate. Same control and same value
-          as TST/ACC, because weakening it in production would be the wrong way round:
-          authentication parameter "Specific users in my tenant", Allowed users = the
-          SERVICE PRINCIPAL OBJECT ID of rev-wordpress-intake (from the
-          ensure-intake-client.ps1 output in tenant_prerequisites).
-          WHO: Wanstor (tenant administration); the maker supplies the value and
-          confirms the smoke test passes BEFORE the endpoint is given to Alex.
-          ⚠ Do this before the flow is turned on, and read Allowed users back after
-          saving — a blank list silently means "any user in the tenant".
-          Record the value applied in the Deployment Summary (C-TECH-041).
-        script: manual
+      # ── RETIRED 2026-10-02 (TAD rev 14, ADR-011 intervention 5) — see the matching
+      # comment in tst_acc.post_deploy: the trigger mode is declared in the flow source.
 
     smoke_tests:
       - description: Imported solution version matches the artifact
@@ -2332,10 +2331,11 @@ environments:
       # Must pass before the endpoint URL is handed to Alex. Needs the
       # INTAKE_ENDPOINT_URL_PRD secret. The probe writes nothing under any outcome.
       - description: >
-          C-TECH-006 / NFR-008 — the intake endpoint rejects an unauthenticated caller
-          with 401/403, rejects it BEFORE the workflow definition runs, and rejects an
-          invalid bearer token. A FAIL here means the one public endpoint in production
-          is open, so it is a deployment-halting result, not a warning.
+          C-TECH-006 / NFR-008 — TAD rev 14 probes: a POST without the sig gets 401/403
+          from the platform, and a signed POST without x-rev-client-id gets the flow's
+          own 401. A FAIL here means either the one public endpoint in production is
+          open or the website is locked out, so it is a deployment-halting result, not
+          a warning.
         command: pwsh provisioning/entra/verify-intake-endpoint-auth.ps1 -Env prd
       - description: >
           One controlled application end to end, followed by a deliberate failure

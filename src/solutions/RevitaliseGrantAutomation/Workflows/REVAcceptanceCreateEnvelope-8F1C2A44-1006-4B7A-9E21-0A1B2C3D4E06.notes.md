@@ -1,5 +1,11 @@
 # REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json - full descriptions
 
+> **Read the last section first: "TAD rev 15 (2026-10-02)".** The flow no longer has
+> `Create_and_send_the_envelope` or `Compose_template_tab_values`. Every section below that
+> describes them (the `SendEnvelope` wire shape, `signers` keys, per-signer `tabs`, A-DS-12) is kept
+> as history and no longer describes the source. The trigger, the three reads, the reminder cadence
+> and the write-back sections still apply.
+
 Same 256-character constraint as every other flow in this solution (see the Scoring flow's
 notes.md). This file carries the reasoning the condensed on-file descriptions could not.
 
@@ -392,3 +398,191 @@ The reviewer ruled on 2026-09-30 that `rev_refereename`, `rev_refereeemail`, `re
 Left readable on purpose: `Set_reminder_cadence` and `Write_the_envelope_id_and_issue_date` read only `body('Create_and_send_the_envelope')?['envelopeId']`, a DocuSign-generated identifier, so a lost envelope can still be found from a run; and `Alert_on_failure`, which passes the grant reference and never a person. `Get_the_provider` and the two settings reads select no personal column. Protection does not propagate through a Compose, which is why each action carries its own setting.
 
 Secured inputs and outputs are still available to later actions in the same run, so no expression changed. No column was newly secured, so C-DOM-033 needs no register row. Asserted by `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1`. This is source-level only; that the DEV run history now shows redacted values is not yet observed (Dev Summary section 11).
+
+## TAD rev 15 (2026-10-02) — draft, bind, fill, check, send (ADR-067 C1-C10 option A, ADR-068)
+
+**Why.** The reviewer reported that the single `SendEnvelope` call can no longer create, fill and
+send in one step. Emily Sheardown's test of 2026-10-02 found that a forwarded referee email could be
+signed by someone else and recorded as the referee. The reviewer then directed (verbatim, 2026-10-02):
+*"The whole point is that I gave the actions necessary to add to the current workflow "Rev acceptance
+create envelope. Not a seperate flow. These steps would then land in the build the envelope scope."*
+So the DocuSign operations from his DEV flow `TEST_Docusign` (v2c, designer-saved, never run) are now
+inside `Build_the_envelope`, shaped by TAD rev 15 §5.8–5.10. **TAD rev 15 is at ARCHITECTURE REVIEW
+REQUIRED and has not been approved; this is reviewer-directed implementation.**
+
+**Unchanged:** the trigger, `Get_the_application`, `Get_the_applicant`, the provider lookup,
+`Compose_provider_name`, `Read_reminder_days` / `Parse_reminder_days` / `Compose_reminder_cadence`,
+the `UpdateRecord` write-back and the failure-detail / `Alert_on_failure` pattern.
+
+### The sequence
+
+| TAD 5.8 step | Actions | Operation | Note |
+|---|---|---|---|
+| 1 | `Read_acceptance_email_settings`, `Filter_applicant_email_setting`, `Filter_referee_email_setting`, `Compose_acceptance_email_texts` | `ListRecords` on `rev_settings`, 2 Query, Compose | `{subject, body}` per signer. `{grantReference}` becomes `rev_grant.rev_name`. A missing row gives empty text; invalid JSON fails here, before any draft |
+| 1 | `Select_referee_phone_digits`, `Compose_referee_phone_digits` | Select over `range()`, Compose `join` | Keeps every digit, drops everything else, not only a fixed list of characters |
+| 1 | `Set_referee_details_problem`, `Check_referee_details_are_present` | SetVariable, If (alert, Terminate) | Names the first missing item in words: a settings row, an empty subject or body, a subject over 100 characters, the referee's name, email, or a phone with fewer than six digits |
+| 2 | `Compose_access_code`, `Compose_tab_values` | Compose | Code = last six digits. Tab values: awarded amount `N2`, dates `d MMMM yyyy`, keyed by Data Label and by placeholder text |
+| 3 | `Create_the_draft_envelope`, `Set_draft_envelope_id` | C1 `CompositeTemplates` (`status: Created`) | Nobody is emailed by a draft |
+| 4 | `List_the_envelope_recipients`, `Filter_the_applicant_signer`, `Filter_the_referee_signer` | C2 `GetRecipientStatus`, 2 Query | Ids are read from the draft by `roleName` |
+| 7 (C5) | `Find_the_document` | C5 `ListTemplateDocuments` | The template's only document |
+| — | `Set_draft_shape_problem`, `Check_the_draft_matches_the_template` | SetVariable, If (alert, Terminate) | Exactly one signer per role and one document |
+| 5 | `Bind_the_applicant`, `Bind_the_referee` | C3 `UpdateEnvelopeRecipient` | Routing 1 / 2, own subject and body, `English UK (en_GB)`, no `phoneNumber` |
+| 6 | `Require_referee_access_code` | C4 `AddVerificationToRecipient`, `Access Code` | |
+| 7 | `Read_the_tabs` | C6 `GetEnvelopeDocumentTabs` | |
+| 8 | `Select_tab_matches`, `Filter_tabs_to_fill`, `Select_tab_array` | Select, Query, Select | One `{tabType, tabId, value}` array |
+| 9 | `Fill_the_tabs` | C7-A `UpdateEnvelopePrefillTabs` | Option A |
+| 10 | `Re_read_the_tabs`, `Select_re_read_values`, `Select_found_tab_ids`, `Filter_missing_tabs`, `Filter_unfilled_tabs`, `Select_unfilled_tab_ids`, `Set_tab_fill_problem`, `Check_every_tab_was_filled` | C8 `GetEnvelopeDocumentTabs`, Selects, Queries, If (alert, Terminate) | Every expected tab found, and holding the value sent |
+| 11 | reminder actions, `Set_reminder_cadence` | C9 `AddReminders` | Now on the draft, before the send |
+| 12 | `Send_the_envelope` | C10 `SendDraftEnvelope` | |
+| 13 | `Write_the_envelope_id_and_issue_date` | `UpdateRecord` | Status 1 → 2 only after the send |
+
+### Where this source differs from `TEST_Docusign` v2c, and why
+
+The reviewer's flow is E1 for operation ids, static parameter names and the literals the designer
+writes. Its values are test artefacts. Each difference below follows TAD rev 15.
+
+1. **Referee routing order is `2`**, not `1` (FR-042; ADR-067 design requirement 1).
+2. **No `phoneNumber` on the referee.** It is an SMS delivery channel for the signing link, not a
+   contact field (ADR-067 design requirement 3).
+3. **The access code is the last six DIGITS** after every non-digit is removed. v2c took the last six
+   characters of the raw value. A phone with fewer than six digits, or none, stops the run and
+   alerts (ADR-068 item 4).
+4. **Subjects and bodies come from the two settings rows**, not literals (ADR-068 item 3). v2c's
+   applicant subject also carried the applicant's name; the rows substitute only the grant reference.
+5. **Amount is `rev_grant.rev_amountawarded` formatted `N2`**, not the application's
+   `rev_amountrequested`. **Dates are the grant's holiday start and end formatted `d MMMM yyyy`**, not
+   the application's raw `rev_breakstart`/`rev_breakend` (ADR-067 design requirement 2).
+6. **The applicant's name is `rev_fullname`**, as this flow already composed it, not
+   `rev_firstname + ' ' + rev_lastname`.
+7. **Reads stay house `ListRecords`** by primary key, not Get-a-row-by-id (IMP-0112). v2c's
+   hard-coded record id is not copied.
+8. **`secureData` on every action that carries personal data** (C2–C4, C6–C8 and each Select/Query
+   after the draft; Composes inputs only). v2c secures nothing.
+9. **The tab array is built with `Select`**, not `AppendToArrayVariable` inside a loop: a variable
+   action cannot be secured (TAD 5.8).
+10. **Tabs are matched by Data Label, then by placeholder text** within their owner (prefill or the
+    referee). v2c switched on the placeholder `value` only.
+11. **The document is the template's only document**, checked by count. v2c filtered on the file
+    name `Grant Acceptance Form.docx` (ADR-067 design requirement 7).
+12. **Signers are found with two Filter arrays, not a `Foreach` + `Switch`.** Same operations and the
+    same `roleName` keys, but a missing or doubled role now stops the run before anyone is bound,
+    where the loop would silently skip it (ADR-068 H2). It also avoids two containers in the scope.
+13. **`ListTemplateDocuments` runs before the binding**, not after it, so the shape check can stop
+    the run before any signer is bound. It is a read; the order of the calls that change the draft
+    is the TAD's.
+14. **Recipient ids are never typed in**: every `recipientId` reads `Filter_the_*_signer`. v2c's
+    access-code action read the id from the bind action's response.
+15. **The template and account ids stay environment variables** (C-TECH-047). v2c held DEV values
+    as parameter defaults.
+16. **Reminders (`AddReminders`) are set before the send.** v2c had no reminder call.
+17. **A read-back check (C8) runs before the send.** v2c had none.
+18. **Every template tab is filled, except signature, full name and sign date** (reviewer decision at code
+    review, 2026-10-02, which overrides TAD §5.8 step 2; see the last section). *Withdrawn wording, retained:*
+    "Only the TAD's expected tab set is filled (five prefill tabs and the referee's `n2`, `e2`, `ph2`)."
+
+### Open platform contracts (Dev Summary §10)
+
+- **A-DS-14** — the draft carries both template roles as placeholder signers; `UpdateEnvelopeRecipient`
+  fills them rather than adding signers; `SendDraftEnvelope` sends the draft as filled.
+- **A-DS-15** — whether tabs carry `tabLabel` and `recipientId` in the connector's read; which tabs
+  are prefill; that the template's document id is the envelope's. `n2` is documented in the
+  anchor-tag table as a *Full Name* tab. If DocuSign fills it from the bound name, the read-back
+  still passes because the name sent is the same; if the read does not return it at all, C8 stops
+  the run naming `n2`.
+- **A-DS-16** — option A updates recipient tabs; which `tabType` string the update accepts (the read's
+  own value is passed through, per §12.5 R3); `English UK (en_GB)` is accepted; `AddReminders` works
+  on a draft.
+- **A-DS-17** — a six-digit code conforms to the account's access-code format, and the link asks for it.
+- **A-DS-18** — an envelope from a template whose *Allow recipients to change signing responsibility*
+  option is off inherits it. No connector action can set it (ADR-068 item 2); it is a template or
+  account setting, checked by §12.5 M4 and M6.
+
+### What a person sees when it stops
+
+- **Before the draft** (`Check_referee_details_are_present`, or any failure up to
+  `Create_the_draft_envelope`): nobody is emailed and nothing exists in DocuSign. The process owner's
+  alert names what is missing.
+- **After the draft, before the send**: nobody is emailed. The alert names the draft's envelope id so
+  it can be deleted in DocuSign (risk A-R74). A re-run makes a new draft.
+- **After the send**: `Write_the_envelope_id_and_issue_date` is the only action left. If it fails, the
+  envelope has gone out and the alert says so ("Unless Send_the_envelope succeeded it is an unsent
+  draft").
+
+### Run history
+
+Unchanged rule, wider set. See the "Run history is secured" section above for the reasoning.
+Secured `["inputs","outputs"]`: `Get_the_application` and `Get_the_applicant`, `Select_referee_phone_digits`,
+`List_the_envelope_recipients`, both signer filters, both binds, `Require_referee_access_code`, both tab
+reads, `Fill_the_tabs`, every Select and Query after the draft, and `Find_the_failed_action`. Secured
+`["inputs"]`: `Compose_referee_phone_digits`, `Compose_access_code`, `Compose_tab_values`. Left
+readable: the settings reads and `Compose_acceptance_email_texts` (no personal value),
+`Create_the_draft_envelope`, `Find_the_document`, `Set_reminder_cadence`, `Send_the_envelope` and the
+write-back (they read only the envelope id, from the variable `draftEnvelopeId`), and every alert. The
+three `Set_*_problem` variables carry words only, never a value; a variable action cannot be secured
+and does not need to be here.
+
+Asserted by `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1`, which also executes the guards,
+the access code and the tab matching on chosen inputs through `_harness/WdlExpression.psm1`.
+
+## Code-review revision (2026-10-02) — every tab filled, matched without assuming which signer holds which set
+
+**Reviewer decisions, verbatim, 2026-10-02:**
+
+- *"The array with tabs are all the tabs on the template. Skipping them is not ok. They should all be populated by
+  the workflow. Except the signer full name, sign date and signature for both recipients."*
+- *"It's a checkbox for the applicant. Not the referee. To agree with the grant."*
+- *"On the template there are pre-fill tabs, acceptor tabs and referee tabs. In this order."*
+
+These override TAD §5.8 step 2's tab set. The TAD is architect-agent's to amend; it is not edited here.
+
+**Why the matching does not assume a role.** The reviewer's pasted `GetEnvelopeDocumentTabs` output groups tabs by
+type, under two recipient ids. The checkbox statement puts the group holding the checkbox on the applicant; the
+layout statement can be read the other way. So the flow does not depend on knowing it. **Both roles accept the union
+of placeholders, both spellings included.** The role, resolved at run time from `GetRecipientStatus` (`roleName` →
+`recipientId`), decides only which Dataverse value a matched placeholder gets. Which recipient group carries which
+placeholder set is unmeasured and is read on the first DEV run (A-DS-15).
+
+**What is sent.** Every tab except `signHereTabs`, `fullNameTabs`, `dateSignedTabs` and `tabGroups`.
+`Compose_connector_tab_types` is the one place the read's tab type meets the connector's enum, and it holds the
+never-send list. A tab group is a validation group: it holds no value, and the connector enum is not known to accept
+it, so it is not sent (A-DS-16). Any other tab the flow cannot map stops the run before the send, naming its
+placeholder text, because the reviewer requires every tab to be filled.
+
+| Role | Tab (placeholder, or tab type) | Source | Notes |
+|---|---|---|---|
+| prefill | Name | `rev_applicant.rev_fullname` | |
+| prefill | Amount | `rev_grant.rev_amountawarded`, `N2` | awarded, not requested |
+| prefill | Holiday type | `rev_application.rev_breaktype`, formatted | |
+| prefill | Holiday destination | `rev_application.rev_breaklocation` | |
+| prefill | Dates | `rev_grant.rev_holidaystart` – `rev_holidayend`, `d MMMM yyyy` | |
+| Grant Acceptor | First name / Last name | `rev_firstname` / `rev_lastname` | column-secured |
+| Grant Acceptor | Title | `rev_title`, formatted label | column-secured |
+| Grant Acceptor | Email; `emailAddressTabs` | `rev_email` | |
+| Grant Acceptor | Phone | `rev_phone` | |
+| Grant Acceptor | Postcode | `rev_postcode` | |
+| Grant Acceptor | Address / Adress | `rev_addressline` + ", " + `rev_addressline2` when present | |
+| Grant Acceptor | Town/City / City/Town | `rev_towncity` | |
+| Grant Acceptor | Job title; `companyTabs` | `""` | no column |
+| Grant Acceptor | `checkboxTabs` | `false` (unticked) | the grant agreement; never ticked by the flow |
+| Grant Referee | First name / Last name | `rev_refereename`, split at the first space | one-word or empty name: last name `""`. Last name is `join(skip(split(name,' '),1),' ')` — the earlier `substring(name+' ', indexOf+1)` started at `length` for a one-word or empty name and failed the whole `Compose_tab_values` (2026-10-03) |
+| Grant Referee | Email; `emailAddressTabs` | `rev_refereeemail` | |
+| Grant Referee | Phone | `rev_refereephone`, as typed | |
+| Grant Referee | Title, Postcode, Address / Adress, Town/City / City/Town | `""` | ADR-043, no column |
+| Grant Referee | Job title; `companyTabs` | `""` | no column |
+| Grant Referee | `checkboxTabs` | `false` (unticked) | only if a checkbox turns out to sit on the referee |
+| either | `signHereTabs`, `fullNameTabs`, `dateSignedTabs` | not sent | reviewer |
+| either | `tabGroups` | not sent | no value; validation group |
+
+`""` clears the template's placeholder text so the signer types the value. The read-back requires the five prefill
+tabs and, for each signer, first name, last name, title, postcode and phone (the tabs both placeholder sets share).
+Every other tab is covered by the no-mapping stop, and every tab sent must hold the value sent. A checkbox is read
+back from `selected`, lower-cased.
+
+**A new pre-send check.** The applicant's email and first name must be readable. Every applicant column above is
+column-secured (`REV_TrusteeRestricted`), so if the service identity is not a member of that profile they read empty
+and the tabs would be cleared silently; the run now stops instead and says so.
+
+**Register effect.** `A-DS-4` (leave the referee's first/last name blank) is closed by the reviewer's decision to
+split the name. `A-DS-5` stands: `rev_refereeemail` now fills the referee's email tabs. `A-DS-15` gains the
+role-to-placeholder-set question; `A-DS-16` gains the `Checkbox`, `Company` and `EmailAddress` enum strings, the
+checkbox's `selected` read-back, and whether an `emailAddressTabs` update is honoured.

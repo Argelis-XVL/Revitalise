@@ -283,15 +283,22 @@ function Get-DataverseWritePayload {
       Returns a hashtable of column -> expression for a Dataverse CreateRecord or
       UpdateRecord action, WHICHEVER SHAPE it uses.
 
-      The two shapes are not interchangeable and both are correct, which is why this
-      exists rather than the tests picking one:
+      Two shapes exist in source, and only one is correct (TAD rev 14 section 5 rule):
 
-        CreateRecord  "item": { "col": expr, ... }        nested   — VERIFIED WORKING
-                      (REV | Ops | Failure Alert wrote 11 rev_errorlog rows this way)
+        "item/col": expr, ...               flat     — THE RULE, for CreateRecord,
+                                                       UpdateRecord and UpdateOnlyRecord alike
+        "item": { "col": expr, ... }        nested   — works AT RUNTIME ONLY. REV | Ops |
+                                                       Failure Alert wrote rev_errorlog rows
+                                                       this way, but the designer binds only
+                                                       the flat form and writes back only what
+                                                       it bound, so ANY designer save empties a
+                                                       nested action (both intake creates,
+                                                       DEV 2026-10-02 08:51 UTC). On UpdateRecord
+                                                       it also wrote nothing (2026-08-20).
 
-        UpdateRecord  "item/col": expr, ...               flattened
-                      (the nested form left the action with NO PROPERTIES CONFIGURED in
-                       the designer and wrote nothing — observed live 2026-08-20)
+      CORRECTED 2026-10-02. This comment used to call the nested CreateRecord form
+      "VERIFIED WORKING" — true of a run, false of a designer save. No nested action remains
+      (intake Create_application converted when A-INT-15 closed); both shapes are still read so a regression is visible.
 
       A test that reads .parameters.item directly silently returns nothing on a flattened
       action and then passes vacuously, so read the payload through here.

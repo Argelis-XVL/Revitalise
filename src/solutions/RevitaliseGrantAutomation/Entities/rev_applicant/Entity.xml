@@ -59,7 +59,7 @@
             <displayname description="First Name" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The applicant's first name, as given on the intake form. Raw export column 16. This and rev_lastname are the columns the intake flow WRITES; rev_fullname is calculated from them and cannot be written." languagecode="1033" />
+            <Description description="The applicant's first name, as given on the intake form. Raw export column 16. This and rev_lastname are the columns the intake flow WRITES; rev_fullname is also written by the intake flow (first plus last name); it is an ordinary column, not calculated." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_lastname">
@@ -115,6 +115,13 @@
             these two columns, unchanged by this fix) — not because a plain column shouldn't be
             audited, but so this XML doesn't declare something different from what already exists.
             Revisit both together if/when the calculated conversion happens.
+
+            FLOW WRITES THIS COLUMN (2026-10-03, defect fix): REVIntakeWordPressToDataverse writes
+            rev_fullname = trim(first + ' ' + last) in BOTH Create_new_applicant and
+            Refresh_existing_applicant. The header above ("cannot be written") describes the
+            INTENDED calculated state, not the shipped one. If this column is ever converted to
+            calculated, those two writes MUST be removed in the same change - a write to a
+            calculated column fails the create.
           -->
           <Type>nvarchar</Type>
           <Name>rev_fullname</Name>
@@ -128,7 +135,7 @@
             <displayname description="Full Name" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The applicant's full name. CALCULATED from rev_firstname and rev_lastname - it cannot be typed or written by a flow. Kept as a single column so everything that already reads a full name keeps working." languagecode="1033" />
+            <Description description="The applicant's full name: first name plus last name, written by the intake flow. An ordinary column, not calculated; if it is ever converted to calculated the intake writes must be removed. Kept as a single column so everything that already reads a full name keeps working." languagecode="1033" />
           </Descriptions>
         </attribute>
         <!--

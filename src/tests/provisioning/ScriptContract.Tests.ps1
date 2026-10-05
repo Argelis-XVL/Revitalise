@@ -263,6 +263,30 @@ Describe 'Script contract — verify-* scripts are read-only' {
         $text | Should -Match '(?s)WHY THIS IS SAFE TO RUN AGAINST PRD'
         $text | Should -Match 'SkipHttpErrorCheck' -Because 'the status code must be read, not thrown on'
     }
+
+    It 'verify-intake-callback-url.ps1 is the SECOND read-only-by-effect exception, and says so (TAD rev 14)' {
+        # Its one POST is Power Automate's listCallbackUrl, which returns the URL and changes
+        # nothing. Kept as narrow as the first exception: exactly one POST, to that action only,
+        # no Dataverse or Graph command, and the URL is hashed — never printed or written.
+        $path = Get-ProvisioningScriptPath -RelativePath 'entra/verify-intake-callback-url.ps1'
+        $ast  = (Get-ScriptAst -Path $path).Ast
+        $invoked = Get-InvokedCommandNames -Ast $ast
+
+        $invoked | Should -Contain 'Invoke-RestMethod'
+        $invoked | Should -Not -Contain 'Invoke-DataverseApi'
+        $invoked | Should -Not -Contain 'Invoke-WebRequest'
+        foreach ($command in $invoked) {
+            $command | Should -Not -Match '^(New|Set|Remove|Add|Update|Get)-Mg'
+        }
+        $rest = @($ast.FindAll({ $args[0] -is [System.Management.Automation.Language.CommandAst] -and
+                                 $args[0].GetCommandName() -eq 'Invoke-RestMethod' }, $true))
+        $rest.Count | Should -Be 1
+
+        $text = Get-Content -Path $path -Raw
+        $text | Should -Match 'READ-ONLY BY EFFECT, NOT BY METHOD'
+        $text | Should -Match '/triggers/manual/listCallbackUrl'
+        $text | Should -Match 'SHA256'
+    }
 }
 
 Describe 'Script contract — the settings-file contract holds both ways' {

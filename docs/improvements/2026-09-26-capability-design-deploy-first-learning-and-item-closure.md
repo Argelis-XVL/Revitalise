@@ -344,6 +344,7 @@ IMP-0824, IMP-0879, IMP-0885.
   pipeline run; `reopened ≥ 2`; `deferred` without reason).
 - Opens from disk (`file://`), no server, no CDN. Answers [Checkpoint 11](docs/improvements/IMPLEMENTATION-PLAN.md#L757)
   decision (1): static file. Decision (2) (trend windows) stays open; the board needs none.
+- **W8 is specified in [`2026-10-02-improvement-review.md`](docs/improvements/2026-10-02-improvement-review.md)** (applied 2026-10-02): the reviewer gives verdicts on the board, which produces a verdicts file that `work-items.py apply-verdicts` writes through the ledger's normal checks. It extends this section's "the board never writes back" — the board still writes nothing to the repository — and W4's chat relay stays as the second route.
 
 #### W6 — Multi-client scaffolding
 

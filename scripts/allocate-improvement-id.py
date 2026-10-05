@@ -42,6 +42,12 @@ Usage
 With `--append`, the entry file may omit `id` entirely or carry a placeholder; whatever is there
 is overwritten with the id allocated inside the lock. That is the point: the id you were going to
 guess is the one thing this script will not let you supply.
+
+`ts` is stamped here, from the clock, inside the lock (IMP-0965). On 2026-09-30 agents typed
+finding times up to five and a half hours in the future, every one of them through this script,
+which then wrote whatever it was given. A supplied `ts` is now replaced by the local clock
+(`%Y-%m-%dT%H:%M`, the log's existing form); if it differed by more than 5 minutes a NOTE names
+both values, so the agent learns its own clock was wrong.
 """
 
 from __future__ import annotations
@@ -52,6 +58,7 @@ import os
 import re
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 try:
@@ -108,12 +115,44 @@ def allocate(log_path: Path) -> str:
         os.close(fd)  # releases the flock
 
 
-def append(log_path: Path, entry: dict) -> str:
-    """Allocate and append inside ONE critical section. Returns the id written."""
+TS_FORMAT = "%Y-%m-%dT%H:%M"
+TS_SKEW_NOTE_MINUTES = 5
+
+
+def clock_ts(now: datetime | None = None) -> str:
+    """The log's `ts` form, from the local clock."""
+    return (now or datetime.now()).strftime(TS_FORMAT)
+
+
+def skew_note(supplied, stamped: str) -> str | None:
+    """A NOTE when the caller's own `ts` was more than TS_SKEW_NOTE_MINUTES off the clock."""
+    if not isinstance(supplied, str) or not supplied:
+        return None
+    try:
+        a = datetime.strptime(supplied[:16], TS_FORMAT)
+        b = datetime.strptime(stamped, TS_FORMAT)
+    except ValueError:
+        return (f"allocate-improvement-id: NOTE — supplied ts {supplied!r} is not in the log's "
+                f"form; stamped {stamped} from the clock (IMP-0965)")
+    if abs((a - b).total_seconds()) > TS_SKEW_NOTE_MINUTES * 60:
+        return (f"allocate-improvement-id: NOTE — supplied ts {supplied} differs from the clock "
+                f"({stamped}) by more than {TS_SKEW_NOTE_MINUTES} minutes; the clock's value was "
+                f"written (IMP-0965)")
+    return None
+
+
+def append(log_path: Path, entry: dict, now: datetime | None = None) -> str:
+    """Allocate and append inside ONE critical section. Returns the id written.
+
+    `ts` is set from the clock here, inside the lock, replacing any supplied value (IMP-0965)."""
     fd = _open_locked(log_path)
     try:
         allocated = format_id(max_id(log_path) + 1)
-        entry = {**entry, "id": allocated}
+        stamped = clock_ts(now)
+        note = skew_note(entry.get("ts"), stamped)
+        if note:
+            print(note, file=sys.stderr)
+        entry = {**entry, "id": allocated, "ts": stamped}
         # `id` first so the file stays readable; json.dumps with no spaces matches the log's style.
         ordered = {"id": allocated, **{k: v for k, v in entry.items() if k != "id"}}
         line = json.dumps(ordered, ensure_ascii=False) + "\n"
@@ -166,10 +205,21 @@ def _selftest() -> int:
         check("appended entry carries the allocated id", rows[-1]["id"], "IMP-0010")
         check("appended entry keeps its payload", rows[-1]["what"], "fixture")
 
+        # 3b. `ts` comes from the clock, never from the caller (IMP-0965).
+        fixed = datetime(2026, 10, 5, 9, 30)
+        append(p, {**_ENTRY, "ts": "2099-01-01T00:00"}, now=fixed)
+        rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+        check("a supplied future ts is replaced by the clock", rows[-1]["ts"], "2026-10-05T09:30")
+        no_ts = {k: v for k, v in _ENTRY.items() if k != "ts"}
+        append(p, no_ts, now=fixed)
+        rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+        check("a missing ts is filled from the clock", rows[-1]["ts"], "2026-10-05T09:30")
+        check("a 2-minute skew prints no NOTE", skew_note("2026-10-05T09:32", "2026-10-05T09:30"), None)
+
         # 4. A malformed line must not stop allocation (it is the validator's problem).
         with p.open("a", encoding="utf-8") as fh:
             fh.write("{not json\n")
-        check("malformed line does not break allocation", allocate(p), "IMP-0011")
+        check("malformed line does not break allocation", allocate(p), "IMP-0013")
 
         # 5. CONCURRENCY — the fixture the prose rule never had. N processes append at once;
         #    every id must be distinct, which is the property six findings say prose cannot hold.
@@ -196,7 +246,7 @@ def _selftest() -> int:
         print(f"allocate-improvement-id: SELFTEST FAILED — {len(failures)} failure(s): "
               f"{', '.join(failures)}", file=sys.stderr)
         return 1
-    print("allocate-improvement-id: SELFTEST OK — 11 fixtures, including an 8-way concurrent "
+    print("allocate-improvement-id: SELFTEST OK — 14 fixtures, including an 8-way concurrent "
           "append that the prose rule this script replaces has failed six times.")
     return 0
 

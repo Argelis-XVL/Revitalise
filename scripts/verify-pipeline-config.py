@@ -574,6 +574,32 @@ def solution_declares_field_permissions(repo_root: Path) -> tuple[bool, int, str
     return False, 0, ""
 
 
+def check_one_app_per_push(env_name: str, block: dict, errors: list[str], repo_root: Path) -> None:
+    """Check 15 — two or more post_deploy entries with one `operation` in one environment must each
+    carry an `app:` naming an existing folder (IMP-0986).
+
+    Two Code Apps share one command, so without the key one app's push discharged the other app's
+    work items (lib/deploy_markers.py, ONE LABEL PER APP). Value-only: it reads the `operation`
+    and `app` keys, never a description (check 13's rule).
+    """
+    by_op: dict[str, list[tuple[int, dict]]] = {}
+    for i, step in enumerate(block.get("post_deploy") or []):
+        if isinstance(step, dict) and str(step.get("operation") or "").strip():
+            by_op.setdefault(str(step["operation"]).strip(), []).append((i, step))
+    for op, steps in by_op.items():
+        if len(steps) < 2:
+            continue
+        for i, step in steps:
+            app = str(step.get("app") or "").strip()
+            where = f"environments.{env_name}.post_deploy[{i}]"
+            if not app:
+                errors.append(f"{where}: {len(steps)} entries carry operation '{op}' in {env_name}, so "
+                              f"each must name its `app: src/code-apps/<folder>` — otherwise one app's "
+                              f"push discharges another app's work items (IMP-0986).")
+            elif not (repo_root / app).is_dir():
+                errors.append(f"{where}: app '{app}' is not a folder in this repository (IMP-0986).")
+
+
 def check_field_permission_provisioning(env_name: str, block: dict, errors: list[str],
                                         stats: dict) -> None:
     """Check 14 — every environment receiving field permissions wires the Web API route."""
@@ -903,11 +929,13 @@ def main(argv: list[str] | None = None) -> int:
     # ── Check 12: every environment that runs provisioning proves the identity first ─────
     # ── Check 13: every environment that pushes a code app declares the feature toggle ───
     # ── Check 14: every environment receiving field permissions wires the Web API route ──
+    # ── Check 15: two pushes of one operation in one environment each name their app ────
     for env_name, block in environments.items():
         if isinstance(block, dict):
             check_environment_access(env_name, block, errors, stats)
             check_code_app_feature(env_name, block, errors, stats)
             check_field_permission_provisioning(env_name, block, errors, stats)
+            check_one_app_per_push(env_name, block, errors, repo_root)   # check 15, IMP-0986
 
     # ── C-TECH-033: production declares a rollback route ────────────────────────────────
     prd = environments.get("prd") or environments.get("prod") or {}

@@ -357,11 +357,9 @@ function New-SettingsFixture {
             clientAppDisplayName  = 'rev-wordpress-intake'
             flowName              = 'REV | Intake | WordPress to Dataverse'
             triggerAuthentication = @{
-                mode                               = 'Specific users in my tenant'
-                allowedCallerSource                = 'Service principal OBJECT id of intake.clientAppDisplayName'
-                expectedAudience                   = 'https://service.flow.microsoft.com/'
-                callerTokenScope                   = 'https://service.flow.microsoft.com//.default'
-                requiredClaims                     = @('aud', 'iss', 'tid', 'oid')
+                # TAD rev 14 (ADR-011): mode Anyone, declared in the flow source.
+                mode                               = 'Anyone'
+                definitionValue                    = 'All'
                 unauthenticatedExpectedStatusCodes = @(401, 403)
                 configuredBy                       = 'fixture owner'
             }

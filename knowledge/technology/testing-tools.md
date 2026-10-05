@@ -162,7 +162,9 @@ The query must carry **no paging attributes** — a `top="20"` on `<fetch>` fail
 
 **Date-times come back in UTC, with no zone marker.** Measured 2026-09-29: the `ImportSolution`
 job for an import begun at 21:29 CEST reads `createdon` 7:29 PM. `logs/` lines are local time,
-taken from `date` when the line is written. Convert before comparing the two, and write the zone
+~~taken from `date` when the line is written~~ stamped by the tool that appends them
+(`scripts/log-line.py`; the id allocator for the improvement log). Typed stamps were measured up to
+five and a half hours in the future on 2026-09-30 (IMP-0970). Convert before comparing the two, and write the zone
 beside every platform time you quote. Mixing them put one dispatch's `pipeline.log` lines two
 hours behind the next one's, and made a failed platform job read as the cause of a change it
 preceded (`IMP-0959`, `IMP-0960`).

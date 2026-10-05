@@ -5,6 +5,17 @@
     authentication depends on.
 
 .DESCRIPTION
+    TAD rev 14 (ADR-011 RE-DECIDED 2026-10-02) — READ THIS FIRST. The intake trigger is now
+    in mode Anyone (the signed callback URL), declared in the flow source, because the
+    website's Gravity Forms webhook sends static headers and cannot refresh an Entra token.
+    So the PRIMARY-control text below (Allowed users, service principal object id, the
+    client-credentials token) describes the RETIRED rev 10 route and is kept as history. What
+    still holds: the registration exists so that its APPLICATION (CLIENT) ID can be the
+    rev_IntakeAllowedClientId value the website sends as x-rev-client-id. The client secret
+    issued to Alex on 2026-09-25 is no longer needed by anything; revoking it is a
+    reviewer/Wanstor action, not this script's. The Flow Service permission it declares is
+    likewise no longer used; removing it is a separate tenant change, not made here.
+
     Tenant-level script — runs behind the APPROVE TENANT gate (C-TECH-041) from the
     `tenant_prerequisites` block of config/<slug>-pipeline.yml, alongside
     ensure-app-registration.ps1.
@@ -231,15 +242,16 @@ catch {
 
 # ── 5. The values D-001 asked for, named and in one place ────────────────────────
 Write-Output ''
-Write-Output '── INTAKE ENDPOINT AUTHENTICATION — VALUES TO APPLY ────────────────────────────'
+# TAD rev 14 (ADR-011 re-decided 2026-10-02): the trigger is in mode Anyone, DECLARED in the flow
+# source, so there is no Allowed users value to apply and no caller token. The registration is
+# kept only because its application id is the value the website sends as x-rev-client-id.
+Write-Output '── INTAKE ENDPOINT AUTHENTICATION — VALUES (TAD rev 14) ────────────────────────'
 Write-Output "Flow                            : $flowName"
-Write-Output "Trigger auth parameter          : $(Get-Setting -Settings $triggerAuth -Path 'mode')"
-Write-Output "  Allowed users  (PRIMARY gate) : $($sp.Id)"
-Write-Output '                                  ^ service principal OBJECT id; semicolon-separate extras'
+Write-Output "Trigger mode                    : $(Get-Setting -Settings $triggerAuth -Path 'mode') (declared in source: triggerAuthenticationType $(Get-Setting -Settings $triggerAuth -Path 'definitionValue'))"
+Write-Output '  FIRST control                 : the signed callback URL (sig) — a CI secret, never printed here'
 Write-Output "rev_IntakeAllowedClientId       : $($app.AppId)"
-Write-Output '                                  ^ application (CLIENT) id — the SECOND gate only'
-Write-Output "Caller token scope              : $(Get-Setting -Settings $triggerAuth -Path 'callerTokenScope')"
-Write-Output "Expected aud claim              : $(Get-Setting -Settings $triggerAuth -Path 'expectedAudience')"
+Write-Output '                                  ^ application (CLIENT) id = the x-rev-client-id header value — the SECOND control'
+Write-Output "Service principal object id     : $($sp.Id) (no longer used by the trigger; reported for the registration record)"
 Write-Output "Configured by                   : $(Get-Setting -Settings $triggerAuth -Path 'configuredBy')"
 Write-Output "Verified by                     : provisioning/entra/verify-intake-endpoint-auth.ps1 -Env $Env"
 Write-Output '────────────────────────────────────────────────────────────────────────────────'

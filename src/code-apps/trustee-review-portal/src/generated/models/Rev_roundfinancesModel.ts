@@ -22,7 +22,7 @@ export interface Rev_roundfinancesBase {
   rev_individualssupported?: number;
   rev_isopen?: boolean;
   rev_monthlydisbursement?: number;
-  rev_name: string;
+  rev_name?: string;
   rev_peoplereachedbygroupgrants?: number;
   rev_peoplesupported?: number;
   rev_remaininglegacyfund?: number;
