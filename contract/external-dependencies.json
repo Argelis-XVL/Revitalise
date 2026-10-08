@@ -80,14 +80,14 @@
       "first_seen": "2026-07-04"
     },
     "DocuSign licence": {
-      "state": "outstanding",
+      "state": "satisfied",
       "owner": "Revitalise",
-      "evidence": "Service Agreement milestone: Phase 1 'subject to DocuSign being provisioned by the Client (target mid-September)'",
+      "evidence": "2026-10-08: reviewer (Xander Lykopoulos, Argelis) stated, relayed verbatim by lead-agent in the routed follow-up to improvement review 2026-10-07 (D-3): \"EX007 Docusign is licensed.\" Reviewer-reported; not independently observed (no licence document or tenant check read). Recorded under EX-007 closure in contract/known-exceptions.json. Original milestone: Phase 1 'subject to DocuSign being provisioned by the Client (target mid-September)'",
       "affects_automations": [
         "3"
       ],
       "first_seen": "2026-08-09",
-      "note": "2026-09-06: reviewer reports a DocuSign envelope template (id b832b15e-489d-4b13-a78b-0abef700803a) and a DocuSign connection in the DEV Power Platform environment. That is a working connection to build/test wbs:3.2 against in DEV (see EX-007), not evidence the Service Agreement milestone itself (Revitalise's own contracted/production licence) has been provisioned — the two are not the same fact, and this entry stays outstanding until the client-procured licence is confirmed."
+      "note": "2026-09-06: reviewer reports a DocuSign envelope template (id b832b15e-489d-4b13-a78b-0abef700803a) and a DocuSign connection in the DEV Power Platform environment. That is a working connection to build/test wbs:3.2 against in DEV (see EX-007), not evidence the Service Agreement milestone itself (Revitalise's own contracted/production licence) has been provisioned — the two are not the same fact, and this entry stayed outstanding until the client-procured licence was confirmed. 2026-10-08: reviewer states the licence is in place (see evidence); state moved outstanding -> satisfied, owner Revitalise unchanged, recorded by pm-agent. Level: reviewer-reported, not observed. Does not by itself promote automation #3 beyond DEV; later gates still apply."
     },
     "acceptance letter template": {
       "state": "satisfied",
