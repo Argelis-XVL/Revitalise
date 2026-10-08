@@ -27,6 +27,15 @@ receive it inside the **managed solution** import — no separate push. If your 
 does not yet support solution-packaged code apps, run `pac code push` per environment
 as a `post_deploy` step instead (document the deviation in TAD §9).
 
+*Added by improvement review 2026-10-07 (`IMP-1072`, `IMP-1081`, `IMP-1089`):*
+
+- **The audit can go red with no repository change**, because the advisory database moves
+  overnight. For a transitive dev-only package the remedy order is an overrides entry, then a
+  version bump, then a dated known-exception, always in both apps (they share a parity gate).
+- **After a test-runner or coverage-provider major bump, read the coverage step's stderr once**, and
+  keep coverage `include` to source files (`src/**/*.{ts,tsx}`); a wider glob pulls in markdown and
+  prints a parse error that no exit code reports.
+
 ## Core Commands
 
 ```powershell
@@ -338,6 +347,14 @@ pac solution check --path build/artifacts/<SolutionName>-managed.zip --geo Europ
 ```
 Parse the output — if any Critical/High issues exist, build-agent reports FAILED.
 Approved exceptions documented in `docs/architecture/<slug>-architecture.md §11`.
+
+*Added by improvement review 2026-10-07 (`IMP-1090`, `IMP-1091`):* `flow-avoid-recursive-loop`
+ignores trigger filtering attributes and fires once per write to the trigger's own table, so decide
+each result from the trigger filter against the written columns (the narrative suite's trigger-loop
+test, `NoTriggerLoop` in `src/tests/narrative/test_scrub_flow_definition.py`, does this for every
+flow). A new or changed flow's checker figures first appear at the build's lint step, because the
+checker is live-service only: read the SARIF per-rule breakdown, not only the count, and compare it
+with the Dev Summary's triage row before calling the build clean.
 
 ## Running `pac solution check` Locally
 

@@ -357,6 +357,11 @@ transitive closure from the trigger through every consumer of a value, not a sho
 other flow yet, because a precise check needs a list of which columns are personal (improvement
 review 2026-09-28, cluster K).
 
+**The inputs pane of a Select or Filter array shows its whole from-array, not what it projects**
+(improvement review 2026-10-07, `IMP-1079`). A Select that outputs only a number per row still
+displays every row it reads, text included. Secure its inputs whenever those rows carry text, even
+when its output is only numbers.
+
 ### Guards and fallbacks are tested with the input that triggers them
 
 *Added by improvement review 2026-09-28 (`IMP-0926`, `IMP-0927`, `IMP-0930`, `IMP-0945`, `IMP-0949`).*
@@ -385,6 +390,39 @@ sit, not what they do.
   in `coalesce()` with a value outside every band, and test with an unscored row (IMP-0980).
 - `string(<boolean>)` renders `True`/`False` (IMP-0981), which is invalid JSON spliced unquoted; use
   `if(<cond>,'true','false')`.
+
+### AI Builder
+
+*Added by improvement review 2026-10-07 (`IMP-1064`, `IMP-1071`, `IMP-1085`, `IMP-1087`, `IMP-1088`).*
+Six facts, each found by hand and each needed again by the next flow that calls a prompt or the
+extractor. The catalogue and regional facts are point-in-time readings; re-read them before relying
+on them.
+
+- **Read a model's input/output contract, never guess it.** `pac env fetch --xmlFile <file>` on
+  `msdyn_aitemplate`, selecting `msdyn_uniquename` and `msdyn_rundataspecification`. Do not use
+  `<all-attributes/>`: the table it prints is too wide to read.
+- **No prebuilt PII model exists in this tenant** (DEV catalogue, 33 templates, read 2026-10-05). The
+  prebuilt entity extractor (`EntityExtraction`) returns `entities[{type,value,startIndex,length,score}]`,
+  but finds phone numbers, street addresses and postcodes in US format only, and takes at most 5,000
+  characters of input. Expressions have no regex, so UK-format detection is an architecture decision,
+  not a flow detail.
+- **A generative prompt returns no score.** The `GptPromptEngineering` template declares outputs
+  `text` and `finishReason` only (read 2026-10-05), so a prompt cannot carry a confidence threshold.
+  Give it only categories that another detector or a residue check also covers.
+- **Prompt models in a Switzerland environment are cross-geo only** (Microsoft Learn, *Prompt model
+  availability by region*, ms.date 2026-04-13). A prompt there runs only with *Move data across
+  regions* allowed, which is a residency question, not a setting to flip.
+- **A prompt exports as component type 401, inline in `Other/Customizations.xml`** as
+  `<AIModels><AIModel>`, with no folder of its own. Its run spec (`msdyn_modelrundataspecification`)
+  is base64 gzip JSON: decode it for the exact input and output names. **Its run action's shape exists
+  only in a flow that calls it**, so ground-truth `aibuilderpredict_customprompt` by having a maker
+  add *Run a prompt* to a DEV test flow and **save it without running**, then read
+  `workflow.clientdata` with `pac env fetch`. To capture the output path too, have them add a Compose
+  that uses the action's dynamic content; the action alone does not record where its output is read.
+- **Every publish in the prompt builder creates a new run configuration.** A setting changed in DEV
+  after your export leaves the copy in source stale, with no signal in the repository. Before a build
+  ships the copy, read `msdyn_aiconfiguration` (`msdyn_aimodelid`, `modifiedon`, `msdyn_type`); if a
+  run configuration is newer than your export, re-export and re-copy.
 
 ### Performance
 - Flows processing > 100 rows must use **pagination** (OData `$top` + `@odata.nextLink`)

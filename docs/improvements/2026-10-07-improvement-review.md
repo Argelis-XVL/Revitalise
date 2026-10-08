@@ -4,7 +4,7 @@
 **Findings processed:** 34 `NEW` → 17 clusters (30 unread, 3 fixed-in-flight, and 1 logged by this review while drafting)
 **Trigger:** post-deploy batch — DEV deploy of build `revitalise-grant-automation-20261007-3` (narrative scrubbing, wbs:5.3,5.4,5.6) finished PARTIAL at V3, [pipeline.log L328](logs/pipeline.log#L328)
 **Gate:** `APPROVE IMPROVEMENTS`
-**Status:** AWAITING APPROVAL — nothing applied. `reviewed_in` stamped on all 34 entries at draft time (step 6); `status` unchanged.
+**Status:** APPLIED 2026-10-08, on the reviewer's "Approve improvements" (Xander Lykopoulos, sent as its own message, relayed verbatim by lead-agent). Rows 1–10 applied; row 11 not applied, declined at D-2. See §8. Draft-time note, kept: `reviewed_in` was stamped on all 34 entries at draft time (step 6).
 **WBS:** system work, `wbs:system`, not billable. The findings themselves belong to wbs:5.1–5.6, 3.1–3.2 and 6.5 as each entry records.
 
 ---
@@ -276,7 +276,7 @@ Residual:   the commercial chain gate fails on them whenever it is run; it is no
 | 8 | script | [verify-artifact-provenance.py L184](scripts/verify-artifact-provenance.py#L184) and its `.engine/` twin (`cmp` identical) | Recognise a build.log line whose first word after its tags (and an optional `wbs:` token) is `SUCCESS` and which names the artifact, instead of one fixed `SUCCESS — path` shape. Update the docstring's corpus paragraph, which names one of the four lines as missing. New selftest fixtures: the 20261007-3 line and the hyphen line must not warn; a `BLOCKED` line naming the artifact must still warn | IMP-1093 | YES — `--selftest`; corpus 49 → 53 matches, 4 true, 0 lost | `SUITE_GATE_EXEMPT` + already listed at [verify-build-config.py L731](scripts/verify-build-config.py#L731): its input is an artifact, which exists only after a build; it runs at [pipeline-agent activation step 3](agents/pipeline-agent.md#L68). Unchanged |
 | 9 | skill | [how-to-verify-a-platform-contract.md "Field limits"](skills/how-to-verify-a-platform-contract.md#L44) | Add to the row: *"— including a limit this project's own gate enforces: the gate's counting convention is a contract too. When an artefact is built to within one unit of a limit, register how the limit is counted and name the first import as its check."* | IMP-1092 | N/A — instruction change | N/A |
 | 10 | agent | [architect-agent.md](agents/architect-agent.md#L89), new subsection before "Before an ADR SUPERSEDES" | *"Before an ADR fixes a list, a lookup or a matching rule as a constant: list the reference tables in the data model and the settings keys that hold values in the same domain, say for each why it is or is not used, and classify each list as a format specification (a constant) or tunable vocabulary (a setting)."* Engine-level text; grepped for client literals before writing | IMP-1076 | N/A — instruction change | N/A |
-| 11 | agent | [WORKFLOW.md "Human Gate Keywords"](agents/WORKFLOW.md#L566), after the "never proceeds" sentence | The matching rule chosen in D-2. Recommended text: *"Matching is case-insensitive and word-exact. A variant that changes a word form only (singular/plural) is accepted when it arrives as a message on its own, and the agent quotes it verbatim at the top of its output and says the act can be reverted. A variant that drops or changes an id, and any variant of `APPROVE TENANT`, `APPROVE PRD`, `ISSUE INVOICE` or `CLIENT ACCEPTED`, is refused."* | IMP-1061 | N/A — instruction change | N/A |
+| 11 | agent | **NOT APPLIED — declined at D-2.** [WORKFLOW.md "Human Gate Keywords"](agents/WORKFLOW.md#L532), after the "never proceeds" sentence | The matching rule chosen in D-2. Recommended text: *"Matching is case-insensitive and word-exact. A variant that changes a word form only (singular/plural) is accepted when it arrives as a message on its own, and the agent quotes it verbatim at the top of its output and says the act can be reverted. A variant that drops or changes an id, and any variant of `APPROVE TENANT`, `APPROVE PRD`, `ISSUE INVOICE` or `CLIENT ACCEPTED`, is refused."* | IMP-1061 | N/A — instruction change | N/A |
 
 **Constraint budget:** 0 of 3 used.
 
@@ -386,6 +386,8 @@ Regenerated on apply, not now.
 **What happens if you don't** — Kept open, it holds the automatic production check (which you may want), but every log check then warns that this review "left it behind", and a warning that is always there teaches people to stop reading warnings.
 [routing.log L1320](logs/routing.log#L1320)
 
+**Reviewer's answer (2026-10-08, verbatim):** "Data residency will be decided later." Applied as the suggested fix: deferred on your ruling.
+
 ---
 
 **D-2. How should an approval that is almost, but not exactly, the keyword be treated?**
@@ -393,7 +395,9 @@ Regenerated on apply, not now.
 **Problem** — "Approve Improvement" (singular) was accepted last time on judgement; no written rule says whether a changed word counts, so two agents can decide differently.
 **Suggested fix** — Row 11's wording: case never matters; a singular/plural difference is accepted when sent as its own message and quoted back to you; a missing or changed id, and any variant for tenant, production, invoice or client-acceptance acts, is refused.
 **What happens if you don't** — Each near-miss stays a coin flip, and the four acts that cannot be undone by a commit have no stricter rule than the rest.
-[WORKFLOW.md L566](agents/WORKFLOW.md#L566)
+[WORKFLOW.md L532](agents/WORKFLOW.md#L532)
+
+**Reviewer's answer (2026-10-08, verbatim):** "no, just leave approval wording to what it was." Row 11 not applied; the finding is closed as rejected.
 
 ---
 
@@ -403,6 +407,8 @@ Regenerated on apply, not now.
 **Suggested fix** — Clear EX-006 if Emily's accuracy review of the template is no longer needed; re-date EX-007 to the DocuSign licence milestone, which is still outstanding.
 **What happens if you don't** — The commercial chain check fails whenever it is run, which hides any new failure behind these two; builds and deploys are not affected.
 [IMP-1070 in the log](logs/improvement-log.jsonl)
+
+**Reviewer's answer (2026-10-08, verbatim):** "EX006, review is not needed anymore. EX007 Docusign is licensed." Both exceptions cleared, not re-dated.
 
 ---
 
@@ -425,3 +431,91 @@ Digest:             will regenerate — no new recurring class
 
 Respond APPROVE IMPROVEMENTS to apply, or give feedback for revision.
 ```
+
+---
+
+## 8. Applied record — 2026-10-08
+
+### Summary
+
+Rows 1–10 are applied and row 11 is not, because you declined it. Of the 34 findings, 22 are closed, 1 is closed as rejected (the approval-wording rule), and 11 stay open with an owner and a return condition. Both expired DocuSign exceptions are cleared; the matching update to the external-dependencies record is not mine to make and is routed to pm-agent.
+
+### The approval, and the answers as applied
+
+**Reviewer's words, verbatim:** "Approve improvements", sent as its own message, relayed by lead-agent. This differs from `APPROVE IMPROVEMENTS` in case only, which is how every earlier case variant in the routing log has been treated. Your D-2 answer keeps the wording rule as it was, so no new rule was used to judge it.
+
+- **D-1 — "Data residency will be decided later."** The residency finding is deferred on your ruling of 6 October, restated today. It comes back when the customer answers or before any import to PRD, whichever is first. A PRD deploy still needs your own `APPROVE PRD`.
+- **D-2 — "no, just leave approval wording to what it was."** Row 11 is not applied; [WORKFLOW.md "Human Gate Keywords"](agents/WORKFLOW.md#L532) is unchanged. The finding is closed as rejected, with your words as the reason.
+- **D-3 — "EX006, review is not needed anymore. EX007 Docusign is licensed."** Both exceptions moved to the closed list in [known-exceptions.json](contract/known-exceptions.json#L117) (EX-006) and [L132](contract/known-exceptions.json#L132) (EX-007), each with your words and the date. Neither was re-dated.
+
+### What has been applied
+
+1. **AI Builder facts have one written home.** [power-automate.md "AI Builder"](knowledge/technology/power-automate.md#L394): the six dated facts as drafted.
+
+2. **A Select's run-history inputs are its whole from-array.** [power-automate.md L360](knowledge/technology/power-automate.md#L360), under "Run history is a log".
+
+3. **The Solution Checker loop rule and where a new flow's figures first appear.** [build-and-deploy.md L352](knowledge/technology/build-and-deploy.md#L352). It names the `NoTriggerLoop` tests as the proof route.
+
+4. **Two read-only live recipes.** [testing-tools.md L191](knowledge/technology/testing-tools.md#L191) adds two rows to the FetchXML table, plus [L194](knowledge/technology/testing-tools.md#L194): pass FetchXML as a file.
+
+5. **The local flow simulator, and the rule that makes it trustworthy.** [testing-tools.md L130](knowledge/technology/testing-tools.md#L130). **Its precondition held at apply:** both simulator files are now tracked (committed in `85b2abd`), so this row was applied rather than withheld.
+
+6. **The audit remedy order and the coverage-stderr check.** [build-and-deploy.md L33](knowledge/technology/build-and-deploy.md#L33).
+
+7. **Both audit steps now run directly after the improvement-log check.** [build config L108](config/revitalise-grant-automation-build.yml#L108), steps 6 and 7 of 102 (were 71 and 72). The two YAML aliases became literal paths, and one comment word changed from "above" to "below" because the install step is now later in the file. `verify-build-config.py` exits 0 with a report byte-identical to before the move. No test names either step.
+
+8. **The provenance check reads the status word, not one line shape.** [verify-artifact-provenance.py L96](scripts/verify-artifact-provenance.py#L96), with the `.engine/` copy byte-identical. Selftest 18 fixtures, PASS (was 14). Three mutations each fail it: reverting to the old shape, dropping the status-word anchor, and dropping the name boundary. Corpus over 162 artifact names: 49 recognised before and 53 after, all 4 added are real successes, 0 lost. **One correction to the docstring, found while doing so:** it said the 20260823-2 warning was true. It was false, because that build's success line exists and names the artifact later in the sentence ([L61](scripts/verify-artifact-provenance.py#L61)). Re-running the check on build 20261007-3 now gives PASS with no warning.
+
+9. **A limit our own gate enforces is a platform contract too.** [how-to-verify-a-platform-contract.md L44](skills/how-to-verify-a-platform-contract.md#L44), wording as approved.
+
+10. **Before an ADR fixes a list, inventory what the solution already holds.** [architect-agent.md L89](agents/architect-agent.md#L89), wording as approved. No client-specific words in it.
+
+**Two repositories.** Rows 8, 9 and 10 changed files in the `.engine` submodule: `scripts/verify-artifact-provenance.py`, the skill and the agent file. So did the digest's size sentence in `scripts/generate-known-failure-modes.py` (620 to 627 lines, both copies), which regenerating the digest made stale. Publishing them takes a commit and push in `.engine` first, then the pointer bump here. Nothing is committed.
+
+### Withheld
+
+- **Row 11:** declined at D-2.
+- **R9 (commit the simulator files):** already done in `85b2abd`, so not routed.
+- **The two gates the draft already withheld** stay withheld. The Entity.xml phrase gate still has 0 instances to find (re-measured today). The loop `result()` gate still rests on an unverified reading of the platform.
+
+### Findings disposed
+
+| Disposition | Count | Findings |
+|---|---|---|
+| Closed | 22 | IMP-1064, 1065, 1066, 1068, 1071, 1072, 1073, 1075, 1076, 1078, 1081, 1082, 1083, 1084, 1085, 1087, 1088, 1089, 1090, 1091, 1092, 1093 |
+| Closed as rejected | 1 | IMP-1061 (D-2) |
+| Deferred, return condition applied verbatim | 11 | IMP-1062, 1063, 1067, 1069, 1070, 1074, 1077, 1079, 1080, 1086, 1094 |
+
+Four of the closures carry a re-observation, because their defects were visible only when something ran. Three are build 20261007-3's coverage and lint steps. One is that build's DEV import, which accepted the flow at nesting depth 8.
+
+**The DocuSign exception finding stays deferred, though its return condition is met in substance.** With both exceptions cleared, the commercial chain check names neither and exits 0. That run used a copy of the task-state file, because the unmodified check first stops on that file being stale (exit 2). Regenerating it is pm-agent's job (R12). The next batch closes the finding on that clean run.
+
+### Routed work, re-measured at apply
+
+| # | To | Status at apply |
+|---|---|---|
+| R1 | pm-agent | **Still open.** The evidence map still names `REVAnonymise` for tasks 5.3/5.4 |
+| R2 | development-agent | **Still open.** The age-band description still says "date of birth" |
+| R3 | architect-agent | **Still open.** The TAD still says the cross-region setting "stays unticked" everywhere |
+| R4 | development-agent | **Still open.** [pipeline config L2011](config/revitalise-grant-automation-pipeline.yml#L2011) still says "-Env test" |
+| R5 | development-agent, with architect-agent | **Still open.** `seed-settings.ps1` still updates every setting row on every deploy |
+| R6 | development-agent | **Still open.** A-CSR-01 still reads OPEN |
+| R7 | development-agent | **Still open.** No live comparison reads an AI model's run configuration |
+| R8 | automation-agent | **Still open.** All 3 spent entries are still in `config/flow-check7-exceptions.json` |
+| R9 | lead-agent | **Done** in `85b2abd`. Withheld |
+| R10 | development-agent | **Still open.** The access-test precondition still does not mention the Deployment Summary record |
+| R11 (new) | pm-agent | [external-dependencies.json L82](contract/external-dependencies.json#L82) still marks "DocuSign licence" outstanding. Record your 2026-10-08 statement that DocuSign is licensed. Until then the ready-set tool lists 3.1 and 3.4 as blocked on the client |
+| R12 (new) | pm-agent | Reconcile task 3.1 now that Emily's named template review is waived for good (EX-006 closed). Regenerate the stale task-state file, then re-run the commercial chain check unmodified |
+| R13 (new) | development-agent, with pipeline-agent | [pipeline config L1366](config/revitalise-grant-automation-pipeline.yml#L1366) and L1447 still label automation #3 "DEV ONLY (EX-006/EX-007)". Both exceptions are closed, so that label no longer states a live reason. Promotion beyond DEV still needs its own gates; this review decides nothing about it |
+
+### Not in this review
+
+Two findings were logged after the draft and are left for the next batch: IMP-1095 (the scrub flow imported cleanly but would not save in the designer; fixed in flight) and IMP-1096 (the callback-URL check's app-only token is refused). Each now carries `excluded_by` naming this document. **IMP-1095 is now the only thing holding the production guard.** It also limits row 5: the local simulator does not model the designer's flow checker.
+
+### What is still open
+
+**The narrative flow has never run.** Four findings still close only after its first DEV runs.
+
+**Residency is with the customer.** It is deferred on your ruling, and a PRD deploy still needs `APPROVE PRD`.
+
+Verified: `verify-improvement-log.py --check` exit 0: 0 awaiting approval, 0 open blockers, 1 unread (IMP-1096, logged after the draft), 1 fixed in flight (IMP-1095). With `--target-env prd` it exits 1, held only by IMP-1095. `verify-artifact-provenance.py --selftest` 18/18 in both copies, plus three mutations. `verify-build-config.py` exit 0, report identical before and after the move. `verify-engine-instance-split.py` exit 0. `verify-wbs-chain.py` against a copy of the task-state file: exit 1 before (EX-006 and EX-007 expired), exit 0 after. `verify-pipeline-config.py` and `verify-tad-coverage.py` exit 0. `npm audit --audit-level=high` in both code apps: exit 0. Every closure needle was checked against the tree. Digest regenerated; `generate-known-failure-modes.py --check` exit 0. `verify-derived-counts.py` OK after the size sentence was corrected. `verify-class-defences.py` and `verify-review-document.py` exit 0. **Not verified:** nothing live was read. The unmodified commercial chain check was not run clean, because of the stale task-state file. Nothing is committed.

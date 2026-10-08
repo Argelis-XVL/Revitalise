@@ -127,6 +127,15 @@ Test scripts live in `src/tests/dataverse/`.
 3. Assert: expected record state, expected notifications sent (mock connector), no exception log entries
 4. Verify domain-specific controls (defined in `knowledge/domain/compliance-requirements.md`)
 
+**Before any environment exists, execute the definition locally.** A hand-authored flow's logic can
+be run action by action from its JSON with `src/tests/narrative/wdl_sim.py` (strict expression
+semantics, run-history exposure recorded per action) and compared with an oracle, as
+`src/tests/narrative/test_scrub_flow_definition.py` does for the narrative scrub flow (improvement
+review 2026-10-07, `IMP-1073`). **An oracle comparison proves agreement only on what it enumerates**
+(`IMP-1080`): for each new rule, run a mutation of that rule against the shipped JSON and add the
+input that kills each survivor, and cross each switchable stage with each failure path before the
+suite is cited as coverage.
+
 ## Solution Checker in CI
 
 ```powershell
@@ -179,6 +188,11 @@ Beyond plain rows, four reads answer questions that look like metadata:
 | Is column X secured? | `fieldpermission` joined to `fieldsecurityprofile`, filtered on the attribute | Dataverse writes a System Administrator row for every secured column |
 | What are option set O's values? | `stringmap` filtered on `attributename` | the value-label pairs as stored |
 | What flow definition is live? | `workflow` → `clientdata`, filtered on the workflow id | the deployed definition, diffable against source |
+| What are an AI model's inputs and outputs, or a live form's shape? | `msdyn_aitemplate` selecting `msdyn_uniquename`, `msdyn_rundataspecification`; `systemform` → `formxml` (type 2) | the template's declared IO without invoking it; the live FormXml when no form in the repo shows the shape (`IMP-1065`) |
+| What is a table's entity set name, and how many rows does it hold? | `<entity name="entity">` selecting `logicalname, entitysetname`; an aggregate count on the table | entity metadata is queryable as the `entity` table, so no Web API call is needed (`IMP-1078`) |
+
+**Pass FetchXML as a file (`--xmlFile`), never inline.** The inline `--xml` form crashed pac 2.4.1
+with `System.Xml.XmlException` on 2026-10-06 (`IMP-1078`).
 
 It **cannot** read `EntityDefinitions` (so not `RequiredLevel`, `MaxLength` or `AttributeType`).
 Those still need the Web API below. The note in the next paragraph that `fieldpermissions` needs the

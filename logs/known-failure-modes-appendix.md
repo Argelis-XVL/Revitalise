@@ -66,10 +66,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
-- A warning that fires on a line that exists teaches agents to ignore the warning; the writer and the reader of a log line need one shared shape.  
-  <sub>IMP-1093 · `two-invocation-paths-disagree`</sub>
-- When a form gains a second control for an existing column, grep src/tests for datafieldname="<column>" count assertions in the same change, and assert the property (one editable control) rather than a raw occurrence count; run the full Pester suite, not only the feature's own wrapper, before code review.  
-  <sub>IMP-1083 · `hand-maintained-count-drifts-from-source`</sub>
 - A build that can skip producers must say so in its result, and every consumer of the artifact must read that before acting on it.  
   <sub>IMP-1052 · `two-invocation-paths-disagree`</sub>
 - Run verify-tad-coverage.py (and any gate carrying dated baselines or deferrals) in the development-agent source-gate set; other baselines expire 2026-10-13 and 2026-10-14 (gate-baselines.json).  
@@ -102,6 +98,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0205 · `gate-cannot-fail`</sub>
 - A path-kind evidence rule only proves a directory or file exists, never that a specific named deliverable inside it is present. When a task's own description names multiple items (e.g. three security roles: admin, finance, trustee), give it a rule that checks each by name and reports partial when any are absent, instead of accepting the directory's mere existence as complete.  
   <sub>IMP-0152 · `gate-cannot-fail`</sub>
+- A warning that fires on a line that exists teaches agents to ignore the warning; the writer and the reader of a log line need one shared shape.  
+  <sub>IMP-1093 · `two-invocation-paths-disagree`</sub>
+- When a form gains a second control for an existing column, grep src/tests for datafieldname="<column>" count assertions in the same change, and assert the property (one editable control) rather than a raw occurrence count; run the full Pester suite, not only the feature's own wrapper, before code review.  
+  <sub>IMP-1083 · `hand-maintained-count-drifts-from-source`</sub>
 - Every config-mutation test asserts its mutation applied before asserting on the checker's output.  
   <sub>IMP-1060 · `gate-cannot-fail`</sub>
 - In verify-improvement-log.py's selftest, a must-not-warn fixture needs a _MUST_NOT_CONTAIN row; prove any new fixture by removing the fix and watching it fail.  
@@ -324,12 +324,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
 - listCallbackUrl on api.flow.microsoft.com does not accept the provisioning app-only token. Until a different identity or API is ground-truthed, the callback-URL check is the manual fallback: read the URL from the trigger card, hash it locally, compare.  
   <sub>IMP-1096 · `platform-contract-guessed-not-groundtruthed`</sub>
-- A platform limit your own gate enforces is still a platform contract: register how the limit is counted and where you sit against it, with the DEV import as its named check, before the first import.  
-  <sub>IMP-1092 · `platform-contract-guessed-not-groundtruthed`</sub>
-- Before assigning a detection category to an AI Builder prompt, read its template IO from msdyn_aitemplate (GptPromptEngineering: text and finishReason, no score) and its regional availability (Switzerland: cross-geo only). A prompt cannot carry a confidence threshold; give it only categories that another detector or a residue check also covers, and gate its release on a calibration setting.  
-  <sub>IMP-1071 · `platform-contract-guessed-not-groundtruthed`</sub>
-- AI Builder has no prebuilt PII model in this tenant; the prebuilt EntityExtraction model detects phone numbers and addresses only in US format and takes at most 5,000 characters. Ground-truth an AI Builder capability from msdyn_aitemplate (pac env fetch) before designing on it, and plan UK-format detection (custom entity extraction, plug-in, or external service) as an explicit architecture decision.  
-  <sub>IMP-1064 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Before setting an optional connector parameter, read its reference description for a side effect (a delivery channel, a notification, a charge), not just its name. Compare two actions by their path or id parameters, never by their body schema alone.  
   <sub>IMP-1026 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Before designing around a connector action's body shape, take the designer-written definition (E1) of that action; do not cite a per-tab or per-call cardinality from the reference. The connector tabType enum differs from the GET tabType string and its full list, including the checkbox value, is unverified.  
@@ -384,6 +378,12 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0255 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A table's OwnershipType determines which privileges Dataverse will ever create for it: OrganizationOwned tables get no Assign/Share privilege at all, full stop. Before writing or copying a role's privilege block for a custom table, check that table's own OwnershipType first (rev_anonymisedstatistic in this same solution is the worked correct example). Separately: ensure-schema.ps1's "privilege does not exist" error message assumes exactly one cause (table not yet created) and should be broadened, since it produced a misleading remedy here.  
   <sub>IMP-0254 · `platform-contract-guessed-not-groundtruthed`</sub>
+- A platform limit your own gate enforces is still a platform contract: register how the limit is counted and where you sit against it, with the DEV import as its named check, before the first import.  
+  <sub>IMP-1092 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Before assigning a detection category to an AI Builder prompt, read its template IO from msdyn_aitemplate (GptPromptEngineering: text and finishReason, no score) and its regional availability (Switzerland: cross-geo only). A prompt cannot carry a confidence threshold; give it only categories that another detector or a residue check also covers, and gate its release on a calibration setting.  
+  <sub>IMP-1071 · `platform-contract-guessed-not-groundtruthed`</sub>
+- AI Builder has no prebuilt PII model in this tenant; the prebuilt EntityExtraction model detects phone numbers and addresses only in US format and takes at most 5,000 characters. Ground-truth an AI Builder capability from msdyn_aitemplate (pac env fetch) before designing on it, and plan UK-format detection (custom entity extraction, plug-in, or external service) as an explicit architecture decision.  
+  <sub>IMP-1064 · `platform-contract-guessed-not-groundtruthed`</sub>
 - An assumption whose cheapest verification is the DEV import is closed by that import, so DEV runs under a named OVERRIDE and the blocking applies from TST/ACC onward.  
   <sub>IMP-1019 · `platform-contract-guessed-not-groundtruthed`</sub>
 - The intake trigger's auth mode is inputs.triggerAuthenticationType in the flow definition ('All' = Anyone), so it ships in source and verify-live-flow-definitions compares it. To search every live flow definition for a shape, run one pac env fetch with <condition attribute="clientdata" operator="like" value="%...%"/> on workflow, category 5, and no top attribute (pac pages and rejects top).  
@@ -696,14 +696,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*609 lesson(s), in the order the digest would have ranked them.*
+*608 lesson(s), in the order the digest would have ranked them.*
 
-- A build that halts mid-chain leaves every later step unobserved; the first run to reach the end can surface an unrelated defect. Run the Pester suite (or the contract test file) against the edited form before handing off.  
-  <sub>IMP-1082 · `gate-fired`</sub>
-- A fix for one npm-audit advisory set is not evidence the audit is green for the next. Rerun the audit step after the fix. concurrently is used only by the dev script, so a shell-quote override to >=1.11.0 or a dated known-exception are the candidates for development-agent; the cards app shares the lockfile so both apps change together.  
-  <sub>IMP-1081 · `gate-fired`</sub>
-- The audit step can go red with no repository change; the remedy (lockfile bump, vitest 5 upgrade, or a dated known-exception) belongs to development-agent.  
-  <sub>IMP-1072 · `gate-fired`</sub>
 - Before any design that sends personal data to a platform service, read the environment's geography from pac admin list and map the URL suffix with Microsoft's datacenter-regions table (crm11 = GBR, crm17 = CHE); NFR-009 requires GBR and all three REV environments are on crm17. A residency requirement with no recorded measurement is unverified, not satisfied.  
   <sub>IMP-1063 · `stale-claim-contradicting-rechecked-source`</sub>
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
@@ -759,6 +753,12 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0270 · `platform-state-divergence`</sub>
 - Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. The positive-control identity and the trustee (negative-control) identity must be verified as two different systemuserids before every V4 attempt, not just the first.  
   <sub>IMP-0228 · `platform-state-divergence`</sub>
+- A build that halts mid-chain leaves every later step unobserved; the first run to reach the end can surface an unrelated defect. Run the Pester suite (or the contract test file) against the edited form before handing off.  
+  <sub>IMP-1082 · `gate-fired`</sub>
+- A fix for one npm-audit advisory set is not evidence the audit is green for the next. Rerun the audit step after the fix. concurrently is used only by the dev script, so a shell-quote override to >=1.11.0 or a dated known-exception are the candidates for development-agent; the cards app shares the lockfile so both apps change together.  
+  <sub>IMP-1081 · `gate-fired`</sub>
+- The audit step can go red with no repository change; the remedy (lockfile bump, vitest 5 upgrade, or a dated known-exception) belongs to development-agent.  
+  <sub>IMP-1072 · `gate-fired`</sub>
 - After a modern-flow-bearing solution import reports SUCCEEDED (including Published All Customizations), query asyncoperation for 'Async update of workflow' / 'Processing modern flow following import' rows created in the same window before trusting any live clientdata read of that flow - a Failed row here (e.g. 'ProcessStage ... Does Not Exist', 'concurrent Delete requests detected') means the platform's own finishing step for that flow did not complete, and a field read as fully populated minutes earlier can revert with no further entry in pipeline.log and no audit trail (DEV auditing is unreliable, IMP-0082). Re-read the live field again immediately before reporting V3, not just once after the import.  
   <sub>IMP-0956 · `async-flow-postimport-plugin-fails-silently`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0959`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -902,46 +902,24 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
 - A deferral of a governance-lane blocker releases the production guard. If a reviewed finding must keep holding the last environment, there is no clean state for it today; say so in the decision rather than proposing to leave it open, which produces a standing 'left behind' warning.  
   <sub>IMP-1094 · `reviewed-hold-has-no-discharge-state`</sub>
-- For flow-avoid-recursive-loop, expect one result per write to the trigger's table; decide it from the trigger filter against the written item/ columns (NoTriggerLoop does this for every flow), and re-triage when the flagged set changes.  
-  <sub>IMP-1091 · `untriaged-tool-warning`</sub>
-- When a dispatch adds or changes a flow, the Solution Checker count printed by the lint step is compared against the triage row's figure, and the per-rule breakdown from the SARIF is read, before the build is called clean.  
-  <sub>IMP-1090 · `untriaged-tool-warning`</sub>
-- After a dependency major-version bump, run the coverage step once and read its full stderr; either exclude non-source files in coverage.include or triage the line in the Dev Summary.  
-  <sub>IMP-1089 · `untriaged-tool-warning`</sub>
-- Before handing a copied AI model component to build, read msdyn_aiconfiguration (msdyn_aimodelid, modifiedon, msdyn_type) with pac env fetch; if a RunConfiguration is newer than your export, re-export and re-copy. After any prompt-builder change in DEV, re-copy the component.  
-  <sub>IMP-1088 · `live-definition-drifts-from-source`</sub>
 - Record an environment setting's measured state, with a date, before writing a design that assumes it; for A-NS-23, the first environment with the setting off (TST/ACC) is where creation must be checked, before the import that brings the prompt there.  
   <sub>IMP-1086 · `reality-contradicted-repo-document`</sub>
 - An oracle-comparison suite proves agreement only on the combinations it lists: for every new rule, run a mutation of that rule against the shipped JSON and add the input that kills each survivor, and cross each switchable stage with each failure path.  
   <sub>IMP-1080 · `oracle-comparison-covers-only-enumerated-combinations`</sub>
 - Secure the inputs of any Select or Filter array whose from-array rows carry text, even when what it projects is only numbers; the inputs pane shows the rows, not the projection.  
   <sub>IMP-1079 · `gate-fired`</sub>
-- Read an entity set name (and row counts) read-only with `pac env fetch --xmlFile <file>` over `<entity name="entity">` with logicalname and entitysetname, instead of leaving an EntitySetName guess open until a Web API read is possible; pass the FetchXML as a file, because the inline --xml form crashes pac 2.4.1.  
-  <sub>IMP-1078 · `capability-established`</sub>
 - For a table the process owner edits, idempotent seeding means create-if-absent; converge-to-file is only right for deploy-owned rows, and the TAD must say which is which.  
   <sub>IMP-1077 · `deploy-destroys-configuration`</sub>
-- Before fixing a list or lookup in a flow, grep TAD §3.1 for reference tables holding the same values and classify each list as a format specification (constant) or tunable vocabulary (rev_setting, NFR-019).  
-  <sub>IMP-1076 · `existing-asset-not-considered-in-design`</sub>
-- When the writer of a column lands, grep that column's shipped Description for 'deferred'/'nothing has written' and correct it in the same change; a description stating a MaxLength must match the attribute's own MaxLength.  
-  <sub>IMP-1075 · `stale-claim-contradicting-rechecked-source`</sub>
 - Inside a loop, result() descent may not reach the failed leaf when a later iteration succeeds; keep the alert's run link (the reliable route to the leaf) and do not rely on the descent alone for loop failures.  
   <sub>IMP-1074 · `gate-fired`</sub>
-- A hand-authored cloud flow whose logic matters can be executed locally from its JSON with src/tests/narrative/wdl_sim.py (strict semantics, run-history exposure recorded per action) and compared with an oracle; do this before any environment exists rather than relying on structure-only gates.  
-  <sub>IMP-1073 · `capability-established`</sub>
 - List every exception within 14 days of expiry, and every already-expired one, when any exception is closed  
   <sub>IMP-1070 · `exception-outlives-its-own-violation`</sub>
 - When an SDD amendment changes where a value comes from, grep the shipped descriptions of the columns and option sets it names; rev_agerange's description still says date of birth.  
   <sub>IMP-1069 · `stale-claim-contradicting-rechecked-source`</sub>
-- A 'not yet built' claim in a brief or TAD is checked against Entity.xml and contract/tad-deferrals.json before it shapes the work; the TD-010 disability-impact pairs exist and are included on the Narrative Scrubbing tab.  
-  <sub>IMP-1068 · `dispatch-brief-asserts-unverified-fact`</sub>
 - Before building a flow, check contract/evidence-map.json names it the way the TAD does; for wbs:5.3/5.4 it says REVAnonymise and the TAD says REV | Narrative | Scrub Free-Text.  
   <sub>IMP-1067 · `wrong-artefact-cited-as-evidence`</sub>
-- Derive a redaction or security scope from Entity.xml (every ...redacted attribute and its source), never from TAD §3.1's rows: there are 12 pairs on rev_application, and the TAD lists 11.  
-  <sub>IMP-1066 · `tad-narrative-omits-an-already-existing-column`</sub>
 - Before recording a reported manual run as evidence, check the script as committed at the time of the run could accept the arguments reported.  
   <sub>IMP-1062 · `reality-contradicted-repo-document`</sub>
-- Settle keyword matching in writing: case-insensitive, word-exact, with any wider variant either refused or accepted only with a recorded rationale the reviewer sees in the next output.  
-  <sub>IMP-1061 · `unwritten-policy-produces-a-coin-flip`</sub>
 - Before declaring a step a gate's message tells you to add, read the script's own env guard. Check 14 passing says the step is wired, never that it can run. ensure-schema.ps1 now accepts test/prd via Get-ProvisioningSettings, but whether it works against an environment where RevitaliseGrantAutomation is not yet installed (MSCRM.SolutionUniqueName header on a solution that does not exist) is UNVERIFIED and needs the reviewer's account of how the ACC run was done.  
   <sub>IMP-1057 · `reality-contradicted-repo-document`</sub>
 - Cite the decision record whose scope names the thing (ADR-070 for the referee columns), not the change order raised the same day; a wrong CO number tells a reader the columns are unapproved.  
@@ -1238,6 +1216,26 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- For flow-avoid-recursive-loop, expect one result per write to the trigger's table; decide it from the trigger filter against the written item/ columns (NoTriggerLoop does this for every flow), and re-triage when the flagged set changes.  
+  <sub>IMP-1091 · `untriaged-tool-warning`</sub>
+- When a dispatch adds or changes a flow, the Solution Checker count printed by the lint step is compared against the triage row's figure, and the per-rule breakdown from the SARIF is read, before the build is called clean.  
+  <sub>IMP-1090 · `untriaged-tool-warning`</sub>
+- After a dependency major-version bump, run the coverage step once and read its full stderr; either exclude non-source files in coverage.include or triage the line in the Dev Summary.  
+  <sub>IMP-1089 · `untriaged-tool-warning`</sub>
+- Before handing a copied AI model component to build, read msdyn_aiconfiguration (msdyn_aimodelid, modifiedon, msdyn_type) with pac env fetch; if a RunConfiguration is newer than your export, re-export and re-copy. After any prompt-builder change in DEV, re-copy the component.  
+  <sub>IMP-1088 · `live-definition-drifts-from-source`</sub>
+- Read an entity set name (and row counts) read-only with `pac env fetch --xmlFile <file>` over `<entity name="entity">` with logicalname and entitysetname, instead of leaving an EntitySetName guess open until a Web API read is possible; pass the FetchXML as a file, because the inline --xml form crashes pac 2.4.1.  
+  <sub>IMP-1078 · `capability-established`</sub>
+- Before fixing a list or lookup in a flow, grep TAD §3.1 for reference tables holding the same values and classify each list as a format specification (constant) or tunable vocabulary (rev_setting, NFR-019).  
+  <sub>IMP-1076 · `existing-asset-not-considered-in-design`</sub>
+- When the writer of a column lands, grep that column's shipped Description for 'deferred'/'nothing has written' and correct it in the same change; a description stating a MaxLength must match the attribute's own MaxLength.  
+  <sub>IMP-1075 · `stale-claim-contradicting-rechecked-source`</sub>
+- A hand-authored cloud flow whose logic matters can be executed locally from its JSON with src/tests/narrative/wdl_sim.py (strict semantics, run-history exposure recorded per action) and compared with an oracle; do this before any environment exists rather than relying on structure-only gates.  
+  <sub>IMP-1073 · `capability-established`</sub>
+- A 'not yet built' claim in a brief or TAD is checked against Entity.xml and contract/tad-deferrals.json before it shapes the work; the TD-010 disability-impact pairs exist and are included on the Narrative Scrubbing tab.  
+  <sub>IMP-1068 · `dispatch-brief-asserts-unverified-fact`</sub>
+- Derive a redaction or security scope from Entity.xml (every ...redacted attribute and its source), never from TAD §3.1's rows: there are 12 pairs on rev_application, and the TAD lists 11.  
+  <sub>IMP-1066 · `tad-narrative-omits-an-already-existing-column`</sub>
 - Before deleting a file, grep logs/improvement-log.jsonl evidence_grep for it; improvement-agent must re-point or retire IMP-0244/IMP-0246 evidence in the same change, and the check-7 wrapper selftest needs a live exception or removal.  
   <sub>IMP-1059 · `gate-found-broken`</sub>
 - A verifier's FAIL branches need a test that drives each one; under StrictMode test property presence before value.  

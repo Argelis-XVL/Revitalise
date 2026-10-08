@@ -95,6 +95,27 @@ steps:
   - name: improvement-log-check
     command: python3 scripts/verify-improvement-log.py --check
 
+  # HARD — C-TECH-074, the advisory half. The lockfile-drift half needs no step: `code-app-install`
+  # below runs `npm ci`, which fails by design when package.json and package-lock.json disagree.
+  # POSITION (improvement review 2026-10-07, IMP-1072/IMP-1081): directly after improvement-log-check,
+  # because the advisory database moves overnight and a new advisory should fail a build in seconds,
+  # not after ~70 green steps. npm audit reads only the lockfile, so it needs no install step first.
+  # *** RESIDUAL, and why C-TECH-022's licence half STAYS RETIRED: `npm audit` reports what the registry
+  # knows today and says nothing about licences or provenance. No licence checker is installed, and a
+  # Verify By naming an absent tool is what earned C-TECH-022 its retirement. This step covers the code
+  # app only — no other manifest exists in this repository.
+  # History: docs/development/revitalise-grant-automation-build-config-history.md#code-app-audit
+  - name: code-app-audit
+    paths: [src/code-apps/trustee-review-portal/**]
+    command: npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high
+
+  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
+  # package.json/package-lock.json are byte-identical to the first app's (parity gate), so the
+  # advisory set is the same; the step still runs, because it installs from its own lockfile copy.
+  - name: code-app-audit-cards
+    paths: [src/code-apps/trustee-review-portal-cards/**]
+    command: npm --prefix src/code-apps/trustee-review-portal-cards audit --audit-level=high
+
   # HARD. Every provisioning script in the declared coverage scope is NAMED by some test.
   # SCOPE IS DERIVED, never listed here: knowledge/technology/coding-standards.md's coverage-scope
   # row is parsed at runtime, and a missing declaration ABORTS rather than passing over nothing.
@@ -778,24 +799,6 @@ steps:
   - name: code-app-install-cards
     paths: &paths_cards [src/code-apps/trustee-review-portal-cards/**]
     command: npm --prefix src/code-apps/trustee-review-portal-cards ci
-
-  # HARD — C-TECH-074, the advisory half. The lockfile-drift half needs no step: `code-app-install`
-  # above runs `npm ci`, which fails by design when package.json and package-lock.json disagree.
-  # *** RESIDUAL, and why C-TECH-022's licence half STAYS RETIRED: `npm audit` reports what the registry
-  # knows today and says nothing about licences or provenance. No licence checker is installed, and a
-  # Verify By naming an absent tool is what earned C-TECH-022 its retirement. This step covers the code
-  # app only — no other manifest exists in this repository.
-  # History: docs/development/revitalise-grant-automation-build-config-history.md#code-app-audit
-  - name: code-app-audit
-    paths: *paths_app
-    command: npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high
-
-  # Card-layout app (TAD docs/architecture/trustee-portal-design-2-architecture.md §5.1, wbs:6.3 unbilled):
-  # package.json/package-lock.json are byte-identical to the first app's (parity gate), so the
-  # advisory set is the same; the step still runs, because it installs from its own lockfile copy.
-  - name: code-app-audit-cards
-    paths: *paths_cards
-    command: npm --prefix src/code-apps/trustee-review-portal-cards audit --audit-level=high
 
   # ADR-032's field catalogue, DERIVED not hand-typed. FR-078 renders the eleven REV_TrusteeRestricted
   # "Group B" columns as a restricted state WITHOUT ever binding them, because the process owner IS a

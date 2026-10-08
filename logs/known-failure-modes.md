@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (1092 entries, 1074 distinct lessons)
+Source: `logs/improvement-log.jsonl` (1092 entries, 1073 distinct lessons)
 Generated: 2026-10-08
 
 <a id="kfm-how-to-use"></a>
@@ -487,12 +487,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 *21 lessons from 21 findings.*
 
-- Compare coverage only across the coverage-threshold step's LINE figure (verify-coverage-threshold.py on test-results/coverage.xml); the unit-tests step's printed percentage is Pester's command metric and is 15+ points lower here. The runner now labels it 'of COMMANDS'.  
-  <sub>IMP-1084</sub>
 - A review document is read header-first by the next review and by the reviewer deciding what still needs a keyword, so the applied state belongs in the header and not only in section 8 -- this is the same rule skills/how-to-report-to-the-reviewer.md already states for a TABLE CELL (rewrite the current verdict in place, move the history after it), arriving at a document header. The instrument that settles it is the document's own section 8, never the count of documents whose headers mention the gate keyword.  
   <sub>IMP-0865</sub>
 - When a supplied design artefact is intake'd, enumerate its FULL directory tree (not just the folder the first read happened to land in) before scoping what gets converted -- a sibling folder can hold an app-specific reference implementation for the exact feature being built, as ui_kits/trustee-review-portal/ did here, sitting beside the generic components/ folder that got all the attention. Concretely: grep the supplied root for the feature's own name/screen names (here, 'trustee', 'RoundOverview', 'ApplicationDetail') before declaring the intake complete.  
   <sub>IMP-0510</sub>
+- Compare coverage only across the coverage-threshold step's LINE figure (verify-coverage-threshold.py on test-results/coverage.xml); the unit-tests step's printed percentage is Pester's command metric and is 15+ points lower here. The runner now labels it 'of COMMANDS'.  
+  <sub>IMP-1084</sub>
 - When intaking a supplied design bundle, resolve every script/src/href its index.html (or equivalent entry) references and list the ones that are missing BEFORE scoping. A handoff README names one slice; the entry point shows the whole design, and a missing reference means the export is incomplete.  
   <sub>IMP-0991</sub>
 - A client's covering email is a source document in its own right: intake the BODY with the attachments, not instead of them. A list too small to be a file gets typed into the message - Emily's income bands and her eight review checkboxes both arrived that way while three attachments from the same mail were committed and triaged. When attachments land in docs/Import/, transcribe the message that carried them and register both in MANIFEST.yml.  
@@ -608,7 +608,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 <a id="kfm-unrouted"></a>
 ## Unrouted — no section assigned
 
-*609 lessons from 609 findings, across 216 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
+*608 lessons from 608 findings, across 215 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×43), `declared-policy-not-mechanically-enforced` (×39), `hand-maintained-count-drifts-from-source` (×39), `gate-reassures-wrongly` (×35), `finding-diagnosis-unverified` (×34), `stale-claim-contradicting-rechecked-source` (×28), `untriaged-tool-warning` (×24), `platform-state-divergence` (×17).
 

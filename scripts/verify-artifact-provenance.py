@@ -40,7 +40,7 @@ WHAT IT CHECKS (HARD — exit 1, deploy does not begin)
 
 AND ONE WARNING (exit 0, reported)
 ----------------------------------
-  * no matching `SUCCESS — build/artifacts/<name>` line in `logs/build.log`
+  * no `logs/build.log` line whose status word is `SUCCESS` and which names `build/artifacts/<name>`
 
 The build.log line is DELIBERATELY not a hard failure, and the corpus is why.
 `revitalise-grant-automation-20260823-2` was really built, really tested and really deployed,
@@ -57,8 +57,11 @@ Run over all 51 directories under `build/artifacts/` and, separately, over the 9
 over in real use:
 
   * 9 of 9 real deploy targets PASS every hard check. 0 false positives.
-  * 1 of those 9 (`revitalise-grant-automation-20260823-2`) raises the build.log WARNING, and
-    that observation is TRUE — the line really is missing. It is a warning for the reason above.
+  * 1 of those 9 (`revitalise-grant-automation-20260823-2`) raised the build.log WARNING. That
+    observation was FALSE: its SUCCESS line exists and names the artifact later in the sentence,
+    which the one fixed `SUCCESS — path` shape could not see. Re-measured 2026-10-08 (improvement
+    review 2026-10-07, IMP-1093) over 162 artifact names: the old shape recognised 49 and the
+    status-word anchor recognises 53, all 4 added real successes, 0 lost.
   * `trustee-portal-visual-refresh-20260902-3`, the directory of `IMP-0582`, FAILS on
     `no-manifest` and on `no-test-report`. That is the finding, reproduced.
   * The other 41 directories are failed builds, blocked builds, and pre-convention
@@ -88,6 +91,22 @@ TEST_DOCS = "docs/tests"
 
 # Enumerated from the 38 manifests on disk, 2026-09-02. See the module docstring.
 OK_STATUS_PREFIXES = ("SUCCESS", "DEPLOYED")
+
+
+def build_log_records_success(name: str, build_log: str) -> bool:
+    """True when some build.log line's STATUS WORD is SUCCESS and the line names the artifact.
+
+    The status word is the first word after the line's leading `[...]` tags and an optional
+    `wbs:<ids>` token. Anchoring on it, rather than on one fixed `SUCCESS — path` shape, is
+    IMP-1093: the writer is an agent's free text and has produced a hyphen for the em dash, a
+    `wbs:` tag before the word, a `(V2 packaged)` qualifier after it, and the path later in the
+    sentence. A line that starts BLOCKED or FAILED and mentions SUCCESS later still does not match.
+    """
+    pattern = re.compile(
+        rf"^(?:\[[^\]\n]*\]\s*)*(?:wbs:\S+\s+)?SUCCESS\b[^\n]*?"
+        rf"{re.escape(ARTIFACT_ROOT)}/{re.escape(name)}(?![A-Za-z0-9._-])",
+        re.MULTILINE)
+    return bool(pattern.search(build_log))
 
 
 @dataclass
@@ -181,10 +200,10 @@ def evaluate(name: str,
             f"that report name '{name}' explicitly rather than by implication.",
         ))
 
-    if not re.search(rf"SUCCESS — {re.escape(ARTIFACT_ROOT)}/{re.escape(name)}/?(\s|$)",
-                     build_log, re.MULTILINE):
+    if not build_log_records_success(name, build_log):
         warnings.append(
-            f"no 'SUCCESS — {ARTIFACT_ROOT}/{name}' line in {BUILD_LOG}. That log is appended "
+            f"no line in {BUILD_LOG} whose status word is SUCCESS and which names "
+            f"{ARTIFACT_ROOT}/{name}. That log is appended "
             f"by hand at the end of a dispatch, so this is evidence a log write was skipped "
             f"rather than evidence the build never ran — the manifest is the load-bearing "
             f"signal. Append the missing line if the build did succeed."
@@ -386,16 +405,37 @@ def selftest() -> int:
         if environment_chain(d) != ["dev", "stage", "live"]:
             failures.append(f"environment_chain not read: {environment_chain(d)}")
 
+    # 15-17. IMP-1093: the status word is what is anchored, not one fixed line shape.
+    real = ("[2026-10-07 12:22] [BUILD] [feat] wbs:5.3,5.4,5.6 SUCCESS (V2 packaged) — "
+            "build/artifacts/feat-20260902-2/ — re-dispatch of blocked -2\n")
+    hyphen = "[2026-09-30 09:40] [BUILD] [feat] SUCCESS - build/artifacts/feat-20260902-2 (V2)\n"
+    blocked_line = ("[2026-09-30 09:40] [BUILD] [feat] BLOCKED — lint red after a SUCCESS pack of "
+                    "build/artifacts/feat-20260902-2/\n")
+    for label, text in (("the 20261007-3 line", real), ("the hyphen line", hyphen)):
+        _, w = evaluate("feat-20260902-2", good_manifest, text, 1)
+        if w:
+            failures.append(f"{label} records a success and must not warn, got {w}")
+    _, w = evaluate("feat-20260902-2", good_manifest, blocked_line, 1)
+    if len(w) != 1:
+        failures.append(f"a BLOCKED line naming the artifact must still warn, got {w}")
+    _, w = evaluate("feat-20260902-2", good_manifest,
+                    "[2026-09-02 13:32] [BUILD] [feat] SUCCESS — build/artifacts/feat-20260902-21/\n",
+                    1)
+    if len(w) != 1:
+        failures.append(f"a SUCCESS line naming a LONGER artifact name must still warn, got {w}")
+
     if failures:
         print("verify-artifact-provenance --selftest: FAILED")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("verify-artifact-provenance --selftest: PASS — 14 fixtures (complete artifact; the "
+    print("verify-artifact-provenance --selftest: PASS — 18 fixtures (complete artifact; the "
           "IMP-0582 shape; manifest copied from a sibling; FAILED build; BLOCKED build; null "
           "status; missing build.log line WARNS and does not fail; DEPLOYED status with a "
           "slashless artifact_path; truncated manifest; scoped artifact to the first, a later "
-          "and no environment; unscoped unaffected; scoped flag and chain read from disk)")
+          "and no environment; unscoped unaffected; scoped flag and chain read from disk; "
+          "build.log status word anchored: wbs-tagged and hyphen SUCCESS lines pass, a BLOCKED "
+          "line and a longer artifact name still warn)")
     return 0
 
 
