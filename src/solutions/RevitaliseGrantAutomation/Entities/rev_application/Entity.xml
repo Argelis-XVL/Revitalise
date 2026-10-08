@@ -2126,7 +2126,7 @@
             <displayname description="Narrative (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The applicant's narrative after identifying detail has been removed, written by REV | Narrative | Scrub Free-Text (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design (FR-026) once released - see rev_redactionreleased. MaxLength matches rev_narrativeraw's, the column it is derived from. NOT secured: unlike rev_narrativeraw, this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. Its safety currently rests entirely on the fact that nothing has written to it yet." languagecode="1033" />
+            <Description description="The applicant's narrative after identifying detail has been removed, written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design (FR-026) once released - see rev_redactionreleased. MaxLength 4,000: a longer redacted result is not written and the record goes to review (redaction rules section 7). NOT secured: unlike rev_narrativeraw, this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. The flow writes it only when it is empty and the record is not released, and a trustee sees it only once rev_redactionreleased is true." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_redactionreleased">
@@ -2141,7 +2141,46 @@
             <displayname description="Redaction Released" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The human-in-the-loop release gate (TAD section 5.5, FR-029, FR-030): rev_narrativeredacted is trustee-visible only when this is true. Written by REV | Narrative | Scrub Free-Text and the process owner's manual review step (WBS 5.2/5.3 - DEFERRED, EX-003), so this stays false on every row until that automation lands - the fail-closed default the TAD describes, not a gap. DefaultValue=0: a new application must never default to released." languagecode="1033" />
+            <Description description="The human-in-the-loop release gate (TAD section 5.5, FR-029, FR-030): every ...redacted counterpart is trustee-visible only when this is true. Set true by REV | Narrative | Scrub Free-Text only when there is no reason to review (and RedactionAutoRelease is true), otherwise by the process owner after review. DefaultValue=0: a new application must never default to released." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          TD-008 BUILT 2026-10-06 (wbs:5.3/5.4, TAD rev 19 section 5.5, ADR-071 items 7-8): the two
+          columns the comment block above records as deliberately not built until Automation #5
+          landed. Their writer is REV | Narrative | Scrub Free-Text, built in the same change, and
+          contract/tad-deferrals.json TD-008 is deleted in it. Neither is personal data: a score
+          and a flag. Not secured: the Review Required view and the process owner read both.
+        -->
+        <attribute PhysicalName="rev_redactionconfidence">
+          <Type>decimal</Type>
+          <Name>rev_redactionconfidence</Name>
+          <LogicalName>rev_redactionconfidence</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>4</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>1</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Redaction Confidence" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-029, NFR-017: the lowest AI Builder extractor score (0 to 1) of any span the scrub redacted, across all twelve columns. Compared with the rev_setting RedactionConfidenceThreshold. Empty when no extractor span was redacted. Written by REV | Narrative | Scrub Free-Text." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_redactionreviewrequired">
+          <Type>bit</Type>
+          <Name>rev_redactionreviewrequired</Name>
+          <LogicalName>rev_redactionreviewrequired</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <DefaultValue>0</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Redaction Review Required" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-030: set by REV | Narrative | Scrub Free-Text when the record has any reason to review (rules section 7, TAD section 5.5) or when the scrub failed. Drives the Review Required view; the record stays withheld until the process owner sets Redaction Released." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_eligibleforround">
@@ -2205,7 +2244,7 @@
             <displayname description="Care Support Description (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_caresupportdescription, written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true. NOT secured: unlike rev_caresupportdescription, this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. Its safety currently rests entirely on the fact that nothing has written to it yet." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_caresupportdescription, written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design once rev_redactionreleased is true. NOT secured: unlike rev_caresupportdescription, this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. The flow writes it only when it is empty and the record is not released, and a trustee sees it only once rev_redactionreleased is true." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_careprovidedexampleredacted">
@@ -2221,7 +2260,7 @@
             <displayname description="Care Provided Example (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_careprovidedexample, written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true. NOT secured, same reasoning as rev_caresupportdescriptionredacted above." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_careprovidedexample, written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design once rev_redactionreleased is true. NOT secured, same reasoning as rev_caresupportdescriptionredacted above." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_othercareprovidedtyperedacted">
@@ -2237,7 +2276,7 @@
             <displayname description="Other Care Provided Type (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_othercareprovidedtype, written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true. NOT secured, same reasoning as rev_caresupportdescriptionredacted above. SUPERSEDED 2026-08-27 (SDD Amendment A-05, ADR-031): this Description previously stated that rev_otherexceptionalcircumstance is deliberately NOT given a redacted counterpart, on the reasoning that it belongs to FR-059 rather than FR-035's care-support panel. FR-035 now names it, and its counterpart rev_otherexceptionalcircumstanceredacted ships in the same pass as this comment's correction - see the five columns below." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_othercareprovidedtype, written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design once rev_redactionreleased is true. NOT secured, same reasoning as rev_caresupportdescriptionredacted above. SUPERSEDED 2026-08-27 (SDD Amendment A-05, ADR-031): this Description previously stated that rev_otherexceptionalcircumstance is deliberately NOT given a redacted counterpart, on the reasoning that it belongs to FR-059 rather than FR-035's care-support panel. FR-035 now names it, and its counterpart rev_otherexceptionalcircumstanceredacted ships in the same pass as this comment's correction - see the five columns below." languagecode="1033" />
           </Descriptions>
         </attribute>
         <!-- WBS 6.3, SDD Amendment A-05 (APPROVED 2026-08-27), ADR-031 in the delta TAD
@@ -2297,7 +2336,7 @@
             <displayname description="Why Unable to Fund the Break (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_unabletofundexplanation (MaxLength 2000, IsSecured=1), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NOT secured: this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. Its safety currently rests entirely on the fact that nothing has written to it yet. Its SOURCE is Article 6 secured financial free text, not Article 9 - the one of the five whose source is correctly absent from the special-category register." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_unabletofundexplanation (MaxLength 2000, IsSecured=1), written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NOT secured: this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. The flow writes it only when it is empty and the record is not released, and a trustee sees it only once rev_redactionreleased is true. Its SOURCE is Article 6 secured financial free text, not Article 9 - the one of the five whose source is correctly absent from the special-category register." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_exceptionalfundingdetailredacted">
@@ -2313,7 +2352,7 @@
             <displayname description="Exceptional Funding Detail (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_exceptionalfundingdetail (MaxLength 2000, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_exceptionalfundingdetail (MaxLength 2000, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_otherexceptionalcircumstanceredacted">
@@ -2329,7 +2368,7 @@
             <displayname description="Other Exceptional Circumstance (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_otherexceptionalcircumstance (MaxLength 200 and Format text, not textarea - the only one of the five whose source is a short single-line column, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). This counterpart is deliberately ntext/textarea/4000 like its four siblings rather than mirroring its source's 200-character text shape: a uniform counterpart shape is what lets Automation #5 treat all five identically, and 4000 cannot truncate a 200-character input. NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_otherexceptionalcircumstance (MaxLength 200 and Format text, not textarea - the only one of the five whose source is a short single-line column, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). This counterpart is deliberately ntext/textarea/4000 like its four siblings rather than mirroring its source's 200-character text shape: a uniform counterpart shape is what lets Automation #5 treat all five identically, and 4000 cannot truncate a 200-character input. NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_otherconditionredacted">
@@ -2345,7 +2384,7 @@
             <displayname description="Other Condition Notes (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_otherconditionraw (MaxLength 2000, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NAMING: the source ends in 'raw', so the counterpart replaces that suffix rather than appending to it - rev_otherconditionredacted, exactly as rev_narrativeraw pairs with rev_narrativeredacted. NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_otherconditionraw (MaxLength 2000, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NAMING: the source ends in 'raw', so the counterpart replaces that suffix rather than appending to it - rev_otherconditionredacted, exactly as rev_narrativeraw pairs with rev_narrativeredacted. NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_supportrecipientotherconditionredacted">
@@ -2361,7 +2400,7 @@
             <displayname description="Support Recipient Other Condition Notes (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_supportrecipientotherconditionraw (MaxLength 2000, IsSecured=1, Article 9 special category about a THIRD PARTY who did not themselves apply), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). Same 'raw'-suffix-replaced naming as rev_otherconditionredacted. At 42 characters this is the longest logical name in this solution; the longest previously created here is 37 (rev_supportrecipientotherconditionraw, its own source) and this environment stores platform-created names up to 56, so it is within the platform's limit with margin (delta TAD section 3.2.2, assumption A-RED-1). NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_supportrecipientotherconditionraw (MaxLength 2000, IsSecured=1, Article 9 special category about a THIRD PARTY who did not themselves apply), written by REV | Narrative | Scrub Free-Text (TAD section 5.5, wbs:5.3). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). Same 'raw'-suffix-replaced naming as rev_otherconditionredacted. At 42 characters this is the longest logical name in this solution; the longest previously created here is 37 (rev_supportrecipientotherconditionraw, its own source) and this environment stores platform-created names up to 56, so it is within the platform's limit with margin (delta TAD section 3.2.2, assumption A-RED-1). NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
           </Descriptions>
         </attribute>
 
@@ -2673,7 +2712,7 @@
             <displayname description="Disability Impact Description (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_disabilityimpactdescription (ADR-052, ADR-027 pattern). Written by REV | Narrative | Scrub Free-Text once extended (Automation #5, deferred) - never by intake, so empty until then and rendered withheld (FR-035, FR-079). Trustee-visible once rev_redactionreleased is true. Not secured." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_disabilityimpactdescription (ADR-052, ADR-027 pattern). Written by REV | Narrative | Scrub Free-Text (Automation #5, wbs:5.3) - never by intake, so empty until it runs and rendered withheld (FR-035, FR-079). Trustee-visible once rev_redactionreleased is true. Not secured." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_supportrecipientdisabilityimpactdescriptionredacted">
@@ -2689,7 +2728,7 @@
             <displayname description="Person Supported Disability Impact Description (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_supportrecipientdisabilityimpactdescription (ADR-052, ADR-027 pattern). Written by Automation #5 once extended, never by intake. Trustee-visible once rev_redactionreleased is true. Not secured." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_supportrecipientdisabilityimpactdescription (ADR-052, ADR-027 pattern). Written by Automation #5 (REV | Narrative | Scrub Free-Text, wbs:5.3), never by intake. Trustee-visible once rev_redactionreleased is true. Not secured." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_carecostsexplanationredacted">
@@ -2705,7 +2744,7 @@
             <displayname description="Care or Medical Costs Explanation (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_carecostsexplanation (IsSecured=1), the ADR-031/ADR-052 pattern; added for WI-0005 by reviewer decision 2026-09-30 (Xander Lykopoulos: show it as a narrative-scrubbed version, like other columns). Written by REV | Narrative | Scrub Free-Text once extended (Automation #5, deferred) - never by intake, so empty until then and rendered withheld in the Trustee Portal's Financial Eligibility section (FR-035, FR-079). Trustee-visible once rev_redactionreleased is true. Not secured: this column's whole purpose is to be safe for a trustee to read. Its source is Article 9 (medical expenses describe a medical condition); this column is the OUTPUT of redaction, the same position the special-category register records for rev_narrativeredacted." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_carecostsexplanation (IsSecured=1), the ADR-031/ADR-052 pattern; added for WI-0005 by reviewer decision 2026-09-30 (Xander Lykopoulos: show it as a narrative-scrubbed version, like other columns). Written by REV | Narrative | Scrub Free-Text (Automation #5, wbs:5.3) - never by intake, so empty until it runs and rendered withheld in the Trustee Portal's Financial Eligibility section (FR-035, FR-079). Trustee-visible once rev_redactionreleased is true. Not secured: this column's whole purpose is to be safe for a trustee to read. Its source is Article 9 (medical expenses describe a medical condition); this column is the OUTPUT of redaction, the same position the special-category register records for rev_narrativeredacted." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_provisionaldate">

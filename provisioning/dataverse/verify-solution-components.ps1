@@ -378,6 +378,13 @@ foreach ($ctype in @($targets.declared.PSObject.Properties.Name | Sort-Object { 
                 Test-DataverseRowExists -Path "environmentvariabledefinitions?`$filter=schemaname eq '$name'&`$select=schemaname" `
                     -Check "Environment variable definition '$identifier' ($label) exists"
             }
+            '401' {
+                # AI Builder prompt (ADR-072, wbs:5.3). msdyn_aimodel's entity set is msdyn_aimodels
+                # (E1: the entity table's entitysetname, read in DEV with pac env fetch, 2026-10-06). The flow's run action names the
+                # prompt by this id, so its presence after import is what lets the stage run at all.
+                Test-DataverseRowExists -Path "msdyn_aimodels($identifier)?`$select=msdyn_aimodelid,msdyn_name,statecode" `
+                    -Check "AI model $identifier ($label) exists"
+            }
             default {
                 Write-CheckResult -Status FAIL -Check "Component type $ctype ($label)" `
                     -Detail 'no live-check implemented for this type — add one before trusting this run for it'

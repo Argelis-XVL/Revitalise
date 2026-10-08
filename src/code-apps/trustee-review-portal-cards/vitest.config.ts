@@ -47,7 +47,9 @@ export default defineConfig({
       reportsDirectory: "./coverage",
       // Scope is `src/code-apps/<slug>/src/**` per
       // knowledge/technology/coding-standards.md -> "Test Coverage".
-      include: ["src/**"],
+      // Source files only: vitest 5 (IMP-1072) otherwise feeds src/dataverse/README.md
+      // to the v8 provider, which prints "Failed to parse ... Expected ident" (IMP-1089).
+      include: ["src/**/*.{ts,tsx}"],
       // Exclusions, each with a reason (the TypeScript analogue of
       // config/coverage-exclusions.json's priced-exclusion rule):
       exclude: [

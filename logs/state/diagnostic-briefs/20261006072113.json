@@ -1,0 +1,10 @@
+{
+  "run_id": "20261006072113",
+  "config": "config/revitalise-grant-automation-build.yml",
+  "failing_step": "code-app-audit",
+  "command": "npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high",
+  "exit_code": 1,
+  "stdout_tail": "# npm audit report\n\n@vitest/mocker  2.1.0 - 4.1.10\nSeverity: moderate\nVitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock - https://github.com/advisories/GHSA-82fw-gwwq-j7x9\nfix available via `npm audit fix --force`\nWill install vitest@5.0.3, which is a breaking change\nnode_modules/@vitest/mocker\n  vitest  0.0.95 - 4.1.10\n  Depends on vulnerable versions of @vitest/mocker\n  Depends on vulnerable versions of tinypool\n  node_modules/vitest\n    @vitest/coverage-v8  2.1.0-beta.1 - 4.1.10\n    Depends on vulnerable versions of vitest\n    node_modules/@vitest/coverage-v8\n\nsource-map-js  1.0.0 - 1.2.1\nSeverity: high\nsource-map-js allows event-loop denial of service through indexed source-map section offsets - https://github.com/advisories/GHSA-68fv-2mgg-jv7q\nfix available via `npm audit fix`\nnode_modules/source-map-js\n\ntinypool  <=2.1.1\nSeverity: critical\nTinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution - https://github.com/advisories/GHSA-5gmw-xhrv-c9v3\nTinypool: Prototype Pollution Gadget to RCE in run() options - https://github.com/advisories/GHSA-85c8-ppgw-ccpr\nfix available via `npm audit fix --force`\nWill install vitest@5.0.3, which is a breaking change\nnode_modules/tinypool\n\n\n5 vulnerabilities (2 moderate, 1 high, 2 critical)\n\nTo address issues that do not require attention, run:\n  npm audit fix\n\nTo address all issues (including breaking changes), run:\n  npm audit fix --force\n",
+  "stderr_tail": "",
+  "dispatch_instruction": "Dispatch this EXACT context as a scoped haiku (or tightly-scoped sonnet) Task call \u2014 the failing step, its command, and its output, nothing else. Not the full build-agent persona, not the whole config."
+}

@@ -32,11 +32,13 @@
       "first_seen": "2026-08-10"
     },
     "DPO sign-off": {
-      "state": "outstanding",
+      "state": "satisfied",
       "owner": "Rebecca Young (DPO)",
-      "note": "BLOCKS automations #0, #5 and #6 — 122 estimated hours. WBS 0.5 is explicitly gated on this sign-off and is already marked Done, so a completed task rests on a sign-off that has not arrived. Chase this first.",
+      "note": "Was: BLOCKS automations #0, #5 and #6 — 122 estimated hours. OPEN QUESTION FOR THE REVIEWER: 'owner' still reads Rebecca Young (DPO) and was NOT changed; the reviewer names Janine as the signer. Either Janine is now the DPO (knowledge/domain/overview.md:51 already asks to confirm the currency of the Rebecca Young name) or the sign-off came from someone other than the DPO of record. Also: a verbal sign-off is weak evidence for a DPIA-type control; a short written confirmation (email) from Janine is recommended. Satisfaction here clears the dependency gate only; it does not by itself clear EX-003 or EX-005 (see their clears_when).",
       "first_seen": "2026-07-04",
-      "reviewer_answer": "still waiting"
+      "reviewer_answer": "signed off by Janine, phone call, 2026-08-28 (reported 2026-10-05; previously 'still waiting')",
+      "evidence": "2026-10-05: reviewer (Xander Lykopoulos) states, verbatim: \"DPO has been signed off by Janine in a phone call late august th 28th.\" Sign-off date 2026-08-28. Recorded as reviewer-reported (same pattern as 'acceptance letter template'): a verbal phone sign-off, NOT a written document. No written record of it exists in this repository.",
+      "signed_by_per_reviewer": "Janine (surname and role not stated)"
     },
     "Alex (website designer)": {
       "state": "outstanding",
@@ -96,11 +98,17 @@
       "note": "Blocks automation #3 (DocuSign, 30h). Phase 1 is contractually due 2026-09-25. Satisfying this dependency is not the same as wbs:3.1 meeting its own completion criteria — see EX-006: 3.1's named 'review with Emily for accuracy' still did not happen."
     },
     "AI Builder credits (may be bundled)": {
-      "state": "not_yet_required",
+      "state": "satisfied",
       "owner": "Revitalise",
       "first_seen": "2026-07-04",
-      "reviewer_answer": "not yet acquired because the build has not started",
-      "note": "Automation #5 is Phase 3 (due 2026-11-27). Acquire before task 5.2 needs it, not after."
+      "reviewer_answer": "assigned to DEV and ACC for now (reported 2026-10-05; previously 'not yet acquired because the build has not started')",
+      "note": "Automation #5 is Phase 3 (due 2026-11-27). SATISFIED FOR dev AND tst_acc ONLY. prd is NOT yet assigned: acquire/assign AI Builder credits to prd BEFORE the production deploy of automation #5 (task 5.2 onward), not after. Entries above 'satisfied' are about the build; this prd gap is still open.",
+      "environments": {
+        "dev": "satisfied",
+        "tst_acc": "satisfied",
+        "prd": "not_yet_assigned"
+      },
+      "evidence": "2026-10-05: reviewer (Xander Lykopoulos) states, verbatim: \"the AI builder credits are also assigned to DEV and ACC for now.\" Reviewer-reported, not independently verified in the tenant. Covers dev and tst_acc only (ADR-006: Test and Acceptance are one environment)."
     },
     "redaction rules": {
       "state": "outstanding",

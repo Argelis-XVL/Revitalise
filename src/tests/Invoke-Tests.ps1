@@ -159,8 +159,11 @@ if ($CodeCoverage) {
         #   pipeline and PowerShell then evaluates `+ b` as its OWN expression, so the message
         #   splits across two lines with a bare `+` between them. Every message below builds the
         #   full string with `-f` in one expression, then passes the single result to Write-Output.
-        Write-Output (("Coverage          : {0}%  (measured only — see the coverage-threshold " +
-                      "build step for the enforced figure)") -f $percent)
+        # IMP-1084: this is Pester's COMMAND-based percentage. The gated figure is LINE coverage, read
+        # from the JaCoCo report by the coverage-threshold step, and the two differ by 15+ points on
+        # this repository (2026-10-06: 75.70% commands, 91.57% lines). Say which one this is.
+        Write-Output (("Coverage          : {0}% of COMMANDS (Pester's metric, measured only — the " +
+                      "coverage-threshold build step gates LINE coverage, a different number)") -f $percent)
         Write-Output 'RESULT: coverage measured, not enforced here.'
     }
     else {

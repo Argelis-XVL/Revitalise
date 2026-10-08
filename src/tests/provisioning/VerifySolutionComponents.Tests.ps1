@@ -216,6 +216,51 @@ Describe 'verify-solution-components.ps1 — live existence, derived from source
         }
     }
 
+    It 'checks a declared AI model (type 401) by its id, PASS when present and FAIL when absent (ADR-072)' {
+        foreach ($present in @($true, $false)) {
+            $root = New-FixtureSolution
+            try {
+                $sol = Join-Path $root 'Other' 'Solution.xml'
+                (Get-Content $sol -Raw) -replace '</RootComponents>',
+                    "  <RootComponent type=`"401`" id=`"{a1000000-0000-4000-8000-000000000001}`" behavior=`"0`" />`n    </RootComponents>" |
+                    Set-Content -Path $sol -Encoding utf8
+                Set-Content -Path (Join-Path $root 'Other' 'Customizations.xml') -Encoding utf8 -Value (
+                    "<ImportExportXml><AIModels>`n    <AIModel>`n      <msdyn_aimodelid>{a1000000-0000-4000-8000-000000000001}</msdyn_aimodelid>`n    </AIModel>`n  </AIModels></ImportExportXml>")
+                Register-FakeDataverseResponse -Method GET -UriPattern "EntityDefinitions\(LogicalName='rev_testent'\)\?" `
+                    -Response ([pscustomobject]@{ LogicalName = 'rev_testent' })
+                Register-FakeDataverseResponse -Method GET -UriPattern 'EntityDefinitions.*Attributes' `
+                    -Response ([pscustomobject]@{ value = @([pscustomobject]@{ LogicalName = 'rev_name' }, [pscustomobject]@{ LogicalName = 'rev_extracolumn' }) })
+                Register-FakeDataverseResponse -Method GET -UriPattern 'GlobalOptionSetDefinitions' `
+                    -Response ([pscustomobject]@{ Name = 'rev_testoptionset' })
+                Register-FakeDataverseResponse -Method GET -UriPattern 'environmentvariabledefinitions\?' `
+                    -Response ([pscustomobject]@{ value = @([pscustomobject]@{ schemaname = 'rev_TestVar' }) })
+                Register-FakeDataverseResponse -Method GET -UriPattern 'systemforms\(' `
+                    -Response ([pscustomobject]@{ formid = 'f1000000-0000-4000-8000-000000000001'; name = 'main' })
+                Register-FakeDataverseResponse -Method GET -UriPattern 'savedqueries\(' `
+                    -Response ([pscustomobject]@{ savedqueryid = 'q1000000-0000-4000-8000-000000000001'; name = 'All Test' })
+                $aiModel = if ($present) { [pscustomobject]@{ msdyn_aimodelid = 'a1000000-0000-4000-8000-000000000001'; msdyn_name = 'Prompt' } }
+                           else { [pscustomobject]@{ value = @() } }
+                Register-FakeDataverseResponse -Method GET -UriPattern 'msdyn_aimodels\(a1000000-0000-4000-8000-000000000001\)' -Response $aiModel
+
+                $settingsPath = New-DevSettingsFixtureFile
+                $output = (& $script:VerifyComponents -Env dev -SolutionRoot $root -SettingsPath $settingsPath -SkipIdempotencyCheck) -join "`n"
+                if ($present) {
+                    $LASTEXITCODE | Should -Be 0
+                    $output | Should -Match 'PASS — AI model a1000000-0000-4000-8000-000000000001 \(AI model \(AI Builder prompt\)\) exists'
+                }
+                else {
+                    $LASTEXITCODE | Should -Be 1
+                    $output | Should -Match 'FAIL — AI model a1000000-0000-4000-8000-000000000001'
+                }
+                $output | Should -Not -Match 'no live-check implemented'
+            }
+            finally {
+                Remove-Item -Path $root -Recurse -Force -ErrorAction SilentlyContinue
+                . $script:InitFakeApi
+            }
+        }
+    }
+
     It 'skips the idempotency re-import step when -SolutionZipPath is not supplied, without failing' {
         $root = New-FixtureSolution
         try {

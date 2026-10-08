@@ -187,6 +187,27 @@ Describe 'Build gate: root-components-resolve' {
     It "'root-components-resolve' passes against the real solution source" {
         Invoke-Python 'verify-solution-root-components.py' @($script:Solution) | Should -Be 0
     }
+    # Type 401, the AI Builder prompt (ADR-072, A-NS-9): its definition is INLINE in
+    # Customizations.xml, the shape a real DEV export unpacked to on 2026-10-06. Both directions.
+    It "'root-components-resolve' resolves an AI model (type 401) only when both halves exist" {
+        $id = '{11111111-2222-4333-8444-555555555555}'
+        $declared = "<ImportExportXml><SolutionManifest><RootComponents><RootComponent type=`"401`" id=`"$id`" behavior=`"0`" /></RootComponents></SolutionManifest></ImportExportXml>"
+        $inline = "<ImportExportXml><AIModels>`n    <AIModel>`n      <msdyn_aimodelid>$id</msdyn_aimodelid>`n    </AIModel>`n  </AIModels></ImportExportXml>"
+        $cases = @(
+            @{ Solution = $declared; Custom = $inline; Expect = 0 },
+            @{ Solution = $declared; Custom = '<ImportExportXml><AIModels /></ImportExportXml>'; Expect = 1 },
+            @{ Solution = '<ImportExportXml><SolutionManifest><RootComponents /></SolutionManifest></ImportExportXml>'; Custom = $inline; Expect = 1 })
+        foreach ($case in $cases) {
+            $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("gate-aimodel-" + [guid]::NewGuid())
+            New-Item -ItemType Directory -Path (Join-Path $tmp 'Other') -Force | Out-Null
+            try {
+                Set-Content -Path (Join-Path $tmp 'Other' 'Solution.xml') -Value $case.Solution -Encoding utf8
+                Set-Content -Path (Join-Path $tmp 'Other' 'Customizations.xml') -Value $case.Custom -Encoding utf8
+                Invoke-Python 'verify-solution-root-components.py' @($tmp) | Should -Be $case.Expect
+            }
+            finally { Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+    }
 }
 
 Describe 'Build gate: forms-and-views-reachable' {

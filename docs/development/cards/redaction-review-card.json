@@ -1,0 +1,68 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "Redaction needs your review",
+      "wrap": true,
+      "weight": "Bolder",
+      "size": "Medium",
+      "color": "Warning"
+    },
+    {
+      "type": "TextBlock",
+      "text": "The narrative scrub has finished. Nothing reaches a trustee until you release it.",
+      "wrap": true,
+      "isSubtle": true,
+      "spacing": "None"
+    },
+    {
+      "type": "FactSet",
+      "spacing": "Medium",
+      "separator": true,
+      "facts": [
+        {
+          "title": "Reference",
+          "value": "@{body('Get_the_application')?['rev_name']}"
+        },
+        {
+          "title": "Reasons",
+          "value": "@{join(outputs('Compose_decision')?['reasons'], ', ')}"
+        },
+        {
+          "title": "Lowest confidence",
+          "value": "@{if(equals(outputs('Compose_decision')?['confidence'], null), 'none', string(outputs('Compose_decision')?['confidence']))}"
+        }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Open the Narrative Scrubbing tab, check each redacted column, correct it if needed, then set Redaction Released.",
+      "wrap": true,
+      "spacing": "Medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "Reference and reason codes only - no name, condition or narrative is included in this message by design.",
+      "wrap": true,
+      "isSubtle": true,
+      "size": "Small",
+      "spacing": "Medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open this application",
+      "url": "@{parameters('rev_GrantAdminAppUrl')}&pagetype=entityrecord&etn=rev_application&id=@{triggerOutputs()?['body/rev_applicationid']}"
+    },
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open the Review Required view",
+      "url": "@{parameters('rev_GrantAdminAppUrl')}&pagetype=entitylist&etn=rev_application&viewid=6b1d2e4f-5a01-4c3e-9f11-0a1b2c3d4e71"
+    }
+  ]
+}

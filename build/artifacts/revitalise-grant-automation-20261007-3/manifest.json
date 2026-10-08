@@ -1,0 +1,147 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "5.3",
+    "5.4",
+    "5.6"
+  ],
+  "items": [],
+  "build_date": "2026-10-07",
+  "build_number": 3,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20261007-3/",
+  "source_commit": "55d366a555af3f8e5737642a1a8881a8834df15a",
+  "source_commit_at_pack_time": "55d366a555af3f8e5737642a1a8881a8834df15a",
+  "source_tree_dirty_paths": 22,
+  "source_commit_note": "22 uncommitted paths under src/, provisioning/ and config/ at pack time. source_commit describes the build inputs only where they are unaffected by those dirty paths.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 27.0.0 arm64 (macOS)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 101 steps executed, 1 out-of-context (auth), 102 declared, run via scripts/run-build.py",
+  "verification_level": "V2 — packaged; layout accepted by the packer. Content, platform acceptance and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "component-shape-packed",
+    "root-components-resolve",
+    "role-privilege-ownership",
+    "tad-coverage",
+    "forms-and-views-reachable",
+    "domain-invariants",
+    "no-special-category-data-in-scoring",
+    "receivesbenefits-scoped-to-income-flag",
+    "no-hardcoded-environment-values",
+    "flow-definition-language",
+    "no-hardcoded-thresholds",
+    "flow-reads-no-trigger-body",
+    "metadata-write-verbs",
+    "no-trustee-in-column-security-profile",
+    "no-secured-columns-in-code-app",
+    "code-app-data-sources",
+    "code-app-bundle-budget",
+    "lint (pac solution check)"
+  ],
+  "warnings": {
+    "total": 5,
+    "resolved": 0,
+    "accepted": 5,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations:",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L935"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations:",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L935"
+    },
+    {
+      "step": "lint",
+      "signature": "Solution Checker: Critical 0, High 0, Medium 15, Low 0, Informational 0 [figures compared: 15 Medium = the 15 the row states (14 flow-avoid-recursive-loop on REVNarrativeScrubFreeText + 1 standing on REVSafeguardingActionCompletion); same count as blocked build 20261007-2]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L938"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 1,210.18 kB (gzip 473.19 kB), css 77.64 kB, equal to the 1,210.18 kB / 77.64 kB the standing row states; byte budget gate PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L184 (standing row, cites docs/development/trustee-portal-design-2-dev-summary.md#L490)"
+    },
+    {
+      "step": "code-app-build-cards",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 845.81 kB (gzip 367.20 kB), css 148.64 kB, equal to the 845.81 kB / 148.64 kB the row states; byte budget gate PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L939 (cites docs/development/trustee-portal-design-2-dev-summary.md#L484)"
+    },
+    {
+      "step": "code-app-unit-tests",
+      "signature": "Sourcemap for '.../node_modules/@microsoft/power-apps/dist/...' points to missing source files [figures compared: 51 lines measured by re-running the step, equal to the ~51 the triage records]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L182 (standing row, cites docs/development/revitalise-grant-automation-dev-summary.md#L4893)"
+    },
+    {
+      "step": "code-app-unit-tests-cards",
+      "signature": "Sourcemap for '.../node_modules/@microsoft/power-apps/dist/...' points to missing source files [figures compared: 51 lines measured by re-running the step, equal to the ~51 the triage records]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L182 (standing row, cites docs/development/revitalise-grant-automation-dev-summary.md#L4893)"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 155,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 1,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 1,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 76,
+    "constraint-verifiers": 1
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — when: ci, needs GitHub OIDC token vars not present on a local run",
+      "level_not_established": "n/a — declared boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "scoped": false,
+  "skipped_unchanged": [],
+  "build_config_sha256": "f2b580425d459065c07c6af7e7af404ec384764a0d2e8d4916a60cb0243a866b",
+  "build_config_drift": "none — hash identical at start and at manifest time",
+  "improvement_log_observations": {
+    "start": "1087 entries; 28 unread (IMP-1061..IMP-1091 subset); 0 deploy-open blockers",
+    "manifest_time": "1087 entries; 28 unread; no entry added during the build",
+    "unread_deploy_lane_blockers": 0,
+    "governance_blockers_open": 1,
+    "governance_blocker_ids": [
+      "IMP-1063"
+    ],
+    "fixed_in_flight": [
+      "IMP-1072",
+      "IMP-1081",
+      "IMP-1082"
+    ]
+  },
+  "test_results": {
+    "pester_passed": 1339,
+    "pester_failed": 0,
+    "pester_skipped": 1,
+    "coverage_threshold": "91.57% of lines (2304/2516) against 80.0% (coverage-threshold step, C-TECH-014); Pester command coverage 75.71% is measured, not enforced",
+    "code_app_visual_tests": "8 passed (portal), 23 passed (cards)",
+    "npm_audit": "0 vulnerabilities (both apps)"
+  },
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}

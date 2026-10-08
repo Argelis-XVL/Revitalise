@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Workflow metadata for REV | Narrative | Scrub Free-Text (Automation #5, wbs:5.3/5.4; TAD rev 20
+  sections 5.5 and 5.5.1, ADR-071 to ADR-074). Dataverse row trigger on rev_application, the same shape as
+  REV | Safeguarding | Action Completion (message 3 Modified, scope 4, runas 3), filtered to
+  rev_status. The flow acts only when the status is Eligible for Panel (6).
+
+  IMPORTS SWITCHED OFF, SAME REASON AS EVERY OTHER FLOW IN THIS SOLUTION: StateCode 0 /
+  StatusCode 1 is Draft. Binding the connection references requires interactive OAuth consent
+  and cannot be scripted (TAD section 12.1).
+
+  Category 5 is a modern cloud flow. PrimaryEntity is none, matching every other Dataverse-
+  triggered flow in this solution: the trigger is expressed inside the definition JSON.
+-->
+<Workflow WorkflowId="{8f1c2a44-1011-4b7a-9e21-0a1b2c3d4e11}" Name="REV | Narrative | Scrub Free-Text">
+  <JsonFileName>/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutoDelete>0</AsyncAutoDelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>0</StateCode>
+  <StatusCode>1</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName description="REV | Narrative | Scrub Free-Text" languagecode="1033" />
+  </LocalizedNames>
+</Workflow>

@@ -84,6 +84,18 @@
       "expires": "2026-12-31",
       "expiry_rationale": "Same horizon as EX-008: covers Phase 3 and the closing invoice, so the decision is re-confirmed before the final invoice is prepared.",
       "_risk_acceptance_note": "Commercial-agent is not blocked by code: verify-worklog would accept hours against wbs:3.2. This entry and commercial-events CE-0016 are the record commercial-agent reads; the control is that record, not a gate."
+    },
+    {
+      "id": "EX-010",
+      "gate": "none - not a gate violation. Standing record of a reviewer decision that wbs:5.3 hours above the accepted range are UNBILLED; see _gate_scope_note. No gate observes it.",
+      "matches": "UNBILLED by reviewer decision - wbs:5.3 narrative scrubbing hours above the accepted 4-6h range, feature revitalise-grant-automation, Iterations 2 and 3",
+      "reason": "Reviewer verbatim (logs/routing.log 2026-10-06 20:57 REVIEWER_DECISIONS): \"It's a change order decision. Not investigated so well in the Statement of Work phase. So fine to stay unbilled.\" Proposed wbs:5.3 hours across Iterations 2 and 3 total 10.75h against an accepted range of 4-6h in contract/wbs.json, an excess of 4.75-6.75h. No change order is raised and no approval is sought.",
+      "finding": "none",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "Commercial-agent proposes no billable hours above the accepted upper bound of wbs:5.3 and logs no worklog session for the excess. Revisit only if the reviewer decides to bill it (then a change order and APPROVE CHANGE ORDER are required first, per C-COM-002).",
+      "expires": "2026-12-31",
+      "expiry_rationale": "Same horizon as EX-008 and EX-009: covers Phase 3 and the closing invoice, so the decision is re-confirmed before the final invoice is prepared.",
+      "_risk_acceptance_note": "Commercial-agent is not blocked by code: verify-worklog would accept hours against wbs:5.3. This entry and commercial-events CE-0018 are the record commercial-agent reads; the control is that record, not a gate."
     }
   ],
   "_closed_exceptions": [

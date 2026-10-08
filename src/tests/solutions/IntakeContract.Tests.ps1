@@ -1581,11 +1581,42 @@ Describe 'ADR-052 / TD-010 — the schema the transfer rule needs exists' {
         $deferrals | Should -Not -Match '"TD-010"'
     }
 
-    It 'every new secured column has a main-form control (C-TECH-077), and so does every new captured answer' {
+    # IMP-1082 (2026-10-06): this read "exactly one datafieldname= per column". C-TECH-077 asks for
+    # reachability ("a disabled control satisfies this row"); the "exactly one" was this test's own
+    # guard against a duplicated capture control. The approved Narrative Scrubbing tab (Dev Summary
+    # Iteration 1 §4, A-NS-6) adds a read-only copy of each raw free-text column, id "<field>1", so the
+    # premise changed, not the form. The guard is now stated precisely: ONE editable control (capture
+    # is possible, and not twice), and any further control is read-only AND on the scrubbing tab.
+    It 'every new secured column has exactly one EDITABLE main-form control (C-TECH-077), and so does every new captured answer' {
+        [xml]$form = $script:FormXml
         foreach ($name in @('rev_disabilityimpactdescription', 'rev_supportrecipientdisabilityimpactdescription',
                             'rev_hasequalityactdisability', 'rev_supportrecipienthasequalityactdisability',
                             'rev_someonehelping', 'rev_provisionaldate', 'rev_otherfundingstatus')) {
-            [regex]::Matches($script:FormXml, "datafieldname=`"$name`"").Count | Should -Be 1 -Because $name
+            $controls = @($form.SelectNodes("//control[@datafieldname='$name']"))
+            $editable = @($controls | Where-Object { $_.GetAttribute('disabled') -ne 'true' })
+            $editable.Count | Should -Be 1 -Because "$name needs exactly one control a grant admin can type into"
+            foreach ($copy in @($controls | Where-Object { $_.GetAttribute('disabled') -eq 'true' })) {
+                $tab = $copy.SelectSingleNode('ancestor::tab[1]').GetAttribute('name')
+                $tab | Should -Be 'tab_narrativescrubbing' -Because "a read-only copy of $name is allowed only on the Narrative Scrubbing tab"
+                $copy.GetAttribute('id') | Should -Be "${name}1" -Because 'the scrubbing-tab copy uses the designer id convention (A-NS-6)'
+            }
+        }
+    }
+
+    It 'every raw column on the Narrative Scrubbing tab is read-only there and editable on exactly one other tab (Iteration 1 §4, A-NS-6)' {
+        [xml]$form = $script:FormXml
+        $tab = $form.SelectSingleNode("//tab[@name='tab_narrativescrubbing']")
+        $tab | Should -Not -BeNullOrEmpty
+        $raw = @($tab.SelectNodes('.//control[@datafieldname]') | Where-Object {
+                $_.GetAttribute('datafieldname') -notmatch 'redacted$' -and
+                $_.GetAttribute('datafieldname') -notmatch '^rev_redaction' })
+        $raw.Count | Should -Be 12 -Because 'all twelve raw/redacted pairs are on the tab (IMP-1066, IMP-1068)'
+        foreach ($c in $raw) {
+            $name = $c.GetAttribute('datafieldname')
+            $c.GetAttribute('disabled') | Should -Be 'true' -Because "$name is read-only on the scrubbing tab"
+            $elsewhere = @($form.SelectNodes("//control[@datafieldname='$name']") |
+                Where-Object { $_.SelectSingleNode('ancestor::tab[1]').GetAttribute('name') -ne 'tab_narrativescrubbing' })
+            @($elsewhere | Where-Object { $_.GetAttribute('disabled') -ne 'true' }).Count | Should -Be 1 -Because "$name stays capturable on its own tab"
         }
     }
 }

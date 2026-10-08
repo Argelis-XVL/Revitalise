@@ -3,7 +3,7 @@
 **Feature Slug:** revitalise-grant-automation
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **Date:** 2026-08-10
-**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.** **Rev 18 (2026-10-05: design-document corrections, middle name and suffix dropped from the helper name) is presented for review and not yet approved.** **Rev 16 (2026-10-05: §5.8 rewritten to the Create Envelope design the 3–4 October DEV hotfixes settled, `ADR-069`; the referee's name and address columns, `ADR-070`, superseding `ADR-043`) was **approved 2026-10-05** (Xander Lykopoulos, verbatim *"Approved for development"*, logged in `logs/routing.log`); the approval amendment below records his answers.**
+**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.** **Rev 18 (2026-10-05: design-document corrections, middle name and suffix dropped from the helper name) is presented for review and not yet approved.** **Rev 19 (2026-10-05: Automation #5 detector re-designed, `ADR-071`/`ADR-072`, `ADR-012` amended) was approved 2026-10-06** (Xander Lykopoulos, verbatim *"Approve architecture"*, logged in `logs/routing.log`). **Rev 20 (2026-10-06: Automation #5 uses the postcode register, `ADR-073`, and reads its tunable redaction rules and prompt categories from `rev_setting`, `ADR-074`) was approved 2026-10-06** (Xander Lykopoulos). His words were not the keyword `APPROVED` but an instruction to build *"as currently designed"*; lead-agent read that as approval of rev 20, and the verbatim text is in the Approval section so a reader can disagree. Residency (`IMP-1063`) is parked at the customer and does not block building; it is still not decided (§12, `A-R82`). **Rev 16 (2026-10-05: §5.8 rewritten to the Create Envelope design the 3–4 October DEV hotfixes settled, `ADR-069`; the referee's name and address columns, `ADR-070`, superseding `ADR-043`) was **approved 2026-10-05** (Xander Lykopoulos, verbatim *"Approved for development"*, logged in `logs/routing.log`); the approval amendment below records his answers.**
 **Revision:** rev 1 — 2026-08-10. Reviewer decisions applied to ADR-003 (Code App confirmed), ADR-006
 (three environments: DEV, TST/ACC, PRD), §6.1 (group-team pattern confirmed), §6.5 (audit retention
 confirmed at 6 years), role-membership review cadence (confirmed at 6 months), and §4.2 (SAR mechanism
@@ -407,6 +407,63 @@ no design decision changes). Reviewer: *"fix the design document"*, *"remove mid
 
 Sections changed: §3 table list note, §3.1 (two blocks, one row), Appendix C §C.8, this entry.
 
+**Revision:** rev 19 — 2026-10-05. **Automation #5's detector re-designed against the platform as measured**
+(`wbs:5.3`, `5.4`; rules `wbs:5.1`, corpus `wbs:5.2`). Raised by development-agent as `CASCADE: ARCH_GAP`
+(`IMP-1064`): the *"AI Builder prebuilt PII model"* this document named does not exist in the tenant.
+Reviewer decision, verbatim (Xander Lykopoulos, 2026-10-05): *"It's called the entity extractor prebuilt model in
+Europe. use generative prompt for the indirect links"*, and on the type list, *"Those were the same entities"*.
+
+1. **The detector is the AI Builder prebuilt entity extraction model** (template `EntityExtraction`, E1 in DEV),
+   everywhere this document said "prebuilt PII model": §2.1, §2.3, §4, §5.5, `ADR-012` (amended, not superseded).
+2. **`ADR-071` (new): every direct-identifier label has a named owner and a fail-closed residue check.** UK phone
+   numbers and postcodes get a deterministic in-flow owner, built on the character-class `Select` that
+   `REV | Acceptance | Create Envelope` already runs (`Select_referee_phone_digits`). No plug-in, no new language.
+   Until the threshold is calibrated in `wbs:5.7`, every record goes to the process owner (`RedactionAutoRelease`).
+3. **`ADR-072` (new): the AI Builder generative prompt is a detector stage, designed now and OFF.** Template
+   `GptPromptEngineering` is E1 in DEV; its output is `text` and `finishReason` only, so **a prompt gives no
+   confidence score**. Its output can only add spans over existing text, and every span is checked against the
+   source. It cannot be switched on in this tenant's geography without moving narrative text across regions (§12).
+4. **§5.5 rewritten** to the stage design: window, extract, shape-detect, refine, (prompt), merge, rebuild, residue
+   check, decide. The record decision of rules §7 and §7a is unchanged, plus five reason codes.
+5. **Residency measured, not decided.** All three environments are on `crm17`, Switzerland (`IMP-1063`). §6, NFR-009,
+   §11 (`A-R19` amended, `A-R82`–`A-R84` added) and §12 now say what runs where. The reviewer and DPO decide.
+6. **§3.1 corrections.** The care-costs pair is added (`IMP-1066`); the stale *"not yet built (`TD-010`)"* notes on the
+   Equality Act and disability-impact rows are removed (`IMP-1068`). Three `rev_setting` keys are added.
+7. **§12.6 added:** the verification plan for the new contracts, markers `A-NS-8` to `A-NS-14`.
+
+Not decided here: rules `D-1` to `D-4` (reviewer), and whether to move the environments or accept the risk
+(`IMP-1063`, reviewer and DPO). Sections changed: status line, §2.1, §2.3, §3.1, §4, §5.5, §6, §7, §10 (`ADR-012`
+amended; `ADR-071`, `ADR-072` added), §11, §12, §12.6, Appendix A, Approval.
+
+**Revision:** rev 20 — 2026-10-06. **Automation #5: the postcode register strengthens the postcode detector, and the
+redaction rules a process owner may tune move into `rev_setting`** (`wbs:5.3`; tuning in `wbs:5.6`). Reviewer requests,
+verbatim (Xander Lykopoulos, 2026-10-06): *"Why not against the postcode list we already have?"* and *"Also, for the
+prompts maybe create a setting rows for the prompt with the rules? Make it data driven"*.
+
+1. **`ADR-073` (new): the flow loads `rev_citysettlementregister` once per run.** A register-confirmed outward code lets
+   the flow replace a postcode written without its space (`LS62AB`) and a district written with a cue word ("LS6 area").
+   Any other district on its own goes to review (`residual-district`). The register never cancels a full postcode
+   match: it holds no `A9A` or `AA9A` district at all (measured), so a veto would let `EC1A 1BB` through.
+2. **`ADR-074` (new): the prompt is a fixed template with three inputs, and what it looks for lives in `rev_setting`.**
+   One row per label holds that label's category text. The validation allow-list is derived from the same rows in the
+   same run, so the two cannot drift. Four word lists get additive rows over a tested built-in list; the shapes stay
+   constants. Guard rails: Admin-only and audited; a malformed row fails closed; any edit to a `Redaction*` row stops
+   auto-release and prompt calibration until the process owner confirms again.
+3. **`ADR-071` items 3, 6 and 8 and `ADR-072` items 3, 4, 6 and 8 are amended** by notes under their status lines.
+   Both ADRs are `Accepted` (rev 19 approval).
+4. **Region (FR-027): measured, no schema change.** A postcode-to-region map already exists as the seeded setting
+   `PostcodeRegionMap`. The source file's Region column agrees with it on every row except 243, where it says only
+   "England". Rules decision D-1 (a town on its own is kept) stands.
+5. **Five reason codes** (§5.5.1): `residual-district:<column>`, `postcode-register-unavailable`,
+   `redaction-setting-invalid:<key>`, `auto-release-stale` and `prompt-config-invalid`.
+
+**Approved 2026-10-06** (see Approval; the reading of the reviewer's words is recorded there). Not decided here or by that
+approval: residency (`IMP-1063`), parked at the customer and not a build blocker. The prompt stays off and *Move data
+across regions* stays unticked. Sections
+changed: status line, this entry, §3.1 (`rev_setting` and `rev_citysettlementregister` blocks), §5.5 (ownership row,
+new §5.5.1), §6.6 (one row), §7 (NFR-019), §10 (`ADR-071` and `ADR-072` status and amendment notes; `ADR-073`,
+`ADR-074` added), §11 (`A-R84` amended; `A-R85`–`A-R87` added), §12.6 (`A-NS-20`–`A-NS-22`), Appendix A, Approval.
+
 ---
 
 > **Source:** adopted from `docs/Import/Revitalise-Solution-Architecture-v0.4.docx` on 2026-08-10 by architect-agent (intake mode).
@@ -522,7 +579,7 @@ graph LR
   SYS -->|"read-only query"| QBO["QuickBooks Online<br/>(external)"]
   SYS -->|"signed PDF"| SPO["SharePoint Online<br/>signed-acceptance library"]
   SYS -->|"notifications, summaries, alerts"| TEAMS["Microsoft Teams / Outlook"]
-  SYS -->|"PII detection call"| AIB["AI Builder<br/>prebuilt PII model"]
+  SYS -->|"entity extraction call<br/>(rev 19; prompt stage off, ADR-072)"| AIB["AI Builder<br/>prebuilt entity extraction<br/>+ generative prompt (off)"]
   SIGN["Referee / GP"] -->|"second signature"| DS
 ```
 
@@ -622,8 +679,8 @@ sequenceDiagram
   S->>E: Borderline routed for review (FR-019, FR-022)
   E->>D: Reviews / overrides, marks eligible for panel (FR-018)
   D-->>N: Row updated trigger
-  N->>AI: Detect PII in free-text narrative
-  AI-->>N: Entities + confidence
+  N->>AI: Extract entities from each free-text window (prebuilt entity extraction, rev 19)
+  AI-->>N: Entities: type, offset, length, score
   N->>D: Write redacted narrative; flag if below threshold (FR-026..FR-029)
   E->>D: Reviews and releases flagged redactions (FR-030)
   T->>D: Trustee reads redacted case, column security filters identity (FR-034..FR-038)
@@ -717,9 +774,11 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_receivesbenefits`, `rev_benefitprovider`, `rev_employmentstatus` | Choice / Text | **Tier 4 (Art. 9)** | Column security: `REV_TrusteeRestricted` — Admin + Service only, verified live 2026-08-27. Named on the trustee detail screen by FR-035 (A-05) and rendered as a **restricted state**, never a value: the app selects none of them (FR-078, ADR-032). **Rev 12:** `rev_benefitprovider` retypes String→Memo, `MaxLength` 1,048,576 (`ADR-053`, Appendix C §C.10) |
 | `rev_savingsover6000` | Choice / Bool | Tier 3 | `IsSecured=0`. Trustee-visible by design (FR-035, A-05) — financial eligibility context, alongside `rev_incomeflag` and `rev_incomeband` above |
 | `rev_helperorganisation`, `rev_helperrelationship`, `rev_helperdeclarationconsent`, `rev_helperdeclarationconsentdate` | Text / Choice / Bool / Date | Tier 3 | `rev_helperdeclarationconsent` and `rev_helperdeclarationconsentdate`: `IsSecured=0`. **`rev_helperorganisation` and `rev_helperrelationship`: `IsSecured=1`** (**EF-10**, reclassified 2026-09-17; source and `FieldSecurityProfiles.xml` already say so — this row was stale, `IMP-0944`) — free text that can name the helper's employer or the care relationship, so it is held back from trustees like the helper's identity. The consent pair is trustee-visible (FR-035, A-05). The helper's name, email and phone are Tier 4 and listed above. **Rev 12:** `rev_helperorganisation` and `rev_helperrelationship` retype String→Memo, `MaxLength` 1,048,576 (`ADR-053`, Appendix C §C.10) |
-| `rev_hasequalityactdisability`, `rev_supportrecipienthasequalityactdisability` | Two options | **Tier 4 (Art. 9)** | **Rev 10/11 — not yet built (`TD-010`).** **Trustee-visible by design** (`ADR-052`, SDD OQ-051, FR-035): `IsSecured=0` with a `secured: exception` register row (C-DOM-031) and an NFR-031 necessity record, the `rev_conditionprofile` precedent. Audited. Written by intake (Appendix C §C.8) |
-| `rev_disabilityimpactdescription`, `rev_supportrecipientdisabilityimpactdescription` | Multiline text (2,000) | **Tier 4 (Art. 9)** | **Rev 10 — not yet built (`TD-010`).** Column security: `REV_TrusteeRestricted` — Admin + Service only; audited; special-category register rows; main-form controls. Unchanged by the redacted counterparts below — the source free text stays secured (NFR-031, ADR-027). Written by intake |
-| `rev_disabilityimpactdescriptionredacted`, `rev_supportrecipientdisabilityimpactdescriptionredacted` | Multiline text (4,000) | Tier 3 | **Rev 11 — not yet built (`TD-010`).** Redacted counterparts of the two secured columns above (`ADR-052`); trustee-visible once `rev_redactionreleased` is true. `IsSecured=0` — same class as `rev_narrativeredacted`. Written by `REV \| Narrative \| Scrub Free-Text` once extended (Automation #5, deferred); empty on every row until then, so the portal renders them withheld (FR-035, FR-079) |
+| `rev_hasequalityactdisability`, `rev_supportrecipienthasequalityactdisability` | Two options | **Tier 4 (Art. 9)** | **Built** (rev 19 correction: the earlier *"not yet built (`TD-010`)"* note was stale; `TD-010` is cleared, `IMP-1068`). **Trustee-visible by design** (`ADR-052`, SDD OQ-051, FR-035): `IsSecured=0` with a `secured: exception` register row (C-DOM-031) and an NFR-031 necessity record, the `rev_conditionprofile` precedent. Audited. Written by intake (Appendix C §C.8) |
+| `rev_disabilityimpactdescription`, `rev_supportrecipientdisabilityimpactdescription` | Multiline text (2,000) | **Tier 4 (Art. 9)** | **Built**, `MaxLength` 1,048,576 in source (rev 19 correction, `IMP-1068`; the "2,000" in this row's type column is the rev 10 design value). Column security: `REV_TrusteeRestricted` — Admin + Service only; audited; special-category register rows; main-form controls. Unchanged by the redacted counterparts below — the source free text stays secured (NFR-031, ADR-027). Written by intake |
+| `rev_disabilityimpactdescriptionredacted`, `rev_supportrecipientdisabilityimpactdescriptionredacted` | Multiline text (4,000) | Tier 3 | **Built** (rev 19 correction, `IMP-1068`). Redacted counterparts of the two secured columns above (`ADR-052`); trustee-visible once `rev_redactionreleased` is true. `IsSecured=0` — same class as `rev_narrativeredacted`. Written by `REV \| Narrative \| Scrub Free-Text` (§5.5, `ADR-071`); empty on every row until it runs, so the portal renders them withheld (FR-035, FR-079) |
+| `rev_carecostsexplanation` | Multiline text (1,048,576) | **Tier 4** | **Rev 19, added to this table (`IMP-1066`); the column already exists.** `IsSecured=1`, column security `REV_TrusteeRestricted` — Admin + Service only. The applicant's explanation of care costs or medical expenses; written by intake (Appendix C §C.1) |
+| `rev_carecostsexplanationredacted` | Multiline text (4,000) | Tier 3 | **Rev 19, added to this table (`IMP-1066`); the column already exists**, added on the reviewer's 2026-09-30 pack-order decision. Redacted counterpart of `rev_carecostsexplanation`; `IsSecured=0`; trustee-visible once `rev_redactionreleased` is true. Written by `REV \| Narrative \| Scrub Free-Text` (§5.5). **This is the twelfth raw/redacted pair: Automation #5's scope is all twelve, derived from `Entity.xml`, not from this table** |
 | `rev_someonehelping`, `rev_provisionaldate`, `rev_otherfundingstatus` | Two options / **Multiline text (1,048,576, rev 12)** / Choice (new global option set `rev_otherfundingstatus`) | Tier 3 | `IsSecured=0`; audited. Written by intake (Appendix C §C.8). Hidden from trustees until a requirement says so. **`rev_provisionaldate` retypes String→Memo in rev 12** — the crash cause named by Test Report D-03 (`ADR-053`, Appendix C §C.10) |
 
 **`rev_review` — Tier 3:** `rev_name` (`REV-R-00001`), `rev_applicationid` (parental), `rev_paneldate`,
@@ -816,7 +875,7 @@ Framework §3; SDD §7.1).
 **`rev_setting` — Tier 2:** `rev_name` (setting key), `rev_value`, `rev_datatype`, `rev_description`,
 `rev_effectivefrom`. Seeded keys: `KnockoutThreshold`, `BorderlineBandLower`, `BorderlineBandUpper`,
 `IncomeCeiling`, `RedactionConfidenceThreshold`, `LikertPointMap`, `FeelingScaleInversion`,
-`ReminderDays`, `EscalationDays`, `PackScheduleDay`. Auditing is enabled on this table because a
+`ReminderDays`, `EscalationDays`, `PackScheduleDay`. **Rev 19 adds three Automation #5 keys** (`ADR-071`, `ADR-072`): `RedactionAutoRelease`, `RedactionPromptStage` and `RedactionPromptCalibrated`. **None is seeded at first deploy, and an absent row is the safe value:** no record is released without the process owner, and the prompt stage does not run. **Rev 20 adds eight keys** (`ADR-074`): `RedactionPromptCategory.Name`, `RedactionPromptCategory.FamilyMember`, `RedactionPromptCategory.GpPractice`, `RedactionPromptCategory.Address`, `RedactionKinshipWordsExtra`, `RedactionPracticeSuffixesExtra`, `RedactionStreetWordsExtra` and `RedactionPracticeWordsExtra`. None is seeded, and an absent row leaves the rev 19 behaviour. `RedactionPromptCalibrated` now holds the confirmed category labels, not `true`. **No `Redaction*` row is added to the pipeline's `settingRows`**: `seed-settings.ps1` upserts every listed row on every deploy, which would overwrite the process owner's edit. Auditing is enabled on this table because a
 threshold change is decision-relevant evidence (FR-017, NFR-019).
 
 **`rev_roundfinance` — Tier 2 (Trustee Portal Visual Refresh, delta TAD, ADR-028, WBS 6.9):**
@@ -840,7 +899,7 @@ REV Trustee.xml).
 
 **`rev_localauthorityregister` — Tier 2 (Postcode Lookup, `docs/architecture/postcode-lookup-architecture.md` §3, `wbs:0.11`; folded in here, `IMP-0862`):** One row per UK postcode outward code, holding the resolved local authority name or a flagged non-resolution state (FR-200–FR-203). Columns: `rev_name` (outward code, max 4, primary name), `rev_localauthorityname` (max 100, populated only when resolved), `rev_ladcode`, `rev_ladnamesource`, `rev_resolutionstatus` (global option set rev_localauthorityresolutionstatus: Resolved / Multi-Authority / NI Pending Licence / Out of UK LA Scope) and `rev_lastseeninsource`. Public geographic reference data, not personal data (NFR-202): **no column secured**, no data subject, out of scope of erasure (FR-051) and subject access (FR-053). Audited at table level. No relationship to any other table. Written only by the seed script and read by `REV Service Automation`.
 
-**`rev_citysettlementregister` — Tier 2 (City Derivation, `docs/architecture/city-derivation-architecture.md` §3, FR-220–FR-222; folded in here, `IMP-0862`):** One row per UK postcode outward code in the client's delivered file, holding its *Main Postal Town / City*. Columns: `rev_name` (outward code, max 4, primary name and alternate key) and `rev_cityname` (max 100, always populated). Organisation-owned reference data, seeded once and never refreshed; same tier as the settings table and the sibling register above. **No column secured**, not personal data (NFR-220), indefinite retention. No relationship to any other table; read by outward-code value by the intake flow to populate the applicant's derived-city column (city-derivation TAD §3).
+**`rev_citysettlementregister` — Tier 2 (City Derivation, `docs/architecture/city-derivation-architecture.md` §3, FR-220–FR-222; folded in here, `IMP-0862`):** One row per UK postcode outward code in the client's delivered file, holding its *Main Postal Town / City*. Columns: `rev_name` (outward code, max 4, primary name and alternate key) and `rev_cityname` (max 100, always populated). Organisation-owned reference data, seeded once and never refreshed; same tier as the settings table and the sibling register above. **No column secured**, not personal data (NFR-220), indefinite retention. No relationship to any other table; read by outward-code value by the intake flow to populate the applicant's derived-city column (city-derivation TAD §3). **Rev 20 (`ADR-073`): also read in full, `rev_name` only, once per run by `REV \| Narrative \| Scrub Free-Text`** to confirm postcode outward codes. `REV Service Automation` already holds Read at Global on it; no privilege changes. Measured 2026-10-06: 3,394 codes, all of shapes `A9`, `A99`, `AA9` or `AA99`; **no `A9A` or `AA9A` code** (so no `EC1A`, `W1A` or `SW1A`).
 
 ### 3.2 Provider classification — DERIVED, reviewer confirmation required
 
@@ -958,7 +1017,8 @@ every one has a documented fallback so no single external dependency can stop th
 | **WordPress / Gravity Forms → Dataverse** | Inbound | Request (HTTP) trigger; or Gravity Forms REST API v2; or parsed structured email. **Rev 9: the body is the website's native entry, keys and label values as the site sends them** (`ADR-051`, Appendix C) | **Premium** | Webhook POST on form submit | ~~Bearer token / shared secret held in a Key Vault-backed secret environment variable — see §6.3.~~ **Rev 14 (`ADR-011`): signed callback URL (*Anyone*) + `x-rev-client-id` header check.** Caller restricted to the charity website (NFR-008) | Scheduled REST pull (service-account-initiated, reverses the trust direction) or structured-email trigger — no downstream component changes |
 | **DocuSign** | Bi-directional | DocuSign connector | Premium | Outbound: create envelope on approval — **rev 15: draft, fill, send (`ADR-067`); rev 16: as the hotfixes settled it (`ADR-069`)**. Inbound: envelope-completed event | OAuth 2.0, service account owns the connection. **Rev 15: signer controls are DocuSign-side — required fields and no reassignment on the template/account; an access code, the last six digits of the referee's phone, on the referee (`ADR-068` item 4)** | Manual print-sign-scan route recorded on the Grant record (FR-046) |
 | **QuickBooks Online** | Inbound (read only) | QuickBooks Online connector | Premium | Query by applicant name / email at intake, re-checked before payment issue | OAuth 2.0, **read-only scope** | Quarterly export into `rev_granthistory` + Power Automate cross-reference (ADR-017) |
-| **AI Builder (prebuilt PII detection model)** | Internal | AI Builder connector, invoked from `REV \| Narrative \| Scrub Free-Text` | Premium | Synchronous call within the redaction flow | Environment AI Builder credits; runs as the service account | Human-only redaction: every narrative routes to the process owner for manual review (degraded, not broken) |
+| **AI Builder — prebuilt entity extraction model** (rev 19; was "prebuilt PII detection model", which does not exist, `IMP-1064`) | Internal | AI Builder connector, action *Extract entities from text with the standard model*, invoked from `REV \| Narrative \| Scrub Free-Text` (`ADR-071`) | Premium | Synchronous, one call per window of at most 5,000 characters. Inputs `text`, `language` (`en`). Output per entity: `type`, `value`, `startIndex`, `length`, `score` (E1, `msdyn_aitemplate`, DEV 2026-10-05). 25 documented types; phone, street address and ZIP code are documented as US format (E2) | Environment AI Builder credits; runs as the service account | Human-only redaction: every narrative routes to the process owner for manual review (degraded, not broken) |
+| **AI Builder — generative prompt** (rev 19, `ADR-072`) — **designed, OFF** | Internal | AI Builder connector, run a prompt built on template `GptPromptEngineering` (E1 in DEV) | Premium | Synchronous, same windows. Input: the prompt plus one window. Output: `text` and `finishReason` only, **no confidence score** (E1). Runs only when `rev_setting` `RedactionPromptStage` = `on` | Prompt builder credits, then Copilot Credits (E2) | Stage skipped; the record goes to review if its own checks need it. **In the Switzerland geography every prompt model is cross-geo (E2): it runs only if *Move data across regions* is allowed (§12)** |
 | **SharePoint Online — signed-acceptance library** | Outbound (write) + read | SharePoint connector | Standard | Store signed PDF on envelope completion; URL written to `rev_grant.rev_signedpdfurl` | Service account connection | Attach the PDF as a Dataverse note/annotation on the Grant row |
 | **Microsoft Teams** | Outbound | Microsoft Teams connector | Standard | New-application notification, daily summary, escalation, failure alert | Service account, posts as Flow bot | Outlook email to the service mailbox recipient |
 | **Microsoft 365 Outlook** | Outbound | Office 365 Outlook connector | Standard | Applicant and referee correspondence, summaries, escalations | Service account (`rev_ServiceMailbox`) | — |
@@ -980,6 +1040,11 @@ every one has a documented fallback so no single external dependency can stop th
 - **UK residency** must be verified per integration at setup, not assumed: the Power Platform environments,
   AI Builder, DocuSign and QuickBooks Online (NFR-009, DPIA action A5, SDD OQ-018/OQ-019). Recorded as a
   §12 gate item and a §11 risk — no source document evidences it as verified.
+  **Rev 19 — measured:** all three environments are `*.crm17.dynamics.com`, which is Switzerland (E1 URL, E2
+  mapping; `IMP-1063`). The prebuilt entity extractor runs in the environment's region (E2), so in Switzerland.
+  A generative prompt in the Switzerland geography runs only with cross-region data movement allowed, in the EU
+  Data Boundary (E2). Neither is the UK. Not decided here: see §12, risk `A-R82`.
+  **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies (`ADR-072` item 3, §12.6.1).
 - **Idempotency at the boundary**: `rev_application.rev_sourcesubmissionid` is an alternate key, so a
   replayed webhook or a re-run REST pull updates rather than duplicates.
   **Rev 9:** the key's source is the entry's `id`. A Gravity Forms entry id is unique **within one
@@ -1166,25 +1231,128 @@ match, records "no prior grants found" with `rev_duplicatecheckedon` so the chec
 
 ### 5.5 `REV | Narrative | Scrub Free-Text` — the human-in-the-loop control
 
+**Rev 19: rewritten** (`ADR-071`, `ADR-072`). The rev 1 diagram called a *"prebuilt PII model"* that does not exist
+(`IMP-1064`). The detector is the AI Builder **prebuilt entity extraction model**. The flow is a fixed chain of stages.
+Each detection stage outputs the same thing: an array of spans `{column, start, length, label, score, source}` that holds
+**offsets and labels only, never text**. Adding a detector (the prompt, or a later indirect-identifier rule) means adding
+one more array to the union. Nothing downstream changes (rules §10).
+
 ```mermaid
 flowchart TD
-  A([Application status → Eligible for Panel]) --> B["Read raw narrative +<br/>other-condition notes (Tier 4)"]
-  B --> C["AI Builder prebuilt PII model:<br/>detect entities + confidence"]
-  C --> D["Replace detected identifiers with<br/>category labels [NAME] [FAMILY MEMBER]<br/>[GP PRACTICE] [ADDRESS] [PHONE] (FR-026)"]
-  D --> E["Generalise ages → age band,<br/>places → region (FR-027)"]
-  E --> F["Write redacted narrative;<br/>retain region, dates, score,<br/>preferences, condition info (FR-028)"]
-  F --> G{"Confidence ≥ Setting.<br/>RedactionConfidenceThreshold (85%)?"}
-  G -- No --> H["Flag for manual review;<br/>released = false;<br/>WITHHELD from trustees (FR-029)"]
-  H --> I["Process owner reviews, corrects,<br/>releases (FR-030)"]
-  I --> J([Visible to trustees])
-  G -- Yes --> J
-  C -.->|"AI Builder error / no credits"| K["Failure Alert;<br/>route 100% to manual review<br/>(degrade, never disclose)"]
+  A([Status → Eligible for Panel, or manual re-run]) --> R{"rev_redactionreleased = true?"}
+  R -- Yes --> Z([Do nothing — rules §7a rule 1])
+  R -- No --> B["Read the 12 raw columns and their counterparts (Tier 4, secured run history).<br/>In scope: non-empty raw column whose counterpart is empty (§7a rule 2)"]
+  B --> W["Cut each column into windows of at most 5,000 characters, 200 overlap (rules §5.4)"]
+  W --> C["Stage 1 — prebuilt entity extraction per window.<br/>Map type → label (rules §4.2); unknown type → reason"]
+  W --> S["Stage 2 — UK phone and postcode shape detectors<br/>(character-class string, ADR-071 item 3)"]
+  W --> P["Stage 3 — generative prompt (ADR-072)<br/>OFF unless RedactionPromptStage = on"]
+  C --> F["Refine: kinship → [FAMILY MEMBER]; practice suffix → [GP PRACTICE];<br/>age → [AGE band] (rules §5.1, §6, FR-027)"]
+  S --> M
+  P --> V["Validate every prompt span against the source<br/>(label allow-list, verbatim quote, word boundary)"]
+  V --> M
+  F --> M["Merge overlapping spans on offsets (rules §5.2)"]
+  M --> X["Rebuild each counterpart from the source and the merged spans<br/>(one Select + join; rules §5.3)"]
+  X --> T["Residue checks on the rebuilt text: digit run, postcode shape,<br/>@, street word, practice word, age phrase"]
+  T --> D{"Decide once per record (rules §7 + rev 19 reasons)"}
+  D -- "no reason" --> J([released = true → visible to trustees])
+  D -- "any reason" --> H["released = false; review required = true;<br/>Teams to process owner: reference + reason codes only"]
+  H --> I["Process owner reviews, corrects, releases (FR-030, Narrative Scrubbing tab)"]
+  I --> J
+  C -.->|"error / no credits"| K["reason ai-error:<column> —<br/>degrade, never disclose"]
+  K --> D
 ```
 
-The raw narrative is read by this flow and by the Admin role only; it is never written to a log, never
-passed to a notification, and never reaches a trustee column (FR-031, NFR-001). Trustee visibility is a
-conjunction of two conditions — `rev_eligibleforround = true` **and** `rev_redactionreleased = true` — so
-the default state of a new narrative is *withheld*, and a flow failure fails closed (NFR-018).
+**Who owns each label** (`ADR-071` item 2). Every label has a detector, and every label the detector can miss has a
+residue check that sends the record to review. Nothing depends on the prompt stage being on.
+
+| Label | Detector that owns it | Second detector | If both miss it |
+|---|---|---|---|
+| `[NAME]` | Extractor, `Person name` | Prompt (when on) | No pattern can find a name. A missed name has no score, so it is caught only by review: `RedactionAutoRelease` (every record, until calibrated), `no-model-detections` (rules D-2, not decided), and Emily's check in `wbs:5.5`/`5.7`. **This is the one residual leak path, `A-R83`** |
+| `[FAMILY MEMBER]` | Extractor name + in-flow kinship refinement (rules §5.1 rules 1–2) | Prompt (when on) | Labelled `[NAME]` instead. Less precise, nothing disclosed |
+| `[GP PRACTICE]` | Extractor `Organization` + in-flow practice-suffix check (rules §6). `Organization` as the owner is a hypothesis until the live run (`A-NS-1`) | Prompt (when on) | Residue check: a practice word left in the text (`residual-practice-word`) |
+| `[ADDRESS]` — postcode | In-flow shape detector (`ADR-071` item 3). **Rev 20 (`ADR-073`):** also a postcode without its space, and a district with a cue word, when the register confirms the outward code | Extractor `Zip code` (US format, opportunistic) | Residue check: postcode shape, with or without the space (`residual-postcode`). **Rev 20:** a register-confirmed district on its own (`residual-district`) |
+| `[ADDRESS]` — street | Extractor `Street address` (a numbered UK street has the same shape as a US one; hypothesis, `A-NS-4`) | Prompt (when on) | Residue check: a street word left in the text (`residual-street-word`) |
+| `[PHONE]` | In-flow shape detector (`ADR-071` item 3) | Extractor `Phone number` (US format, opportunistic) | Residue check: nine or more digits in a row once separators are removed (`residual-digit-run`) |
+| `[EMAIL]` | Extractor `Email` | — | Residue check: `@` (`residual-at-sign`) |
+| `[AGE <band>]` | Extractor `Age` + band mapping to the `rev_agerange` label | — | Residue check: an age phrase (`residual-age-phrase`) |
+
+**The record decision** is rules §7 and §7a, unchanged, with five reason codes added (`ADR-071` item 7, `ADR-072`
+item 8): `residual-<kind>:<column>`, `auto-release-off`, `prompt-error:<column>`, `prompt-output-invalid:<column>` and
+`uncalibrated-stage:prompt`. The record confidence is still the lowest **extractor** score of any redacted span. A
+prompt span and a shape-detector span carry no score, so they neither raise nor lower it.
+
+**Writes.** Only into an empty counterpart, and only when the record is not released (§7a). Columns are written as flat
+`item/<column>` parameters (§5 write-shape rule). The flow writes `rev_redactionreleased` and the two `TD-008` columns
+(`rev_redactionconfidence`, `rev_redactionreviewrequired`), which are built in the same change.
+
+**What is never in run history, a log or a notification** (`C-DOM-004`, NFR-012, FR-031). Every action whose
+inputs or outputs carry raw text, an entity `value`, a prompt's output or a rebuilt counterpart has
+`secureData` on inputs and outputs. That covers the row read, each extractor and prompt call, the window `Select`s, the
+character-class `Select`s, the prompt-validation `Select` and the rebuild `Select`. Variables hold offsets and labels
+only. The decision holds a flag, a score and fixed reason codes, so it is safe to log and to notify. The raw narrative
+is read by this flow and by the Admin role only, and it never reaches a trustee column.
+
+Trustee visibility is still the conjunction `rev_eligibleforround = true` **and** `rev_redactionreleased = true`. The
+default state of a new narrative is *withheld*, and any failure of any stage fails closed (NFR-018).
+
+**What a person sees** (`IMP-0511`). With no `RedactionAutoRelease` row, **every** scrubbed application shows in the
+process owner's review list with `auto-release-off` among its reasons, and none reaches a trustee until she releases it.
+That is the intended state until `wbs:5.7` calibrates the threshold. It is not a blackout: the review tab works, and
+releasing by hand is the approved FR-030 path.
+
+### 5.5.1 Rev 20 — the postcode register and the settings the flow reads (`ADR-073`, `ADR-074`)
+
+**Once per run, before the column loop:**
+
+1. **Settings.** `Read_redaction_settings` reads every `rev_setting` row (`$select` `rev_name`, `rev_value`,
+   `modifiedon`) and keeps the rows whose name starts with `Redaction`, using an in-flow filter. This replaces rev 19's
+   four-key `$filter`, so a new `Redaction*` row joins the guard rails below without a flow change.
+2. **Register.** `List_postcode_districts` reads `rev_citysettlementregister` once (`$select` `rev_name`, no filter).
+   A `Compose` joins the codes, upper-cased, into one string `|AB1|AB10|…|`. A candidate is confirmed with
+   `contains()` on `|<CODE>|`. Fewer than 3,000 rows, or a failed read, gives the record reason
+   `postcode-register-unavailable`, and the three register-dependent checks below are skipped. The full-postcode
+   shapes and `residual-postcode` do not need the register and still run.
+
+**Postcodes (Stage 2, `ADR-073`).** Matching ignores case. The outward code of a postcode written without its space is
+everything except the last three characters.
+
+| Written as | Example | Register | Result |
+|---|---|---|---|
+| Full postcode with its space (rev 19 shapes) | `LS6 2AB`, `EC1A 1BB` | Not consulted | `[ADDRESS]`, unchanged |
+| Full postcode without its space: `A99AA`, `A999AA`, `AA99AA`, `AA999AA`, `A9A9AA`, `AA9A9AA` | `LS62AB` | Outward code confirmed | `[ADDRESS]` |
+| The same, outward code not in the register | `W1A1AA` | Not confirmed | Kept; `residual-postcode` sends the record to review, as in rev 19 |
+| District on its own with a cue: `postcode` or `post code` just before it, or `area`, `district` or `postcode` just after it | "we are in LS6 area" | Confirmed | `[ADDRESS]` |
+| District on its own, no cue | "in LS6", "the M62", "vitamin B12" | Confirmed | Kept; `residual-district:<column>` sends the record to review |
+| A district-shaped token not in the register | "N95" | Not confirmed | Kept, no reason |
+
+The cue words are constants, like the shapes. The district residue check reads the skeleton (rules §6b), so a
+district already inside a replaced span never trips it.
+
+**The settings the flow reads (`ADR-074`).** Every row is optional. "Malformed" means the rules in `ADR-074` item 4.
+
+| `rev_setting` row | Value | Absent | Malformed or empty |
+|---|---|---|---|
+| `RedactionConfidenceThreshold` | As rules §7 | `threshold-missing-or-invalid` | `threshold-missing-or-invalid` |
+| `RedactionAutoRelease` | `true`, **and saved after every other `Redaction*` row** | `auto-release-off` | `auto-release-off`. Saved before a later rule edit: `auto-release-stale` |
+| `RedactionPromptStage` | `on` | Stage off | Stage off |
+| `RedactionPromptCalibrated` | The confirmed labels, for example `NAME, FAMILY MEMBER, GP PRACTICE, ADDRESS`, **saved after every other `RedactionPrompt*` row** | Stage on: `uncalibrated-stage:prompt` | The same. Rev 19's value `true` now reads as not calibrated |
+| `RedactionPromptCategory.Name`, `.FamilyMember`, `.GpPractice`, `.Address` | Plain text: what the prompt looks for under that label | That label is not asked for. Stage on and no valid category row: `prompt-config-invalid` | Stage on: `prompt-config-invalid`, and the stage does not run for the record |
+| `RedactionKinshipWordsExtra`, `RedactionPracticeSuffixesExtra`, `RedactionStreetWordsExtra`, `RedactionPracticeWordsExtra` | One entry per line, **added to** the built-in list | The built-in list only (rev 19) | `redaction-setting-invalid:<key>`. The built-in list still applies |
+
+**What a person sees** (`IMP-0511`), traced to the record decision:
+
+- **Nothing seeded (today).** Exactly rev 19: every scrubbed record is in the review list with `auto-release-off`.
+- **A word added to a list after auto-release is on.** The next scrubbed record shows `auto-release-stale` and waits
+  for the process owner. To confirm again she opens `RedactionAutoRelease`, sets **Effective From** to today and saves.
+  That is a real change, so the row's Modified On moves past the edit. An unchanged save would not move it.
+- **A typo in a word list** (a digit, or a one-letter line). Each scrubbed record shows
+  `redaction-setting-invalid:RedactionStreetWordsExtra`. The built-in list still redacts and flags as before.
+- **The register not seeded in an environment.** Every scrubbed record shows `postcode-register-unavailable`, so
+  nothing is auto-released there. This blocks auto-release only; the review tab and manual release work. The register
+  is seeded by `seed-city-settlement-register.ps1`, already a `post_deploy` step for DEV, TST/ACC and PRD in
+  `config/revitalise-grant-automation-pipeline.yml`.
+- **Released records are never touched** (rules §7a rule 1). An edit neither hides nor re-exposes anything a trustee
+  can already see.
 
 ### 5.6 `REV | Narrative | Trustee Pack` — DERIVED, +1 to the source's inventory
 
@@ -1550,7 +1718,7 @@ Architecture differ in detail, the Security Model is adopted. Checked against
 | **Separation of duties** | The Admin role holds **no Bank Account or Payment table privilege at all** — bank details sit behind one role and one role only (NFR-002, Security Model §4). Conversely the Finance role holds no Applicant or Application privilege, so finance staff never handle health data (US-015 AC-2) | Security role definitions |
 | **Data at rest** | Dataverse platform encryption at rest (Microsoft-managed keys), **UK region** environments. SharePoint Online encryption at rest for the signed PDFs, same region. Tier 4 columns additionally protected by column security profiles (`skills/data-classification.md` — encryption at rest mandatory for Tier 3+) | Dataverse + SharePoint Online, UK region (NFR-009) |
 | **Data in transit** | **TLS 1.2 or higher on every hop** (C-TECH-003) — all connectors, the HTTP trigger, DocuSign, QuickBooks and AI Builder calls are HTTPS-only and not configurable downward | Platform-enforced |
-| **Data residency** | 100% of processing, storage and backup in the UK across every component including AI Builder, DocuSign and QuickBooks. Zero transfers outside the UK. **Verified at environment setup, not assumed** (NFR-009, DPIA A5) | §12 gate item; risk A-R19 |
+| **Data residency** | 100% of processing, storage and backup in the UK across every component including AI Builder, DocuSign and QuickBooks. Zero transfers outside the UK. **Verified at environment setup, not assumed** (NFR-009, DPIA A5). **Rev 19 — measured, NOT met:** all three environments are on `crm17`, Switzerland (`IMP-1063`); AI Builder runs there; a generative prompt would run in the EU Data Boundary. Open. **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies | §12 gate item; risks A-R19, A-R82 |
 | **Audit logging** | Native Dataverse **field-change auditing** enabled at environment and table level on all ten tables: every create, update and delete with timestamp (UTC), actor, action, record identifier and before/after values (NFR-014, C-DOM-010, C-DOM-011). **App-access logging** records which user opened the trustee app and when (NFR-015). Native Power Automate run history for flow execution | Dataverse (env + table setting, `post_deploy`) |
 | **Audit integrity** | See §6.5 — the platform audit store is append-only and the application Admin role is deliberately separated from audit administration (C-DOM-012) | Role design + tenant admin separation |
 | **Retention / erasure evidence log** | Bulk-delete runs are recorded as Dataverse system jobs; the consolidated evidence log (record reference, data type, date, rule applied) holds **no personal data** (FR-054, NFR-016) | System jobs + `REV \| Retention` helper flow |
@@ -1759,7 +1927,7 @@ Also unresolved in every source; SDD §7.9 assigns it here.
 | Create / modify the recurring **bulk-delete jobs** | Environment System Administrator (tenant admin) only. Not available to `REV Admin`. Applied as a reviewed `post_deploy` provisioning step, never ad hoc |
 | **On-demand erasure** run | Triggered by `REV Admin`, but every run writes the evidence log with actor, record reference, rule applied and legal-hold outcome (FR-054), and the DPO is notified of the action. The legal-hold carve-out is evaluated by the flow, not by the operator (FR-052) |
 | **Bulk export** | The `REV Trustee` role carries **no export-to-Excel privilege** — the sanctioned offline route is the anonymised pack. Export from the Admin/Finance roles is audited by app-access and field-change auditing |
-| **Admin configuration** — thresholds, Likert map, redaction threshold | `REV Admin` only, through the `rev_setting` table, **with auditing enabled on that table** so every threshold change is evidenced against the decisions it affected (FR-017, FR-018) |
+| **Admin configuration** — thresholds, Likert map, redaction threshold | `REV Admin` only, through the `rev_setting` table, **with auditing enabled on that table** so every threshold change is evidenced against the decisions it affected (FR-017, FR-018). **Rev 20 (`ADR-074`):** an edit to any `Redaction*` row also stops auto-release and prompt calibration until the process owner confirms again, so a change to the redaction rules cannot reach a trustee unseen |
 | **Role membership change** | An Entra group membership change, governed by the tenant joiner-and-leaver process run with Wanstor; the DPO is notified of any change to who can read special-category or finance data (Security Model §8). **Review cadence: every 6 months — ✅ CONFIRMED by the reviewer on 2026-08-10.** This **supersedes** the Security Model §8 and SDD §7.9 working assumption of "quarterly, or at the start of each panel round", and closes SDD OQ-008 (C-DOM-022) |
 | **Solution import to PROD** | Managed solution only, behind the pipeline's approval gate (§9). No direct edit in PROD |
 | **Audit deletion** | Separated to the tenant admin (§6.5) |
@@ -1803,7 +1971,7 @@ and what input is still needed.
 | NFR-006 | All external connections are OAuth connections owned by `svc-grantautomation`, bound via the four connection references | Survives staff changes; governed centrally; no personal login in the runtime path |
 | NFR-007 | Environment-level DLP policy on all three environments (DEV, TST/ACC, PRD), business group as §6.4 — **with Request/HTTP and Word Online (Business) added** | The source's group omits two used connectors; a DLP gap silently disables flows on import |
 | NFR-008 | **Rev 14 (`ADR-011`):** signed callback URL — the platform rejects a missing or wrong `sig` before the flow runs (`A-INT-12`) — then the `x-rev-client-id` header compared with `rev_IntakeAllowedClientId` as the flow's first action, 401 + *Cancelled*, before any Dataverse write. The trace is now possession-based (URL + header), not identity-based; the reviewer accepted the lower assurance on 2026-10-02. No solution-side secret; the URL is held only as a CI secret | Rejects unauthenticated callers at the boundary (C-TECH-006) |
-| NFR-009 | UK region for all three environments; UK residency configured for AI Builder, DocuSign and QuickBooks; **verified at setup and recorded as evidence**, not assumed | No source evidences verification; DPIA action A5 is open (risk A-R19) |
+| NFR-009 | UK region for all three environments; UK residency configured for AI Builder, DocuSign and QuickBooks; **verified at setup and recorded as evidence**, not assumed. **Rev 19 — measured 2026-10-05: NOT MET.** DEV, TST/ACC, PRD and the pipelines host are `crm17` (Switzerland). The entity extractor runs in Switzerland; a generative prompt runs only with cross-region data movement, in the EU Data Boundary (E2). Not decided in this document. **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies | DPIA action A5 is open (risks A-R19, A-R82). The options stay as they were: move the environments to the UK geography, or record an accepted risk. The question is with the customer |
 | NFR-010 | Four native recurring Dataverse bulk-delete jobs — 6-year, 12-month, 6-month, **plus the derived orphaned-Applicant sweep** — running monthly against status-plus-date queries; cascade removes the case | Native, status-aware, no licence beyond Dataverse, logged as system jobs (ADR-004). No deletion depends on a person remembering |
 | NFR-011 | Dataverse point-in-time restore window (7 days by default) sits far inside every retention period; backups remain in the UK region. Third-party backup tooling, if any, must be confirmed | A backup that outlives the retention period is an ungoverned copy. SDD OQ-019 open |
 | NFR-012 | `rev_errorlog` schema physically cannot hold personal data — flow name, run ID, error message, record reference, timestamp, severity only. Notification payloads carry references, not narratives | Constraining the schema is stronger than instructing the developer (see the §5.14 pseudonymity caveat) |
@@ -1811,9 +1979,9 @@ and what input is still needed.
 | NFR-014 | Native Dataverse field-change auditing at environment and table level on all ten tables — timestamp (UTC), actor, action, record ID, before/after | Platform-native, not bolt-on; satisfies C-DOM-010/011 without custom code |
 | NFR-015 | App-access logging enabled; trustee portal opens are recorded with user and timestamp | Security Model §8 |
 | NFR-016 | Retention/erasure evidence log holds record reference, data type, date and rule only; bulk-delete runs additionally recorded as Dataverse system jobs | Durable evidence with no second copy of personal data (FR-054) |
-| NFR-017 | Redaction confidence threshold is a `rev_setting` row (`RedactionConfidenceThreshold`, initial 85%), read at run time | Adjustable after launch with no redesign and no solution import (NFR-019) |
-| NFR-018 | Trustee visibility requires `rev_eligibleforround = true` **and** `rev_redactionreleased = true`; both default false, so the flow **fails closed** | 100% of low-confidence redactions and Borderline outcomes reach a human because the default state is *withheld*, not *shown* |
-| NFR-019 | All tunables in the `rev_setting` table (process-owner editable through the MDA); only per-environment values in environment variables (`rev_SignedDocLibrary`, `rev_ServiceMailbox`, `rev_DefaultThreshold`) | Environment variables need maker-portal access and a solution context; a Dataverse table row does not. ADR-010 |
+| NFR-017 | Redaction confidence threshold is a `rev_setting` row (`RedactionConfidenceThreshold`, initial 85%), read at run time. **Rev 19:** it is compared with **extractor** scores only. A generative prompt returns no score (E1), so a prompt stage is released only through `RedactionPromptCalibrated` (`ADR-072` item 8), and no record is released at all until `RedactionAutoRelease` = `true` (`ADR-071` item 8) | Adjustable after launch with no redesign and no solution import (NFR-019) |
+| NFR-018 | Trustee visibility requires `rev_eligibleforround = true` **and** `rev_redactionreleased = true`; both default false, so the flow **fails closed**. **Rev 19:** every stage failure, every residue-check hit, and every absent Automation #5 setting also leaves `released = false` (§5.5) | 100% of low-confidence redactions and Borderline outcomes reach a human because the default state is *withheld*, not *shown* |
+| NFR-019 | All tunables in the `rev_setting` table (process-owner editable through the MDA); only per-environment values in environment variables (`rev_SignedDocLibrary`, `rev_ServiceMailbox`, `rev_DefaultThreshold`). **Rev 20:** Automation #5's word lists and prompt categories are tunables too (`ADR-074`). A setting can add to a word list, never remove from the tested built-in list; the phone and postcode shapes stay in the flow because they are the specification | Environment variables need maker-portal access and a solution context; a Dataverse table row does not. ADR-010 |
 | NFR-020 | Reading-age ~12 applies to the WordPress form (built by Alex to the supplied specification) and to every applicant-facing message a flow sends. The specification handed to Alex must carry it as an acceptance criterion | The applicant-facing surface is out-of-palette, so the requirement travels as a specification obligation, not a build task (§8) |
 | NFR-021 | ~200 applications/year with headroom to 250 and 300+ cumulative grants is **far** inside Dataverse limits; the constraint is licence seats and AI Builder credits, not platform capacity | Scale risk here is commercial, not technical (SDD OQ-017) |
 | NFR-022 | **No performance threshold exists in any source (SDD OQ-020).** Architecture position: intake is event-driven so an application exists within seconds of submission; scoring is a single-row flow; the only long-running operations are the narrative flow (AI Builder call per record) and the batch envelope run, both asynchronous with no user waiting. **No measurable target is committed — a threshold is needed before the test-agent can test it** | Recording the gap rather than inventing a number |
@@ -2597,6 +2765,15 @@ build scope. *Negative* — it needs capacity provisioning (credits) that no in-
 needs, and a DLP business-group entry; the 1 Nov 2026 seeded-credit change is an open commercial risk
 (SDD OQ-017). *Neutral* — a **custom-trained** AI Builder model would be a different judgement; only the
 prebuilt model is in scope.
+
+**Rev 19 amendment (2026-10-05, `IMP-1064`).** No *"prebuilt PII-detection model"* exists in this tenant: the
+AI Builder template catalogue in DEV holds 33 templates and none is PII detection (E1). The model this ADR means is the
+**prebuilt entity extraction model** (template `EntityExtraction`), on the reviewer's statement of 2026-10-05: *"It's
+called the entity extractor prebuilt model in Europe."* The in-palette judgement above transfers unchanged: it is
+still a prebuilt, first-party model called through the AI Builder connector from a flow. Its gaps (UK formats, no
+family-member or GP-practice type, 5,000 characters per call) are closed by `ADR-071`. **The generative prompt is a
+separate judgement and is made in `ADR-072`, not here.** The *Neutral* clause stands: a custom-trained model is still
+out of scope.
 
 ### ADR-013: Primary name columns hold pseudonymous references, never names
 **Status:** `Derived` · **Date:** 2026-08-10
@@ -3971,6 +4148,364 @@ today (grepped 2026-10-05); the eight new columns are **not in either**, and `de
 
 ---
 
+### ADR-071: Direct identifiers — the prebuilt entity extractor plus in-flow detectors, and a residue check behind every label
+**Status:** `Accepted` (rev 19, approved 2026-10-06) · **Date:** 2026-10-05 · **WBS:** `wbs:5.3`, `5.4` (rules `5.1`, corpus `5.2`) · **Amends `ADR-012`.**
+
+> **Amended rev 20 (2026-10-06).** Item 3: the shapes stay constants; `ADR-073` adds postcodes without their space and
+> districts on their own, confirmed against the postcode register. Item 6: each word list is a built-in floor plus an
+> additive `rev_setting` row (`ADR-074`), and a sixth residue kind is added, `district`. Item 8: `RedactionAutoRelease`
+> releases only when it was saved after every other `Redaction*` row; otherwise `auto-release-stale` (`ADR-074`
+> item 5). The body below is the rev 19 text.
+
+**Context.** Measured on 2026-10-05:
+
+| Fact | Level |
+|---|---|
+| No PII-detection template in DEV. `EntityExtraction` exists; inputs `text`, `language`; output `result.entities[]` with `type`, `value`, `startIndex`, `length`, `score` | E1 (`msdyn_aitemplate`) |
+| 25 entity types. Phone number, street address and ZIP code are "standard US format". No family-member or GP-practice type. At most 5,000 characters per call | E2 (Microsoft Learn, ms.date 2026-01-14) |
+| Power Automate expressions have no regular expressions | E2 |
+| A flow in this solution already builds a per-character `Select` over `range(0, length(x))` with `substring()` and `contains()`, under `secureData`, and joins the result (`Select_referee_phone_digits` in `REV \| Acceptance \| Create Envelope`) | E1 in source; that flow has run in DEV (rev 16) |
+
+The reviewer chose the extractor for direct identifiers and a generative prompt for indirect ones (verbatim, rev 19 entry).
+
+**Decision.** Nine interventions, traced in the same order under Consequences.
+
+1. **The extractor is the primary detector.** It is called once per window of at most 5,000 characters, with a
+   200-character overlap (rules §5.4), language `en`, for every non-empty raw column in scope. The scope is the twelve
+   raw/redacted pairs in `Entity.xml`, not a hand-kept list (`IMP-1066`).
+2. **Every label has an owner and a residue check** (§5.5 ownership table). No label depends on the prompt stage.
+3. **UK phone numbers and postcodes are found in the flow, by shape.** Each window is mapped to a class string with
+   the `Select_referee_phone_digits` pattern: a digit becomes `9`, a letter becomes `A`, and everything else stays as
+   it is. A second `Select` over the positions emits a span wherever the class string starts with one of a fixed
+   list of shapes and is not preceded or followed by a digit or letter. Postcodes: `A9 9AA`, `A99 9AA`, `AA9 9AA`,
+   `AA99 9AA`, `A9A 9AA`, `AA9A 9AA`. Phones: the UK display forms in rules §6, with and without `+44 (0)`/`+44`. The
+   lists are constants in the flow, not settings, because they are the specification. **development-agent derives
+   the full list from rules §6 and proves it against corpus samples S01, S07–S10 and S15.**
+4. **Refinement is deterministic and in the flow.** Kinship before or after a name gives `[FAMILY MEMBER]`, and a list
+   continuing from a family member does too (rules §5.1 rules 1–2, a fixed phrase list; the check is a secured
+   `Compose`). An `Organization` value ending in a practice suffix gives `[GP PRACTICE]`; every other organisation is
+   kept. An `Age` value maps to the `rev_agerange` label text.
+5. **Merge on offsets, then rebuild in one pass.** Spans are merged in a sequential loop whose variables hold only
+   offsets and labels (rules §5.2). The counterpart is then built by one `Select` over the merged-span index, emitting
+   the text between spans plus each label, and a `join(…, '')`. This is the same result as replacing from the end
+   (rules §5.3), and the reference implementation already tests it against an independent rebuild. No variable ever
+   holds text.
+6. **Residue checks run on the rebuilt text**, never altering it: nine or more digits in a row once spaces, brackets,
+   hyphens and `+` are removed; a postcode shape; `@`; a street word (Road, Street, Lane, Avenue, Close, Drive,
+   Crescent, Terrace, Gardens, Grove — a fixed list); a practice word (Surgery, Medical Centre, Health Centre,
+   Practice); an age phrase (a digit then "years old" / "year-old"). A hit gives `residual-<kind>:<column>`.
+7. **The record decision is rules §7 and §7a, plus the reason codes in items 6 and 8.** The record confidence is still
+   the lowest extractor score of a redacted span.
+8. **No release without the process owner until calibration.** `rev_setting` `RedactionAutoRelease`: only the
+   value `true` lets a record with no other reason be released. Absent, or any other value, gives `auto-release-off`.
+9. **The stage seam.** Every detector writes the same offsets-only span array. `ADR-072`'s prompt and any later
+   indirect-identifier rule join the union and change nothing downstream.
+
+**Rejected.** (a) **A Dataverse Custom API with a C# plug-in** hosting the Python rules one-to-one. It is technically
+the cleanest. It is rejected on the same ground as `ADR-030`: C# is outside the declared language palette, and a
+palette change is the reviewer's to make. If the in-flow detectors fail the live run, this is the route to reopen.
+(b) **Dataverse low-code plug-ins and functions:** preview (E2, Microsoft Learn ms.date 2026-05-08), not for
+production. (c) **A custom-trained AI Builder entity extraction model:** `ADR-012`'s *Neutral* clause; it can be revisited
+once the live run measures the gaps. (d) **Azure AI Language PII detection:** a new Azure subscription and an
+API-key secret; not what the reviewer meant (2026-10-05).
+
+**Consequences**, in the order of the Decision:
+
+1. *Positive:* one connector, already in the DLP business group (§6.4). *Negative:* credits per window; a 1 MB
+   narrative is about 200 calls (`A-R16`). *User sees:* nothing until the record decision.
+2. *Positive:* there is no unowned label. *Negative:* the residue checks are blunt. "Had surgery", "a road trip" and a
+   9-digit reference number all send a record to review. That over-triggering is the safe direction, and
+   `wbs:5.6`/`5.7` tune it.
+3. *Positive:* UK formats are found without regex and without a new component type. *Negative:* a format missing from
+   the shape list is not redacted. It is caught by the digit-run or postcode residue check instead, so the record goes
+   to review rather than to a trustee. The functions `range()`, `substring()`, `contains()` and `startsWith()` already appear
+   in this solution's flows (grepped 2026-10-05); `nthIndexOf()` (`ADR-072`) does not (`A-NS-11`).
+4. *Positive:* `[FAMILY MEMBER]` and `[GP PRACTICE]` exist without a prompt. *Negative:* a missed refinement gives
+   `[NAME]`, which is less precise but discloses nothing.
+5. *Positive:* no text-bearing variable, so nothing escapes `secureData`. *Negative:* the merge loop runs once per span
+   (tens, not thousands).
+6. *User sees:* the reason code on the review notification, never the text that tripped it.
+7. *User sees:* exactly the rules §7 behaviour, plus the new codes.
+8. *User sees:* every scrubbed application in the review list, and nothing reaching a trustee until the process owner
+   releases it. That holds until she sets `RedactionAutoRelease` to `true` after `wbs:5.7`. This is the approved FR-030
+   path used for every record, not a blackout.
+9. *Positive:* the next iteration (indirect identifiers) is an added stage, not a rebuild.
+
+**Gate interactions** (from `config/revitalise-grant-automation-build.yml`'s steps over `Workflows/`):
+
+| Gate | Trips? |
+|---|---|
+| `flow-definition-language` check 1 (`select(`/`filter(` as expressions) | No. The design uses `Select` **actions**, which is the `Create Envelope` precedent |
+| `flow-definition-language` check 3 (nested `item`) | No. Writes are flat (§5 write-shape rule) |
+| `flow-definition-language` check 8 (an action name reused within a flow) | Risk: per-column branches must name their actions uniquely |
+| `no-hardcoded-thresholds` | No. The threshold is read from `rev_setting`. Its regex does not list `RedactionConfidenceThreshold`; improvement-agent may widen it (proposed, not required) |
+| `source-validate` (`--expect-flows manifest`) | The new flow file must be added to the manifest in the same change |
+| `no-hardcoded-environment-values` | No. The prebuilt action takes no environment-specific model id (`A-NS-13`) |
+| `superseded-column-writers`, `domain-invariants` | No new writer of a superseded column; no special-category column feeds a score |
+| `tad-coverage` | `TD-008`'s two columns are built in the same change and `TD-008` is deleted then |
+
+---
+
+### ADR-072: The AI Builder generative prompt is a detector stage — designed now, off, and only able to cover existing text
+**Status:** `Accepted` (rev 19, approved 2026-10-06) · **Date:** 2026-10-05 · **WBS:** `wbs:5.3` (designed), `5.6` (indirect identifiers, after Emily)
+
+> **Amended rev 20 (2026-10-06), `ADR-074`.** Item 3: still off, and *Move data across regions* still unticked. Item 4:
+> "the fixed instruction text, and the fixed label allow-list" becomes a fixed template in the solution with three
+> inputs; the category text comes from `RedactionPromptCategory.*` rows. Item 6: the allow-list is the labels of the
+> valid category rows read in the same run. Item 8: `RedactionPromptCalibrated` holds the confirmed label list, saved
+> after every other `RedactionPrompt*` row; `true` no longer calibrates. The body below is the rev 19 text.
+>
+> **Rev 20 approval (2026-10-06), item 3.** The residency question is parked at the customer and does not block
+> building. It is still not decided, so item 3's hold stands **in every environment**: the stage is built, ships off,
+> and *Move data across regions* stays unticked. TST/ACC and PRD are unchanged. What building the prompt component
+> and any DEV run need that no dispatched agent can do is listed in §12.6.1, as reviewer actions.
+
+**Context.** The reviewer: *"use generative prompt for the indirect links"* (2026-10-05). Measured:
+
+| Fact | Level |
+|---|---|
+| Template `GptPromptEngineering` is Active in DEV. Inputs `prompt`, `parameters`. Outputs `text` and `finishReason`. **No score field** | E1 (`msdyn_aitemplate.msdyn_rundataspecification`, DEV 2026-10-05) |
+| In the Switzerland geography every prompt model is "GA (cross-geo)"; in the United Kingdom, GPT-4.1 mini and GPT-4.1 are GA in region | E2 (Microsoft Learn *Prompt model availability by region*, ms.date 2026-04-13) |
+| With *Move data across regions* allowed, a Switzerland environment's prompts are processed in the EU Data Boundary, and the EU *flex routing* option can process them outside it at peak load. With it not allowed, "no data is sent outside of the region" and some features "won't work". AI Builder *AI Prompts* is listed as depending on this setting | E2 (Microsoft Learn *Move data across regions*, ms.date 2026-10-01) |
+| Prompts consume prompt builder credits in Power Automate, then Copilot Credits. Temperature defaults to 0. Content moderation defaults to Moderate and can block text about medical procedures or self-harm | E2 (Microsoft Learn *Change the model version and settings*, ms.date 2026-08-04) |
+
+**Decision.** Nine interventions.
+
+1. **In palette, on `ADR-012`'s basis:** a first-party AI Builder capability called from a flow through the AI Builder
+   connector, shipped as a solution component (`A-NS-9`). Not Copilot Studio, no Azure resource, no code.
+2. **Role.** It is the detector for indirect identifiers in the next iteration (rules §10). It is also a second
+   detector for the direct gaps: a street with no number or postcode, a practice with no suffix, a family member the
+   kinship list misses. **It is never the only owner of a direct label** (`ADR-071` item 2).
+3. **Off by default.** It runs only when `rev_setting` `RedactionPromptStage` = `on`. An absent row means off. **It
+   must not be switched on in any environment until the residency decision in §12 is recorded.**
+4. **Input:** the same windows as the extractor, the fixed instruction text, and the fixed label allow-list. Model
+   GPT-4.1 mini (GA, basic rate). Temperature 0. Content moderation **Low**, because narratives describe conditions and
+   care, and the output is checked and never shown to anyone (items 6–7).
+5. **Output contract:** JSON only, an array of `{label, quote}` (`A-NS-10`).
+6. **Deterministic validation in the flow, before any span is used.** For each item: the label is on the allow-list;
+   the quote is 2 to 200 characters long; the quote occurs verbatim in the window; and each occurrence, found with
+   `nthIndexOf()` (`A-NS-11`), sits at word boundaries. Each valid occurrence becomes a span with `score` null and
+   `source` `prompt`. **If any item fails, the whole prompt result for that column is discarded** and the reason is
+   `prompt-output-invalid:<column>`. A partly wrong answer is not partly trusted.
+7. **Only replacements can happen.** The prompt never supplies text that reaches a column. The label text comes from
+   the flow's own label map, and the rebuild (`ADR-071` item 5) copies everything else from the source. A
+   manipulated or confused prompt can therefore only over-redact (safe) or miss something. A miss is covered by the
+   extractor, the shape detectors, the residue checks and review. Injected instructions inside a narrative have no
+   output channel.
+8. **Confidence and fail-closed.** A prompt span has no score and does not enter the record confidence. With the stage
+   on, release also requires `RedactionPromptCalibrated` = `true`; otherwise the reason is `uncalibrated-stage:prompt`.
+   A call error, an empty or unparseable output, or a `finishReason` other than a normal stop (`A-NS-8`) gives
+   `prompt-error:<column>`.
+9. **Privacy.** `secureData` on inputs and outputs of the prompt action, its parse and its validation `Select`. The
+   prompt's output is never written to a column, a log or a notification.
+
+**Consequences**, in the order of the Decision:
+
+1. *Negative:* a new component type to pack and import (`A-NS-9`), and a credit line (`A-R16`).
+2. *Positive:* the indirect-identifier iteration is a prompt edit and an allow-list row, not a rebuild.
+3. *User sees:* nothing while it is off. Turning it on is a settings change, with no import.
+4. *Negative:* Low moderation lets the model read distressing content. That is the purpose: Moderate would block
+   exactly the narratives most in need of scrubbing, and a block becomes `prompt-error` and review.
+5–6. *User sees:* when the model answers badly, the record goes to review with `prompt-output-invalid`. The text is
+   never partly scrubbed by a bad answer.
+7. *Positive:* prompt injection cannot add, alter or reveal text.
+8. *User sees:* with the stage on and not yet calibrated, every record goes to review. Calibration happens in
+   `wbs:5.7`, against the corpus and Emily's review.
+9. As `ADR-071` item 5.
+
+**Gate interactions.** As `ADR-071`. In addition, `component-shape` and `root-components-resolve` will meet an AI model
+component for the first time. Its source shape is unverified (`A-NS-9`), so it is captured from a DEV export before
+it is committed, per `skills/how-to-verify-a-platform-contract.md` §3.
+
+---
+
+### ADR-073: The postcode register confirms postcodes without their space and districts on their own — it adds detections and never removes one
+**Status:** `Accepted` (rev 20, approved 2026-10-06) · **Date:** 2026-10-06 · **WBS:** `wbs:5.3` (tuning `5.6`) · **Amends `ADR-071` item 3.**
+
+**Context.** Reviewer, 2026-10-06: *"Why not against the postcode list we already have?"* Measured on 2026-10-06:
+
+| Fact | Level |
+|---|---|
+| `rev_citysettlementregister` holds 3,394 outward codes (`provisioning/dataverse/data/city-settlement-register.csv`, the seed script's source): 1,919 `AA99`, 984 `AA9`, 418 `A99`, 73 `A9`, and **none** of shape `A9A` or `AA9A`. `EC1A`, `W1A` and `SW1A` are absent; so are `HS1` and `HS2` | E1 (the seed source) |
+| Tokens that mean something else are real districts in it: `M1`–`M6`, `M11`, `M25`, `M62` and every other motorway number tested up to `M66`; `B12`, `B6`, `CO2`, `CH4`, `CR7`, `BB8`, `E1` | E1 |
+| `REV Service Automation` has Read at Global on the table; the intake flow reads it by key | E1 (role XML, intake flow) |
+| Rev 19 does not replace `LS62AB`, but `residual-postcode` sends it to review. "We are in LS6 area" is neither replaced nor flagged | Lead-agent, measured on the reference implementation |
+| The 20-sample corpus has two full postcodes (S08, S09), both in the register, and no postcode without its space or district on its own | E1 (corpus) |
+
+**Decision.** Seven interventions, traced in the same order under Consequences.
+
+1. **Load once per run.** One *List rows* on the register, `$select` `rev_name`, before the column loop. The codes go
+   into one upper-case string `|AB1|AB10|…|` in a `Compose`, and a candidate is tested with `contains()`. It is a
+   `Compose`, not a variable, and needs no `secureData`: it holds no applicant text.
+2. **An unavailable register fails closed.** A failed read, or fewer than 3,000 rows, gives
+   `postcode-register-unavailable`. The register is seeded once from a fixed file and never refreshed, so a count far
+   below 3,394 means the seed did not run.
+3. **The register never cancels a full postcode.** A match on a rev 19 shape is replaced whether or not its outward
+   code is listed.
+4. **A postcode without its space** (`A99AA`, `A999AA`, `AA99AA`, `AA999AA`, `A9A9AA`, `AA9A9AA`, bounded like
+   every shape) is replaced when its outward code is in the register. Otherwise `residual-postcode` applies, as in rev 19.
+5. **A district on its own** (`A9`, `A99`, `AA9`, `AA99`, bounded, not followed by an inward code) that is in the
+   register is replaced only with a cue word: `postcode` or `post code` just before it, or `area`, `district` or
+   `postcode` just after it. Without a cue it is kept and the record goes to review with `residual-district:<column>`.
+6. **Case is ignored.** Candidates are upper-cased before the lookup.
+7. **No narrative text reaches a query.** The test runs in memory. The `Select` that cuts each candidate from the
+   window is secured, like the other window `Select`s (§5.5).
+
+**Rejected.** (a) **A *List rows* per candidate on the alternate key.** A `Select` cannot call an action, so this needs
+an *Apply to each*: one Dataverse request per candidate, per window, per column. Each request's filter would carry a
+fragment of the narrative, a postcode, into the action's inputs and into Dataverse's request handling. Load-once is
+one request per run and keeps every candidate inside the flow. (b) **Replace every district the register confirms.**
+"Vitamin B12 injections" would become "vitamin [ADDRESS] injections", destroying condition information FR-028 tells us
+to keep, and "the M62" likewise. (c) **Use the register to cancel unconfirmed full postcodes.** It would let
+`EC1A 1BB` through; over-redaction is the safe direction.
+
+**Consequences**, in the order of the Decision:
+
+1. *Negative:* about 3,400 short rows per run. *Positive:* one request, no paging (`A-NS-21`).
+2. *User sees:* in an environment where the register is not seeded, every record waits for the process owner with
+   `postcode-register-unavailable`. Manual release still works. The seed is already a `post_deploy` step in all three
+   environments.
+3. *User sees:* exactly the rev 19 result for every full postcode.
+4. *Positive:* "LS62AB" becomes `[ADDRESS]` instead of a review. *Negative:* none found; the register makes the
+   space-less match precise.
+5. *User sees:* "we are in LS6 area" becomes "we are in [ADDRESS] area". "The M62 was closed" and "B12 injections" stay
+   as written, and the record goes to review with `residual-district`, which the process owner clears in seconds. Until
+   `wbs:5.7` every record goes to review anyway. The cue list is tuned in `wbs:5.6`.
+6. *Positive:* "ls6 2ab" and "LS6 2AB" behave the same.
+7. *Positive:* no new place a postcode can leak to.
+
+**Region (FR-027) — assessed, not changed.** The register has no region column; the source file
+`docs/Import/Postcode Details.xlsx` has one. Measured: a postcode-to-region map **already exists** as the seeded
+setting `PostcodeRegionMap` (area prefix to `rev_locationarea`, 12 regions), read by the intake flow. The file's Region
+column agrees with it on all 3,151 rows that name a region and is worse on the other 243, which say only "England"
+(Greater Manchester, Tyne and Wear, Merseyside and parts of Lancashire, Cumbria and Hertfordshire). The applicant's own
+region is already trustee-visible as `rev_locationarea`. So **no column is added and the Region column is not
+imported.** A postcode in the text stays `[ADDRESS]`, because it may be someone else's (a daughter's) and a region label
+would change FR-026's label set. A town on its own stays as written (rules D-1, approved 2026-10-06). The file's 113
+postal towns each map to exactly one region, about 2,900 characters as JSON. If `wbs:5.6` adopts FR-027's place half
+after Emily's input, one `rev_setting` row can hold that map, again with no schema change. That is a decision for then.
+
+**Gate interactions** (`config/revitalise-grant-automation-build.yml` steps over `Workflows/`):
+
+| Gate | Trips? |
+|---|---|
+| `flow-definition-language` check 1 | No. The candidate and lookup steps are `Select`/`Filter` **actions** |
+| `flow-definition-language` check 8 (unique action names) | Risk: new actions in per-column branches must be named uniquely |
+| `source-validate` (`--expect-flows manifest`) | No. No new flow file |
+| `no-hardcoded-thresholds` | No. The 3,000-row floor is not a scoring threshold |
+| `unit-tests` (`NarrativeRedaction.Tests.ps1`) | **Yes, by design.** The oracle and the shipped-flow tests must gain the six rows of the §5.5.1 postcode table, the unavailable-register path and new corpus samples, written by development-agent |
+| `tad-coverage`, `domain-invariants` | No. No new column; no special-category column feeds a score |
+
+---
+
+### ADR-074: Redaction rules the process owner may tune live in `rev_setting` — additive over a tested floor, with guard rails that fail closed
+**Status:** `Accepted` (rev 20, approved 2026-10-06) · **Date:** 2026-10-06 · **WBS:** `wbs:5.3` (designed), `5.6` (tuning, after Emily) · **Amends `ADR-071` items 6 and 8, `ADR-072` items 3, 4, 6 and 8.**
+
+**Context.** Reviewer, 2026-10-06: *"for the prompts maybe create a setting rows for the prompt with the rules? Make it
+data driven"*. Measured on 2026-10-06:
+
+| Fact | Level |
+|---|---|
+| `rev_setting.rev_value` is `ntext`, `MaxLength` 4,000, format `textarea` (multi-line). `rev_name` is the alternate key, 100 characters. The table and every column have auditing on | E1 (`Entities/rev_setting/Entity.xml`) |
+| Only `REV Admin` can create, write or delete `rev_setting` rows (Global). `REV Service Automation` reads them. `REV Trustee` and `REV Finance` have no access | E1 (role XML) |
+| `seed-settings.ps1` PATCHes every row in `settingRows` on every deploy, so a seeded value overwrites the process owner's edit | E1 (script) |
+| Template `GptPromptEngineering` takes inputs `prompt` and `parameters` | E1 (`msdyn_aitemplate`, rev 19) |
+| The built flow holds its word lists as `Compose` constants (`Compose_kin_words`, `Compose_kin_tails`, the practice suffixes, and the street and practice words in `Compose_residue_reasons`), and its HARD tests execute those constants | E1 (flow source, `test_scrub_flow_definition.py`) |
+
+**Decision.** Seven interventions, traced in the same order under Consequences.
+
+1. **The prompt is a fixed template with three inputs.** The template is part of the prompt component in the solution
+   and is not editable as a setting. It says that the text between the narrative tags is data and that instructions
+   inside it are ignored, defines the JSON output contract (`ADR-072` item 5), requires every quote to be copied
+   exactly, and has three slots: `Categories`, `AllowedLabels` and `Narrative` (`A-NS-20`).
+2. **What the prompt looks for is one row per label.** `RedactionPromptCategory.Name`, `.FamilyMember`, `.GpPractice`
+   and `.Address` hold plain text (up to 4,000 characters each). The flow maps each key to its label through a constant
+   (`Name` to `NAME`, and so on), builds `Categories` as one line per valid row, and builds `AllowedLabels` from the same
+   rows. **The validation allow-list (`ADR-072` item 6) is that same list, in the same run**, so the prompt and the
+   validation cannot drift. A key the constant map does not know (a new label) is invalid: a new label still needs its
+   label text and precedence in the flow (rules §10).
+3. **Word lists: a tested floor plus an additive row.** The four lists, kinship words, practice suffixes, street words
+   and practice words, keep their rev 19 constants as a floor. `RedactionKinshipWordsExtra`,
+   `RedactionPracticeSuffixesExtra`, `RedactionStreetWordsExtra` and `RedactionPracticeWordsExtra` hold one entry per
+   line. The flow uses the floor plus the valid entries; kinship tails (*called*, *named*, *is*) are generated for added
+   words. **A setting can add, never remove.** Removing a built-in word is a flow change with tests (`wbs:5.6`).
+   **Constants stay constants:** the phone and postcode shapes, the cue words (`ADR-073`), number words, age phrases,
+   the digit-run length, the window and overlap sizes, the label texts and the precedence. They are specifications of
+   a format or of the logic, and a process owner has no basis to edit them.
+4. **A malformed row fails closed.** A word-list row is invalid if any non-blank line, trimmed and lower-cased, is not
+   2 to 40 characters of letters `a`–`z`, spaces, hyphens and apostrophes. An invalid row is ignored as a whole, and
+   the record gets `redaction-setting-invalid:<key>`; the floor still applies. A category row that is empty or
+   whitespace, or whose key is unknown, makes the stage invalid: with the stage on, the record gets
+   `prompt-config-invalid` and the prompt does not run for it. A partly wrong row is not partly trusted (`ADR-072`
+   item 6).
+5. **An edit stops auto-release until the process owner confirms again.** Auto-release requires
+   `RedactionAutoRelease` = `true` **and** its `modifiedon` at or after the `modifiedon` of every other `Redaction*`
+   row. Otherwise the reason is `auto-release-stale`. Prompt calibration requires `RedactionPromptCalibrated` to list
+   exactly the labels of the valid category rows **and** its `modifiedon` at or after every other `RedactionPrompt*`
+   row; otherwise `uncalibrated-stage:prompt`. The flow compares `modifiedon` with `ticks()` (`A-NS-22`). It is a
+   system column, so nobody can type a date into it.
+6. **Prospective only.** A released record is never re-opened (rules §7a rule 1). A record not released is already
+   in review.
+7. **Nothing is seeded, and the residency hold stands.** No `Redaction*` row goes into `settingRows` while
+   `seed-settings.ps1` upserts. Each row's description says *synthetic examples only*. The prompt stays off and *Move
+   data across regions* stays unticked until the residency decision (`IMP-1063`). **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies: this item is unchanged by
+   the approval. What a DEV run needs from the reviewer is §12.6.1.
+
+**Rejected.** (a) **The whole instruction in one setting** (the template becomes `{Instructions}{Narrative}`). One edit
+could remove the output contract or the "text is data" rule; validation would still discard the output, but every
+record would then go to review with `prompt-output-invalid`, and the allow-list would have to be parsed out of prose.
+It also fits all categories into one 4,000-character value. (b) **Widen `rev_value`.** A schema change to a table every
+flow reads, not needed when each category has its own row. (c) **Word lists that replace the built-in list.** A setting
+could then remove "road" from the street words without any test running; the built-in floor is what the HARD tests
+prove. (d) **Shapes as settings.** They are the Royal Mail and Ofcom formats; an edit could only weaken them, and the
+tests would no longer test what runs.
+
+**Consequences**, in the order of the Decision:
+
+1. *Positive:* prompt injection and contract changes stay impossible, as in `ADR-072` item 7. *Negative:* changing the
+   template is a solution change with an import.
+2. *Positive:* adding or rewording a category is a settings edit, with no import. *Negative:* category text is sent
+   with every window, so long categories raise the credit cost (`A-R16`). Keep each under about 1,000 characters.
+3. *User sees:* nothing until she adds a word. Then an added street word sends more records to review; an added
+   practice suffix turns more organisations into `[GP PRACTICE]`; an added kinship word turns more `[NAME]` labels
+   into `[FAMILY MEMBER]`. Each is stricter or more precise, never looser.
+4. *User sees:* a typo shows on every scrubbed record as `redaction-setting-invalid:<key>`, which names the row to fix.
+5. *User sees:* after any edit, scrubbed records wait with `auto-release-stale` until she sets **Effective From** on
+   `RedactionAutoRelease` to today and saves. This includes stricter edits, because the flow cannot tell stricter from
+   looser. Before `RedactionAutoRelease` is ever `true`, this changes nothing she sees.
+6. *User sees:* trustees keep seeing what they already saw.
+7. *User sees:* rev 19 behaviour today.
+
+**Guard rails, in one place.** Who edits: `REV Admin` only, no new privilege. Audit: on for the table and every column,
+so each change shows who, when, and the old and new value (C-DOM-010). Malformed or empty: item 4. Absent: the rev 19
+behaviour, which is safe. Confirmation after an edit: item 5. Never below the tested floor: item 3. Residency: item 7.
+The one weakening no check can stop is category text that asks for less, or a deleted extension row; it is held by
+audit and confirmation, and the prompt is never the only owner of a direct label (`A-R85`). **When `wbs:5.6` makes the
+prompt the only owner of an indirect label, the stage being off must itself become a reason for that label**; that is
+a condition on `wbs:5.6`, not decided here.
+
+**What development-agent rewrites** (the retired wording, searched across the repository, `IMP-1015`):
+
+| Hit | Action |
+|---|---|
+| `docs/development/revitalise-redaction-rules.md` §7 (`uncalibrated-stage:prompt` row; the settings table's `RedactionPromptCalibrated` = `true`) | rewrite |
+| `src/tests/narrative/redaction_reference.py` (`RedactionPromptCalibrated` compared with `"true"`) and `test_flow_model.py` (`"RedactionPromptCalibrated": "true"`) | rewrite |
+| The flow: `Read_redaction_settings` (four-key `$filter`), `Find_setting_RedactionPromptCalibrated`, `Compose_auto_release`, `Compose_shape_table`'s description, the word-list `Compose`s | rewrite |
+| `docs/development/revitalise-narrative-scrubbing-dev-summary.md` (settings row) | rewrite |
+| This document: §3.1 `rev_setting` block, NFR-017 row, `ADR-071` item 6 "a fixed list", `ADR-072` items 4 and 8, `A-R84` | history, kept (amended by note or in place above) |
+
+**Gate interactions** (`config/revitalise-grant-automation-build.yml` steps over `Workflows/`):
+
+| Gate | Trips? |
+|---|---|
+| `flow-definition-language` checks 1, 3, 8 | As `ADR-073` |
+| `no-hardcoded-thresholds` | No. `RedactionConfidenceThreshold` is still read from `rev_setting` |
+| `unit-tests` | **Yes, by design.** Tests for each row of the §5.5.1 settings table, including a malformed list, a stale confirmation and a prompt calibration with a missing category |
+| `component-shape`, `root-components-resolve` | When the prompt is built (`A-NS-9`, `A-NS-20`); not in this change |
+| `tad-coverage` | No. Rows are data, not columns |
+
+---
+
 ## 11. Risks & Mitigations
 
 R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). A-R10 onward are
@@ -3993,10 +4528,10 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R13** **WBS 0.3 — service account + scoped CA exception — outstanding with Wanstor.** Every unattended automation depends on it | **High — already late** | High | Carried as the one blocking §12 dependency. Escalate now; it gates Phase 1, not Phase 3 (SDD OQ-018) |
 | **A-R14** Intake endpoint secret has no approved store in the source design | Medium | High | Key Vault-backed secret environment variable, or switch to the REST-pull intake and remove the secret entirely (§6.3, ADR-011). **Azure subscription is unevidenced** |
 | **A-R15** ~~With a two-environment topology, the first managed import lands in PROD and the test-agent has no environment for the managed artefact~~ **CLOSED** | — | — | ✅ **Closed 2026-08-10.** ADR-006 confirmed **three environments (DEV, TST/ACC, PRD)**, so the first managed import lands in TST/ACC and the test-agent gates the managed artefact there (§9, §9.1) |
-| **A-R16** AI Builder credit coverage unconfirmed ahead of the **1 Nov 2026** seeded-credit change | Medium | Medium | Confirm before Automation #5 goes live (SDD OQ-017); the degraded path is 100% manual redaction, which restores 3–4 h per cycle of manual work but does not breach anything |
+| **A-R16** AI Builder credit coverage unconfirmed ahead of the **1 Nov 2026** seeded-credit change | Medium | Medium | Confirm before Automation #5 goes live (SDD OQ-017); the degraded path is 100% manual redaction, which restores 3–4 h per cycle of manual work but does not breach anything. **Rev 19:** the extractor is billed per 5,000-character window, so a long narrative costs many calls; the prompt stage (`ADR-072`, off) would add prompt builder credits, then Copilot Credits (E2). Size both against the live run (`wbs:5.2`) |
 | **A-R17** ~~If Canvas App is chosen for the portal, the component leaves this system's build palette~~ **CLOSED** | — | — | ✅ **Closed 2026-08-10.** ADR-003 confirmed **Code App**; Canvas App descoped and rejected. Residual, tracked at development: the Code App is developer-maintained and the source's 14–20 h estimate assumed a low-code app |
 | **A-R18** The third environment (TST/ACC) consumes chargeable Dataverse capacity a charity may not have | Medium | Low | Confirm database capacity at WBS 0.2 **before provisioning TST/ACC**; three environments is the lowest-cost topology that still keeps a real managed-import test gate (ADR-006) |
-| **A-R19** UK residency of DocuSign and QuickBooks Online is **asserted but not evidenced** in any source | Medium | High | Verification is a §12 `APPROVE TENANT` gate item with written evidence retained; DPIA action A5 |
+| **A-R19** UK residency of DocuSign and QuickBooks Online is **asserted but not evidenced** in any source | Medium | High | Verification is a §12 `APPROVE TENANT` gate item with written evidence retained; DPIA action A5. **Rev 19:** the Power Platform half is now measured and is not the UK (`A-R82`) |
 | **A-R20** Trustee adoption — some trustees may resist moving off email attachments | Medium | Medium | Offline anonymised pack (FR-032) and print route (FR-039) exist so partial adoption excludes no one; one round of trustee feedback budgeted (SDD OQ-013, OQ-024) |
 | **A-R21** DPIA and RoPA are **concept drafts, not signed off**, and the DPIA sign-off table is empty | **High** | High | Art. 35 requires completion before go-live (SDD OQ-030). Build may start on approved requirements, but **not** on the field-level-security and 6-year-retention basis until OQ-004/005/006 are recorded |
 | **A-R22** **No SAR extract mechanism is built or agreed** — FR-053 has no assigned component; §4.2 records a proposal only | Medium | Medium | ✅ **Accepted as a known gap by the reviewer on 2026-08-10** (C-DOM-005, SOFT, accepted-risk path). **Carried forward to development-agent as an open item**, with the four questions in §4.2 to close it. Note there is also no SAR turnaround SLA in any source (SDD OQ-023), so the test-agent has no threshold to verify against even once a mechanism exists |
@@ -4024,6 +4559,12 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R79** **The referee's phone is missing or has fewer than six digits, so no envelope goes out** (rev 15, `ADR-068` item 4). Nothing in Phase 1 writes `rev_refereephone`; the process owner types it | Medium | Low | Step 1 normalises it to digits and alerts and stops below six, naming the field. The grant stays at Awarded until it is corrected |
 | ~~**A-R80** The template's routing order is not applicant first, referee second~~ **RETIRED, rev 16 approval.** Reviewer: *"There is no signing order. The agreement gets send to both."* Both signers are emailed together by design, so there is no order to get wrong. The id is not reused | n/a | n/a | n/a |
 | **A-R81** **Eight more secured referee columns hold a second data subject's name, employer and address, and no erasure path for them is established** (rev 16, `ADR-070`). `ADR-043` avoided exactly this. The retention and erasure helper (§5.12) is not in the solution's workflows today | Medium | Medium | The columns are `IsSecured` and in `REV_TrusteeRestricted`. When §5.12 is built its blank list covers all eleven `rev_referee*` columns. The reviewer confirms the DPIA covers a referee's address and employer. TST/ACC and PRD need `ensure-schema.ps1` run for the eight columns (§12.1) |
+| **A-R82** **All three environments are hosted in Switzerland (`crm17`), against NFR-009's UK requirement** (`IMP-1063`). The entity extractor runs there too; a generative prompt would run in the EU Data Boundary, or outside it under flex routing | **Certain** (measured) | High | **Reviewer and DPO decision, not made here:** move the environments to the UK geography, or record an accepted risk with DPO sign-off and update the DPIA. Until then, the prompt stage stays off (`ADR-072` item 3) and *Move data across regions* stays unticked (§12). **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies; what a DEV run of the prompt would need is §12.6.1 |
+| **A-R83** A name the extractor misses carries no score, so a confident record with one missed name could be released | Medium (unmeasured until the live run) | High | No release without the process owner until calibration (`RedactionAutoRelease`, `ADR-071` item 8); the live corpus run (`wbs:5.2`) measures recall per label; rules D-2 (`no-model-detections`) is the reviewer's to decide; the prompt as a second name detector once residency allows |
+| **A-R84** The residue checks over-trigger ("had surgery", "a road trip"), so most records go to review and the manual workload does not fall | High at first | Medium | It fails in the safe direction. **Rev 20 (`ADR-074`):** each word list is a tested built-in list in the flow plus an additive `rev_setting` row, so the process owner can add words without a deploy; removing a built-in word is a flow change with tests in `wbs:5.6`. *Previously read (rev 19): each list is a constant in one flow* |
+| **A-R85** **An edit to a redaction setting weakens what is found** (rev 20, `ADR-074`). A deleted extension row, or category text that asks for less, cannot be prevented by a check | Low | High | Admin-only and audited. A word list can never fall below the tested built-in list. Any edit to a `Redaction*` row stops auto-release (`auto-release-stale`) and prompt calibration until the process owner confirms again. The prompt is never the only owner of a direct label (`ADR-071` item 2) |
+| **A-R86** **The postcode register is not the full Royal Mail list** (rev 20, `ADR-073`). It has no `A9A` or `AA9A` district (`EC1A`, `W1A`, `SW1A`) and lacks some codes such as `HS1` (measured) | Certain | Low | The register only adds detections, never removes one. A postcode without its space outside it still goes to review through `residual-postcode`. A district on its own outside it is not found, as in rev 19 |
+| **A-R87** **Applicant text pasted into a setting row as an example** (rev 20, `ADR-074`). `rev_setting` is Tier 2, not column-secured, and its audit history is kept six years | Low | Medium | Each `Redaction*` row's description says *synthetic examples only*. The process owner is the only editor. A real excerpt found there is removed and handled as a data incident |
 
 ---
 
@@ -4048,7 +4589,8 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | **Pipelines access assignment — NEW, required by ADR-007.** `Deployment Pipeline Administrator` in the host for the maker/administrator; the pipeline record shared with whoever runs it (`Deployment Pipeline User` + Read). Requesters also need export rights in DEV and import rights in the target. ⚠ Whether a **service principal** may *request* a promotion is **not documented** — the item to settle before any `promote_mode` moves from `manual` to `cli` | Dataverse security roles + row sharing in the host | Manual, Deployment Pipeline Configuration app | tenant | `APPROVE TENANT` |
 | `REV-MS-Provisioning` app registration + admin consent (`Group.Create`, `GroupMember.ReadWrite.All`, `Sites.Selected`) | Entra app registration + admin consent | `provisioning/entra/` — see ADR-018 | tenant | `APPROVE TENANT` |
 | Power Platform environments **DEV + TST/ACC + PRD** — **UK region**, Dataverse enabled, bound to their security groups (three environments per ADR-006; confirm database capacity first — risk A-R18) | Power Platform environment | `pac admin create` / Power Platform Admin PowerShell | tenant | `APPROVE TENANT` |
-| **UK residency verification** for the environments, AI Builder, DocuSign and QuickBooks — written evidence retained | Compliance verification | Manual, evidenced | tenant | `APPROVE TENANT` (NFR-009, DPIA A5) |
+| **UK residency verification** for the environments, AI Builder, DocuSign and QuickBooks — written evidence retained. **Rev 19: environments measured as `crm17` (Switzerland), NOT the UK** (`IMP-1063`, `A-R82`); decision outstanding. **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies | Compliance verification | Manual, evidenced | tenant | `APPROVE TENANT` (NFR-009, DPIA A5) |
+| **Generative AI features → *Move data across regions*: record each environment's current state, and keep it UNTICKED** until the residency decision allows otherwise (rev 19, `ADR-072` item 3). Ticking it sends prompt inputs and outputs outside Switzerland, and the change cannot be reversed for data already moved (E2) | Environment setting | Power Platform admin center, read by the reviewer | per-env | `APPROVE TENANT` (NFR-009) |
 | Environment DLP connector policy (business / blocked groups per §6.4, **including Request/HTTP and Word Online**) | DLP policy | Power Platform Admin PowerShell | tenant, applied per-env | `APPROVE TENANT` |
 | AI Builder credit / capacity assignment to the PROD environment | Capacity allocation | Power Platform admin centre | per-env | `APPROVE TENANT` (SDD OQ-017) |
 | SharePoint site `/sites/grants` + "Signed Acceptances" document library; **Trustee role denied** | SPO site collection + library | `provisioning/sharepoint/` — PnP.PowerShell | tenant (site collection) | `APPROVE TENANT` |
@@ -4238,6 +4780,63 @@ the reviewer, not from DocuSign's UI or documentation. Improvement review 2026-0
 
 ---
 
+### 12.6 Platform Contract Verification Plan — Narrative Scrubbing (rev 19) (`wbs:5.2`, `5.3`)
+
+`A-NS-1` to `A-NS-7` are in the narrative-scrubbing Dev Summary §10 and are not repeated. Rev 19 adds the markers
+below. Ids were taken after checking both documents (`A-NS-7` was the highest). DEV is reachable read-only through
+`pac env fetch`; **no prompt or model has been invoked from any session.** Every row is OPEN.
+
+| Marker | Claim (both directions) | Evidence | Cheapest verification |
+|---|---|---|---|
+| `A-NS-8` | A completed prompt run returns a `finishReason` meaning a normal stop; any other value (length, content filter) means the output is unusable | E3 (Azure OpenAI convention) | Run the prompt in DEV on one corpus sample and on one text built to trip moderation; record both `finishReason` values |
+| `A-NS-9` | An AI Builder prompt is a solution component: it exports, packs and imports with `RevitaliseGrantAutomation`, and the flow finds it by name in TST/ACC and PRD | E3 | Create the prompt in DEV inside the solution, export and unpack, and copy the component's shape exactly (skill §3) |
+| `A-NS-10` | The prompt can be set to return JSON, and `json()` in the flow parses its `text`; a non-JSON reply fails the parse | E3 | The same DEV run: one well-formed reply, and one reply forced to prose |
+| `A-NS-11` | `nthIndexOf(text, search, n)` returns the n-th occurrence's start, counted in the same units as the extractor's `startIndex`, and -1 when there is none | E3; not used anywhere in this solution | One `Compose` in a DEV test flow over a string with an emoji (corpus S16) |
+| `A-NS-12` | `secureData` on the AI Builder connector actions hides their inputs and outputs in run history, as it does on `Select` and Dataverse actions here | E3 (E1 for `Select`, `Create Envelope`) | One DEV run; open the run history as a maker and confirm both panes are hidden |
+| `A-NS-13` | The prebuilt *Extract entities from text with the standard model* action needs no environment-specific model id in the flow definition | E3 | Add the action in a DEV test flow, export it, and read the action's parameters |
+| `A-NS-14` | With *Move data across regions* unticked, a prompt run in a `crm17` environment fails rather than running somewhere else | E2 (documentation says some features "won't work") | Read the setting's state in DEV first (reviewer). Only if the reviewer authorises a run: one synthetic corpus sample, never real data |
+| `A-NS-20` | **Rev 20.** An AI Builder prompt can declare three text inputs (`Categories`, `AllowedLabels`, `Narrative`), the flow's run action passes each by name, and one call accepts at least 16,000 characters of categories plus a 5,000-character window | E3 (template inputs `prompt`, `parameters` are E1; the named-input mapping is not) | With `A-NS-9`: create the prompt in DEV inside the solution, add the action to a test flow, export both and read the parameter names. **No prompt run is needed**, so `A-NS-14` does not gate it |
+| `A-NS-21` | **Rev 20.** *List rows* on `rev_citysettlementregister` with only `$select` returns all 3,394 rows in one response without a pagination setting (the documented default page is 5,000) | E2 | One DEV run of a test flow; compare `length()` of the result with 3,394 |
+| `A-NS-22` | **Rev 20.** *List rows* returns `modifiedon` as an ISO 8601 UTC string that `ticks()` accepts; saving a changed `rev_setting` row in the app moves it, and an unchanged save does not | E3 (`ticks()` is used in two flows here; `modifiedon` is read by none) | One DEV test: read a row, change Effective From, save, read again; then save unchanged and read again |
+
+**Corpus rule for every row:** synthetic corpus samples only (`src/tests/narrative/corpus/`), never an application
+from `docs/Import/` or any environment.
+
+### 12.6.1 The prompt stage in DEV — what no dispatched agent can do (rev 20 approval) (`wbs:5.3`)
+
+**For development-agent: this is the one place that says what the generative prompt stage (`ADR-072`, `ADR-074`) needs
+from the reviewer before it can be built or run in DEV.** Everything below is a reviewer action with its reason. None
+is a decision this document makes. TST/ACC and PRD are unchanged: the stage ships off there, *Move data across regions*
+stays unticked there, and neither changes until a residency decision is recorded (`ADR-072` item 3, `A-R82`).
+
+**What development-agent builds without any of these:** the shape detectors, the register (`ADR-073`), the settings
+reads and guard rails (`ADR-074`), the merge, rebuild, residue check and record decision, the prompt-output validation,
+and their unit tests over the synthetic corpus. With `RedactionPromptStage` absent the prompt branch is never reached,
+so a build that runs is the designed behaviour with the stage off. Verification rows `A-NS-11`, `A-NS-13`, `A-NS-21`
+and `A-NS-22` need no prompt. **The prompt run action itself is committed only after R1's DEV export exists**, because
+it references the prompt component, whose source shape is unverified (`A-NS-9`, `A-NS-20`).
+
+| # | Reviewer action | Why no dispatched agent can do it | Needed for |
+|---|---|---|---|
+| R0 | Read DEV's *Generative AI features → Move data across regions* state in the Power Platform admin center and record it (ticked or unticked, with the date) | It is an admin-center setting. Agents reach DEV read-only through `pac env fetch`, which reads Dataverse rows, not this setting | Already a §12 row; R1 and R2 depend on the answer |
+| R1 | Create the prompt in the DEV maker portal, inside solution `RevitaliseGrantAutomation`: three text inputs `Categories`, `AllowedLabels`, `Narrative`; model GPT-4.1 mini; temperature 0; content moderation Low; JSON output; template text as development-agent supplies it (`ADR-072` items 4–5, `ADR-074` item 1). Then tell development-agent, which exports and unpacks it | The prompt is a platform-assigned component whose source is copied from an export, never hand-authored (`A-NS-9`, skill `how-to-verify-a-platform-contract.md` §3). Creating it needs an interactive maker session. No dispatched agent has one | Building the component and the run action (`A-NS-9`, `A-NS-20`) |
+| R2 | Only if a DEV **run** is wanted: decide whether to tick *Move data across regions* in DEV, and record it in writing as a DEV-only exception to `ADR-072` item 3 | Ticking it sends prompt inputs and outputs to the EU Data Boundary, and under flex routing possibly outside it; it cannot be undone for data already moved (E2). Item 3 forbids switching the stage on before a residency decision, and none is recorded. Lifting that for DEV is a residency act, not a build step | Running the prompt in DEV (`A-NS-8`, `A-NS-10`, `A-NS-12`, `A-NS-14`) |
+| R3 | Before the stage is switched on in DEV: confirm DEV holds **no real applicant narrative**, only synthetic records | The flow scrubs every application it is triggered on. With the stage on, every narrative in DEV goes to the prompt. An agent can count rows; it cannot tell whether a row is a real person | Every DEV run |
+| R4 | Before the stage is switched on in DEV: confirm DEV has prompt builder credits or Copilot Credits to run it | Credit assignment is an admin-center allocation; §12 assigns AI Builder capacity to PRD only, and DEV's prompt capacity is unmeasured (`A-R16`) | Every DEV run |
+| R5 | Authorise the switch-on itself: set `RedactionPromptStage` = `on` in DEV, and add the `RedactionPromptCategory.*` rows, or tell an agent to do it, after R2–R4 | `ADR-074` item 7 seeds no `Redaction*` row, and item 3 makes switch-on a residency-gated act. Setting the row is easy; the authority to set it is the reviewer's | Every DEV run |
+
+**Unverified, and not ground-truthed by this document's evidence (`A-NS-23`, below):** whether a generative prompt can
+be **created and saved** at all in a `crm17` environment with *Move data across regions* unticked. The only evidence is
+E2: every prompt model in the Switzerland geography is "GA (cross-geo)", and AI Builder *AI Prompts* is listed as
+depending on that setting (`ADR-072` context table). Nothing has been measured in DEV. `A-NS-20` said a prompt run is
+not needed, so `A-NS-14` does not gate it; that holds for **running** but does not settle **creating**. If R1 finds that
+the prompt builder offers no model, or will not save, while the setting is unticked, then building the component, and
+not only running it, needs R2. Report that back as an `ARCH_GAP`; do not tick the setting to get past it.
+
+| Marker | Claim (both directions) | Evidence | Cheapest verification |
+|---|---|---|---|
+| `A-NS-23` | **Rev 20 approval.** In a `crm17` environment with *Move data across regions* unticked, the maker portal lets a prompt be created, given a model, saved inside a solution and exported. If it does not, building `ADR-072`'s component needs the setting ticked | E2 (cross-geo-only model availability; AI Prompts depends on the setting). Not measured | R1 itself: record whether a model can be selected and the prompt saved, with the setting state from R0. No run and no applicant text are needed |
+
 ## Appendix A — Requirement Traceability (SDD → TAD)
 
 Every FR and NFR in the approved SDD maps to an architectural element. This is the architect's contract with
@@ -4257,7 +4856,7 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | FR-020 | `rev_status` choice + filtered views §3.1 |
 | FR-021 | `REV \| Scoring \| Daily Summary` §5.3 (counts only) |
 | FR-023 – FR-025 | `REV \| Duplicate \| QBO Check` §5.4; ADR-017; `rev_duplicateflag` and prior-grant columns §3.1 |
-| FR-026 – FR-031 | `REV \| Narrative \| Scrub Free-Text` §5.5; `REV_TrusteeRestricted` profile §6; `rev_narrativeraw` / `rev_narrativeredacted` / `rev_redactionconfidence` / `rev_redactionreleased` §3.1; ADR-002 |
+| FR-026 – FR-031 | `REV \| Narrative \| Scrub Free-Text` §5.5 (rev 19: `ADR-071`, `ADR-072`, §12.6; rev 20: §5.5.1, `ADR-073`, `ADR-074`); `REV_TrusteeRestricted` profile §6; `rev_narrativeraw` / `rev_narrativeredacted` / `rev_redactionconfidence` / `rev_redactionreleased` §3.1; ADR-002 |
 | FR-032, FR-033 | `REV \| Narrative \| Trustee Pack` §5.6 — **DERIVED flow**; Word Online (Business) §4; tagged-PDF requirement §8 |
 | FR-034 – FR-039 | Trustee portal — **Code App, confirmed (ADR-003)**; `REV_TrusteeRestricted` §6; `rev_eligibleforround` §3.1; §8 accessibility; no export privilege §6.2 |
 | FR-037, FR-040, FR-047 | `REV \| Portal \| Finalise Decisions` §5.7; `rev_review` verdict columns §3.1 |
@@ -4746,3 +5345,30 @@ plus the `x-rev-client-id` header check). It confirms that the trigger's secure 
 §5's Dataverse write-shape rule (`IMP-1010`). New risks `A-R71`–`A-R73`; `A-R68` is superseded. New
 verification rows `A-INT-11`–`A-INT-15`. `wbs:4.2`, `4.3`. Presented for review; not yet approved.
 
+**Rev 19 — status at this gate: awaiting reviewer response.** Automation #5's detector, re-designed on the
+reviewer's 2026-10-05 statements (the prebuilt entity extraction model for direct identifiers; a generative prompt for
+indirect ones). `ADR-071` and `ADR-072` are `Proposed`; `ADR-012` is amended. New risks `A-R82`–`A-R84`; new
+verification rows `A-NS-8`–`A-NS-14` (§12.6). Not decided here: rules D-1 to D-4, and NFR-009 residency (`IMP-1063`).
+`wbs:5.3`, `5.4`. Presented for review; not yet approved.
+
+**Rev 19 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-06  **Response:** `APPROVED` (verbatim: *"1. Approve
+architecture"*, relayed by lead-agent and logged in `logs/routing.log`, including acknowledgement of the carried SOFT
+warning **C-DOM-005**). `ADR-071` and `ADR-072` are `Accepted`. Residency (`IMP-1063`) was not decided by this approval.
+
+**Rev 20 — status at this gate: awaiting reviewer response.** Two reviewer requests of 2026-10-06: the postcode register
+(`ADR-073`) and data-driven redaction settings with guard rails (`ADR-074`). Amends `ADR-071` items 3, 6, 8 and
+`ADR-072` items 3, 4, 6, 8 by note. New risks `A-R85`–`A-R87`; new verification rows `A-NS-20`–`A-NS-22`. No schema
+change and no privilege change. `wbs:5.3` (tuning `5.6`). Presented for review; not yet approved.
+
+
+**Rev 20 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-06  **Response:** read as `APPROVED`. The words, verbatim
+from `logs/routing.log` (2026-10-06 15:25): *"Data residency question is parked at customer. But, this doesn't have to
+block build. The outcome of that question is not effecting what we need to build. It will effect the location of the
+environments. So proceed with building the end-to-end flow with extractor and prompt + checks as currently designed.
+That design is defensible for being thorough with the narrative scrubbing."* **This is not the keyword `APPROVED`.**
+lead-agent read the instruction to build *"as currently designed"* as approval of rev 20, and this document records it on
+that reading. A reader who disagrees should treat `ADR-073` and `ADR-074` as `Proposed` again. `ADR-073` and `ADR-074` are
+`Accepted`. **Residency (`IMP-1063`) is parked at the customer, does not block building, and is still not decided.**
+"As currently designed" keeps the prompt stage off and *Move data across regions* unticked in every environment; what a
+DEV build or run of the prompt needs from the reviewer is §12.6.1 (new; `A-NS-23` added). No schema, privilege or
+behaviour change. `wbs:5.3` (tuning `5.6`).

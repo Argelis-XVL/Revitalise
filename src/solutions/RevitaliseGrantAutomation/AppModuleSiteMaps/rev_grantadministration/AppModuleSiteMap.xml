@@ -183,6 +183,14 @@
             <Title LCID="1033" Title="Auto-rejected Applications" />
           </Titles>
         </SubArea>
+        <!-- Redaction review list (FR-030, wbs:5.4, TAD rev 19 section 5.5): applications
+             REV | Narrative | Scrub Free-Text held for review and not yet released. Same proven-live
+             %7b...%7d Url shape as rev_sub_autopass; viewid is RedactionReviewRequired.xml's savedqueryid. -->
+        <SubArea Id="rev_sub_redactionreview" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="/main.aspx?pagetype=entitylist&amp;etn=rev_application&amp;viewid=%7b6b1d2e4f-5a01-4c3e-9f11-0a1b2c3d4e71%7d">
+          <Titles>
+            <Title LCID="1033" Title="Redaction - Review Required" />
+          </Titles>
+        </SubArea>
         <SubArea Id="rev_sub_applicants" Entity="rev_applicant" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
           <Titles>
             <Title LCID="1033" Title="Applicants" />

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{6b1d2e4f-5a01-4c3e-9f11-0a1b2c3d4e71}</savedqueryid>
+    <name>Review Required</name>
+    <description>The process owner's redaction review list (FR-030, wbs:5.4; TAD rev 19 section 5.5): applications REV | Narrative | Scrub Free-Text held for review (rev_redactionreviewrequired = true) and not yet released. Releasing a record (Redaction Released = Yes on the Narrative Scrubbing tab) takes it off this list. Until RedactionAutoRelease is set true after calibration (wbs:5.7), every scrubbed application appears here. The flow's Teams message links to this view by its id.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>0</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_application</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_applicationid">
+        <cell name="rev_name" width="130" />
+        <cell name="rev_applicantid" width="200" />
+        <cell name="rev_status" width="150" />
+        <cell name="rev_redactionconfidence" width="120" />
+        <cell name="rev_redactionreviewrequired" width="120" />
+        <cell name="rev_redactionreleased" width="110" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_application">
+      <attribute name="rev_name" />
+      <attribute name="rev_applicantid" />
+      <attribute name="rev_status" />
+      <attribute name="rev_redactionconfidence" />
+      <attribute name="rev_redactionreviewrequired" />
+      <attribute name="rev_redactionreleased" />
+    <order attribute="rev_submittedon" descending="true" />
+    <filter type="and">
+      <condition attribute="rev_redactionreviewrequired" operator="eq" value="1" />
+      <condition attribute="rev_redactionreleased" operator="ne" value="1" />
+    </filter>
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

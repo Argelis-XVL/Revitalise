@@ -41,6 +41,13 @@ COMPONENT_TYPES: dict[str, str] = {
     "70": "field security profile",
     "80": "model-driven app",
     "380": "environment variable definition",
+    # 401 (AI model: an AI Builder prompt) added 2026-10-06 for the narrative-scrubbing prompt
+    # (ADR-072, wbs:5.3). Ground truth, not a guess: a prompt the reviewer created in DEV inside
+    # this solution, exported and unpacked with pac 2.4.1, declared itself as
+    # <RootComponent type="401" id="{guid}" behavior="0" /> and its definition stayed INLINE in
+    # Other/Customizations.xml as <AIModels><AIModel><msdyn_aimodelid>{guid}</msdyn_aimodelid>,
+    # with no folder of its own (A-NS-9).
+    "401": "AI model (AI Builder prompt)",
     # 10371 (connection reference) is DELIBERATELY ABSENT - see Solution.xml's own comment,
     # added 2026-08-14. This Dataverse version's root-components resolver
     # (SolutionComponentTypeMap.RetrievePlatformName) throws "Invalid component type provided
@@ -126,6 +133,13 @@ def collect_on_disk(root: str) -> dict[str, set[str]]:
         # environment variables with schema name(s)..."). See any environmentvariabledefinition.xml
         # file's own header for the full story.
         "380": _dir_names("environmentvariabledefinitions/*/environmentvariabledefinition.xml", root),
+        # Inline in Customizations.xml, keyed on the AIModel's own id (see COMPONENT_TYPES).
+        "401": set(
+            re.findall(
+                r"<AIModel>\s*<msdyn_aimodelid>([^<]+)</msdyn_aimodelid>",
+                _read_all("Other/Customizations.xml", root),
+            )
+        ),
         # No "10371" entry - see the COMPONENT_TYPES comment above. Connection references have
         # no RootComponent declaration to check on-disk definitions against in this version.
     }
