@@ -17,6 +17,7 @@ environmentvariabledefinitions/
   rev_DocuSignAccountId/environmentvariabledefinition.xml        <- added 2026-09-06 (wbs:3.2)
   rev_DocuSignAcceptanceTemplateId/environmentvariabledefinition.xml <- added 2026-09-06 (wbs:3.2)
   rev_SpoSiteUrl/environmentvariabledefinition.xml                <- added 2026-09-06 (wbs:3.4)
+  rev_DocuSignConnectName/environmentvariabledefinition.xml       <- added 2026-10-09 (wbs:3.4)
 ```
 
 **`rev_DocuSignAccountId`** and **`rev_DocuSignAcceptanceTemplateId`** (added 2026-09-06,
@@ -28,6 +29,14 @@ values copied across. Both are `isrequired=1`: the flow cannot build an envelope
 missing. Neither has a `<defaultvalue>` here, for the same reason none of the others do — the
 current value is set by hand for DEV as a `post_deploy` step
 (`config/revitalise-grant-automation-pipeline.yml`), same pattern as `rev_GrantAdminAppUrl`.
+
+**`rev_DocuSignConnectName`** (added 2026-10-09, `wbs:3.4`) is read by `REV | Acceptance |
+Completion` as the trigger's `body/name`: the name of the DocuSign Connect configuration the
+trigger registers when the flow is turned on. Every environment registers its own configuration
+on the same DocuSign account, so each needs its own name to be told apart in DocuSign Admin, and
+the managed flow cannot be edited in TST/ACC or PRD to change it. Values: `REV Acceptance
+Completion - DEV`, `- TSTACC`, `- PRD`. `isrequired` is `1`: the trigger will not register
+without a name.
 
 **`rev_SpoSignedAcceptanceUrl`** (added 2026-08-18) holds the server-relative URL of the
 SharePoint library containing signed acceptance PDFs (ADR-014, ADR-G01). One library per

@@ -161,6 +161,19 @@
       <RolePrivilege name="prvCreaterev_roundfinance" level="Global" />
       <RolePrivilege name="prvReadrev_roundfinance" level="Global" />
       <RolePrivilege name="prvWriterev_roundfinance" level="Global" />
+      <!-- ADDED 2026-10-09 — the process owner opens the trustee portal to guide the board
+           meeting (TAD trustee-portal-visual-refresh §6.1: "trustee portal (read)" for the
+           process owner). ADR-038 granted the round-statistics tables to REV Trustee and
+           REV Service Automation only, so the landing screen failed for REV Admin with
+           PrivilegeDenied on prvReadrev_roundstatisticsresult. Same grants as REV Trustee:
+           READ on the result (the figures), READ + WRITE on the single seeded request row
+           (WRITE is what "Refresh figures" sets rev_triggeredon through — never create).
+           READ on rev_review so opening an application shows the recorded verdict; no WRITE,
+           because the process owner views verdicts and never records one. -->
+      <RolePrivilege name="prvReadrev_roundstatisticsresult" level="Global" />
+      <RolePrivilege name="prvReadrev_roundstatisticsrequest" level="Global" />
+      <RolePrivilege name="prvWriterev_roundstatisticsrequest" level="Global" />
+      <RolePrivilege name="prvReadrev_review" level="Global" />
       <!-- Add a new configuration key without a developer or a solution import (FR-017, NFR-019). -->
       <RolePrivilege name="prvCreaterev_setting" level="Global" />
       <!-- Read the thresholds, the Likert point map and the income ceiling. -->

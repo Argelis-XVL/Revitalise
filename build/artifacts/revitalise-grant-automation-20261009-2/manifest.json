@@ -1,0 +1,105 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "0.4"
+  ],
+  "items": [
+    "WI-0028"
+  ],
+  "build_date": "2026-10-09",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20261009-2/",
+  "source_commit": "5aea0d42cddb0afcf0f34a2fdf84eafca27043cb",
+  "source_commit_at_pack_time": "5aea0d42cddb0afcf0f34a2fdf84eafca27043cb",
+  "source_tree_dirty_paths": 36,
+  "source_commit_note": "36 uncommitted paths under src/, provisioning/ and config/ at pack time. source_commit describes the build inputs only where they are unaffected by those dirty paths.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 27.0.0 arm64 (macOS)",
+  "constraint_check": "PASS",
+  "preflight": "PASS \u2014 101 steps executed, 1 out-of-context (auth), 102 declared, run via scripts/run-build.py",
+  "verification_level": "V2 \u2014 packaged; layout accepted by the packer. Content, platform acceptance and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "component-shape-packed",
+    "root-components-resolve",
+    "role-privilege-ownership",
+    "tad-coverage",
+    "forms-and-views-reachable",
+    "domain-invariants",
+    "flow-definition-language",
+    "flow-reads-no-trigger-body",
+    "no-hardcoded-environment-values",
+    "lint (pac solution check)"
+  ],
+  "warnings": {
+    "total": 5,
+    "resolved": 0,
+    "accepted": 5,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations:",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L1677"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations:",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L1677"
+    },
+    {
+      "step": "lint",
+      "signature": "Solution Checker: Critical 0, High 0, Medium 1, Low 0, Informational 0 [figures compared: 1 Medium = flow-avoid-recursive-loop on REVSafeguardingActionCompletion Set_the_completion_date_and_owner, which the row states as standing; the row also states 14 on the narrative-scrub flow, which this run did NOT report (SARIF holds exactly 1 result)]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L10324"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 1,210.18 kB (gzip 473.19 kB), css 77.64 kB; row L4893 states 1205 kB, so the figure moved since that row; byte-budget gate code-app-bundle-budget PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build-cards",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 845.81 kB (gzip 367.20 kB), css 148.64 kB; the row carries no cards figure; byte-budget gate code-app-bundle-budget-cards PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 153,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 1,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 1,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 50,
+    "constraint-verifiers": 1
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context \u2014 when: ci, needs GitHub OIDC token vars not present on a local run",
+      "level_not_established": "n/a \u2014 declared boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "scoped": false,
+  "skipped_unchanged": [],
+  "base_ref": "55d366a555af3f8e5737642a1a8881a8834df15a",
+  "full_run_reason": "config/revitalise-grant-automation-build.yml, .engine changed \u2014 step definitions or their implementations moved",
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}

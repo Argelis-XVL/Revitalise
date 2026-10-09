@@ -1,0 +1,48 @@
+{
+  "_fixture": "KNOWN-BAD. Check 12 of scripts/verify-flow-definition-language.py (IMP-1098). The shape the DEV designer refused to save on 2026-10-09: Describe_the_failure, outside the loop, reads result() of Check_the_item, an If inside a Scope > Foreach. It must be flagged. Two shapes that must NOT be flagged sit beside it: Find_the_failed_item reads result() of the loop itself (the loop is in no loop), and Repeat_until_done's own condition names an action in its body. Not shipped, not packed: no build gate scans src/tests/fixtures/known-bad/.",
+  "properties": {
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "triggers": {},
+      "actions": {
+        "Do_the_work": {
+          "type": "Scope",
+          "runAfter": {},
+          "actions": {
+            "For_each_item": {
+              "type": "Foreach",
+              "foreach": "@createArray(1, 2)",
+              "runAfter": {},
+              "actions": {
+                "Check_the_item": {
+                  "type": "If",
+                  "expression": "@equals(item(), 1)",
+                  "runAfter": {},
+                  "actions": { "Compose_the_item": { "type": "Compose", "inputs": "@item()", "runAfter": {} } }
+                }
+              }
+            },
+            "Repeat_until_done": {
+              "type": "Until",
+              "expression": "@equals(outputs('Compose_the_count'), 1)",
+              "limit": { "count": 2 },
+              "runAfter": { "For_each_item": ["Succeeded"] },
+              "actions": { "Compose_the_count": { "type": "Compose", "inputs": 1, "runAfter": {} } }
+            }
+          }
+        },
+        "Find_the_failed_item": {
+          "type": "Query",
+          "runAfter": { "Do_the_work": ["Failed"] },
+          "inputs": { "from": "@result('For_each_item')", "where": "@equals(item()?['status'], 'Failed')" }
+        },
+        "Describe_the_failure": {
+          "type": "Query",
+          "runAfter": { "Find_the_failed_item": ["Succeeded"] },
+          "inputs": { "from": "@result('Check_the_item')", "where": "@equals(item()?['status'], 'Failed')" }
+        }
+      }
+    }
+  }
+}

@@ -334,6 +334,8 @@
       <RootComponent type="380" schemaName="rev_DocuSignAcceptanceTemplateId" />
       <!-- rev_SpoSiteUrl (wbs:3.4, new 2026-09-06). -->
       <RootComponent type="380" schemaName="rev_SpoSiteUrl" />
+      <!-- rev_DocuSignConnectName (wbs:3.4, new 2026-10-09). -->
+      <RootComponent type="380" schemaName="rev_DocuSignConnectName" />
       <!--
         NO RootComponent ENTRIES FOR CONNECTION REFERENCES (type 10371) - REMOVED 2026-08-14.
         A live `pac solution import` against DEV failed with "Invalid component type provided

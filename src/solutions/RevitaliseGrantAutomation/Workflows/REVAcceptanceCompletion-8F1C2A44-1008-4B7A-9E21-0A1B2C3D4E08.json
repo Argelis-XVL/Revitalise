@@ -65,23 +65,30 @@
             "schemaName": "rev_SpoSignedAcceptanceUrl",
             "description": "Environment variable. Server-relative URL of the signed-acceptance library inside rev_SpoSiteUrl (ADR-014, ADR-G01)."
           }
+        },
+        "rev_DocuSignConnectName": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_DocuSignConnectName",
+            "description": "Environment variable. Name of the DocuSign Connect configuration the trigger registers; one per environment on the same DocuSign account."
+          }
         }
       },
       "triggers": {
         "When_the_envelope_completes": {
           "type": "OpenApiConnectionWebhook",
-          "description": "A-DS-8/A-DS-13: CreateHookEnvelopeV4. 'name' removed - designer 2026-09-25: no longer in the operation schema. Its replacement (the Connect config's own name) is UNRESOLVED - see notes.md.",
+          "description": "A-DS-8/A-DS-13 RESOLVED 2026-10-09 from the DEV designer save: CreateHookEnvelopeV3, Connect configuration name in body/name (per environment, rev_DocuSignConnectName), event in body/envelopeEvents. See notes.md.",
           "inputs": {
             "host": {
               "connectionName": "shared_docusign",
-              "operationId": "CreateHookEnvelopeV4",
+              "operationId": "CreateHookEnvelopeV3",
               "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
             },
             "parameters": {
               "accountId": "@parameters('rev_DocuSignAccountId')",
-              "events": [
-                "envelope-completed"
-              ]
+              "body/name": "@parameters('rev_DocuSignConnectName')",
+              "body/envelopeEvents": "envelope-completed"
             },
             "authentication": "@parameters('$authentication')"
           }
@@ -114,8 +121,8 @@
             "Compose_envelope_id": {
               "type": "Compose",
               "runAfter": {},
-              "description": "A-DS-8 (WebhookEnvelopeResponseV4, E2, same connector reference): data.envelopeSummary.envelopeId.",
-              "inputs": "@{triggerBody()?['data']?['envelopeSummary']?['envelopeId']}"
+              "description": "A-DS-8: data.envelopeSummary.envelopeId, picked from the V3 trigger's dynamic content in the DEV designer 2026-10-09.",
+              "inputs": "@triggerOutputs()?['body/data/envelopeSummary/envelopeId']"
             },
             "Find_the_grant": {
               "type": "OpenApiConnection",
@@ -174,7 +181,7 @@
                 "Get_the_signed_document": {
                   "type": "OpenApiConnection",
                   "runAfter": {},
-                  "description": "A-DS-9: documentId='combined' is DocuSign's own documented REST API sentinel for the whole envelope as one certificate-of-completion-inclusive PDF (E2 - standard DocuSign convention, never exercised by a flow in this project before).",
+                  "description": "A-DS-9 RESOLVED 2026-10-09: 'combined' was rejected in DEV; the connector's own dropdown value for all documents as one PDF with the certificate of completion, picked in the DEV designer.",
                   "inputs": {
                     "host": {
                       "connectionName": "shared_docusign",
@@ -184,7 +191,7 @@
                     "parameters": {
                       "accountId": "@parameters('rev_DocuSignAccountId')",
                       "envelopeId": "@outputs('Compose_envelope_id')",
-                      "documentId": "combined"
+                      "documentId": "Combined with COC : Get all documents as single pdf"
                     },
                     "authentication": "@parameters('$authentication')",
                     "retryPolicy": {

@@ -108,36 +108,58 @@ second, independent layer — see below.
 
 ---
 
-## `/properties/definition/actions/Check_the_action_was_just_ticked/actions/Set_the_completion_date_and_owner/description` — A-SG-1 (OPEN)
+## `/properties/definition/actions/Check_the_action_was_just_ticked/actions/Set_the_completion_date_and_owner/description` — A-SG-1 (CLOSED 2026-10-09)
 
-**The guess.** `item/rev_safeguardingactioncompletedby` is set from
-`triggerOutputs()?['body/_modifiedby_value']` — reading the trigger row's own `_modifiedby_value`
-lookup reference, on the reasoning that at the instant the checkbox is ticked and saved, the
-record's `modifiedby` **is** the person who ticked it. `_modifiedby_value` is the documented
-Dataverse Web API convention for a lookup column's raw value (the same `_<name>_value` shape
-already relied on informally throughout this project's knowledge of the platform), and
-`modifiedby` itself is confirmed to exist on `rev_application` — visible as `"modifiedby"` in
-the Trustee Portal's own live-exported connector schema,
-`src/code-apps/trustee-review-portal/.power/schemas/dataverse/applications.Schema.json:90`.
+**Closed against DEV, not inferred.** The reviewer reported that this flow always had the
+wrong binding after import and would not turn on, and fixed the binding by hand in DEV. A
+read-only `pac solution export` of `RevitaliseGrantAutomation` from `REV-GrantApplications-DEV`
+(2026-10-09, re-exported after the reviewer's second hand edit) returned the live definition, and the source now carries exactly its binding:
 
-**What is NOT ground-truthed.** Whether Dataverse's `SubscribeWebhookTrigger` webhook payload
-for `rev_application` actually includes `_modifiedby_value` in the row body it hands to this
-specific flow, in this tenant, without an explicit column selection — no flow in this solution
-declares a `subscriptionRequest/select` (or equivalent) parameter today, so the working
-assumption is that the trigger returns the full row, matching every other flow's unfiltered
-read of `triggerOutputs()?['body/...']`. This has not been confirmed against a real trigger fire
-for this flow, because no environment was available to this dispatch to create one (Hand-
-Authoring Platform Artefacts step 1 — ground truth beats inference, but only when an environment
-exists to get it from).
+```
+before (source):  "item/rev_safeguardingactioncompletedby": "@triggerOutputs()?['body/_modifiedby_value']"
+first DEV fix:    "item/rev_safeguardingactioncompletedby@odata.bind": "/systemusers(@{triggerOutputs()?['body/_rev_safeguardingactioncompletedby_value']})"
+DEV (live, now):  "item/rev_safeguardingactioncompletedby@odata.bind": "/systemusers(@{triggerOutputs()?['body/_modifiedby_value']})"
+```
 
-**Close this the moment DEV exists for this flow.** Tick the checkbox on a real application as a
-signed-in user other than the flow's own service account, then read
-`rev_safeguardingactioncompletedby` back and confirm it names that user, not the service
-account and not empty. If it is empty or wrong, the fallback is
-`triggerOutputs()?['body/_ownerid_value']` (record owner) or a `Get_a_row_by_ID` on the
-`systemusers` table keyed by whatever identity claim the payload does carry — do not guess a
-second time without checking the raw trigger payload first (Hand-Authoring Platform Artefacts
-step 2: two failed guesses is the signal to stop guessing).
+The shape is the fix: a lookup column is written as `item/<column>@odata.bind` with a
+`/<entityset>(<id>)` value, never as a raw GUID under the bare column name.
+
+**What the DEV diff showed.** Comparing the DEV definition to source, the only definition
+differences were (1) this binding, (2) the root `definition.description` (the platform does not
+round-trip it), and (3) JSON key order and trigger/action `description` text on the export (the
+platform keeps those; no semantic difference). In the solution `customizations.xml` this flow
+was `StateCode 0` (draft/off) in DEV at export time, while 8 of the 11 flows were `StateCode 1`
+(the other two off are `Intake | WordPress to Dataverse` and `Scoring | Daily Summary`). That fits the reviewer's report that the
+flow "doesn't turn on": the activation check rejects the invalid raw-GUID lookup binding. The
+export cannot prove the cause by itself, so treat "invalid binding blocks activation" as the
+best-supported explanation and confirm it on the next import (the flow should arrive on).
+
+**Who is recorded: the row's modifier, per reviewer.** The first DEV fix read
+`_rev_safeguardingactioncompletedby_value`, the column this flow is about to fill, which is empty
+on the first tick and so recorded no one. The reviewer then changed DEV to read the row's
+`_modifiedby_value`, the user who saved the tick. Source ports that binding exactly. Read-back of
+`rev_safeguardingactioncompletedby` after a real tick by a non-service-account user is still the
+V-level evidence; nothing in this dispatch has fired the trigger.
+
+**UPDATED 2026-10-09 (reviewer: the flow "can run into a loop", needs guarding).** The trigger now
+also carries a trigger condition (`conditions`), so a run is not even created unless the
+checkbox is true AND `rev_safeguardingactioncompletedon` is empty:
+
+```
+@and(equals(triggerOutputs()?['body/rev_safeguardingactioncompleted'], true),
+     empty(coalesce(string(triggerOutputs()?['body/rev_safeguardingactioncompletedon']), '')))
+```
+
+Three layers now: (1) the column filter, (2) this trigger condition, (3) the inner `If`. The
+flow's own write sets the date, so the condition is false for any event that write causes.
+**What the Solution Checker keys on.** Repository measurement, not assumption
+(`knowledge/technology/build-and-deploy.md`, IMP-1090/1091): `flow-avoid-recursive-loop` fires
+once per write to the trigger's own table and ignores the filter. Whether it also ignores a
+trigger `conditions` block has NOT been measured (the checker is live-service only and runs at
+the build's `lint` step). So this condition is a real runtime guard that the platform enforces;
+it is not promised to silence the checker. If the checker still reports the rule at lint, the
+disposition is accepted-with-rationale, decided from the trigger condition and the filter
+against the written columns.
 
 ---
 
@@ -223,9 +245,8 @@ race between two triggers on the same row." Each was traced against the actual J
   same box, which is a business edge case — "who completed it, if two people click it near-
   simultaneously" — not a data-integrity or infinite-loop risk.)
 
-**A-SG-1 remains OPEN, unchanged by this fix** — it is a separate question (does
-`_modifiedby_value` actually appear in this flow's live trigger payload) from the loop-safety
-question this dispatch answers. See that section below.
+**A-SG-1 is CLOSED** (binding shape and modifier source per reviewer, 2026-10-09); see that
+section above. This fix answers the separate loop-safety question.
 
 ---
 

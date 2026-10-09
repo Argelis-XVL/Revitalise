@@ -22,8 +22,8 @@ keyed by action name.
 | Prompt configuration and calibration | `Compose_prompt_stage_on`, `Compose_prompt_category_labels`, `Filter_prompt_category_rows`, `Select_prompt_categories`, `Filter_invalid_prompt_categories`, `Select_prompt_category_lines`, `Select_prompt_labels`, `Compose_prompt_config`, `Select_calibrated_labels`, `Filter_calibrated_labels`, `Filter_prompt_settings_saved_after_calibration`, `Compose_prompt_calibrated`, `Compose_prompt_runs`, `Compose_prompt_label_codes` | `ADR-074` items 1, 2, 4, 5; `ADR-072` items 3, 6, 8 |
 | Word lists: floor plus valid additions | `Compose_kin_words`, `Compose_kin_tails`, `Compose_practice_suffixes`, `Compose_street_words`, `Compose_practice_words`; per key `Find_setting_<key>`, `Select_lines_<key>`, `Filter_entries_<key>`, `Filter_bad_entries_<key>`, `Select_forms_<key>`; then `Compose_word_list_checks`, `Compose_word_list_extras`, `Select_extra_kin_tails`, `Compose_word_lists` | `ADR-074` items 3–4 |
 | **Postcode register, once** | `List_postcode_districts`, `Compose_register_rows`, `Select_register_codes`, `Compose_postcode_register`, `Compose_register_shape_table` | `ADR-073` items 1–2 |
-| Per column: skip empty, keep a non-empty counterpart | `For_each_column`, `Scrub_the_column_if_it_has_text`, `Keep_or_scrub_the_column` | rules §7, §7a rules 2–3 |
-| Windows of ≤ 5,000 with a 200 overlap | `Scan_the_column_in_windows` (Until), `Compose_window_end`, `Compose_window_text` | rules §5.4 |
+| Per column: skip empty, keep a non-empty counterpart; skip every column once a failure is seen | `For_each_column`, `Scrub_the_column_if_it_has_text`, `Keep_or_scrub_the_column` | rules §7, §7a rules 2–3 |
+| Windows of ≤ 5,000 with a 200 overlap; the scan ends at once on a failure | `Scan_the_column_in_windows` (Until), `Compose_window_end`, `Compose_window_text` | rules §5.4 |
 | Stage 1: entity extraction, type → code, refinement | `Extract_entities_from_the_window`, `Select_extractor_entities`, `Select_extractor_ages`, `Select_practice_suffix_trials`, `Select_extractor_spans`, `Refine_each_name` | `ADR-071` items 1, 4; `ADR-074` item 3 |
 | Stage 2: UK phone and postcode shapes; register-confirmed postcodes | `Detect_shapes_in_the_window`: the shape actions, then `Select_register_trials`, `Filter_register_hits`, `Select_register_candidates`, `Filter_register_spans`, `Select_register_spans` | `ADR-071` item 3, `ADR-073` items 3–7 |
 | **Stage 3: generative prompt** (only when on and configured) | `Use_the_prompt_on_the_window`: `Compose_prompt_request`, `Run_the_redaction_prompt` (failure: `Record_a_prompt_call_failure`), `Compose_prompt_answer`, `Compose_prompt_answer_usable`, `Check_the_prompt_answer` → `Parse_the_prompt_answer`, `Validate_the_prompt_answer` (Scope), the state actions, `Join_the_prompt_answer_paths`; `Join_the_prompt_call_paths` | `ADR-072` items 4–9, `ADR-074` items 1–2 |
@@ -34,7 +34,7 @@ keyed by action name.
 | Write only what fits | `Write_or_hold_the_column`, `Write_the_counterpart` (Switch, one write per counterpart) | rules §7 (4,000) |
 | Decide once per record | `Compose_lowest_score` … `Compose_decision`, `Write_the_decision` | rules §7, `ADR-071` items 7–8 |
 | Tell the process owner | `Tell_the_process_owner_if_review_is_needed` (card, then HTML fallback) | FR-030, NFR-018 |
-| Any failure: hold and alert | `Find_the_failed_action`, `Describe_the_failure`, `Hold_the_record_for_review`, `Alert_on_failure` | NFR-018, FR-010 |
+| Any failure: hold and alert | Inside the column loop: `Find_the_failed_step_inside_<X>`, `Record_the_failure_inside_<X>`, `Rethrow_the_failure_inside_<X>` beside every container; `Stop_after_a_failure_in_<L>`, `Rethrow_the_stop_in_<L>` at the end of the loop body and of the window scan. At the top: `Find_the_failed_action`, `Describe_the_failure` (`Follow_the_failure_inward` for the loop), `Hold_the_record_for_review`, `Alert_on_failure` | NFR-018, FR-010 |
 
 ## Why it is built like this
 
@@ -160,15 +160,81 @@ the limit**: `PlatformLimits` fails the build if it does.
 
 ### The failure descent
 
-`Describe_the_failure` is regenerated from the action tree, one case per container child at every level,
-so `verify-flow-definition-language.py` check 7 finds no undescended container. The generator reproduced
-the Iteration 2 tree byte for byte before it was used for rev 20.
+**Inside the column loop the diagnosis is done in the iteration that failed (2026-10-09).** The designer
+refused to save the flow: *"The inputs of template action 'Find_the_failed_step_inside_Scrub_the_column_if_it_has_text'
+… cannot reference action 'Scrub_the_column_if_it_has_text'. The action … is nested in a foreach scope of multiple
+levels. Referencing repetition actions from outside the scope is supported only when there are no multiple levels of
+nesting."* The top-level descent read `result()` of 17 containers inside `For_each_column`, two of them three loops
+deep. A Draft import does not validate this, so the shape packed, imported and passed every gate. **Check 12 of
+`scripts/verify-flow-definition-language.py` now fails any expression that reads into a loop from outside it**, in
+every flow.
 
-**A container with no container children gets no Switch** (2026-10-08). The generator emitted a
-`Describe_the_failure_inside_<X>` Switch with `cases: {}` and only a default at every leaf container;
-the designer refuses to save a Switch without a case ("add a valid case"). Those ten Switches are
-replaced by their default `Set_failure_detail_from_<X>` action, which takes the Switch's `runAfter`.
-The `Find_the_failed_step_inside_<X>` descent check 7 needs is unchanged.
+The shape, generated by [`src/tests/narrative/failure_catches.py`](../../../tests/narrative/failure_catches.py) (the test
+suite fails if the JSON is not its output):
+
+| Where | Actions | What they do |
+|---|---|---|
+| Beside every container `X` inside `For_each_column`, in the same branch | `Find_the_failed_step_inside_X` | Runs only after `X` Failed or TimedOut, in the same iteration. Lists the failed children of `X`, skipping any child whose failure the flow already handles (the extractor call, the prompt call, the parse) |
+| | `Record_the_failure_inside_X` | Appends `{in: X, step: <first failed child>, code}` to `failureTrail`. Names and codes only |
+| | `Rethrow_the_failure_inside_X` | Fails on purpose, so the iteration, the loop and the run still fail. A loop cannot `Terminate`, so this is an `int()` of the recorded step name, which always throws (`A-NS-27`) |
+| Beside `Validate_the_prompt_answer` only | `Find_the_failed_step_inside_Validate_the_prompt_answer` | Diagnostic only. That scope failing **is** the designed *invalid answer* path (`Compose_prompt_state_if_malformed`), so nothing is recorded or re-raised |
+| Top level, case `For_each_column` | `Find_the_failed_step_inside_For_each_column`, `Start_at_the_failed_step`, `Follow_the_failure_inward` (Until), `Find_the_entry_naming_the_leaf`, `Set_failure_detail_from_For_each_column` | Starts at the loop body's first failed child (`result('For_each_column')` is legal: that loop is in no loop). While the trail has an entry for the current step, moves to that entry's step. The step with no entry is the leaf |
+
+**Why the trail is followed and not just read from the front.** Until 2026-10-09 `Detect_shapes_in_the_window` accepted
+any Skipped predecessor, so it still ran after an earlier step in the window failed, failed in consequence, and its catch
+recorded first. It no longer does (see *Every loop ends* below), but any sibling that tolerates a Skipped predecessor can
+do the same, so the chain is still followed from the loop body inwards: the old descent's rule, the first failed child at
+each level. `test_a_consequential_failure_recorded_first_does_not_hide_the_cause` holds this with the old `runAfter` put back.
+
+**Why the catches are leaves and never a Switch.** A container among a loop's children needs its own `result()` descent
+(check 7), and from outside the loop that descent is exactly what the platform refuses. Leaves need none.
+
+**What changed for the operator: nothing in the alert's form** (`Action: <name> | Code: <code>`). One case improves:
+a failure in an early column is no longer hidden when a later column succeeds, because it is recorded inside its own
+iteration (`A-NS-19` now matters only for a failure directly in the loop body).
+
+No container was added inside the loop, so the deepest nesting is still 8 (`A-NS-26`). The flow has 314 actions (296 before
+Iteration 5, 309 after it).
+
+### Every loop ends after a failure (2026-10-09, Iteration 6)
+
+**The defect.** When a step inside a window failed, `Set_window_start` was skipped, so `windowStart` did not move. If the
+platform starts another Until iteration after a failed one (not documented either way), the scan re-ran the same window,
+both AI Builder calls included, up to its count of 250. The column loop has the same question: a failed column does not
+stop `Apply to each`, so every later column was still scanned. The reviewer's decision: *"definitely make sure the flow is
+not going to stay stuck in a loop."*
+
+**The design does not depend on what the platform does after a failed iteration.** Both readings are simulated
+(`wdl_sim.Engine(stop_loops_on_failure=…)`) and every test in `EveryLoopEndsAfterAFailure` runs under both.
+
+| Part | What it does |
+|---|---|
+| `failureSeen` (boolean, top level) | Set once anything inside `For_each_column` fails. Never reset: a run that saw a failure ends failed, held and alerted |
+| `Stop_after_a_failure_in_Scan_the_column_in_windows`, `Stop_after_a_failure_in_For_each_column` | Leaves that run after the body's last step (`Set_window_start`; `Scrub_the_column_if_it_has_text`) Failed, Skipped or TimedOut, and set `failureSeen`. That step is Skipped only when something before it failed, so this also covers a leaf failure that no catch records. Generated by `failure_catches.py` |
+| `Rethrow_the_stop_in_<L>` | Fails on purpose. The stop leaf runs after the failure, so without it the platform could read the failure as handled (`A-NS-27`) |
+| `Scan_the_column_in_windows` expression | Ends when the column is scanned, **or** `columnFailed`, **or** `failureSeen`, **or** `failureTrail` is not empty. Under "keeps iterating" the loop ends after the failed iteration; under "stops" it ends there anyway |
+| `Scrub_the_column_if_it_has_text` condition | Also requires `failureSeen` false and `failureTrail` empty. **Decision: once a failure is seen, every later column is skipped**: no window, no AI Builder call, no write. Columns written before the failure stay written, as before. The run fails, the record is held as a whole and one alert is sent; a resubmission re-scrubs every column |
+| `Detect_shapes_in_the_window` `runAfter` | Now also needs `Compose_window_text` Succeeded and `Compose_window_entities` Succeeded or Skipped. Before, it ran after **any** Skipped extractor path, so a failed `Compose_window_entities` let the prompt be called and the window advance with nothing recorded |
+| `Use_the_prompt_on_the_window` condition | Also requires `columnFailed` false: an `ai-error` column never uses its prompt result, so the call was wasted |
+| `Hold_the_record_for_review` `runAfter` | `Describe_the_failure` Succeeded, Failed **or TimedOut**, so a timed-out diagnosis still holds and alerts |
+
+**Every loop's bound, and why it is that number.**
+
+| Loop | Ends when | `count` | `timeout` | Why |
+|---|---|---|---|---|
+| `For_each_column` (Apply to each, sequential) | Its 12 columns are done | 12 items | none (Apply to each has none) | Fixed list. After a failure the remaining columns run no step but the guard |
+| `Scan_the_column_in_windows` (Until) | Scanned, or `columnFailed`, `failureSeen`, `failureTrail` | 250 | PT1H | A column holds up to 1,048,576 characters and a window advances up to 4,800, so 219 windows are the least that can cover it; 250 leaves room for windows cut short at a space. Stopping at the count is not a partial release: `Check_every_window_was_scanned` makes the column `ai-error`. A timeout fails the Until, and its catch holds the record. **`columnFailed` is new:** an extractor failure already makes the column `ai-error`, so later windows changed nothing and cost up to 249 more calls of each kind |
+| `Refine_each_name`, `Merge_each_span` (Apply to each, sequential) | Their input array is done | the array | none | Bounded by their input, and neither calls out. A failed item does not stop the others on a platform that keeps iterating, but they make no call; the window scan or the column then ends through its stop |
+| `Follow_the_failure_inward` (Until, top level) | No trail entry for the cursor, **or** the cursor did not move (a step inside it failed) | 6 | PT2M | Each move goes one *recorded* container deeper. The deepest chain of recorded containers inside the loop is 5 (`failure_catches.recorded_depth`; `Validate_the_prompt_answer` is never recorded), so at most 5 moves plus one iteration to find nothing deeper. Derived by the generator, not typed. Each iteration is three in-memory actions |
+
+**Check 13** of `scripts/verify-flow-definition-language.py` holds the rule for every flow: every Until states its
+`count` and `timeout`, and an Until that calls out has a failure exit (its expression reads a variable that a step in
+its body sets after a predecessor Failed, Skipped or TimedOut). It proves the exit is wired, not that it fires; the
+simulator tests prove that.
+
+**Outside the loop the descent is unchanged.** `Stop_if_already_released` and `Tell_the_process_owner_if_review_is_needed`
+are read by `Describe_the_failure` as before. **A container with no container children gets no Switch** (2026-10-08):
+the designer refuses to save a Switch without a case ("add a valid case").
 
 **Writes use `UpdateOnlyRecord` (*Update a row*), not `UpdateRecord`** (2026-10-08). `UpdateRecord`
 is now the connector's *Upsert a row*; every write here targets the trigger row, so an update-only
@@ -206,12 +272,13 @@ never touched.
 | A-NS-15 | `Merge_each_span`, `Select_prompt_category_lines` | `sort(array, '<property>')` exists and sorts ascending |
 | A-NS-16 | `Compose_window_entities` | The entity array is at `responsev2/predictionOutput/results` (or `…/result/entities`); null at both is ai-error |
 | A-NS-18 | `Compose_window_end` | `take()` accepts a string; `lastIndexOf()` returns -1 when absent |
-| A-NS-19 | `Describe_the_failure*` | `result()` of a loop shows a failed iteration after later ones succeed |
+| A-NS-19 | `Find_the_failed_step_inside_For_each_column`, and the catches beside `Scan_the_column_in_windows`, `Refine_each_name`, `Merge_each_span` | `result()` of a loop shows a failed iteration after later ones succeed |
 | A-NS-20 | `Run_the_redaction_prompt` | One call accepts 16,000 characters of categories plus a 5,000-character window (names and parameter form: E1) |
 | A-NS-21 | `List_postcode_districts` | One *List rows* response holds all 3,394 register rows |
 | A-NS-22 | `Select_redaction_setting_times` | `modifiedon` is ISO 8601, `ticks()` reads it, and a changed save moves it |
 | A-NS-23 | `Run_the_redaction_prompt` | The prompt can be created, saved and run with *Move data across regions* unticked; unanswered, because DEV's setting was already on (R0), so open for TST/ACC and PRD |
 | A-NS-24 | `Select_prompt_item_counts` | `split()` is case-sensitive and finds occurrences left to right without overlap |
+| A-NS-27 | `Rethrow_the_failure_inside_*`, `Rethrow_the_stop_in_*` | An expression that throws at run time fails its action and so its loop iteration, and the designer's save does not evaluate `int()` of a non-numeric value ahead of the run |
 
 **If A-NS-13 or A-NS-16 is wrong, the flow fails closed.** A wrong operation fails the call, which is
 `ai-error` for the column. A wrong output path reads null, which `Handle_the_extractor_answer`

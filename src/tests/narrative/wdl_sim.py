@@ -17,7 +17,11 @@ reading is implemented, so an expression that survives here survives the platfor
   * string comparison in contains/startsWith/endsWith/equals/indexOf can be run case-SENSITIVE or
     case-INSENSITIVE (`Engine(case_insensitive=...)`); the tests run the corpus both ways;
   * a container (Scope, loop iteration) fails when a child failed and nothing ran after it on
-    Failed - the platform's "last action decides" rule for handled errors.
+    Failed - the platform's "last action decides" rule for handled errors;
+  * whether a loop goes on to its next iteration after a FAILED one is not documented for either
+    loop type, so it is a switch (`Engine(stop_loops_on_failure=...)`): False (the default) keeps
+    iterating, which is the reading under which a stuck Until is possible; True stops at the
+    failed iteration. The loop-termination tests run both (notes.md "Every loop ends").
 Anything outside the subset raises Unsupported, so a new function cannot pass silently.
 
 It also RECORDS every action's evaluated inputs and outputs and every variable assignment, so the
@@ -205,6 +209,7 @@ class Engine:
     connector: object = None          # callable(name, operationId, params) -> body | raise
     child_flow: object = None         # callable(name, body) -> None
     case_insensitive: bool = True
+    stop_loops_on_failure: bool = False   # True: a loop ends at its first failed iteration
 
     def __post_init__(self):
         self.results: dict[str, dict] = {}
@@ -840,6 +845,8 @@ class Engine:
                     status = "Failed"
             finally:
                 self.item_stack.pop()
+            if status == "Failed" and self.stop_loops_on_failure:
+                break
         self.results[name] = {"status": status}
         return status
 
@@ -851,6 +858,8 @@ class Engine:
             n += 1
             if self.run_container(name, a["actions"], fresh=False) == "Failed":
                 status = "Failed"
+                if self.stop_loops_on_failure:
+                    break
             if self.value(a["expression"]) is True or n >= limit:
                 break
         self.results[name] = {"status": status, "iterations": n}

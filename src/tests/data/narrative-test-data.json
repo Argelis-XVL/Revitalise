@@ -1,0 +1,360 @@
+{
+ "_purpose": "Synthetic narrative text for REV | Narrative | Scrub Free-Text (WBS 5.3, 5.4). Same shape as scoring-test-data.json so provisioning/dataverse/seed-test-data.ps1 loads it with -DataPath. SYNTHETIC ONLY: every name, practice, address, phone number and email is invented. Phones are Ofcom drama ranges (07700 900xxx, 0113 496 0xxx); emails use example.org (narrative text) and example.invalid (applicant rows); postcodes are real districts with nobody attached. Nothing here comes from docs/Import/.",
+ "_readMeFirst": "src/tests/data/README.md, section 'narrative-test-data.json'",
+ "_wbsTasks": [
+  "5.3",
+  "5.4"
+ ],
+ "_targetEnvironments": [
+  "dev",
+  "test"
+ ],
+ "_neverProduction": "These rows must never be loaded into PRD. All three test-data scripts refuse -Env prd.",
+ "_teardownMarkers": {
+  "rev_application": "rev_sourcesubmissionid starts with 'TESTDATA-'",
+  "rev_applicant": "rev_lastcontactdate equals 1900-01-01"
+ },
+ "_markup": "`narratives` holds the gold standard per raw column: [[CATEGORY:text]] marks a span, as in src/tests/narrative/corpus/narratives.json. The plain text in `application` is that markup removed (test_narrative_test_data.py checks they agree). `expectedRedacted` is the redacted counterpart the rules require, written out from the gold spans; `null` means the flow must NOT write that counterpart.",
+ "_whoFindsWhat": "PHONE and the postcode inside an ADDRESS are found by the flow's own shape rules (deterministic, a miss is a flow defect). NAME, FAMILY MEMBER, GP PRACTICE, EMAIL, AGE and the street part of an ADDRESS come from the AI Builder entity extraction model, so a miss there is model recall, which is what wbs:5.7 measures.",
+ "_scoring": "src/tests/narrative/score_seeded_run.py compares the live counterparts with `expectedRedacted` and the live release flags with `expectedRecord`.",
+ "cases": [
+  {
+   "caseId": "TD-13",
+   "purpose": "Typical application: names, a family member, GP practice, address, phone, email and ages spread over six columns.",
+   "proves": "Every direct-identifier label is produced, an age lands in the right band, and a written record that passes every check is released when the process owner has switched auto-release on.",
+   "flow": "REV | Narrative | Scrub Free-Text",
+   "wbsTasks": [
+    "5.3",
+    "5.4"
+   ],
+   "applicant": {
+    "rev_title": 4,
+    "rev_firstname": "Beatrix",
+    "rev_lastname": "Holloway-Reed",
+    "rev_fullname": "Beatrix Holloway-Reed",
+    "rev_email": "revtest.td13@example.invalid",
+    "rev_phone": "07700 900231",
+    "rev_preferredcontactmethod": "1",
+    "rev_addressline": "9 Quarry Road",
+    "rev_towncity": "Leeds",
+    "rev_postcode": "LS6 3QT",
+    "rev_dateofbirth": "1975-07-02",
+    "rev_agerange": 5,
+    "rev_locationarea": 1,
+    "rev_applicanttype": 1,
+    "rev_gender": 1,
+    "rev_lastcontactdate": "1900-01-01",
+    "rev_privacynoticeacceptedon": "2026-08-20T09:00:00Z"
+   },
+   "application": {
+    "rev_sourcesubmissionid": "TESTDATA-TD-13",
+    "rev_status": 1,
+    "rev_breaktype": 1,
+    "rev_breaklocation": "Seaside cottage, Northumberland",
+    "rev_breakstart": "2026-10-05",
+    "rev_breakend": "2026-10-12",
+    "rev_accommodationcost": 820,
+    "rev_travelcost": 140,
+    "rev_othercost": 40,
+    "rev_costs": 1000,
+    "rev_amountrequested": 1000,
+    "rev_receivingotherfunding": false,
+    "rev_exceptionalfundingrequested": false,
+    "rev_receivedfundingbefore": false,
+    "rev_isgrouptrip": false,
+    "rev_savingsover6000": false,
+    "rev_significantcarecosts": false,
+    "rev_granttermsconsent": true,
+    "rev_granttermsconsentdate": "2026-08-20T09:00:00Z",
+    "rev_ageconfirmationconsent": true,
+    "rev_ageconfirmationconsentdate": "2026-08-20T09:00:00Z",
+    "rev_applicantconsent": true,
+    "rev_applicantconsentdate": "2026-08-20T09:00:00Z",
+    "rev_wouldlikeformposted": false,
+    "rev_hearaboutus": "1",
+    "rev_carehoursperweek": 2,
+    "rev_incomeband": 1,
+    "rev_wellbeinganswer1": 1,
+    "rev_wellbeinganswer2": 1,
+    "rev_wellbeinganswer3": 1,
+    "rev_wellbeinganswer4": 1,
+    "rev_wellbeinganswer5": 1,
+    "rev_wellbeinganswer6": 1,
+    "rev_wellbeinganswer7": 1,
+    "rev_wellbeinganswer8": 1,
+    "rev_wellbeinganswer9": 1,
+    "rev_wellbeinganswer10": 1,
+    "rev_feelingscaleanswer": 0,
+    "rev_narrativeraw": "My name is Beatrix Holloway-Reed and I am 68 years old. My husband Cormac, who is 71 years old, is my main carer. We live at 9 Quarry Road, Leeds LS6 3QT in a bungalow with a ramp. You can reach me on 07700 900231 or at beatrix.holloway@example.org.",
+    "rev_disabilityimpactdescription": "Parkinson's makes walking slow and I fall more often than I would like. Dr Adeyemi at Moorside Medical Centre reviews my medication every three months.",
+    "rev_caresupportdescription": "My husband Cormac helps me wash and dress each morning and cooks most meals. Our daughter Imogen, who is 40 years old, does the shopping at weekends.",
+    "rev_unabletofundexplanation": "We live on a pension and cannot afford a break of this kind. If you need anything please phone my son Ewan on 0113 496 0214.",
+    "rev_carecostsexplanation": "Taxi fares to hospital appointments cost us about £60 a month and the cost has been rising."
+   },
+   "narratives": {
+    "rev_narrativeraw": "My name is [[NAME:Beatrix Holloway-Reed]] and I am [[AGE:68 years old]]. My husband [[FAMILY MEMBER:Cormac]], who is [[AGE:71 years old]], is my main carer. We live at [[ADDRESS:9 Quarry Road, Leeds LS6 3QT]] in a bungalow with a ramp. You can reach me on [[PHONE:07700 900231]] or at [[EMAIL:beatrix.holloway@example.org]].",
+    "rev_disabilityimpactdescription": "Parkinson's makes walking slow and I fall more often than I would like. Dr [[NAME:Adeyemi]] at [[GP PRACTICE:Moorside Medical Centre]] reviews my medication every three months.",
+    "rev_unabletofundexplanation": "We live on a pension and cannot afford a break of this kind. If you need anything please phone my son [[FAMILY MEMBER:Ewan]] on [[PHONE:0113 496 0214]].",
+    "rev_caresupportdescription": "My husband [[FAMILY MEMBER:Cormac]] helps me wash and dress each morning and cooks most meals. Our daughter [[FAMILY MEMBER:Imogen]], who is [[AGE:40 years old]], does the shopping at weekends.",
+    "rev_carecostsexplanation": "Taxi fares to hospital appointments cost us about £60 a month and the cost has been rising."
+   },
+   "expectedRedacted": {
+    "rev_narrativeredacted": "My name is [NAME] and I am [AGE 65 to 74]. My husband [FAMILY MEMBER], who is [AGE 65 to 74], is my main carer. We live at [ADDRESS] in a bungalow with a ramp. You can reach me on [PHONE] or at [EMAIL].",
+    "rev_otherconditionredacted": "",
+    "rev_supportrecipientotherconditionredacted": "",
+    "rev_disabilityimpactdescriptionredacted": "Parkinson's makes walking slow and I fall more often than I would like. Dr [NAME] at [GP PRACTICE] reviews my medication every three months.",
+    "rev_supportrecipientdisabilityimpactdescriptionredacted": "",
+    "rev_unabletofundexplanationredacted": "We live on a pension and cannot afford a break of this kind. If you need anything please phone my son [FAMILY MEMBER] on [PHONE].",
+    "rev_exceptionalfundingdetailredacted": "",
+    "rev_otherexceptionalcircumstanceredacted": "",
+    "rev_caresupportdescriptionredacted": "My husband [FAMILY MEMBER] helps me wash and dress each morning and cooks most meals. Our daughter [FAMILY MEMBER], who is [AGE 35 to 44], does the shopping at weekends.",
+    "rev_careprovidedexampleredacted": "",
+    "rev_othercareprovidedtyperedacted": "",
+    "rev_carecostsexplanationredacted": "Taxi fares to hospital appointments cost us about £60 a month and the cost has been rising."
+   },
+   "expectedRecord": {
+    "withoutRedactionSettings": {
+     "released": false,
+     "rev_redactionreviewrequired": true,
+     "reasons": [
+      "threshold-missing-or-invalid",
+      "auto-release-off"
+     ]
+    },
+    "withThresholdAndAutoRelease": {
+     "released": true,
+     "rev_redactionreviewrequired": false,
+     "reasons": []
+    }
+   },
+   "extraAssertions": []
+  },
+  {
+   "caseId": "TD-14",
+   "purpose": "Edge case: one narrative of about 10,400 characters (three windows) with identifiers inside the window overlap, a column with nothing to redact, a short column with identifiers, and eleven empty columns.",
+   "proves": "Windows and their overlap work (no ai-error), a column whose redacted text cannot fit 4,000 characters is held back and sent to review rather than truncated, an empty column is skipped, and a column with nothing to redact is copied through unchanged.",
+   "flow": "REV | Narrative | Scrub Free-Text",
+   "wbsTasks": [
+    "5.3",
+    "5.4"
+   ],
+   "expectedWindows": "rev_narrativeraw is 10,456 characters: three windows at offsets 0, 4798 and 9596 (lengths 4998, 4998, 860). The phone and email sit in the 200-character overlap of windows 1 and 2, the second NAME starts at 4999 and is whole only in window 2.",
+   "applicant": {
+    "rev_title": 4,
+    "rev_firstname": "Oswin",
+    "rev_lastname": "Pennington-Clarke",
+    "rev_fullname": "Oswin Pennington-Clarke",
+    "rev_email": "revtest.td14@example.invalid",
+    "rev_phone": "07700 900418",
+    "rev_preferredcontactmethod": "1",
+    "rev_addressline": "31 Brackenfield Road",
+    "rev_towncity": "Bradford",
+    "rev_postcode": "BD7 1DP",
+    "rev_dateofbirth": "1975-07-02",
+    "rev_agerange": 5,
+    "rev_locationarea": 1,
+    "rev_applicanttype": 1,
+    "rev_gender": 1,
+    "rev_lastcontactdate": "1900-01-01",
+    "rev_privacynoticeacceptedon": "2026-08-20T09:00:00Z"
+   },
+   "application": {
+    "rev_sourcesubmissionid": "TESTDATA-TD-14",
+    "rev_status": 1,
+    "rev_breaktype": 1,
+    "rev_breaklocation": "Seaside cottage, Northumberland",
+    "rev_breakstart": "2026-10-05",
+    "rev_breakend": "2026-10-12",
+    "rev_accommodationcost": 820,
+    "rev_travelcost": 140,
+    "rev_othercost": 40,
+    "rev_costs": 1000,
+    "rev_amountrequested": 1000,
+    "rev_receivingotherfunding": false,
+    "rev_exceptionalfundingrequested": false,
+    "rev_receivedfundingbefore": false,
+    "rev_isgrouptrip": false,
+    "rev_savingsover6000": false,
+    "rev_significantcarecosts": false,
+    "rev_granttermsconsent": true,
+    "rev_granttermsconsentdate": "2026-08-20T09:00:00Z",
+    "rev_ageconfirmationconsent": true,
+    "rev_ageconfirmationconsentdate": "2026-08-20T09:00:00Z",
+    "rev_applicantconsent": true,
+    "rev_applicantconsentdate": "2026-08-20T09:00:00Z",
+    "rev_wouldlikeformposted": false,
+    "rev_hearaboutus": "1",
+    "rev_carehoursperweek": 2,
+    "rev_incomeband": 1,
+    "rev_wellbeinganswer1": 1,
+    "rev_wellbeinganswer2": 1,
+    "rev_wellbeinganswer3": 1,
+    "rev_wellbeinganswer4": 1,
+    "rev_wellbeinganswer5": 1,
+    "rev_wellbeinganswer6": 1,
+    "rev_wellbeinganswer7": 1,
+    "rev_wellbeinganswer8": 1,
+    "rev_wellbeinganswer9": 1,
+    "rev_wellbeinganswer10": 1,
+    "rev_feelingscaleanswer": 0,
+    "rev_narrativeraw": "My name is Oswin Pennington-Clarke and I live with fibromyalgia and severe fatigue. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. so so so so so so so so so so so so so so so so so so so so so so so so My wife Rosalind is 66 years old and does most of the lifting. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. so so so so so so so so  The best number to reach me on is 07700 900418 or oswin.pc@example.org. so so so so so so so so so so so so so so so so so s Our neighbour Gwendolen Marlowe helps with the garden. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. so so so so We were referred by Hollin Park Medical Centre, where Dr Venkataraman knows our situation. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. so so so so so so so so so so so so so so so so so so so so so so so so so so s Please write to us at 31 Brackenfield Road, Bradford BD7 1DP or ring (0113) 496 0345. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. so so so so so so so so so so so so so so s That is the whole picture, and thank you for reading it.",
+    "rev_otherconditionraw": "Fibromyalgia and chronic fatigue.",
+    "rev_unabletofundexplanation": "I am Oswin and I cannot work. Please ring 07700 900418 if you need to check anything."
+   },
+   "narratives": {
+    "rev_narrativeraw": "My name is [[NAME:Oswin Pennington-Clarke]] and I live with fibromyalgia and severe fatigue. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. so so so so so so so so so so so so so so so so so so so so so so so so My wife [[FAMILY MEMBER:Rosalind]] is [[AGE:66 years old]] and does most of the lifting. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. so so so so so so so so  The best number to reach me on is [[PHONE:07700 900418]] or [[EMAIL:oswin.pc@example.org]]. so so so so so so so so so so so so so so so so so s Our neighbour [[NAME:Gwendolen Marlowe]] helps with the garden. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. so so so so We were referred by [[GP PRACTICE:Hollin Park Medical Centre]], where Dr [[NAME:Venkataraman]] knows our situation. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. We have tried to keep a routine because a good routine keeps the worst days manageable. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. Each morning starts slowly because my joints are stiff until the tablets begin to work. Some days the pain is mild and other days I cannot hold a cup without help. so so so so so so so so so so so so so so so so so so so so so so so so so so s Please write to us at [[ADDRESS:31 Brackenfield Road, Bradford BD7 1DP]] or ring [[PHONE:(0113) 496 0345]]. A holiday would give us a rest from the daily effort of managing everything alone. Being somewhere flat and quiet with step-free access would make a real difference to us. The cost of the equipment we need has used up most of what we had put aside. I worry about the winter because the cold makes every symptom noticeably worse. Even short outings need careful planning, with rests built in and a seat next to the door. so so so so so so so so so so so so so so s That is the whole picture, and thank you for reading it.",
+    "rev_otherconditionraw": "Fibromyalgia and chronic fatigue.",
+    "rev_unabletofundexplanation": "I am [[NAME:Oswin]] and I cannot work. Please ring [[PHONE:07700 900418]] if you need to check anything."
+   },
+   "expectedRedacted": {
+    "rev_narrativeredacted": null,
+    "rev_otherconditionredacted": "Fibromyalgia and chronic fatigue.",
+    "rev_supportrecipientotherconditionredacted": "",
+    "rev_disabilityimpactdescriptionredacted": "",
+    "rev_supportrecipientdisabilityimpactdescriptionredacted": "",
+    "rev_unabletofundexplanationredacted": "I am [NAME] and I cannot work. Please ring [PHONE] if you need to check anything.",
+    "rev_exceptionalfundingdetailredacted": "",
+    "rev_otherexceptionalcircumstanceredacted": "",
+    "rev_caresupportdescriptionredacted": "",
+    "rev_careprovidedexampleredacted": "",
+    "rev_othercareprovidedtyperedacted": "",
+    "rev_carecostsexplanationredacted": ""
+   },
+   "expectedRecord": {
+    "withoutRedactionSettings": {
+     "released": false,
+     "rev_redactionreviewrequired": true,
+     "reasons": [
+      "redacted-exceeds-4000:rev_narrativeraw",
+      "threshold-missing-or-invalid",
+      "auto-release-off"
+     ]
+    },
+    "withThresholdAndAutoRelease": {
+     "released": false,
+     "rev_redactionreviewrequired": true,
+     "reasons": [
+      "redacted-exceeds-4000:rev_narrativeraw"
+     ]
+    }
+   },
+   "extraAssertions": []
+  },
+  {
+   "caseId": "TD-15",
+   "purpose": "Review case: identifiers a detector keeps by design (the words 'street' and 'practice'), plus a counterpart a grant admin has already edited.",
+   "proves": "A record that is redacted correctly is still sent to review when a residue check fires or when an existing counterpart was left as it was, and the flow never overwrites that counterpart.",
+   "flow": "REV | Narrative | Scrub Free-Text",
+   "wbsTasks": [
+    "5.3",
+    "5.4"
+   ],
+   "applicant": {
+    "rev_title": 4,
+    "rev_firstname": "Fenella",
+    "rev_lastname": "Aldous",
+    "rev_fullname": "Fenella Aldous",
+    "rev_email": "revtest.td15@example.invalid",
+    "rev_phone": "07700 900562",
+    "rev_preferredcontactmethod": "1",
+    "rev_addressline": "4 Millrace Court",
+    "rev_towncity": "Leeds",
+    "rev_postcode": "LS6 2AB",
+    "rev_dateofbirth": "1975-07-02",
+    "rev_agerange": 5,
+    "rev_locationarea": 1,
+    "rev_applicanttype": 1,
+    "rev_gender": 1,
+    "rev_lastcontactdate": "1900-01-01",
+    "rev_privacynoticeacceptedon": "2026-08-20T09:00:00Z"
+   },
+   "application": {
+    "rev_sourcesubmissionid": "TESTDATA-TD-15",
+    "rev_status": 1,
+    "rev_breaktype": 1,
+    "rev_breaklocation": "Seaside cottage, Northumberland",
+    "rev_breakstart": "2026-10-05",
+    "rev_breakend": "2026-10-12",
+    "rev_accommodationcost": 820,
+    "rev_travelcost": 140,
+    "rev_othercost": 40,
+    "rev_costs": 1000,
+    "rev_amountrequested": 1000,
+    "rev_receivingotherfunding": false,
+    "rev_exceptionalfundingrequested": false,
+    "rev_receivedfundingbefore": false,
+    "rev_isgrouptrip": false,
+    "rev_savingsover6000": false,
+    "rev_significantcarecosts": false,
+    "rev_granttermsconsent": true,
+    "rev_granttermsconsentdate": "2026-08-20T09:00:00Z",
+    "rev_ageconfirmationconsent": true,
+    "rev_ageconfirmationconsentdate": "2026-08-20T09:00:00Z",
+    "rev_applicantconsent": true,
+    "rev_applicantconsentdate": "2026-08-20T09:00:00Z",
+    "rev_wouldlikeformposted": false,
+    "rev_hearaboutus": "1",
+    "rev_carehoursperweek": 2,
+    "rev_incomeband": 1,
+    "rev_wellbeinganswer1": 1,
+    "rev_wellbeinganswer2": 1,
+    "rev_wellbeinganswer3": 1,
+    "rev_wellbeinganswer4": 1,
+    "rev_wellbeinganswer5": 1,
+    "rev_wellbeinganswer6": 1,
+    "rev_wellbeinganswer7": 1,
+    "rev_wellbeinganswer8": 1,
+    "rev_wellbeinganswer9": 1,
+    "rev_wellbeinganswer10": 1,
+    "rev_feelingscaleanswer": 0,
+    "rev_narrativeraw": "I am Fenella Aldous and since my stroke I cannot cross the street alone. The practice nurse visits every Thursday and my sister helps when she can. You can email me at f.aldous@example.org.",
+    "rev_disabilityimpactdescription": "My left side is weak and stairs are very hard. Fenella is the name my friends use for me.",
+    "rev_carecostsexplanation": "We pay for a cleaner twice a month, about £80, because I cannot manage the housework.",
+    "rev_disabilityimpactdescriptionredacted": "Admin-edited: weak left side, finds stairs very hard."
+   },
+   "narratives": {
+    "rev_narrativeraw": "I am [[NAME:Fenella Aldous]] and since my stroke I cannot cross the street alone. The practice nurse visits every Thursday and my sister helps when she can. You can email me at [[EMAIL:f.aldous@example.org]].",
+    "rev_disabilityimpactdescription": "My left side is weak and stairs are very hard. [[NAME:Fenella]] is the name my friends use for me.",
+    "rev_carecostsexplanation": "We pay for a cleaner twice a month, about £80, because I cannot manage the housework."
+   },
+   "expectedRedacted": {
+    "rev_narrativeredacted": "I am [NAME] and since my stroke I cannot cross the street alone. The practice nurse visits every Thursday and my sister helps when she can. You can email me at [EMAIL].",
+    "rev_otherconditionredacted": "",
+    "rev_supportrecipientotherconditionredacted": "",
+    "rev_disabilityimpactdescriptionredacted": "Admin-edited: weak left side, finds stairs very hard.",
+    "rev_supportrecipientdisabilityimpactdescriptionredacted": "",
+    "rev_unabletofundexplanationredacted": "",
+    "rev_exceptionalfundingdetailredacted": "",
+    "rev_otherexceptionalcircumstanceredacted": "",
+    "rev_caresupportdescriptionredacted": "",
+    "rev_careprovidedexampleredacted": "",
+    "rev_othercareprovidedtyperedacted": "",
+    "rev_carecostsexplanationredacted": "We pay for a cleaner twice a month, about £80, because I cannot manage the housework."
+   },
+   "expectedRecord": {
+    "withoutRedactionSettings": {
+     "released": false,
+     "rev_redactionreviewrequired": true,
+     "reasons": [
+      "residual-street-word:rev_narrativeraw",
+      "residual-practice-word:rev_narrativeraw",
+      "kept-existing-counterpart:rev_disabilityimpactdescription",
+      "threshold-missing-or-invalid",
+      "auto-release-off"
+     ]
+    },
+    "withThresholdAndAutoRelease": {
+     "released": false,
+     "rev_redactionreviewrequired": true,
+     "reasons": [
+      "residual-street-word:rev_narrativeraw",
+      "residual-practice-word:rev_narrativeraw",
+      "kept-existing-counterpart:rev_disabilityimpactdescription"
+     ]
+    }
+   },
+   "extraAssertions": []
+  }
+ ],
+ "_expectedRecord": "`expectedRecord` is what the flow must write to rev_redactionreleased / rev_redactionreviewrequired, and the reason codes it must report to the process owner (Teams card), for each of the two settings states. The reasons are not stored on the row. TD-13's 'released: true' assumes the live extractor scores every name, practice, family member, age and email it redacts at 0.85 or more; a lower live score gives 'below-threshold' and is a finding about the model (wbs:5.7), not about the flow. The other cases do not depend on the model's scores."
+}

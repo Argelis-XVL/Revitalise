@@ -29,6 +29,11 @@
       "SchemaName": "rev_IntakeAllowedClientId",
       "Value": "{{WORDPRESS_INTAKE_APP_CLIENT_ID}}",
       "_comment": "Entra application (client) ID of the live WordPress caller. Only required under the Entra-OAuth intake route (Dev Summary §7, decision D-1)."
+    },
+    {
+      "SchemaName": "rev_DocuSignConnectName",
+      "Value": "REV Acceptance Completion - PRD",
+      "_comment": "Name of the DocuSign Connect configuration the acceptance completion trigger registers on the DocuSign account. One per environment so each registration can be told apart in DocuSign Admin; not an identifier or secret, so it is a literal value."
     }
   ],
 

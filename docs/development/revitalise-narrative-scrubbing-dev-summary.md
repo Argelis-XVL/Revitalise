@@ -10,6 +10,7 @@
 | 2 — the scrubbing flow, the `TD-008` columns, the Review Required view, rules v0.2 | 2026-10-06 | `wbs:5.3`, `5.4` (flagging and view), `5.1` (rules v0.2) | **APPROVED 2026-10-06** (*"Code review approved."*, `logs/routing.log` 20:45), with Iteration 3 — [jump to Iteration 2](#iteration-2--the-scrubbing-flow-2026-10-06) |
 | 3 — postcode register, tunable settings with guard rails, the prompt stage up to the DEV boundary, rules v0.3 | 2026-10-06 | `wbs:5.3`, `5.6` (settings the process owner tunes), `5.4` (new review reasons) | **APPROVED 2026-10-06** (with Iteration 2) — [jump to Iteration 3](#iteration-3--register-settings-and-the-prompt-stage-2026-10-06) |
 | 4 — build blocker `IMP-1082`, the coverage reading, the prompt component and its run action | 2026-10-06 | `wbs:5.3` (component, run action), `5.4` (form test) | **APPROVED 2026-10-07** (*"Approved on dev summary"*); six changes after approval, one affecting the prompt component, listed under *Approval (Iteration 4)* — [jump to Iteration 4](#iteration-4--build-fix-and-the-prompt-run-action-2026-10-06) |
+| 5 — the failure diagnosis moves inside the column loop (designer save refused, `IMP-1098`) | 2026-10-09 | `wbs:5.3` | **Awaiting code review** — [jump to Iteration 5](#iteration-5--the-failure-diagnosis-moves-inside-the-column-loop-2026-10-09) |
 
 > **Iteration 1 is kept as approved.** Where it says the flow and the `TD-008` columns are not built, Iteration 2
 > below supersedes it: both are built.
@@ -1008,3 +1009,229 @@ The approval was given while the Compose 3–7 comparison was in progress. Every
 | 7 | **Build 20261007-2 BLOCKED on 14 Solution Checker results (`IMP-1090`).** Triaged as proven false positives in §4.11; 10 new `NoTriggerLoop` tests in `test_scrub_flow_definition.py`; §4.8 and §4.9 updated | No. Tests and documents only; **the flow file is unchanged** |
 | 8 | §4.11 gains this feature's citing row for the card app's 845.81 kB chunk advisory (`C-TECH-055`, 2026-08-30 amendment) | No. Documents only |
 | 9 | **D-1 of test report 20261007-3 fixed.** New register row `A-NS-26` (E2) in §4.10, source marker at `PlatformLimits` in `test_scrub_flow_definition.py`, and the notes file's "platform's limit" wording restated as an assumption | No. Documents and a test comment only; **the flow file is unchanged** (md5 `193bccb83cd7c0f0139fae9edddea4ce`) |
+
+---
+
+# Iteration 5 — the failure diagnosis moves inside the column loop (2026-10-09)
+
+**WBS:** `wbs:5.3` (the flow's failure path, NFR-018, FR-010); dispatch carried `5.4` and `5.6`, which this fix does not
+change · **Date:** 2026-10-09 · **Author:** development-agent, strategic tier (dispatch: *"no existing pattern in the
+codebase for this"*) · **Status:** awaiting code review · **Items:** none carried
+
+## 5.1 Summary
+
+The reviewer could not save the flow in the DEV designer: the failure handler at the top of the flow read the results of
+steps inside the column loop, which the platform forbids. The diagnosis now runs inside the loop iteration that failed
+and is carried out in a variable, a new gate (check 12) fails any flow that reads into a loop from outside it, and the
+alert the operator gets is unchanged in form. Nothing is deployed; the designer save (V4) is the next check.
+
+## 5.2 What has been built
+
+1. **Every container inside the column loop has a three-step catch beside it**
+   ([`Rethrow_the_failure_inside_Scrub_the_column_if_it_has_text`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L5374),
+   [`Record_the_failure_inside_Write_the_counterpart`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L5135)).
+   It runs only when that container failed, in the same iteration. It records which child failed first and its error
+   code, then fails on purpose so the run still fails and the record is still held. A loop cannot use *Terminate*, so
+   the re-raise is an `int()` of the recorded step name, which always throws (`A-NS-27`). There are 16 such catches.
+2. **The top level follows the record inwards instead of reading into the loop**
+   ([`Follow_the_failure_inward`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L5665),
+   [`Set_failure_detail_from_For_each_column`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L5722)).
+   It starts at the loop body's failed step, which it may read, and moves to the step each catch recorded until it
+   reaches a step with no record: the action that failed. Taking the first record would be wrong.
+   `Detect_shapes_in_the_window` still runs after an earlier window step fails, fails as a result, and records first.
+3. **A failure the flow already handles is never reported or re-raised**
+   ([`Find_the_failed_step_inside_Validate_the_prompt_answer`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L3527),
+   [`_handled_by_design`](../../src/tests/narrative/failure_catches.py#L74)). `Validate_the_prompt_answer` failing *is*
+   the designed "invalid answer" path, so it gets a diagnostic query only. The catches also skip the extractor call, the
+   prompt call and the parse, whose failures are reasons, not failed runs.
+4. **The shape is generated, and the tests fail if the JSON differs**
+   ([`failure_catches.py`](../../src/tests/narrative/failure_catches.py#L253)). The notes said the old descent was
+   generated, but no generator was in the repository. This one is, and `--write` reproduces the shipped file.
+5. **Check 12 fails any flow that reads into a loop from outside it**
+   ([`check12_findings`](../../scripts/verify-flow-definition-language.py#L217), wired at
+   [#L420](../../scripts/verify-flow-definition-language.py#L420) inside the existing HARD `flow-definition-language`
+   build step). It forbids every crossing, one level included, which no flow in the solution needs. An Until's own
+   condition may name its body. **On the source before this fix it exits 1 with 17 findings, all in this flow, the
+   reviewer's offender first. After the fix it exits 0 over all 11 flows.**
+
+## 5.3 Elements added
+
+| Element | Where | WBS |
+|---|---|---|
+| `failureTrail` (array) and `failureCursor` (string) variables | [flow JSON#L126](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L126) | 5.3 |
+| 16 catches (Find, Record, Rethrow: 48 actions) and 1 diagnostic query inside the loop; the follow-inward Until at the top | flow JSON | 5.3 |
+| Generator | [`src/tests/narrative/failure_catches.py`](../../src/tests/narrative/failure_catches.py#L1) | 5.3 |
+| 10 tests, `FailureDiagnosisInsideLoops` | [`test_scrub_flow_definition.py#L1072`](../../src/tests/narrative/test_scrub_flow_definition.py#L1072) | 5.3 |
+| Check 12 and its known-bad fixture | [`verify-flow-definition-language.py#L217`](../../scripts/verify-flow-definition-language.py#L217), [`CrossLoopReference.json`](../../src/tests/fixtures/known-bad/flow-cross-loop-reference/CrossLoopReference.json) | system |
+
+## 5.4 Elements changed
+
+| Element | Change | WBS |
+|---|---|---|
+| `Describe_the_failure`, case `For_each_column` | The 46-action nested Switch tree that read into the loop is replaced by eight actions (an Until holds three of them) that read only `result('For_each_column')` and the variables | 5.3 |
+| Flow size | 296 → 309 actions; deepest nesting still 8 (no container added inside the loop) | 5.3 |
+| [Notes, "The failure descent"](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.notes.md#L161) | Rewritten for the new shape; `A-NS-19` narrowed, `A-NS-27` added | 5.3 |
+
+**Build configuration:** this amends `config/revitalise-grant-automation-build.yml` (same CI slug). No step is added or
+changed: check 12 runs inside `flow-definition-language`, the tests inside `unit-tests`. No data model, form, security
+role or provisioning change, so no special-category register row is proposed.
+
+## 5.5 What is still open
+
+**The designer save has not been done.** The import accepted the old shape without validating it, so only an open and
+save in the DEV designer (V4) shows this one is accepted. The save may also show the next defect hidden behind this one:
+the platform reports only the first invalid reference. `A-NS-26` (nesting 8) is still open for the same reason.
+
+**A failure inside a window repeats that window.** When a window step fails, the step that moves to the next window is
+skipped, so the Until runs the same window again, up to its limit of 250, calling AI Builder each time, if the platform
+continues an Until after a failed iteration. This was true before this change and is not changed here. Stopping the
+scan once `failureTrail` is not empty is one expression; it is left for a decision because it changes what later columns
+in a failing run do. **Closed in Iteration 6** (the reviewer decided: fix it).
+
+## 5.6 Unvalidated Assumptions Register (C-TECH-052)
+
+Rows new in this iteration, or whose meaning changed. Earlier rows stand as written.
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| A-NS-19 | `result()` of a loop still lists a failed iteration after later ones succeed. It now matters only for a failure directly in the column loop's body, and for the catches beside `Scan_the_column_in_windows`, `Refine_each_name` and `Merge_each_span`. A deeper failure is recorded inside its own iteration. If wrong, the alert names a wrapper and the run link is the route | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E4 | No run | In DEV, make the first column's write fail and a later column succeed: the alert names the write | OPEN |
+| A-NS-27 | An expression that throws at run time fails its action, so the catch's `Rethrow_the_failure_inside_*` fails the iteration, the loop and the run, and the designer's save does not evaluate `int()` of a non-numeric value in advance. If the save does evaluate it, the save is refused naming that action. If a failed action did not fail its iteration, a failed column would be scrubbed partly and the record decided instead of held | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 (expression failures fail the action, *Handle errors and exceptions*); the simulator runs the stricter "last action decides" reading | No run; no designer save of this shape | V4: open and save in the DEV designer (a refusal naming a `Rethrow_` action answers the second half). V5: one DEV run with a failing write: the run shows `Rethrow_the_failure_inside_Write_the_counterpart` Failed, the record held, one alert naming the write | OPEN |
+
+## 5.7 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| Check 12, before the fix | Executed | macOS, local | `python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation` on the pre-fix flow: **exit 1, 17 findings**, the first `Find_the_failed_step_inside_Scrub_the_column_if_it_has_text` → `result('Scrub_the_column_if_it_has_text')`, the reviewer's error. Other 10 flows: 0 findings |
+| Check 12, after the fix | Executed | macOS, local | Same command: exit 0, checks 1–12 OK over 11 flows. `--selftest`: engine 29/29, wrapper 10/10, including the known-bad fixture flagged once and a planted refused shape flagged |
+| Flow logic | **V1, executed in the simulator**; not a V-level on the platform | macOS, local | `python3 -m unittest discover -s src/tests/narrative -p 'test_*.py'`: **209 tests OK** (199 before). A failure at each of 9 depths inside the loop and one in the prompt answer check each name the leaf, hold the record and alert once; every designed failure (extractor, all 23 prompt answers) records nothing and alerts nothing |
+| Generator | V1 | macOS, local | `python3 src/tests/narrative/failure_catches.py`: the shipped definition is the generated one |
+| Related Pester suites | Executed | macOS, local | `NarrativeRedaction.Tests.ps1`, `BuildGates.Tests.ps1`, `DeploymentSettings.Tests.ps1`: 171 passed, 0 failed, 1 skipped. The full suite was not run |
+| Source gates | V1 | macOS, local | `run-source-gates.py config/revitalise-grant-automation-build.yml`: 19/19 PASS |
+
+**V2 to V5 are not reached.** Nothing was packed, imported or saved. No tool warning was emitted by any command above.
+No diagnostic component was created in any environment: this dispatch made no live call.
+
+## 5.8 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.3 | 2.0 h | The redesign, the generator, 10 tests, notes and this section |
+| system | 0.5 h | Check 12, its fixture and selftest, `IMP-1098` |
+
+## Findings Logged (Iteration 5)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1098](../../logs/improvement-log.jsonl#L1094) | `platform-contract-guessed-not-groundtruthed` | blocker, stamped `fixed_in_flight` (V1) | Never read an action inside a loop from outside it; diagnose inside the iteration and carry the result out in a variable. A clean Draft import proves nothing about save |
+
+---
+
+# Iteration 6 — every loop ends after a failure (2026-10-09)
+
+**WBS:** `wbs:5.3` (the flow's failure path, NFR-018, FR-010) · **Date:** 2026-10-09 · **Author:** development-agent,
+strategic tier (dispatch: *"no existing pattern"*) · **Status:** awaiting code review · **Items:** none carried
+
+## 6.1 Summary
+
+The reviewer decided the open item from Iteration 5 must be fixed: *"definitely make sure the flow is not going to stay
+stuck in a loop."* Every loop in the flow now ends as soon as something inside it fails, whether or not the platform
+would go on to another iteration, and no AI Builder call is made after that point. The run still fails, holds the record
+and alerts once. Nothing is deployed or committed; the designer save (V4) is still the next check.
+
+## 6.2 What has been built
+
+1. **The window scan stops at the window that failed**
+   ([`Scan_the_column_in_windows`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2212), [`Stop_after_a_failure_in_Scan_the_column_in_windows`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L3781)).
+   A new leaf runs after the window's last step when that step did not succeed, sets a new `failureSeen` flag
+   ([#L162](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L162)), then fails on purpose so the failure is not read as handled. The scan's condition reads
+   `failureSeen` and `failureTrail`, so the loop ends after the failed iteration on either platform behaviour.
+2. **Later columns do nothing once a failure is seen**
+   ([`Scrub_the_column_if_it_has_text`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2104), [`Stop_after_a_failure_in_For_each_column`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L5446)).
+   This is the decision the dispatch asked for: no window, no AI Builder call and no write for any later column.
+   Columns written before the failure stay written, as before, and the record is held as a whole; a resubmission
+   re-scrubs everything.
+3. **The shape check and the prompt can no longer run after an unrecorded failure**
+   ([`Detect_shapes_in_the_window`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2811), [`Use_the_prompt_on_the_window`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L3135)). The shape check used to
+   run after *any* skipped extractor step, so a failed `Compose_window_entities` let the prompt be called and the window
+   advance with nothing recorded. It now also needs the window text and the extractor answer step. The prompt is also
+   skipped once the extractor has failed on the column, because that column's prompt result is never used.
+4. **Every bound is explicit and justified**
+   ([notes, "Every loop ends"](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.notes.md#L199)). The window scan also ends once the extractor fails on the column (up to 249
+   wasted windows before). The failure-diagnosis loop's count is 6, derived by the generator from the deepest chain of
+   recorded containers ([`recorded_depth`](../../src/tests/narrative/failure_catches.py#L216)), down from 16, with a 2-minute timeout (was 5); it also ends if a
+   step inside it fails. A timed-out diagnosis still holds and alerts ([`Hold_the_record_for_review`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L5874)).
+5. **Check 13 holds the rule for every flow**
+   ([`check13_findings`](../../scripts/verify-flow-definition-language.py#L287), wired at [#L538](../../scripts/verify-flow-definition-language.py#L538)). Every Until must state `count` and `timeout`, and an
+   Until that calls out must have a failure exit. **On the source before this fix it flags the window scan, alone;
+   after it, exit 0 over all 11 flows (2 Until loops).** It proves the exit is wired, not that it fires; the tests prove
+   that.
+
+## 6.3 Elements added
+
+| Element | Where | WBS |
+|---|---|---|
+| `failureSeen` variable; 2 stop leaves + 2 rethrows (generated) | [flow JSON#L162](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L162) | 5.3 |
+| Generator: stop leaves, derived diagnosis bound, exit assertions | [`failure_catches.py#L151`](../../src/tests/narrative/failure_catches.py#L151) | 5.3 |
+| Simulator switch for both loop behaviours | [`wdl_sim.py#L212`](../../src/tests/narrative/wdl_sim.py#L212) | 5.3 |
+| 11 tests, `EveryLoopEndsAfterAFailure` | [`test_scrub_flow_definition.py#L1226`](../../src/tests/narrative/test_scrub_flow_definition.py#L1226) | 5.3 |
+| Check 13 and 4 selftest assertions | [`verify-flow-definition-language.py#L287`](../../scripts/verify-flow-definition-language.py#L287) | system |
+
+## 6.4 Elements changed
+
+| Element | Change | WBS |
+|---|---|---|
+| `Scan_the_column_in_windows` expression | Also ends on `columnFailed`, `failureSeen` or a non-empty `failureTrail` | 5.3 |
+| `Scrub_the_column_if_it_has_text` condition | Also requires no failure seen | 5.3 |
+| `Detect_shapes_in_the_window` runAfter, `Use_the_prompt_on_the_window` condition | As item 3 | 5.3 |
+| `Follow_the_failure_inward` | Count 16 → 6 (derived), timeout PT5M → PT2M, ends if a move fails | 5.3 |
+| `Hold_the_record_for_review` runAfter | Adds `TimedOut` | 5.3 |
+| [`test_a_consequential_failure_recorded_first_does_not_hide_the_cause`](../../src/tests/narrative/test_scrub_flow_definition.py#L1162) | The shipped flow no longer produces a consequential failure, so the test restores the old runAfter to keep the chain-following proven, and checks the shipped flow names the cause | 5.3 |
+| Flow size | 309 → 314 actions; nesting still 8 | 5.3 |
+
+**Build configuration:** amends `config/revitalise-grant-automation-build.yml` (same CI slug); no step added. Check 13
+runs inside `flow-definition-language`, the tests inside `unit-tests`. `config/revitalise-grant-automation-pipeline.yml`
+was not touched. No data model, security or provisioning change, so no special-category register row.
+
+## 6.5 What is still open
+
+**The designer save has not been done.** As in Iteration 5: only an open and save in the DEV designer (V4) shows the
+platform accepts this shape. The new rethrows use `int(string(variables('failureSeen')))`, which is the same bet as
+`A-NS-27`: the save must not evaluate it ahead of the run.
+
+**What the platform does after a failed iteration is still unknown, and no longer matters.** Both readings are
+simulated and every new test runs under both. A DEV run with a failing window (V5) would show which one is true.
+
+**Refine_each_name and Merge_each_span still finish their items after a failed one** on a platform that keeps
+iterating. They are bounded by their input and make no call, so they were left as they are.
+
+## 6.6 Unvalidated Assumptions Register (C-TECH-052)
+
+No new row. `A-NS-27` now also covers `Rethrow_the_stop_in_*` (notes, assumptions table). The platform's
+continue-or-stop behaviour after a failed iteration is not an assumption: the design is tested under both answers.
+
+## 6.7 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| Check 13, before the fix | Executed | macOS, local | `--selftest` puts the old window expression back in memory: **1 finding, the window scan, check 13b** |
+| Flow-language gate | Executed | macOS, local | `python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation`: exit 0, checks 1–13 OK over 11 flows. `--selftest`: engine 29/29, wrapper 14/14 |
+| Flow logic | **V1, simulator** | macOS, local | `cd src/tests/narrative && python3 -m unittest discover -p 'test_*.py'`: **220 tests OK** (209 before). A failure at each of 10 window steps, at a later window, while recording an extractor failure, directly in the column loop and inside the diagnosis loop: under both behaviours the scan ends at that window, 0 AI Builder calls follow, the record is held and one alert names the step. With the old exit the same failure runs 250 iterations and over 100 AI calls; with the old shape-check runAfter the prompt runs after the failure |
+| Generator | V1 | macOS, local | `python3 src/tests/narrative/failure_catches.py`: the shipped definition is the generated one |
+| Pester suites | Executed | macOS, local | `NarrativeRedaction.Tests.ps1`, `BuildGates.Tests.ps1`, `DeploymentSettings.Tests.ps1`: 171 passed, 0 failed, 1 skipped |
+| Source gates | V1 | macOS, local | `run-source-gates.py config/revitalise-grant-automation-build.yml`: 19/19 PASS |
+
+**V2 to V5 are not reached.** Nothing was packed, imported, saved or run. No tool warning was emitted. No live call was
+made, so no diagnostic component exists.
+
+## 6.8 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.3 | 1.5 h | The stop design, generator change, 11 tests, notes and this section |
+| system | 0.5 h | Check 13, its selftest, the simulator switch, `IMP-1099` |
+
+## Findings Logged (Iteration 6)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1099](../../logs/improvement-log.jsonl#L1095) | `platform-contract-guessed-not-groundtruthed` | rework | A loop whose progress step runs only on success needs a failure exit that works whether or not the platform continues after a failed iteration; test it with multi-iteration input under both readings |

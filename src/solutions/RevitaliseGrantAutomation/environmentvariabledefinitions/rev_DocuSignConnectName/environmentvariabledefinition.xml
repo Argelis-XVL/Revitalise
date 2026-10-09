@@ -1,0 +1,16 @@
+<environmentvariabledefinition schemaname="rev_DocuSignConnectName">
+  <description default="The name of the DocuSign Connect configuration that the acceptance completion flow's trigger registers on the DocuSign account. Each environment registers its own Connect configuration on the same account, so each needs its own name to be told apart in DocuSign Admin. The flow is managed outside DEV and cannot be edited there, so the name must come from deployment settings (C-TECH-047).">
+    <label description="The name of the DocuSign Connect configuration that the acceptance completion flow's trigger registers on the DocuSign account. Each environment registers its own Connect configuration on the same account, so each needs its own name to be told apart in DocuSign Admin. The flow is managed outside DEV and cannot be edited there, so the name must come from deployment settings (C-TECH-047)." languagecode="1033" />
+  </description>
+  <displayname default="DocuSign Connect Name">
+    <label description="DocuSign Connect Name" languagecode="1033" />
+  </displayname>
+  <hint default="Use 'REV Acceptance Completion - ' followed by the environment: DEV, TSTACC or PRD. Shown in DocuSign > Admin > Integrations > Connect once the flow is turned on.">
+    <label description="Use 'REV Acceptance Completion - ' followed by the environment: DEV, TSTACC or PRD. Shown in DocuSign > Admin > Integrations > Connect once the flow is turned on." languagecode="1033" />
+  </hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

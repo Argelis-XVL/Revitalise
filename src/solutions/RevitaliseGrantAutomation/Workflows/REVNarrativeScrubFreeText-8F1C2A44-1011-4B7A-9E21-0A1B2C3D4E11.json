@@ -123,10 +123,64 @@
             ]
           }
         },
-        "Initialise_reasons": {
+        "Initialise_failure_trail": {
           "type": "InitializeVariable",
           "runAfter": {
             "Initialise_failure_detail": [
+              "Succeeded"
+            ]
+          },
+          "description": "Inside For_each_column, each catch records {in, step, code}: the container, its first failed child, the code. Names and codes only. The top level cannot read into the loop (check 12).",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureTrail",
+                "type": "array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "Initialise_failure_cursor": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_failure_trail": [
+              "Succeeded"
+            ]
+          },
+          "description": "The step the failure diagnosis has reached while following failureTrail inwards.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureCursor",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "Initialise_failure_seen": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_failure_cursor": [
+              "Succeeded"
+            ]
+          },
+          "description": "Set once anything inside For_each_column fails. From then on no window, column or AI Builder call runs. Never reset: a run that saw a failure ends failed, held and alerted.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureSeen",
+                "type": "boolean",
+                "value": false
+              }
+            ]
+          }
+        },
+        "Initialise_reasons": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_failure_seen": [
               "Succeeded"
             ]
           },
@@ -2054,13 +2108,19 @@
                       "Succeeded"
                     ]
                   },
-                  "description": "An empty raw column is out of scope (rules 7).",
+                  "description": "Skips a column with no text, and every column once a failure is seen in this run: no further AI Builder call or write. The run then fails, holds the record and alerts once.",
                   "expression": {
                     "and": [
                       {
                         "equals": [
                           "@not(empty(trim(outputs('Compose_raw_text'))))",
                           true
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@or(variables('failureSeen'), not(empty(variables('failureTrail'))))",
+                          false
                         ]
                       }
                     ]
@@ -2156,8 +2216,8 @@
                                 "Succeeded"
                               ]
                             },
-                            "description": "Rules 5.4: windows of at most 5,000 characters with a 200-character overlap. 250 windows cover the 1,048,576-character column.",
-                            "expression": "@greaterOrEquals(variables('windowStart'), length(outputs('Compose_raw_text')))",
+                            "description": "Rules 5.4: windows of at most 5,000 with a 200 overlap; 250 cover a 1,048,576-character column. Ends at once on any failure (failureSeen, failureTrail) or an extractor failure (columnFailed).",
+                            "expression": "@or(greaterOrEquals(variables('windowStart'), length(outputs('Compose_raw_text'))), variables('columnFailed'), variables('failureSeen'), not(empty(variables('failureTrail'))))",
                             "limit": {
                               "count": 250,
                               "timeout": "PT1H"
@@ -2417,6 +2477,55 @@
                                       "actions": {}
                                     }
                                   },
+                                  "Find_the_failed_step_inside_Record_unmapped_types": {
+                                    "type": "Query",
+                                    "runAfter": {
+                                      "Record_unmapped_types": [
+                                        "Failed",
+                                        "TimedOut"
+                                      ]
+                                    },
+                                    "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                    "inputs": {
+                                      "from": "@result('Record_unmapped_types')",
+                                      "where": "@equals(item()?['status'], 'Failed')"
+                                    },
+                                    "runtimeConfiguration": {
+                                      "secureData": {
+                                        "properties": [
+                                          "inputs",
+                                          "outputs"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "Record_the_failure_inside_Record_unmapped_types": {
+                                    "type": "AppendToArrayVariable",
+                                    "runAfter": {
+                                      "Find_the_failed_step_inside_Record_unmapped_types": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                    "inputs": {
+                                      "name": "failureTrail",
+                                      "value": {
+                                        "in": "Record_unmapped_types",
+                                        "step": "@{coalesce(first(body('Find_the_failed_step_inside_Record_unmapped_types'))?['name'], 'unknown')}",
+                                        "code": "@{coalesce(first(body('Find_the_failed_step_inside_Record_unmapped_types'))?['error']?['code'], 'none')}"
+                                      }
+                                    }
+                                  },
+                                  "Rethrow_the_failure_inside_Record_unmapped_types": {
+                                    "type": "Compose",
+                                    "runAfter": {
+                                      "Record_the_failure_inside_Record_unmapped_types": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                    "inputs": "@int(last(variables('failureTrail'))?['step'])"
+                                  },
                                   "Filter_person_spans": {
                                     "type": "Query",
                                     "runAfter": {
@@ -2586,6 +2695,55 @@
                                         "repetitions": 1
                                       }
                                     }
+                                  },
+                                  "Find_the_failed_step_inside_Refine_each_name": {
+                                    "type": "Query",
+                                    "runAfter": {
+                                      "Refine_each_name": [
+                                        "Failed",
+                                        "TimedOut"
+                                      ]
+                                    },
+                                    "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                    "inputs": {
+                                      "from": "@result('Refine_each_name')",
+                                      "where": "@equals(item()?['status'], 'Failed')"
+                                    },
+                                    "runtimeConfiguration": {
+                                      "secureData": {
+                                        "properties": [
+                                          "inputs",
+                                          "outputs"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "Record_the_failure_inside_Refine_each_name": {
+                                    "type": "AppendToArrayVariable",
+                                    "runAfter": {
+                                      "Find_the_failed_step_inside_Refine_each_name": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                    "inputs": {
+                                      "name": "failureTrail",
+                                      "value": {
+                                        "in": "Refine_each_name",
+                                        "step": "@{coalesce(first(body('Find_the_failed_step_inside_Refine_each_name'))?['name'], 'unknown')}",
+                                        "code": "@{coalesce(first(body('Find_the_failed_step_inside_Refine_each_name'))?['error']?['code'], 'none')}"
+                                      }
+                                    }
+                                  },
+                                  "Rethrow_the_failure_inside_Refine_each_name": {
+                                    "type": "Compose",
+                                    "runAfter": {
+                                      "Record_the_failure_inside_Refine_each_name": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                    "inputs": "@int(last(variables('failureTrail'))?['step'])"
                                   }
                                 },
                                 "else": {
@@ -2601,9 +2759,65 @@
                                   }
                                 }
                               },
+                              "Find_the_failed_step_inside_Handle_the_extractor_answer": {
+                                "type": "Query",
+                                "runAfter": {
+                                  "Handle_the_extractor_answer": [
+                                    "Failed",
+                                    "TimedOut"
+                                  ]
+                                },
+                                "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                "inputs": {
+                                  "from": "@result('Handle_the_extractor_answer')",
+                                  "where": "@equals(item()?['status'], 'Failed')"
+                                },
+                                "runtimeConfiguration": {
+                                  "secureData": {
+                                    "properties": [
+                                      "inputs",
+                                      "outputs"
+                                    ]
+                                  }
+                                }
+                              },
+                              "Record_the_failure_inside_Handle_the_extractor_answer": {
+                                "type": "AppendToArrayVariable",
+                                "runAfter": {
+                                  "Find_the_failed_step_inside_Handle_the_extractor_answer": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                "inputs": {
+                                  "name": "failureTrail",
+                                  "value": {
+                                    "in": "Handle_the_extractor_answer",
+                                    "step": "@{coalesce(first(body('Find_the_failed_step_inside_Handle_the_extractor_answer'))?['name'], 'unknown')}",
+                                    "code": "@{coalesce(first(body('Find_the_failed_step_inside_Handle_the_extractor_answer'))?['error']?['code'], 'none')}"
+                                  }
+                                }
+                              },
+                              "Rethrow_the_failure_inside_Handle_the_extractor_answer": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Record_the_failure_inside_Handle_the_extractor_answer": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                "inputs": "@int(last(variables('failureTrail'))?['step'])"
+                              },
                               "Detect_shapes_in_the_window": {
                                 "type": "Scope",
                                 "runAfter": {
+                                  "Compose_window_text": [
+                                    "Succeeded"
+                                  ],
+                                  "Compose_window_entities": [
+                                    "Succeeded",
+                                    "Skipped"
+                                  ],
                                   "Handle_the_extractor_answer": [
                                     "Succeeded",
                                     "Skipped"
@@ -2613,7 +2827,7 @@
                                     "Skipped"
                                   ]
                                 },
-                                "description": "Stage 2 (ADR-071 item 3, ADR-073): UK phone and postcode shapes, and register-confirmed postcodes, found without regular expressions.",
+                                "description": "Stage 2 (ADR-071 item 3, ADR-073): UK phone and postcode shapes, register-confirmed postcodes. Runs only after the window was read and the extractor answered or failed by design, never after another failure.",
                                 "actions": {
                                   "Select_window_classes": {
                                     "type": "Select",
@@ -2869,6 +3083,55 @@
                                   }
                                 }
                               },
+                              "Find_the_failed_step_inside_Detect_shapes_in_the_window": {
+                                "type": "Query",
+                                "runAfter": {
+                                  "Detect_shapes_in_the_window": [
+                                    "Failed",
+                                    "TimedOut"
+                                  ]
+                                },
+                                "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                "inputs": {
+                                  "from": "@result('Detect_shapes_in_the_window')",
+                                  "where": "@equals(item()?['status'], 'Failed')"
+                                },
+                                "runtimeConfiguration": {
+                                  "secureData": {
+                                    "properties": [
+                                      "inputs",
+                                      "outputs"
+                                    ]
+                                  }
+                                }
+                              },
+                              "Record_the_failure_inside_Detect_shapes_in_the_window": {
+                                "type": "AppendToArrayVariable",
+                                "runAfter": {
+                                  "Find_the_failed_step_inside_Detect_shapes_in_the_window": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                "inputs": {
+                                  "name": "failureTrail",
+                                  "value": {
+                                    "in": "Detect_shapes_in_the_window",
+                                    "step": "@{coalesce(first(body('Find_the_failed_step_inside_Detect_shapes_in_the_window'))?['name'], 'unknown')}",
+                                    "code": "@{coalesce(first(body('Find_the_failed_step_inside_Detect_shapes_in_the_window'))?['error']?['code'], 'none')}"
+                                  }
+                                }
+                              },
+                              "Rethrow_the_failure_inside_Detect_shapes_in_the_window": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Record_the_failure_inside_Detect_shapes_in_the_window": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                "inputs": "@int(last(variables('failureTrail'))?['step'])"
+                              },
                               "Use_the_prompt_on_the_window": {
                                 "type": "If",
                                 "runAfter": {
@@ -2876,13 +3139,19 @@
                                     "Succeeded"
                                   ]
                                 },
-                                "description": "Stage 3 (ADR-072, ADR-074): only when RedactionPromptStage is on and the category rows are valid. Every answer is validated before use.",
+                                "description": "Stage 3 (ADR-072, ADR-074): only when RedactionPromptStage is on, the category rows are valid and the extractor has not failed on this column (ai-error discards the prompt result). Every answer is validated.",
                                 "expression": {
                                   "and": [
                                     {
                                       "equals": [
                                         "@outputs('Compose_prompt_runs')",
                                         true
+                                      ]
+                                    },
+                                    {
+                                      "equals": [
+                                        "@variables('columnFailed')",
+                                        false
                                       ]
                                     }
                                   ]
@@ -3292,6 +3561,28 @@
                                           }
                                         }
                                       },
+                                      "Find_the_failed_step_inside_Validate_the_prompt_answer": {
+                                        "type": "Query",
+                                        "runAfter": {
+                                          "Validate_the_prompt_answer": [
+                                            "Failed",
+                                            "TimedOut"
+                                          ]
+                                        },
+                                        "description": "Diagnostic only: this container failing is a designed, handled path, so nothing is recorded or re-raised. Secured: results can carry row data.",
+                                        "inputs": {
+                                          "from": "@result('Validate_the_prompt_answer')",
+                                          "where": "@equals(item()?['status'], 'Failed')"
+                                        },
+                                        "runtimeConfiguration": {
+                                          "secureData": {
+                                            "properties": [
+                                              "inputs",
+                                              "outputs"
+                                            ]
+                                          }
+                                        }
+                                      },
                                       "Compose_prompt_state_if_malformed": {
                                         "type": "Compose",
                                         "runAfter": {
@@ -3348,6 +3639,55 @@
                                       }
                                     }
                                   },
+                                  "Find_the_failed_step_inside_Check_the_prompt_answer": {
+                                    "type": "Query",
+                                    "runAfter": {
+                                      "Check_the_prompt_answer": [
+                                        "Failed",
+                                        "TimedOut"
+                                      ]
+                                    },
+                                    "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                    "inputs": {
+                                      "from": "@result('Check_the_prompt_answer')",
+                                      "where": "@and(equals(item()?['status'], 'Failed'), not(contains(createArray('Parse_the_prompt_answer', 'Validate_the_prompt_answer'), item()?['name'])))"
+                                    },
+                                    "runtimeConfiguration": {
+                                      "secureData": {
+                                        "properties": [
+                                          "inputs",
+                                          "outputs"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "Record_the_failure_inside_Check_the_prompt_answer": {
+                                    "type": "AppendToArrayVariable",
+                                    "runAfter": {
+                                      "Find_the_failed_step_inside_Check_the_prompt_answer": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                    "inputs": {
+                                      "name": "failureTrail",
+                                      "value": {
+                                        "in": "Check_the_prompt_answer",
+                                        "step": "@{coalesce(first(body('Find_the_failed_step_inside_Check_the_prompt_answer'))?['name'], 'unknown')}",
+                                        "code": "@{coalesce(first(body('Find_the_failed_step_inside_Check_the_prompt_answer'))?['error']?['code'], 'none')}"
+                                      }
+                                    }
+                                  },
+                                  "Rethrow_the_failure_inside_Check_the_prompt_answer": {
+                                    "type": "Compose",
+                                    "runAfter": {
+                                      "Record_the_failure_inside_Check_the_prompt_answer": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                    "inputs": "@int(last(variables('failureTrail'))?['step'])"
+                                  },
                                   "Join_the_prompt_call_paths": {
                                     "type": "Compose",
                                     "runAfter": {
@@ -3367,6 +3707,55 @@
                                 "else": {
                                   "actions": {}
                                 }
+                              },
+                              "Find_the_failed_step_inside_Use_the_prompt_on_the_window": {
+                                "type": "Query",
+                                "runAfter": {
+                                  "Use_the_prompt_on_the_window": [
+                                    "Failed",
+                                    "TimedOut"
+                                  ]
+                                },
+                                "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                "inputs": {
+                                  "from": "@result('Use_the_prompt_on_the_window')",
+                                  "where": "@and(equals(item()?['status'], 'Failed'), not(contains(createArray('Run_the_redaction_prompt'), item()?['name'])))"
+                                },
+                                "runtimeConfiguration": {
+                                  "secureData": {
+                                    "properties": [
+                                      "inputs",
+                                      "outputs"
+                                    ]
+                                  }
+                                }
+                              },
+                              "Record_the_failure_inside_Use_the_prompt_on_the_window": {
+                                "type": "AppendToArrayVariable",
+                                "runAfter": {
+                                  "Find_the_failed_step_inside_Use_the_prompt_on_the_window": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                "inputs": {
+                                  "name": "failureTrail",
+                                  "value": {
+                                    "in": "Use_the_prompt_on_the_window",
+                                    "step": "@{coalesce(first(body('Find_the_failed_step_inside_Use_the_prompt_on_the_window'))?['name'], 'unknown')}",
+                                    "code": "@{coalesce(first(body('Find_the_failed_step_inside_Use_the_prompt_on_the_window'))?['error']?['code'], 'none')}"
+                                  }
+                                }
+                              },
+                              "Rethrow_the_failure_inside_Use_the_prompt_on_the_window": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Record_the_failure_inside_Use_the_prompt_on_the_window": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                "inputs": "@int(last(variables('failureTrail'))?['step'])"
                               },
                               "Compose_next_window_start": {
                                 "type": "Compose",
@@ -3388,8 +3777,82 @@
                                   "name": "windowStart",
                                   "value": "@outputs('Compose_next_window_start')"
                                 }
+                              },
+                              "Stop_after_a_failure_in_Scan_the_column_in_windows": {
+                                "type": "SetVariable",
+                                "runAfter": {
+                                  "Set_window_start": [
+                                    "Failed",
+                                    "Skipped",
+                                    "TimedOut"
+                                  ]
+                                },
+                                "description": "Something in this iteration failed (Set_window_start did not succeed), so no further iteration, column or AI Builder call runs: the loop and the column guard read this.",
+                                "inputs": {
+                                  "name": "failureSeen",
+                                  "value": true
+                                }
+                              },
+                              "Rethrow_the_stop_in_Scan_the_column_in_windows": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Stop_after_a_failure_in_Scan_the_column_in_windows": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "Fails on purpose, so the failure the stop ran after is not read as handled: the iteration, the loop and the run still fail (A-NS-27).",
+                                "inputs": "@int(string(variables('failureSeen')))"
                               }
                             }
+                          },
+                          "Find_the_failed_step_inside_Scan_the_column_in_windows": {
+                            "type": "Query",
+                            "runAfter": {
+                              "Scan_the_column_in_windows": [
+                                "Failed",
+                                "TimedOut"
+                              ]
+                            },
+                            "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                            "inputs": {
+                              "from": "@result('Scan_the_column_in_windows')",
+                              "where": "@and(equals(item()?['status'], 'Failed'), not(contains(createArray('Extract_entities_from_the_window'), item()?['name'])))"
+                            },
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            }
+                          },
+                          "Record_the_failure_inside_Scan_the_column_in_windows": {
+                            "type": "AppendToArrayVariable",
+                            "runAfter": {
+                              "Find_the_failed_step_inside_Scan_the_column_in_windows": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                            "inputs": {
+                              "name": "failureTrail",
+                              "value": {
+                                "in": "Scan_the_column_in_windows",
+                                "step": "@{coalesce(first(body('Find_the_failed_step_inside_Scan_the_column_in_windows'))?['name'], 'unknown')}",
+                                "code": "@{coalesce(first(body('Find_the_failed_step_inside_Scan_the_column_in_windows'))?['error']?['code'], 'none')}"
+                              }
+                            }
+                          },
+                          "Rethrow_the_failure_inside_Scan_the_column_in_windows": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Record_the_failure_inside_Scan_the_column_in_windows": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                            "inputs": "@int(last(variables('failureTrail'))?['step'])"
                           },
                           "Check_every_window_was_scanned": {
                             "type": "If",
@@ -3422,6 +3885,55 @@
                             "else": {
                               "actions": {}
                             }
+                          },
+                          "Find_the_failed_step_inside_Check_every_window_was_scanned": {
+                            "type": "Query",
+                            "runAfter": {
+                              "Check_every_window_was_scanned": [
+                                "Failed",
+                                "TimedOut"
+                              ]
+                            },
+                            "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                            "inputs": {
+                              "from": "@result('Check_every_window_was_scanned')",
+                              "where": "@equals(item()?['status'], 'Failed')"
+                            },
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            }
+                          },
+                          "Record_the_failure_inside_Check_every_window_was_scanned": {
+                            "type": "AppendToArrayVariable",
+                            "runAfter": {
+                              "Find_the_failed_step_inside_Check_every_window_was_scanned": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                            "inputs": {
+                              "name": "failureTrail",
+                              "value": {
+                                "in": "Check_every_window_was_scanned",
+                                "step": "@{coalesce(first(body('Find_the_failed_step_inside_Check_every_window_was_scanned'))?['name'], 'unknown')}",
+                                "code": "@{coalesce(first(body('Find_the_failed_step_inside_Check_every_window_was_scanned'))?['error']?['code'], 'none')}"
+                              }
+                            }
+                          },
+                          "Rethrow_the_failure_inside_Check_every_window_was_scanned": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Record_the_failure_inside_Check_every_window_was_scanned": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                            "inputs": "@int(last(variables('failureTrail'))?['step'])"
                           },
                           "Finish_the_column": {
                             "type": "If",
@@ -3633,6 +4145,55 @@
                                         "actions": {}
                                       }
                                     },
+                                    "Find_the_failed_step_inside_If_the_span_closes_the_open_one": {
+                                      "type": "Query",
+                                      "runAfter": {
+                                        "If_the_span_closes_the_open_one": [
+                                          "Failed",
+                                          "TimedOut"
+                                        ]
+                                      },
+                                      "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                      "inputs": {
+                                        "from": "@result('If_the_span_closes_the_open_one')",
+                                        "where": "@equals(item()?['status'], 'Failed')"
+                                      },
+                                      "runtimeConfiguration": {
+                                        "secureData": {
+                                          "properties": [
+                                            "inputs",
+                                            "outputs"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "Record_the_failure_inside_If_the_span_closes_the_open_one": {
+                                      "type": "AppendToArrayVariable",
+                                      "runAfter": {
+                                        "Find_the_failed_step_inside_If_the_span_closes_the_open_one": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                      "inputs": {
+                                        "name": "failureTrail",
+                                        "value": {
+                                          "in": "If_the_span_closes_the_open_one",
+                                          "step": "@{coalesce(first(body('Find_the_failed_step_inside_If_the_span_closes_the_open_one'))?['name'], 'unknown')}",
+                                          "code": "@{coalesce(first(body('Find_the_failed_step_inside_If_the_span_closes_the_open_one'))?['error']?['code'], 'none')}"
+                                        }
+                                      }
+                                    },
+                                    "Rethrow_the_failure_inside_If_the_span_closes_the_open_one": {
+                                      "type": "Compose",
+                                      "runAfter": {
+                                        "Record_the_failure_inside_If_the_span_closes_the_open_one": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                      "inputs": "@int(last(variables('failureTrail'))?['step'])"
+                                    },
                                     "Set_cursor_start": {
                                       "type": "SetVariable",
                                       "runAfter": {
@@ -3700,6 +4261,55 @@
                                     }
                                   }
                                 },
+                                "Find_the_failed_step_inside_Merge_each_span": {
+                                  "type": "Query",
+                                  "runAfter": {
+                                    "Merge_each_span": [
+                                      "Failed",
+                                      "TimedOut"
+                                    ]
+                                  },
+                                  "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                  "inputs": {
+                                    "from": "@result('Merge_each_span')",
+                                    "where": "@equals(item()?['status'], 'Failed')"
+                                  },
+                                  "runtimeConfiguration": {
+                                    "secureData": {
+                                      "properties": [
+                                        "inputs",
+                                        "outputs"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "Record_the_failure_inside_Merge_each_span": {
+                                  "type": "AppendToArrayVariable",
+                                  "runAfter": {
+                                    "Find_the_failed_step_inside_Merge_each_span": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                  "inputs": {
+                                    "name": "failureTrail",
+                                    "value": {
+                                      "in": "Merge_each_span",
+                                      "step": "@{coalesce(first(body('Find_the_failed_step_inside_Merge_each_span'))?['name'], 'unknown')}",
+                                      "code": "@{coalesce(first(body('Find_the_failed_step_inside_Merge_each_span'))?['error']?['code'], 'none')}"
+                                    }
+                                  }
+                                },
+                                "Rethrow_the_failure_inside_Merge_each_span": {
+                                  "type": "Compose",
+                                  "runAfter": {
+                                    "Record_the_failure_inside_Merge_each_span": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                  "inputs": "@int(last(variables('failureTrail'))?['step'])"
+                                },
                                 "Close_the_last_span": {
                                   "type": "If",
                                   "runAfter": {
@@ -3748,6 +4358,55 @@
                                   "else": {
                                     "actions": {}
                                   }
+                                },
+                                "Find_the_failed_step_inside_Close_the_last_span": {
+                                  "type": "Query",
+                                  "runAfter": {
+                                    "Close_the_last_span": [
+                                      "Failed",
+                                      "TimedOut"
+                                    ]
+                                  },
+                                  "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                  "inputs": {
+                                    "from": "@result('Close_the_last_span')",
+                                    "where": "@equals(item()?['status'], 'Failed')"
+                                  },
+                                  "runtimeConfiguration": {
+                                    "secureData": {
+                                      "properties": [
+                                        "inputs",
+                                        "outputs"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "Record_the_failure_inside_Close_the_last_span": {
+                                  "type": "AppendToArrayVariable",
+                                  "runAfter": {
+                                    "Find_the_failed_step_inside_Close_the_last_span": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                  "inputs": {
+                                    "name": "failureTrail",
+                                    "value": {
+                                      "in": "Close_the_last_span",
+                                      "step": "@{coalesce(first(body('Find_the_failed_step_inside_Close_the_last_span'))?['name'], 'unknown')}",
+                                      "code": "@{coalesce(first(body('Find_the_failed_step_inside_Close_the_last_span'))?['error']?['code'], 'none')}"
+                                    }
+                                  }
+                                },
+                                "Rethrow_the_failure_inside_Close_the_last_span": {
+                                  "type": "Compose",
+                                  "runAfter": {
+                                    "Record_the_failure_inside_Close_the_last_span": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                  "inputs": "@int(last(variables('failureTrail'))?['step'])"
                                 },
                                 "Select_rebuild_pieces": {
                                   "type": "Select",
@@ -4512,6 +5171,55 @@
                                       "default": {
                                         "actions": {}
                                       }
+                                    },
+                                    "Find_the_failed_step_inside_Write_the_counterpart": {
+                                      "type": "Query",
+                                      "runAfter": {
+                                        "Write_the_counterpart": [
+                                          "Failed",
+                                          "TimedOut"
+                                        ]
+                                      },
+                                      "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                      "inputs": {
+                                        "from": "@result('Write_the_counterpart')",
+                                        "where": "@equals(item()?['status'], 'Failed')"
+                                      },
+                                      "runtimeConfiguration": {
+                                        "secureData": {
+                                          "properties": [
+                                            "inputs",
+                                            "outputs"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "Record_the_failure_inside_Write_the_counterpart": {
+                                      "type": "AppendToArrayVariable",
+                                      "runAfter": {
+                                        "Find_the_failed_step_inside_Write_the_counterpart": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                      "inputs": {
+                                        "name": "failureTrail",
+                                        "value": {
+                                          "in": "Write_the_counterpart",
+                                          "step": "@{coalesce(first(body('Find_the_failed_step_inside_Write_the_counterpart'))?['name'], 'unknown')}",
+                                          "code": "@{coalesce(first(body('Find_the_failed_step_inside_Write_the_counterpart'))?['error']?['code'], 'none')}"
+                                        }
+                                      }
+                                    },
+                                    "Rethrow_the_failure_inside_Write_the_counterpart": {
+                                      "type": "Compose",
+                                      "runAfter": {
+                                        "Record_the_failure_inside_Write_the_counterpart": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                      "inputs": "@int(last(variables('failureTrail'))?['step'])"
                                     }
                                   },
                                   "else": {
@@ -4527,17 +5235,238 @@
                                       }
                                     }
                                   }
+                                },
+                                "Find_the_failed_step_inside_Write_or_hold_the_column": {
+                                  "type": "Query",
+                                  "runAfter": {
+                                    "Write_or_hold_the_column": [
+                                      "Failed",
+                                      "TimedOut"
+                                    ]
+                                  },
+                                  "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                                  "inputs": {
+                                    "from": "@result('Write_or_hold_the_column')",
+                                    "where": "@equals(item()?['status'], 'Failed')"
+                                  },
+                                  "runtimeConfiguration": {
+                                    "secureData": {
+                                      "properties": [
+                                        "inputs",
+                                        "outputs"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "Record_the_failure_inside_Write_or_hold_the_column": {
+                                  "type": "AppendToArrayVariable",
+                                  "runAfter": {
+                                    "Find_the_failed_step_inside_Write_or_hold_the_column": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                                  "inputs": {
+                                    "name": "failureTrail",
+                                    "value": {
+                                      "in": "Write_or_hold_the_column",
+                                      "step": "@{coalesce(first(body('Find_the_failed_step_inside_Write_or_hold_the_column'))?['name'], 'unknown')}",
+                                      "code": "@{coalesce(first(body('Find_the_failed_step_inside_Write_or_hold_the_column'))?['error']?['code'], 'none')}"
+                                    }
+                                  }
+                                },
+                                "Rethrow_the_failure_inside_Write_or_hold_the_column": {
+                                  "type": "Compose",
+                                  "runAfter": {
+                                    "Record_the_failure_inside_Write_or_hold_the_column": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                                  "inputs": "@int(last(variables('failureTrail'))?['step'])"
                                 }
                               }
                             }
+                          },
+                          "Find_the_failed_step_inside_Finish_the_column": {
+                            "type": "Query",
+                            "runAfter": {
+                              "Finish_the_column": [
+                                "Failed",
+                                "TimedOut"
+                              ]
+                            },
+                            "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                            "inputs": {
+                              "from": "@result('Finish_the_column')",
+                              "where": "@equals(item()?['status'], 'Failed')"
+                            },
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            }
+                          },
+                          "Record_the_failure_inside_Finish_the_column": {
+                            "type": "AppendToArrayVariable",
+                            "runAfter": {
+                              "Find_the_failed_step_inside_Finish_the_column": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                            "inputs": {
+                              "name": "failureTrail",
+                              "value": {
+                                "in": "Finish_the_column",
+                                "step": "@{coalesce(first(body('Find_the_failed_step_inside_Finish_the_column'))?['name'], 'unknown')}",
+                                "code": "@{coalesce(first(body('Find_the_failed_step_inside_Finish_the_column'))?['error']?['code'], 'none')}"
+                              }
+                            }
+                          },
+                          "Rethrow_the_failure_inside_Finish_the_column": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Record_the_failure_inside_Finish_the_column": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                            "inputs": "@int(last(variables('failureTrail'))?['step'])"
                           }
                         }
                       }
+                    },
+                    "Find_the_failed_step_inside_Keep_or_scrub_the_column": {
+                      "type": "Query",
+                      "runAfter": {
+                        "Keep_or_scrub_the_column": [
+                          "Failed",
+                          "TimedOut"
+                        ]
+                      },
+                      "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                      "inputs": {
+                        "from": "@result('Keep_or_scrub_the_column')",
+                        "where": "@equals(item()?['status'], 'Failed')"
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Record_the_failure_inside_Keep_or_scrub_the_column": {
+                      "type": "AppendToArrayVariable",
+                      "runAfter": {
+                        "Find_the_failed_step_inside_Keep_or_scrub_the_column": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                      "inputs": {
+                        "name": "failureTrail",
+                        "value": {
+                          "in": "Keep_or_scrub_the_column",
+                          "step": "@{coalesce(first(body('Find_the_failed_step_inside_Keep_or_scrub_the_column'))?['name'], 'unknown')}",
+                          "code": "@{coalesce(first(body('Find_the_failed_step_inside_Keep_or_scrub_the_column'))?['error']?['code'], 'none')}"
+                        }
+                      }
+                    },
+                    "Rethrow_the_failure_inside_Keep_or_scrub_the_column": {
+                      "type": "Compose",
+                      "runAfter": {
+                        "Record_the_failure_inside_Keep_or_scrub_the_column": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                      "inputs": "@int(last(variables('failureTrail'))?['step'])"
                     }
                   },
                   "else": {
                     "actions": {}
                   }
+                },
+                "Find_the_failed_step_inside_Scrub_the_column_if_it_has_text": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Scrub_the_column_if_it_has_text": [
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  },
+                  "description": "Runs only when this container failed, inside the same iteration (a loop cannot be read from outside it). Skips handled failures. Secured: results can carry row data.",
+                  "inputs": {
+                    "from": "@result('Scrub_the_column_if_it_has_text')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Record_the_failure_inside_Scrub_the_column_if_it_has_text": {
+                  "type": "AppendToArrayVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Scrub_the_column_if_it_has_text": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Which child of this container failed first, and its code, carried out of the loop. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                  "inputs": {
+                    "name": "failureTrail",
+                    "value": {
+                      "in": "Scrub_the_column_if_it_has_text",
+                      "step": "@{coalesce(first(body('Find_the_failed_step_inside_Scrub_the_column_if_it_has_text'))?['name'], 'unknown')}",
+                      "code": "@{coalesce(first(body('Find_the_failed_step_inside_Scrub_the_column_if_it_has_text'))?['error']?['code'], 'none')}"
+                    }
+                  }
+                },
+                "Rethrow_the_failure_inside_Scrub_the_column_if_it_has_text": {
+                  "type": "Compose",
+                  "runAfter": {
+                    "Record_the_failure_inside_Scrub_the_column_if_it_has_text": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Fails on purpose so the iteration, the loop and the run still fail: a loop cannot Terminate. int() of the recorded step name always throws (A-NS-27).",
+                  "inputs": "@int(last(variables('failureTrail'))?['step'])"
+                },
+                "Stop_after_a_failure_in_For_each_column": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Scrub_the_column_if_it_has_text": [
+                      "Failed",
+                      "Skipped",
+                      "TimedOut"
+                    ]
+                  },
+                  "description": "Something in this iteration failed (Scrub_the_column_if_it_has_text did not succeed), so no further iteration, column or AI Builder call runs: the loop and the column guard read this.",
+                  "inputs": {
+                    "name": "failureSeen",
+                    "value": true
+                  }
+                },
+                "Rethrow_the_stop_in_For_each_column": {
+                  "type": "Compose",
+                  "runAfter": {
+                    "Stop_after_a_failure_in_For_each_column": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Fails on purpose, so the failure the stop ran after is not read as handled: the iteration, the loop and the run still fail (A-NS-27).",
+                  "inputs": "@int(string(variables('failureSeen')))"
                 }
               },
               "runtimeConfiguration": {
@@ -4794,7 +5723,7 @@
                 "Find_the_failed_step_inside_For_each_column": {
                   "type": "Query",
                   "runAfter": {},
-                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
+                  "description": "The loop body's first failed child, from any iteration (A-NS-19). Where it is a container, the trail says what failed inside it. Secured: results can carry row data.",
                   "inputs": {
                     "from": "@result('For_each_column')",
                     "where": "@equals(item()?['status'], 'Failed')"
@@ -4808,732 +5737,86 @@
                     }
                   }
                 },
-                "Describe_the_failure_inside_For_each_column": {
-                  "type": "Switch",
+                "Start_at_the_failed_step": {
+                  "type": "SetVariable",
                   "runAfter": {
                     "Find_the_failed_step_inside_For_each_column": [
                       "Succeeded"
                     ]
                   },
-                  "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                  "expression": "@first(body('Find_the_failed_step_inside_For_each_column'))?['name']",
-                  "cases": {
-                    "Failed_in_Scrub_the_column_if_it_has_text": {
-                      "case": "Scrub_the_column_if_it_has_text",
-                      "actions": {
-                        "Find_the_failed_step_inside_Scrub_the_column_if_it_has_text": {
-                          "type": "Query",
-                          "runAfter": {},
-                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                          "inputs": {
-                            "from": "@result('Scrub_the_column_if_it_has_text')",
-                            "where": "@equals(item()?['status'], 'Failed')"
-                          },
-                          "runtimeConfiguration": {
-                            "secureData": {
-                              "properties": [
-                                "inputs",
-                                "outputs"
-                              ]
-                            }
-                          }
-                        },
-                        "Describe_the_failure_inside_Scrub_the_column_if_it_has_text": {
-                          "type": "Switch",
-                          "runAfter": {
-                            "Find_the_failed_step_inside_Scrub_the_column_if_it_has_text": [
-                              "Succeeded"
-                            ]
-                          },
-                          "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                          "expression": "@first(body('Find_the_failed_step_inside_Scrub_the_column_if_it_has_text'))?['name']",
-                          "cases": {
-                            "Failed_in_Keep_or_scrub_the_column": {
-                              "case": "Keep_or_scrub_the_column",
-                              "actions": {
-                                "Find_the_failed_step_inside_Keep_or_scrub_the_column": {
-                                  "type": "Query",
-                                  "runAfter": {},
-                                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                  "inputs": {
-                                    "from": "@result('Keep_or_scrub_the_column')",
-                                    "where": "@equals(item()?['status'], 'Failed')"
-                                  },
-                                  "runtimeConfiguration": {
-                                    "secureData": {
-                                      "properties": [
-                                        "inputs",
-                                        "outputs"
-                                      ]
-                                    }
-                                  }
-                                },
-                                "Describe_the_failure_inside_Keep_or_scrub_the_column": {
-                                  "type": "Switch",
-                                  "runAfter": {
-                                    "Find_the_failed_step_inside_Keep_or_scrub_the_column": [
-                                      "Succeeded"
-                                    ]
-                                  },
-                                  "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                                  "expression": "@first(body('Find_the_failed_step_inside_Keep_or_scrub_the_column'))?['name']",
-                                  "cases": {
-                                    "Failed_in_Scan_the_column_in_windows": {
-                                      "case": "Scan_the_column_in_windows",
-                                      "actions": {
-                                        "Find_the_failed_step_inside_Scan_the_column_in_windows": {
-                                          "type": "Query",
-                                          "runAfter": {},
-                                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                          "inputs": {
-                                            "from": "@result('Scan_the_column_in_windows')",
-                                            "where": "@equals(item()?['status'], 'Failed')"
-                                          },
-                                          "runtimeConfiguration": {
-                                            "secureData": {
-                                              "properties": [
-                                                "inputs",
-                                                "outputs"
-                                              ]
-                                            }
-                                          }
-                                        },
-                                        "Describe_the_failure_inside_Scan_the_column_in_windows": {
-                                          "type": "Switch",
-                                          "runAfter": {
-                                            "Find_the_failed_step_inside_Scan_the_column_in_windows": [
-                                              "Succeeded"
-                                            ]
-                                          },
-                                          "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                                          "expression": "@first(body('Find_the_failed_step_inside_Scan_the_column_in_windows'))?['name']",
-                                          "cases": {
-                                            "Failed_in_Handle_the_extractor_answer": {
-                                              "case": "Handle_the_extractor_answer",
-                                              "actions": {
-                                                "Find_the_failed_step_inside_Handle_the_extractor_answer": {
-                                                  "type": "Query",
-                                                  "runAfter": {},
-                                                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                  "inputs": {
-                                                    "from": "@result('Handle_the_extractor_answer')",
-                                                    "where": "@equals(item()?['status'], 'Failed')"
-                                                  },
-                                                  "runtimeConfiguration": {
-                                                    "secureData": {
-                                                      "properties": [
-                                                        "inputs",
-                                                        "outputs"
-                                                      ]
-                                                    }
-                                                  }
-                                                },
-                                                "Describe_the_failure_inside_Handle_the_extractor_answer": {
-                                                  "type": "Switch",
-                                                  "runAfter": {
-                                                    "Find_the_failed_step_inside_Handle_the_extractor_answer": [
-                                                      "Succeeded"
-                                                    ]
-                                                  },
-                                                  "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                                                  "expression": "@first(body('Find_the_failed_step_inside_Handle_the_extractor_answer'))?['name']",
-                                                  "cases": {
-                                                    "Failed_in_Record_unmapped_types": {
-                                                      "case": "Record_unmapped_types",
-                                                      "actions": {
-                                                        "Find_the_failed_step_inside_Record_unmapped_types": {
-                                                          "type": "Query",
-                                                          "runAfter": {},
-                                                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                          "inputs": {
-                                                            "from": "@result('Record_unmapped_types')",
-                                                            "where": "@equals(item()?['status'], 'Failed')"
-                                                          },
-                                                          "runtimeConfiguration": {
-                                                            "secureData": {
-                                                              "properties": [
-                                                                "inputs",
-                                                                "outputs"
-                                                              ]
-                                                            }
-                                                          }
-                                                        },
-                                                        "Set_failure_detail_from_Record_unmapped_types": {
-                                                          "type": "SetVariable",
-                                                          "runAfter": {
-                                                            "Find_the_failed_step_inside_Record_unmapped_types": [
-                                                              "Succeeded"
-                                                            ]
-                                                          },
-                                                          "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                          "inputs": {
-                                                            "name": "failureDetail",
-                                                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Record_unmapped_types'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Record_unmapped_types'))?['error']?['code'], 'none'))}"
-                                                          }
-                                                        }
-                                                      }
-                                                    },
-                                                    "Failed_in_Refine_each_name": {
-                                                      "case": "Refine_each_name",
-                                                      "actions": {
-                                                        "Find_the_failed_step_inside_Refine_each_name": {
-                                                          "type": "Query",
-                                                          "runAfter": {},
-                                                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                          "inputs": {
-                                                            "from": "@result('Refine_each_name')",
-                                                            "where": "@equals(item()?['status'], 'Failed')"
-                                                          },
-                                                          "runtimeConfiguration": {
-                                                            "secureData": {
-                                                              "properties": [
-                                                                "inputs",
-                                                                "outputs"
-                                                              ]
-                                                            }
-                                                          }
-                                                        },
-                                                        "Set_failure_detail_from_Refine_each_name": {
-                                                          "type": "SetVariable",
-                                                          "runAfter": {
-                                                            "Find_the_failed_step_inside_Refine_each_name": [
-                                                              "Succeeded"
-                                                            ]
-                                                          },
-                                                          "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                          "inputs": {
-                                                            "name": "failureDetail",
-                                                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Refine_each_name'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Refine_each_name'))?['error']?['code'], 'none'))}"
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  },
-                                                  "default": {
-                                                    "actions": {
-                                                      "Set_failure_detail_from_Handle_the_extractor_answer": {
-                                                        "type": "SetVariable",
-                                                        "runAfter": {},
-                                                        "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                        "inputs": {
-                                                          "name": "failureDetail",
-                                                          "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Handle_the_extractor_answer'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Handle_the_extractor_answer'))?['error']?['code'], 'none'))}"
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            },
-                                            "Failed_in_Detect_shapes_in_the_window": {
-                                              "case": "Detect_shapes_in_the_window",
-                                              "actions": {
-                                                "Find_the_failed_step_inside_Detect_shapes_in_the_window": {
-                                                  "type": "Query",
-                                                  "runAfter": {},
-                                                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                  "inputs": {
-                                                    "from": "@result('Detect_shapes_in_the_window')",
-                                                    "where": "@equals(item()?['status'], 'Failed')"
-                                                  },
-                                                  "runtimeConfiguration": {
-                                                    "secureData": {
-                                                      "properties": [
-                                                        "inputs",
-                                                        "outputs"
-                                                      ]
-                                                    }
-                                                  }
-                                                },
-                                                "Set_failure_detail_from_Detect_shapes_in_the_window": {
-                                                  "type": "SetVariable",
-                                                  "runAfter": {
-                                                    "Find_the_failed_step_inside_Detect_shapes_in_the_window": [
-                                                      "Succeeded"
-                                                    ]
-                                                  },
-                                                  "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                  "inputs": {
-                                                    "name": "failureDetail",
-                                                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Detect_shapes_in_the_window'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Detect_shapes_in_the_window'))?['error']?['code'], 'none'))}"
-                                                  }
-                                                }
-                                              }
-                                            },
-                                            "Failed_in_Use_the_prompt_on_the_window": {
-                                              "case": "Use_the_prompt_on_the_window",
-                                              "actions": {
-                                                "Find_the_failed_step_inside_Use_the_prompt_on_the_window": {
-                                                  "type": "Query",
-                                                  "runAfter": {},
-                                                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                  "inputs": {
-                                                    "from": "@result('Use_the_prompt_on_the_window')",
-                                                    "where": "@equals(item()?['status'], 'Failed')"
-                                                  },
-                                                  "runtimeConfiguration": {
-                                                    "secureData": {
-                                                      "properties": [
-                                                        "inputs",
-                                                        "outputs"
-                                                      ]
-                                                    }
-                                                  }
-                                                },
-                                                "Describe_the_failure_inside_Use_the_prompt_on_the_window": {
-                                                  "type": "Switch",
-                                                  "runAfter": {
-                                                    "Find_the_failed_step_inside_Use_the_prompt_on_the_window": [
-                                                      "Succeeded"
-                                                    ]
-                                                  },
-                                                  "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                                                  "expression": "@first(body('Find_the_failed_step_inside_Use_the_prompt_on_the_window'))?['name']",
-                                                  "cases": {
-                                                    "Failed_in_Check_the_prompt_answer": {
-                                                      "case": "Check_the_prompt_answer",
-                                                      "actions": {
-                                                        "Find_the_failed_step_inside_Check_the_prompt_answer": {
-                                                          "type": "Query",
-                                                          "runAfter": {},
-                                                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                          "inputs": {
-                                                            "from": "@result('Check_the_prompt_answer')",
-                                                            "where": "@equals(item()?['status'], 'Failed')"
-                                                          },
-                                                          "runtimeConfiguration": {
-                                                            "secureData": {
-                                                              "properties": [
-                                                                "inputs",
-                                                                "outputs"
-                                                              ]
-                                                            }
-                                                          }
-                                                        },
-                                                        "Describe_the_failure_inside_Check_the_prompt_answer": {
-                                                          "type": "Switch",
-                                                          "runAfter": {
-                                                            "Find_the_failed_step_inside_Check_the_prompt_answer": [
-                                                              "Succeeded"
-                                                            ]
-                                                          },
-                                                          "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                                                          "expression": "@first(body('Find_the_failed_step_inside_Check_the_prompt_answer'))?['name']",
-                                                          "cases": {
-                                                            "Failed_in_Validate_the_prompt_answer": {
-                                                              "case": "Validate_the_prompt_answer",
-                                                              "actions": {
-                                                                "Find_the_failed_step_inside_Validate_the_prompt_answer": {
-                                                                  "type": "Query",
-                                                                  "runAfter": {},
-                                                                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                                  "inputs": {
-                                                                    "from": "@result('Validate_the_prompt_answer')",
-                                                                    "where": "@equals(item()?['status'], 'Failed')"
-                                                                  },
-                                                                  "runtimeConfiguration": {
-                                                                    "secureData": {
-                                                                      "properties": [
-                                                                        "inputs",
-                                                                        "outputs"
-                                                                      ]
-                                                                    }
-                                                                  }
-                                                                },
-                                                                "Set_failure_detail_from_Validate_the_prompt_answer": {
-                                                                  "type": "SetVariable",
-                                                                  "runAfter": {
-                                                                    "Find_the_failed_step_inside_Validate_the_prompt_answer": [
-                                                                      "Succeeded"
-                                                                    ]
-                                                                  },
-                                                                  "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                                  "inputs": {
-                                                                    "name": "failureDetail",
-                                                                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Validate_the_prompt_answer'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Validate_the_prompt_answer'))?['error']?['code'], 'none'))}"
-                                                                  }
-                                                                }
-                                                              }
-                                                            }
-                                                          },
-                                                          "default": {
-                                                            "actions": {
-                                                              "Set_failure_detail_from_Check_the_prompt_answer": {
-                                                                "type": "SetVariable",
-                                                                "runAfter": {},
-                                                                "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                                "inputs": {
-                                                                  "name": "failureDetail",
-                                                                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Check_the_prompt_answer'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Check_the_prompt_answer'))?['error']?['code'], 'none'))}"
-                                                                }
-                                                              }
-                                                            }
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  },
-                                                  "default": {
-                                                    "actions": {
-                                                      "Set_failure_detail_from_Use_the_prompt_on_the_window": {
-                                                        "type": "SetVariable",
-                                                        "runAfter": {},
-                                                        "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                        "inputs": {
-                                                          "name": "failureDetail",
-                                                          "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Use_the_prompt_on_the_window'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Use_the_prompt_on_the_window'))?['error']?['code'], 'none'))}"
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          },
-                                          "default": {
-                                            "actions": {
-                                              "Set_failure_detail_from_Scan_the_column_in_windows": {
-                                                "type": "SetVariable",
-                                                "runAfter": {},
-                                                "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                "inputs": {
-                                                  "name": "failureDetail",
-                                                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Scan_the_column_in_windows'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Scan_the_column_in_windows'))?['error']?['code'], 'none'))}"
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    },
-                                    "Failed_in_Check_every_window_was_scanned": {
-                                      "case": "Check_every_window_was_scanned",
-                                      "actions": {
-                                        "Find_the_failed_step_inside_Check_every_window_was_scanned": {
-                                          "type": "Query",
-                                          "runAfter": {},
-                                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                          "inputs": {
-                                            "from": "@result('Check_every_window_was_scanned')",
-                                            "where": "@equals(item()?['status'], 'Failed')"
-                                          },
-                                          "runtimeConfiguration": {
-                                            "secureData": {
-                                              "properties": [
-                                                "inputs",
-                                                "outputs"
-                                              ]
-                                            }
-                                          }
-                                        },
-                                        "Set_failure_detail_from_Check_every_window_was_scanned": {
-                                          "type": "SetVariable",
-                                          "runAfter": {
-                                            "Find_the_failed_step_inside_Check_every_window_was_scanned": [
-                                              "Succeeded"
-                                            ]
-                                          },
-                                          "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                          "inputs": {
-                                            "name": "failureDetail",
-                                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Check_every_window_was_scanned'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Check_every_window_was_scanned'))?['error']?['code'], 'none'))}"
-                                          }
-                                        }
-                                      }
-                                    },
-                                    "Failed_in_Finish_the_column": {
-                                      "case": "Finish_the_column",
-                                      "actions": {
-                                        "Find_the_failed_step_inside_Finish_the_column": {
-                                          "type": "Query",
-                                          "runAfter": {},
-                                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                          "inputs": {
-                                            "from": "@result('Finish_the_column')",
-                                            "where": "@equals(item()?['status'], 'Failed')"
-                                          },
-                                          "runtimeConfiguration": {
-                                            "secureData": {
-                                              "properties": [
-                                                "inputs",
-                                                "outputs"
-                                              ]
-                                            }
-                                          }
-                                        },
-                                        "Describe_the_failure_inside_Finish_the_column": {
-                                          "type": "Switch",
-                                          "runAfter": {
-                                            "Find_the_failed_step_inside_Finish_the_column": [
-                                              "Succeeded"
-                                            ]
-                                          },
-                                          "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                                          "expression": "@first(body('Find_the_failed_step_inside_Finish_the_column'))?['name']",
-                                          "cases": {
-                                            "Failed_in_Merge_each_span": {
-                                              "case": "Merge_each_span",
-                                              "actions": {
-                                                "Find_the_failed_step_inside_Merge_each_span": {
-                                                  "type": "Query",
-                                                  "runAfter": {},
-                                                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                  "inputs": {
-                                                    "from": "@result('Merge_each_span')",
-                                                    "where": "@equals(item()?['status'], 'Failed')"
-                                                  },
-                                                  "runtimeConfiguration": {
-                                                    "secureData": {
-                                                      "properties": [
-                                                        "inputs",
-                                                        "outputs"
-                                                      ]
-                                                    }
-                                                  }
-                                                },
-                                                "Describe_the_failure_inside_Merge_each_span": {
-                                                  "type": "Switch",
-                                                  "runAfter": {
-                                                    "Find_the_failed_step_inside_Merge_each_span": [
-                                                      "Succeeded"
-                                                    ]
-                                                  },
-                                                  "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                                                  "expression": "@first(body('Find_the_failed_step_inside_Merge_each_span'))?['name']",
-                                                  "cases": {
-                                                    "Failed_in_If_the_span_closes_the_open_one": {
-                                                      "case": "If_the_span_closes_the_open_one",
-                                                      "actions": {
-                                                        "Find_the_failed_step_inside_If_the_span_closes_the_open_one": {
-                                                          "type": "Query",
-                                                          "runAfter": {},
-                                                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                          "inputs": {
-                                                            "from": "@result('If_the_span_closes_the_open_one')",
-                                                            "where": "@equals(item()?['status'], 'Failed')"
-                                                          },
-                                                          "runtimeConfiguration": {
-                                                            "secureData": {
-                                                              "properties": [
-                                                                "inputs",
-                                                                "outputs"
-                                                              ]
-                                                            }
-                                                          }
-                                                        },
-                                                        "Set_failure_detail_from_If_the_span_closes_the_open_one": {
-                                                          "type": "SetVariable",
-                                                          "runAfter": {
-                                                            "Find_the_failed_step_inside_If_the_span_closes_the_open_one": [
-                                                              "Succeeded"
-                                                            ]
-                                                          },
-                                                          "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                          "inputs": {
-                                                            "name": "failureDetail",
-                                                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_If_the_span_closes_the_open_one'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_If_the_span_closes_the_open_one'))?['error']?['code'], 'none'))}"
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  },
-                                                  "default": {
-                                                    "actions": {
-                                                      "Set_failure_detail_from_Merge_each_span": {
-                                                        "type": "SetVariable",
-                                                        "runAfter": {},
-                                                        "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                        "inputs": {
-                                                          "name": "failureDetail",
-                                                          "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Merge_each_span'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Merge_each_span'))?['error']?['code'], 'none'))}"
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            },
-                                            "Failed_in_Close_the_last_span": {
-                                              "case": "Close_the_last_span",
-                                              "actions": {
-                                                "Find_the_failed_step_inside_Close_the_last_span": {
-                                                  "type": "Query",
-                                                  "runAfter": {},
-                                                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                  "inputs": {
-                                                    "from": "@result('Close_the_last_span')",
-                                                    "where": "@equals(item()?['status'], 'Failed')"
-                                                  },
-                                                  "runtimeConfiguration": {
-                                                    "secureData": {
-                                                      "properties": [
-                                                        "inputs",
-                                                        "outputs"
-                                                      ]
-                                                    }
-                                                  }
-                                                },
-                                                "Set_failure_detail_from_Close_the_last_span": {
-                                                  "type": "SetVariable",
-                                                  "runAfter": {
-                                                    "Find_the_failed_step_inside_Close_the_last_span": [
-                                                      "Succeeded"
-                                                    ]
-                                                  },
-                                                  "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                  "inputs": {
-                                                    "name": "failureDetail",
-                                                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Close_the_last_span'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Close_the_last_span'))?['error']?['code'], 'none'))}"
-                                                  }
-                                                }
-                                              }
-                                            },
-                                            "Failed_in_Write_or_hold_the_column": {
-                                              "case": "Write_or_hold_the_column",
-                                              "actions": {
-                                                "Find_the_failed_step_inside_Write_or_hold_the_column": {
-                                                  "type": "Query",
-                                                  "runAfter": {},
-                                                  "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                  "inputs": {
-                                                    "from": "@result('Write_or_hold_the_column')",
-                                                    "where": "@equals(item()?['status'], 'Failed')"
-                                                  },
-                                                  "runtimeConfiguration": {
-                                                    "secureData": {
-                                                      "properties": [
-                                                        "inputs",
-                                                        "outputs"
-                                                      ]
-                                                    }
-                                                  }
-                                                },
-                                                "Describe_the_failure_inside_Write_or_hold_the_column": {
-                                                  "type": "Switch",
-                                                  "runAfter": {
-                                                    "Find_the_failed_step_inside_Write_or_hold_the_column": [
-                                                      "Succeeded"
-                                                    ]
-                                                  },
-                                                  "description": "Descends result() into whichever container failed, down to the leaf (IMP-0109). A-NS-19: inside a loop, result() may show only the latest iteration.",
-                                                  "expression": "@first(body('Find_the_failed_step_inside_Write_or_hold_the_column'))?['name']",
-                                                  "cases": {
-                                                    "Failed_in_Write_the_counterpart": {
-                                                      "case": "Write_the_counterpart",
-                                                      "actions": {
-                                                        "Find_the_failed_step_inside_Write_the_counterpart": {
-                                                          "type": "Query",
-                                                          "runAfter": {},
-                                                          "description": "Only evaluated when this container is the failure. Secured: results can carry row data.",
-                                                          "inputs": {
-                                                            "from": "@result('Write_the_counterpart')",
-                                                            "where": "@equals(item()?['status'], 'Failed')"
-                                                          },
-                                                          "runtimeConfiguration": {
-                                                            "secureData": {
-                                                              "properties": [
-                                                                "inputs",
-                                                                "outputs"
-                                                              ]
-                                                            }
-                                                          }
-                                                        },
-                                                        "Set_failure_detail_from_Write_the_counterpart": {
-                                                          "type": "SetVariable",
-                                                          "runAfter": {
-                                                            "Find_the_failed_step_inside_Write_the_counterpart": [
-                                                              "Succeeded"
-                                                            ]
-                                                          },
-                                                          "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                          "inputs": {
-                                                            "name": "failureDetail",
-                                                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Write_the_counterpart'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Write_the_counterpart'))?['error']?['code'], 'none'))}"
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  },
-                                                  "default": {
-                                                    "actions": {
-                                                      "Set_failure_detail_from_Write_or_hold_the_column": {
-                                                        "type": "SetVariable",
-                                                        "runAfter": {},
-                                                        "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                        "inputs": {
-                                                          "name": "failureDetail",
-                                                          "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Write_or_hold_the_column'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Write_or_hold_the_column'))?['error']?['code'], 'none'))}"
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          },
-                                          "default": {
-                                            "actions": {
-                                              "Set_failure_detail_from_Finish_the_column": {
-                                                "type": "SetVariable",
-                                                "runAfter": {},
-                                                "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                                "inputs": {
-                                                  "name": "failureDetail",
-                                                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Finish_the_column'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Finish_the_column'))?['error']?['code'], 'none'))}"
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  },
-                                  "default": {
-                                    "actions": {
-                                      "Set_failure_detail_from_Keep_or_scrub_the_column": {
-                                        "type": "SetVariable",
-                                        "runAfter": {},
-                                        "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                        "inputs": {
-                                          "name": "failureDetail",
-                                          "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Keep_or_scrub_the_column'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Keep_or_scrub_the_column'))?['error']?['code'], 'none'))}"
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "default": {
-                            "actions": {
-                              "Set_failure_detail_from_Scrub_the_column_if_it_has_text": {
-                                "type": "SetVariable",
-                                "runAfter": {},
-                                "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                                "inputs": {
-                                  "name": "failureDetail",
-                                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Scrub_the_column_if_it_has_text'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Scrub_the_column_if_it_has_text'))?['error']?['code'], 'none'))}"
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
+                  "inputs": {
+                    "name": "failureCursor",
+                    "value": "@{coalesce(first(body('Find_the_failed_step_inside_For_each_column'))?['name'], 'unknown')}"
+                  }
+                },
+                "Follow_the_failure_inward": {
+                  "type": "Until",
+                  "runAfter": {
+                    "Start_at_the_failed_step": [
+                      "Succeeded"
+                    ]
                   },
-                  "default": {
-                    "actions": {
-                      "Set_failure_detail_from_For_each_column": {
-                        "type": "SetVariable",
-                        "runAfter": {},
-                        "description": "Name and code of the failed action. The platform's message is never copied: an AI Builder or Dataverse error could quote the narrative.",
-                        "inputs": {
-                          "name": "failureDetail",
-                          "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_For_each_column'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_For_each_column'))?['error']?['code'], 'none'))}"
-                        }
+                  "description": "Moves from a container to the child that failed first inside it, as recorded in the iteration, until the step is a leaf. At most 5 moves, so 6 iterations. Ends at once if a move fails.",
+                  "expression": "@or(empty(body('Find_the_entry_for_the_cursor')), not(equals(variables('failureCursor'), outputs('Compose_the_next_step'))))",
+                  "limit": {
+                    "count": 6,
+                    "timeout": "PT2M"
+                  },
+                  "actions": {
+                    "Find_the_entry_for_the_cursor": {
+                      "type": "Query",
+                      "runAfter": {},
+                      "inputs": {
+                        "from": "@variables('failureTrail')",
+                        "where": "@equals(item()?['in'], variables('failureCursor'))"
+                      }
+                    },
+                    "Compose_the_next_step": {
+                      "type": "Compose",
+                      "runAfter": {
+                        "Find_the_entry_for_the_cursor": [
+                          "Succeeded"
+                        ]
+                      },
+                      "inputs": "@coalesce(first(body('Find_the_entry_for_the_cursor'))?['step'], variables('failureCursor'))"
+                    },
+                    "Move_to_the_next_step": {
+                      "type": "SetVariable",
+                      "runAfter": {
+                        "Compose_the_next_step": [
+                          "Succeeded"
+                        ]
+                      },
+                      "inputs": {
+                        "name": "failureCursor",
+                        "value": "@outputs('Compose_the_next_step')"
                       }
                     }
+                  }
+                },
+                "Find_the_entry_naming_the_leaf": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Follow_the_failure_inward": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "from": "@variables('failureTrail')",
+                    "where": "@equals(item()?['step'], variables('failureCursor'))"
+                  }
+                },
+                "Set_failure_detail_from_For_each_column": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_entry_naming_the_leaf": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Name and code of the leaf that failed. Never the platform's message: an AI Builder or Dataverse error could quote the narrative.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', variables('failureCursor'), ' | Code: ', coalesce(first(body('Find_the_entry_naming_the_leaf'))?['code'], first(body('Find_the_failed_step_inside_For_each_column'))?['error']?['code'], 'none'))}"
                   }
                 }
               }
@@ -5593,7 +5876,8 @@
           "runAfter": {
             "Describe_the_failure": [
               "Succeeded",
-              "Failed"
+              "Failed",
+              "TimedOut"
             ]
           },
           "description": "NFR-018: any failure fails closed - withheld and in the process owner's review list.",

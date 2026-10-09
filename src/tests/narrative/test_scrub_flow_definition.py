@@ -68,7 +68,7 @@ OTHER_SETTING = {"rev_name": "PostcodeRegionMap", "rev_value": "{\"LS\": 1}", "m
 
 def run_flow(row: dict, settings: dict, extract, status=6, case_insensitive=True, fail_get=False,
              fail_write=False, modified=None, register=SEED, definition=None, prompt=None,
-             prompt_wrap=platform_body) -> Run:
+             prompt_wrap=platform_body, stop_loops_on_failure=False) -> Run:
     """`register`: the codes the register read returns (SEED: the seed file), or None for a failed
     read. `modified`: rev_setting name -> modifiedon (default one fixed time). `prompt`: the answer to
     each prompt call (None: the call fails, as the model treats a missing call). `prompt_wrap`: the
@@ -134,7 +134,8 @@ def run_flow(row: dict, settings: dict, extract, status=6, case_insensitive=True
     engine = wdl_sim.Engine(
         definition or DEFINITION, {"rev_applicationid": "app-1", "rev_status": status, "rev_name": "APP-0001"},
         parameters={"rev_ProcessOwnerUpn": "owner@example.org", "rev_GrantAdminAppUrl": "https://example.org/main.aspx?appid=1"},
-        connector=connector, child_flow=lambda n, b: alerts.append(b), case_insensitive=case_insensitive)
+        connector=connector, child_flow=lambda n, b: alerts.append(b), case_insensitive=case_insensitive,
+        stop_loops_on_failure=stop_loops_on_failure)
     status_ = engine.run()
     return Run(status_, calls, column_writes, decision.get("Write_the_decision") or decision.get("Hold_the_record_for_review"),
                notices, alerts, engine)
@@ -870,17 +871,32 @@ def _table_of(entity_set):
 
 
 def trigger_of(definition):
-    """(table, messages, filter columns or None for 'any column') for a Dataverse row trigger, else None."""
+    """(table, messages, filter columns or None for 'any column') for a Dataverse row trigger, else None.
+
+    A trigger `conditions` block is accepted and NOT used to remove edges: a condition can only narrow when a
+    flow fires, so ignoring it over-approximates the edges and the loop check stays sound (it may report a
+    loop a condition prevents, never miss one). `trigger_conditions_of` returns them for a test to read."""
     for t in definition["triggers"].values():
         p = (t.get("inputs") or {}).get("parameters") or {}
         if "subscriptionRequest/entityname" not in p:
             return None
-        if t.get("conditions"):
-            raise AssertionError("trigger conditions present: extend the loop check to read them")
         cols = p.get("subscriptionRequest/filteringattributes")
         cols = {c.strip() for c in cols.split(",") if c.strip()} if cols else None
         return p["subscriptionRequest/entityname"], {p["subscriptionRequest/message"]}, cols
     return None
+
+
+def trigger_conditions_of(definition):
+    """The `expression` strings of the Dataverse row trigger's `conditions` block ([] when it has none)."""
+    for t in definition["triggers"].values():
+        if "subscriptionRequest/entityname" in ((t.get("inputs") or {}).get("parameters") or {}):
+            return [c.get("expression") for c in t.get("conditions") or []]
+    return []
+
+
+def _column_of(key):
+    """`item/<col>` -> column; a lookup is written as `item/<col>@odata.bind`, compared by its column name."""
+    return key[len("item/"):].removesuffix("@odata.bind")
 
 
 def writes_of(definition):
@@ -891,7 +907,7 @@ def writes_of(definition):
             continue
         if op not in WRITE_OPS:
             raise AssertionError(f"{name}: Dataverse operation {op} is not classified as a read or a write")
-        cols = {k[len("item/"):] for k in params if k.startswith("item/")}
+        cols = {_column_of(k) for k in params if k.startswith("item/")}
         whole_body = "item" in params
         out.append((name, WRITE_OPS[op], _table_of(params["entityName"]), None if whole_body else cols))
     return out
@@ -1017,11 +1033,407 @@ class NoTriggerLoop(unittest.TestCase):
         with self.assertRaises(AssertionError):
             writes_of(d)
 
-    def test_mutation_a_trigger_condition_is_not_silently_ignored(self):
-        d, _ = self._mutated(lambda d: next(iter(d["triggers"].values())).__setitem__(
+    def test_a_trigger_condition_no_longer_crashes_the_check_and_removes_no_edge(self):
+        d, flows = self._mutated(lambda d: next(iter(d["triggers"].values())).__setitem__(
             "conditions", [{"expression": "@true"}]))
-        with self.assertRaises(AssertionError):
-            trigger_of(d)
+        self.assertEqual(trigger_of(d), ("rev_application", {3}, {"rev_status"}))
+        self.assertEqual(trigger_conditions_of(d), ["@true"])
+        self.assertEqual(cycles(loop_edges(flows)), set())
+
+    def test_a_condition_does_not_hide_a_real_loop(self):
+        """Conditions only narrow, so a loop the column filter allows is still reported with one present."""
+        def loop(d):
+            next(iter(d["triggers"].values())).__setitem__("conditions", [{"expression": "@false"}])
+            _find(d, "Write_the_decision")["item/rev_status"] = 6
+        _, flows = self._mutated(loop)
+        self.assertIn("REVNarrativeScrubFreeText", cycles(loop_edges(flows)))
+
+    def test_safeguarding_flow_has_a_condition_and_is_not_on_a_cycle(self):
+        sg = all_flows()["REVSafeguardingActionCompletion"]
+        self.assertTrue(trigger_conditions_of(sg))
+        self.assertEqual(trigger_of(sg), ("rev_application", {3}, {"rev_safeguardingactioncompleted"}))
+        own = [cols for _, _, t, cols in writes_of(sg) if t == "rev_application"]
+        self.assertTrue(own)
+        for cols in own:
+            self.assertFalse(cols & {"rev_safeguardingactioncompleted"})
+        self.assertNotIn("REVSafeguardingActionCompletion", cycles(loop_edges(all_flows())))
+
+    def test_a_lookup_write_is_compared_by_column_name_not_odata_bind_key(self):
+        sg = all_flows()["REVSafeguardingActionCompletion"]
+        cols = {c for _, _, t, cs in writes_of(sg) if t == "rev_application" for c in cs}
+        self.assertIn("rev_safeguardingactioncompletedby", cols)
+        self.assertFalse([c for c in cols if "@odata" in c])
+
+    def test_mutation_a_lookup_bind_of_a_filtered_column_is_a_loop(self):
+        """If the bound lookup IS the column the trigger listens on, stripping the suffix must expose it."""
+        flows = all_flows()
+        sg = copy.deepcopy(flows["REVSafeguardingActionCompletion"])
+        (params,) = [p for _, op, p in _dataverse_actions(sg["actions"]) if op == "UpdateRecord"]
+        params["item/rev_safeguardingactioncompleted@odata.bind"] = "/systemusers(x)"
+        (t,) = sg["triggers"].values()
+        t["conditions"] = []
+        flows["REVSafeguardingActionCompletion"] = sg
+        self.assertIn("REVSafeguardingActionCompletion", cycles(loop_edges(flows)))
+
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# 2026-10-09: the failure diagnosis is done INSIDE the loop (failure_catches.py). Regression for the
+# designer save error "Referencing repetition actions from outside the scope is supported only when
+# there are no multiple levels of nesting" - which packed, imported as Draft and passed every gate.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+import importlib.util  # noqa: E402
+
+import failure_catches  # noqa: E402
+
+_spec = importlib.util.spec_from_file_location("_flow_language_gate", REPO / "scripts" / "verify-flow-definition-language.py")
+FLOW_GATE = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(FLOW_GATE)
+
+
+def _find_action(actions, name):
+    for n, a in actions.items():
+        if n == name:
+            return a
+        for branch in FLOW_GATE._branches(a):
+            hit = _find_action(branch, name)
+            if hit is not None:
+                return hit
+    return None
+
+
+def failing(name, definition=None):
+    """A copy of the definition in which `name` throws when it runs (an expression failure)."""
+    d = copy.deepcopy(definition or DEFINITION)
+    a = _find_action(d["actions"], name)
+    assert a is not None, name
+    boom = "@int('not a number')"
+    if a["type"] == "Compose":
+        a["inputs"] = boom
+    elif a["type"] in ("Select", "Query"):
+        a["inputs"]["from"] = boom
+    elif a["type"] in ("SetVariable", "AppendToArrayVariable"):
+        a["inputs"]["value"] = boom
+    else:
+        raise AssertionError(f"failing(): no mutation for {a['type']}")
+    return d
+
+
+HELD = {"rev_redactionreleased": False, "rev_redactionreviewrequired": True}
+
+
+class FailureDiagnosisInsideLoops(unittest.TestCase):
+    TEXT = "My carer Ann visits. Call 07700 900123."
+    ENTS = [rr.ExtractorEntity("PersonName", "Ann", 9, 3, 0.9)]
+
+    def _run(self, definition, row=None, settings=ALL_SETTINGS, **kw):
+        return run_flow(row or {"rev_narrativeraw": self.TEXT}, settings, lambda w: self.ENTS,
+                        definition=definition, **kw)
+
+    def _assert_named(self, sim, leaf):
+        self.assertEqual(len(sim.alerts), 1, "any failure alerts once")
+        self.assertEqual(sim.alerts[0]["text_2"].split(" | Code: ")[0], f"Action: {leaf}")
+        self.assertEqual(sim.decision_write, HELD, "the failure is re-raised: held, never decided")
+
+    # ── static ──────────────────────────────────────────────────────────────────────────────────
+    def test_the_shipped_diagnosis_is_the_generated_one(self):
+        self.assertEqual(failure_catches.generate(DEFINITION), DEFINITION,
+                         "run: python3 src/tests/narrative/failure_catches.py --write")
+
+    def test_nothing_reads_into_a_loop_from_outside_it(self):
+        self.assertEqual(FLOW_GATE.check12_findings({FLOW.name: {"definition": DEFINITION}}), [])
+
+    def test_check12_catches_the_shape_the_designer_refused(self):
+        """The pre-fix descent: the top level read result() of a container inside For_each_column."""
+        d = copy.deepcopy(DEFINITION)
+        d["actions"]["Describe_the_failure"]["cases"]["Failed_in_For_each_column"]["actions"][
+            "Find_the_failed_step_inside_Scrub_the_column_if_it_has_text"] = {
+            "type": "Query", "runAfter": {},
+            "inputs": {"from": "@result('Scrub_the_column_if_it_has_text')", "where": "@equals(item()?['status'], 'Failed')"}}
+        found = FLOW_GATE.check12_findings({"f": {"definition": d}})
+        self.assertEqual(len(found), 1)
+        self.assertIn("result('Scrub_the_column_if_it_has_text')", found[0])
+        self.assertIn("For_each_column", found[0])
+
+    def test_check12_forbids_one_level_and_two_and_allows_an_until_reading_its_body(self):
+        d = copy.deepcopy(DEFINITION)
+        d["actions"]["Compose_run_link"]["inputs"] = "@{outputs('Compose_raw_text')}"                   # one loop
+        d["actions"]["Alert_on_failure"]["inputs"]["body"]["text_4"] = "@{body('Select_shape_spans')}"  # two loops
+        found = FLOW_GATE.check12_findings({"f": {"definition": d}})
+        self.assertEqual(sorted(f.split("'")[1] for f in found), ["Alert_on_failure", "Compose_run_link"])
+        until = _find_action(d["actions"], "Scan_the_column_in_windows")
+        until["expression"] = "@equals(outputs('Compose_next_window_start'), 0)"
+        self.assertEqual(len(FLOW_GATE.check12_findings({"f": {"definition": d}})), 2,
+                         "an Until's own condition is evaluated inside the loop")
+
+    def test_every_container_in_the_loop_has_a_catch_beside_it_that_reraises(self):
+        loop = DEFINITION["actions"]["Scrub_free_text"]["actions"]["For_each_column"]
+        designed = {"Validate_the_prompt_answer"}   # its failure IS the 'invalid answer' path
+        seen = []
+
+        def walk(branch):
+            for n, a in branch.items():
+                if a["type"] not in failure_catches.CONTAINERS:
+                    continue
+                seen.append(n)
+                self.assertEqual(branch[f"Find_the_failed_step_inside_{n}"]["runAfter"], {n: ["Failed", "TimedOut"]})
+                if n in designed:
+                    self.assertNotIn(f"Rethrow_the_failure_inside_{n}", branch)
+                else:
+                    self.assertEqual(branch[f"Rethrow_the_failure_inside_{n}"]["inputs"], "@int(last(variables('failureTrail'))?['step'])")
+                for b in FLOW_GATE._branches(a):
+                    walk(b)
+        walk(loop["actions"])
+        every = [n for n, (_, a) in FLOW_GATE._index_with_loops(loop["actions"]).items()
+                 if a["type"] in failure_catches.CONTAINERS]   # both sides from source (C-TECH-067)
+        self.assertEqual(sorted(seen), sorted(every))
+        self.assertIn("Validate_the_prompt_answer", seen)
+        for n, a in loop["actions"].items():
+            if failure_catches._generated(n):
+                self.assertNotIn(a["type"], failure_catches.CONTAINERS, "a catch is leaves only (check 7)")
+
+    # ── behaviour: a failure anywhere inside the loop names its leaf, holds and alerts ────────────
+    def test_a_failure_at_each_depth_inside_the_loop_names_the_leaf(self):
+        base = self._run(None)
+        ran = {r.name for r in base.engine.records}
+        for leaf in ("Compose_raw_text",                 # loop body itself: the top level reads it
+                     "Reset_spans",                      # inside two Ifs
+                     "Compose_window_end",               # Until body (Scan's catch)
+                     "Compose_window_class_string",      # Scope inside the Until
+                     "Select_extractor_ages",            # If inside the Until
+                     "Compose_name_before",              # Foreach inside an If inside the Until
+                     "Compose_merge_step",               # Foreach in the column's finish
+                     "Set_last_merged_end_after_the_loop",
+                     "Compose_residue_strings"):
+            with self.subTest(leaf):
+                self.assertIn(leaf, ran, "the unmutated run executes it, so the mutation is reached")
+                sim = self._run(failing(leaf))
+                self._assert_named(sim, leaf)
+                self.assertEqual(sim.column_writes, {})
+
+    def test_a_consequential_failure_recorded_first_does_not_hide_the_cause(self):
+        """Until 2026-10-09 Detect_shapes_in_the_window ran after ANY Skipped extractor path, so it ran
+        after Compose_window_end failed, failed in consequence, and its catch recorded FIRST. It now runs
+        only after the window was read (EveryLoopEndsAfterAFailure), so the shipped flow no longer does
+        this; the old runAfter is put back here, because the top level must still follow the chain
+        from the loop body inwards rather than read the first entry."""
+        d = failing("Compose_window_end")
+        detect = _find_action(d["actions"], "Detect_shapes_in_the_window")
+        detect["runAfter"] = {"Handle_the_extractor_answer": ["Succeeded", "Skipped"],
+                              "Record_an_extractor_failure": ["Succeeded", "Skipped"]}
+        sim = self._run(d)
+        self.assertEqual(sim.engine.variables["failureTrail"][0]["in"], "Detect_shapes_in_the_window")
+        self._assert_named(sim, "Compose_window_end")
+        shipped = self._run(failing("Compose_window_end"))
+        self.assertNotIn("Detect_shapes_in_the_window", [e["in"] for e in shipped.engine.variables["failureTrail"]])
+        self._assert_named(shipped, "Compose_window_end")
+
+    def test_a_failure_in_the_prompt_answer_check_names_the_leaf(self):
+        """The deepest catch: Check_the_prompt_answer is at nesting depth 7."""
+        sim = run_flow({"rev_narrativeraw": PROMPT_TEXT}, PROMPT_SETTINGS, lambda w: [],
+                       prompt=PROMPT_ANSWERS["valid"], definition=failing("Join_the_prompt_answer_paths"))
+        self._assert_named(sim, "Join_the_prompt_answer_paths")
+
+    def test_a_failure_in_an_early_column_is_named_after_a_later_column_succeeds(self):
+        """Before 2026-10-09 the leaf was read from outside the loop, so a later successful column
+        could hide it (A-NS-19). It is now recorded inside the failing iteration."""
+        row = {"rev_narrativeraw": self.TEXT, "rev_carecostsexplanation": "Fine text"}
+        sim = self._run(None, row=row, fail_write=True)
+        self.assertEqual(len(sim.alerts), 1)
+        self.assertIn("Action: Write_rev_narrativeredacted | Code: ConnectorFailure", sim.alerts[0]["text_2"])
+
+    def test_a_designed_handled_failure_records_nothing(self):
+        for kw, settings in (({}, ALL_SETTINGS), ({"prompt": PROMPT_ANSWERS["valid"]}, PROMPT_SETTINGS)):
+            with self.subTest(prompt=bool(kw)):
+                def ext(w):
+                    raise RuntimeError("no AI Builder credits")
+                sim = run_flow({"rev_narrativeraw": PROMPT_TEXT}, settings, ext, **kw)
+                self.assertEqual(sim.engine.variables["failureTrail"], [])
+                self.assertEqual(sim.alerts, [])
+        for kind, prompt in PROMPT_ANSWERS.items():   # the call, the parse and Validate each fail by design
+            with self.subTest(kind):
+                sim = run_flow({"rev_narrativeraw": PROMPT_TEXT}, PROMPT_SETTINGS, lambda w: [], prompt=prompt)
+                self.assertEqual((sim.engine.variables["failureTrail"], sim.alerts), ([], []))
+
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# 2026-10-09, Iteration 6: every loop ends after a failure (reviewer: "definitely make sure the flow is
+# not going to stay stuck in a loop"). Before this, a failed window skipped Set_window_start, so under a
+# platform that keeps iterating after a failed iteration the Until re-ran the same window, AI Builder
+# calls and all, up to its count of 250. Each test runs under BOTH readings of that platform behaviour.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+AI_ACTIONS = ("Extract_entities_from_the_window", "Run_the_redaction_prompt")
+LONG = ("word " * 999 + "ring 07700 900123 please ") * 3          # four windows
+SCAN = "Scan_the_column_in_windows"
+BEHAVIOURS = {"keeps iterating": False, "stops at a failed iteration": True}
+
+
+def ai_calls_after(sim, failed_action):
+    """AI Builder actions STARTED after `failed_action` first failed (a record is made before it runs)."""
+    names = [r.name for r in sim.engine.records]
+    first = next(i for i, r in enumerate(sim.engine.records) if r.name == failed_action and r.status == "Failed")
+    return [n for n in names[first + 1:] if n in AI_ACTIONS]
+
+
+class EveryLoopEndsAfterAFailure(unittest.TestCase):
+    ROW = {"rev_narrativeraw": LONG, "rev_carecostsexplanation": LONG}   # a second column must not run
+
+    def _run(self, definition, stop, row=None, extract=None, **kw):
+        return run_flow(row or self.ROW, PROMPT_SETTINGS, extract or (lambda w: []), definition=definition,
+                        prompt=PROMPT_ANSWERS["valid"], stop_loops_on_failure=stop, **kw)
+
+    def _assert_ended(self, sim, failed, scan_iterations=1):
+        self.assertEqual(sim.engine.results[SCAN]["iterations"], scan_iterations, "the scan ends at the failed window")
+        self.assertEqual(ai_calls_after(sim, failed), [], "no AI Builder call after the failure")
+        self.assertIs(sim.engine.variables["failureSeen"], True)
+        self.assertEqual(sim.status, "Succeeded", "the run's own outcome: the failure handler ran")
+        self.assertEqual(sim.decision_write, HELD, "held, never decided")
+        self.assertEqual(len(sim.alerts), 1, "alerted once")
+        self.assertEqual(sim.alerts[0]["text_2"].split(" | Code: ")[0], f"Action: {failed}")
+        self.assertEqual(sim.column_writes, {})
+
+    def test_the_unmutated_run_needs_several_windows_and_calls_both_stages_in_each(self):
+        for label, stop in BEHAVIOURS.items():
+            with self.subTest(label):
+                sim = self._run(None, stop)
+                windows = len(rr.windows(LONG))
+                self.assertGreaterEqual(windows, 3)
+                self.assertEqual(sim.engine.results[SCAN]["iterations"], windows)
+                names = [r.name for r in sim.engine.records]
+                self.assertEqual([names.count(n) for n in AI_ACTIONS], [2 * windows, 2 * windows], "two columns")
+                self.assertEqual((sim.alerts, sim.engine.variables["failureSeen"]), ([], False))
+
+    def test_a_failure_at_each_window_step_ends_the_scan_and_the_run_holds_and_alerts_once(self):
+        """Every step of the window, at every depth the window has: its direct leaves, a leaf inside each
+        container, the prompt request just before the call, and the two steps that advance the loop."""
+        steps = ("Compose_window_end", "Compose_window_text", "Compose_window_entities",
+                 "Select_extractor_ages",          # inside Handle_the_extractor_answer
+                 "Compose_name_before",            # inside Refine_each_name, a Foreach inside that If
+                 "Compose_window_class_string",    # inside Detect_shapes_in_the_window
+                 "Compose_prompt_request",         # inside Use_the_prompt_on_the_window, before the call
+                 "Compose_prompt_answer_usable",   # after the call
+                 "Compose_next_window_start", "Set_window_start")
+        ents = lambda w: [rr.ExtractorEntity("PersonName", "word", 0, 4, 0.9)]   # noqa: E731 - reaches Refine_each_name
+        for label, stop in BEHAVIOURS.items():
+            for step in steps:
+                with self.subTest(label, step=step):
+                    sim = self._run(failing(step), stop, extract=ents)
+                    self._assert_ended(sim, step)
+
+    def test_a_failure_recording_an_extractor_failure_ends_the_scan(self):
+        def ext(w):
+            raise RuntimeError("no AI Builder credits")
+        for label, stop in BEHAVIOURS.items():
+            with self.subTest(label):
+                self._assert_ended(self._run(failing("Record_an_extractor_failure"), stop, extract=ext),
+                                   "Record_an_extractor_failure")
+
+    def test_a_failure_in_the_second_window_ends_the_scan_there(self):
+        """Not only the first window: Compose_window_text fails once windowStart has moved."""
+        d = copy.deepcopy(DEFINITION)
+        _find_action(d["actions"], "Compose_window_text")["inputs"] = (   # eager if(): only the length is chosen
+            "@substring(outputs('Compose_raw_text'), variables('windowStart'), if(equals(variables('windowStart'), 0), "
+            "sub(outputs('Compose_window_end'), variables('windowStart')), -1))")
+        for label, stop in BEHAVIOURS.items():
+            with self.subTest(label):
+                self._assert_ended(self._run(d, stop), "Compose_window_text", scan_iterations=2)
+
+    def test_a_designed_extractor_failure_ends_the_column_scan_after_one_window(self):
+        """columnFailed already makes the column ai-error, so later windows could change nothing."""
+        calls = []
+
+        def ext(w):
+            calls.append(w)
+            raise RuntimeError("no AI Builder credits")
+        row = {"rev_narrativeraw": LONG}
+        for label, stop in BEHAVIOURS.items():
+            with self.subTest(label):
+                calls.clear()
+                sim = self._run(None, stop, row=row, extract=ext)
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(sim.engine.results[SCAN]["iterations"], 1)
+                names = [r.name for r in sim.engine.records]
+                self.assertNotIn("Run_the_redaction_prompt", names, "an ai-error column's prompt result is never used")
+                self.assertEqual(sim.alerts, [])
+                self.assertEqual(sim.reasons, model(row, PROMPT_SETTINGS, ext, prompt_call=PROMPT_ANSWERS["valid"])[0].reasons)
+                self.assertIn("ai-error:rev_narrativeraw", sim.reasons)
+
+    def test_a_failure_in_one_column_makes_no_call_in_any_later_column(self):
+        """For_each_column goes on to later columns after a failed one on a platform that keeps
+        iterating; the guard on Scrub_the_column_if_it_has_text skips them."""
+        row = {"rev_narrativeraw": "Fine text here", "rev_carecostsexplanation": LONG}   # the first is written
+        for label, stop in BEHAVIOURS.items():
+            with self.subTest(label):
+                sim = self._run(None, stop, row=row, fail_write=True)
+                write = "Write_rev_narrativeredacted"
+                self.assertEqual(ai_calls_after(sim, write), [])
+                self.assertEqual(len(sim.alerts), 1)
+                self.assertEqual(sim.alerts[0]["text_2"].split(" | Code: ")[0], f"Action: {write}")
+                self.assertEqual(sim.decision_write, HELD)
+                self.assertNotIn("Write_rev_carecostsexplanationredacted", [r.name for r in sim.engine.records])
+
+    def test_a_failure_directly_in_the_column_loop_stops_later_columns(self):
+        """No catch records a failure of a leaf directly in the loop body; the loop's stop leaf does."""
+        d = copy.deepcopy(DEFINITION)
+        loop = d["actions"]["Scrub_free_text"]["actions"]["For_each_column"]
+        loop["actions"]["Compose_existing_counterpart"]["inputs"] = (
+            "@if(equals(items('For_each_column')?['raw'], 'rev_narrativeraw'), '', int('boom'))")
+        row = {"rev_otherconditionraw": LONG, "rev_carecostsexplanation": LONG}   # 2nd and 12th columns
+        for label, stop in BEHAVIOURS.items():
+            with self.subTest(label):
+                sim = self._run(d, stop, row=row)
+                self.assertNotIn("Extract_entities_from_the_window", [r.name for r in sim.engine.records])
+                self.assertEqual(len(sim.alerts), 1)
+                self.assertEqual(sim.decision_write, HELD)
+
+    def test_the_old_exit_condition_is_the_loop_the_reviewer_feared(self):
+        """Discrimination: with the pre-fix expression, a platform that keeps iterating re-runs the same
+        window up to the count limit. If this stops failing, the tests above prove nothing."""
+        d = failing("Compose_next_window_start")
+        _find_action(d["actions"], SCAN)["expression"] = (
+            "@greaterOrEquals(variables('windowStart'), length(outputs('Compose_raw_text')))")
+        sim = self._run(d, False, row={"rev_narrativeraw": LONG[:6000]})
+        self.assertEqual(sim.engine.results[SCAN]["iterations"], _find_action(DEFINITION["actions"], SCAN)["limit"]["count"])
+        self.assertGreater(len(ai_calls_after(sim, "Compose_next_window_start")), 100)
+
+    def test_the_old_detect_run_after_called_the_prompt_after_a_failure(self):
+        d = failing("Compose_window_entities")
+        _find_action(d["actions"], "Detect_shapes_in_the_window")["runAfter"] = {
+            "Handle_the_extractor_answer": ["Succeeded", "Skipped"], "Record_an_extractor_failure": ["Succeeded", "Skipped"]}
+        sim = self._run(d, False)
+        after = ai_calls_after(sim, "Compose_window_entities")
+        self.assertEqual(after[0], "Run_the_redaction_prompt", "the prompt ran in the failed window")
+        self.assertGreater(len(after), 1, "and the scan went on: nothing recorded the failure")
+
+    def test_the_failure_diagnosis_loop_is_bounded_and_ends_on_its_own_failure(self):
+        follow = _find_action(DEFINITION["actions"], "Follow_the_failure_inward")
+        loop = DEFINITION["actions"]["Scrub_free_text"]["actions"]["For_each_column"]
+        self.assertEqual(failure_catches.recorded_depth(loop["actions"]), 5)
+        self.assertEqual(follow["limit"], {"count": 6, "timeout": failure_catches.FOLLOW_TIMEOUT})
+        deepest = run_flow({"rev_narrativeraw": PROMPT_TEXT}, PROMPT_SETTINGS, lambda w: [],
+                           prompt=PROMPT_ANSWERS["valid"], definition=failing("Join_the_prompt_answer_paths"))
+        self.assertEqual(deepest.engine.results["Follow_the_failure_inward"]["iterations"], 6, "the deepest chain fits")
+        for step in ("Find_the_entry_for_the_cursor", "Compose_the_next_step", "Move_to_the_next_step"):
+            for label, stop in BEHAVIOURS.items():
+                with self.subTest(label, step=step):
+                    d = failing(step, failing("Compose_window_end"))
+                    sim = self._run(d, stop)
+                    self.assertEqual(sim.engine.results["Follow_the_failure_inward"]["iterations"], 1)
+                    self.assertEqual(len(sim.alerts), 1)
+                    self.assertEqual(sim.decision_write, HELD)
+
+    def test_every_until_reads_the_stop_and_has_a_stop_leaf_after_its_last_step(self):
+        """Static, from source on both sides: each Until inside the loop, and the loop itself."""
+        loop = DEFINITION["actions"]["Scrub_free_text"]["actions"]["For_each_column"]
+        bodies = {"For_each_column": loop["actions"]}
+        bodies.update({n: a["actions"] for n, (_, a) in FLOW_GATE._index_with_loops(loop["actions"]).items()
+                       if a["type"] == "Until"})
+        self.assertEqual(sorted(bodies), ["For_each_column", SCAN])
+        for owner, body in bodies.items():
+            with self.subTest(owner):
+                end = failure_catches._terminal(body)
+                self.assertEqual(body[f"Stop_after_a_failure_in_{owner}"]["runAfter"], {end: ["Failed", "Skipped", "TimedOut"]})
+                self.assertEqual(body[f"Rethrow_the_stop_in_{owner}"]["inputs"], "@int(string(variables('failureSeen')))")
+        self.assertEqual(FLOW_GATE.check13_findings({FLOW.name: {"definition": DEFINITION}}), [])
 
 
 if __name__ == "__main__":

@@ -53,24 +53,17 @@
       "triggers": {
         "Every_weekday_morning": {
           "type": "Recurrence",
-          "description": "07:00 UTC, Monday-Friday. Weekdays only: the summary prompts action, and nobody acts at the weekend. Monday's message covers the whole weekend, since the window is computed from the previous run, not a fixed 24 hours.",
+          "description": "07:00 UK time (GMT Standard Time), every day. Taken from the trigger live in DEV (2026-10-09); the Day + weekDays form would not turn on after import. The window is computed from the previous run, not a fixed 24 hours.",
           "recurrence": {
             "frequency": "Day",
             "interval": 1,
-            "timeZone": "UTC",
+            "timeZone": "GMT Standard Time",
             "schedule": {
               "hours": [
                 "7"
               ],
               "minutes": [
                 0
-              ],
-              "weekDays": [
-                "Monday",
-                "Tuesday",
-                "Wednesday",
-                "Thursday",
-                "Friday"
               ]
             }
           }

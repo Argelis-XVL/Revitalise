@@ -160,3 +160,23 @@ are corrected against real E1 evidence; error 3 (A-DS-13) is explicitly NOT reso
 should be expected to still fail to save in the live designer until a human resolves A-DS-13
 there directly — this fix narrows what the designer will complain about, it does not clear the
 gate.
+
+## UPDATE 2026-10-09 — A-DS-8, A-DS-9 and A-DS-13 RESOLVED from the DEV designer save (E1)
+
+The reviewer replaced the trigger in the DEV designer and saved; this source was synced from a
+`pac solution export` of DEV the same day.
+
+- **Trigger (A-DS-8, A-DS-13):** the designer saved `CreateHookEnvelopeV3`, not V4. The Connect
+  configuration name is `body/name`; the event is `body/envelopeEvents`, a string,
+  `"envelope-completed"`.
+- **Connect configuration name:** bound to the new environment variable
+  `rev_DocuSignConnectName`, not a literal. Every environment registers its own Connect
+  configuration on the same DocuSign account, and the managed flow cannot be edited in TST/ACC or
+  PRD to rename it (reviewer correction, IMP-1100). Values: `REV Acceptance Completion - DEV`
+  (post_deploy step), `- TSTACC` and `- PRD` (pac-import settings files).
+- **Envelope id:** `triggerOutputs()?['body/data/envelopeSummary/envelopeId']`, re-picked from the
+  V3 trigger's dynamic content.
+- **Document (A-DS-9):** `"combined"` was wrong. The connector's dropdown value is
+  `"Combined with COC : Get all documents as single pdf"` (all documents as one PDF, with the
+  certificate of completion).
+- **Still open:** that the uploaded PDF opens in SharePoint (A-DS-10) — not yet checked on a run.

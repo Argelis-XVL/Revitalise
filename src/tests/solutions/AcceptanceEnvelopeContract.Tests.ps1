@@ -680,14 +680,24 @@ Describe 'REV | Acceptance | Create Envelope — the guards, executed on chosen 
     }
 }
 
-Describe 'REV | Acceptance | Completion — CreateHookEnvelopeV4 designer errors, 2026-09-25' {
+Describe 'REV | Acceptance | Completion — Connect trigger as saved in the DEV designer, 2026-10-09' {
 
-    It 'errors 1/2 — the trigger no longer sends a "name" property the operation schema rejects' {
-        $script:ConnectTrigger['inputs']['parameters'].Contains('name') | Should -BeFalse
+    It 'uses the V3 Connect trigger the DEV designer saved (A-DS-8/A-DS-13 resolved)' {
+        $script:ConnectTrigger['inputs']['host']['operationId'] | Should -Be 'CreateHookEnvelopeV3'
     }
 
-    It 'the register-flagged "events" value survives the "name" removal unchanged (A-DS-8 still OPEN, not re-guessed)' {
-        $script:ConnectTrigger['inputs']['parameters']['events'] | Should -Be @('envelope-completed')
+    It 'takes the Connect configuration name from rev_DocuSignConnectName, so each environment registers its own name without editing the managed flow' {
+        $script:ConnectTrigger['inputs']['parameters']['body/name'] | Should -Be "@parameters('rev_DocuSignConnectName')"
+        $script:Completion['properties']['definition']['parameters'].Contains('rev_DocuSignConnectName') | Should -BeTrue
+    }
+
+    It 'fires on envelope-completed only' {
+        $script:ConnectTrigger['inputs']['parameters']['body/envelopeEvents'] | Should -Be 'envelope-completed'
+    }
+
+    It 'no longer sends the "name" or "events" keys the operation schema rejected' {
+        $script:ConnectTrigger['inputs']['parameters'].Contains('name') | Should -BeFalse
+        $script:ConnectTrigger['inputs']['parameters'].Contains('events') | Should -BeFalse
     }
 }
 

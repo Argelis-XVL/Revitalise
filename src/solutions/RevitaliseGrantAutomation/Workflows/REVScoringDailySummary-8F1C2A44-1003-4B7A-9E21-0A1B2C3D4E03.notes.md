@@ -16,6 +16,8 @@ DOCUMENTED DEVIATION from knowledge/technology/power-automate.md, which says sch
 
 07:00 UTC, Monday to Friday. Weekdays only because the summary exists to prompt action and there is nobody to act at the weekend - a Saturday message trains the recipient to ignore the channel. Monday's message therefore covers the whole weekend, which is why the reporting window below is computed from the previous run rather than fixed at 24 hours.
 
+**Trigger taken from DEV, 2026-10-09.** Shipped as `frequency: "Day"` with a Monday-Friday `weekDays` list in UTC, the flow imported but would not turn on, and every import needed the trigger switched to Week and back to Day in the designer. The source now holds exactly what is live in DEV after that fix: `Day`, interval 1, 07:00, `GMT Standard Time`, no `weekDays`. So the summary now runs every day including weekends, and 07:00 follows UK local time through BST. The weekday-only reasoning above no longer describes the shipped behaviour.
+
 ## `/properties/definition/actions/Summarise/actions/Count_borderline_awaiting_review/description`
 
 Deliberately NOT windowed. FR-021 asks how many are Borderline AWAITING REVIEW, which is a backlog question, not a yesterday question - a Borderline application ignored for a fortnight must keep appearing in this count until somebody looks at it. That is what makes NFR-018 (100% of Borderline outcomes receive human review) observable day after day.

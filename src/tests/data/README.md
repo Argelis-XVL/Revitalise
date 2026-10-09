@@ -252,6 +252,60 @@ TD-04, TD-06) and **2** incomplete-scoring notices (TD-07, TD-08).
 
 ---
 
+## `narrative-test-data.json` — 3 cases (TD-13 to TD-15)
+
+Tests `REV | Narrative | Scrub Free-Text` (WBS 5.3, 5.4). Same shape as the scoring file, loaded with the
+same script through `-DataPath`. Every name, practice, address, phone number and email is invented; phones are
+Ofcom drama numbers, emails use `example.org`. Nothing comes from `docs/Import/`.
+
+| Case | What it is for | Expected |
+|---|---|---|
+| TD-13 | Typical application. Names, family members, a GP practice, an address, two phones, an email and three ages over five columns | Every counterpart redacted as in `expectedRedacted`. With auto-release on: released |
+| TD-14 | Edge. One narrative of 10,456 characters (three windows, with a phone, an email and a name placed in the overlaps), a column with nothing to redact, a short column with a name and phone, eleven empty columns | `rev_narrativeredacted` stays EMPTY (the redacted text cannot fit 4,000 characters, so the flow holds it back and sends the record to review); the other two counterparts are written. Always review |
+| TD-15 | Review. The words "street" and "practice" are left in on purpose, and `rev_disabilityimpactdescriptionredacted` already holds a grant admin's edit | `rev_narrativeredacted` written with both words kept; the edited counterpart is untouched. Always review |
+
+**Why TD-14's long narrative is never written.** A column long enough to need a second window is longer than
+the 4,000 characters a counterpart holds, so a long column always ends in review. The windows can therefore
+not be checked by reading a counterpart; they are checked by the run finishing without `ai-error` and with
+exactly the reason `redacted-exceeds-4000:rev_narrativeraw`. The windows and overlaps themselves are proven
+by `test_narrative_test_data.py` against the flow model.
+
+**What decides who finds what.** PHONE and the postcode in an ADDRESS are found by the flow's own shape
+rules, so a miss is a flow defect. NAME, FAMILY MEMBER, GP PRACTICE, EMAIL, AGE and the street part of an
+ADDRESS come from the AI Builder model, so a miss is model recall (`wbs:5.7`).
+
+### Seed, trigger, score (DEV only)
+
+```bash
+export PROVISION_APP_ID=<provisioning app registration client id>
+export PROVISION_CERT_THUMBPRINT=<thumbprint>
+pwsh provisioning/dataverse/seed-test-data.ps1 -Env dev -DataPath src/tests/data/narrative-test-data.json
+```
+
+Creating the rows fires `REV | Scoring | Calculate & Flag` (trigger: row created), which sets `rev_status`.
+**The scrub flow does not fire on create.** Its trigger is `rev_status` modified, and it stops at once unless
+the new value is **Eligible for Panel (6)**. So, once the scoring runs have finished (`rev_scoredon` is set on
+each row), open each of the three applications in the model-driven app and set Status to
+**Eligible for Panel**, then save. Re-seeding is not possible without `remove-test-data.ps1 -Force`, because
+the loader never updates an existing row.
+
+Before it can run: the scrub flow is on and its trigger registered; the four REV flows are on (the loader
+checks); `rev_ProcessOwnerUpn` has a current value; the AI Builder entity extraction model has credits;
+`rev_citysettlementregister` holds its 3,394 rows. `Redaction*` `rev_setting` rows are optional: with none,
+every record goes to review, which is the safe state and exercises the column writes. For TD-13 to be
+released, `RedactionConfidenceThreshold` (0.85) and `RedactionAutoRelease` (`true`, saved **after** any other
+`Redaction*` row) must exist.
+
+Then read the three rows' twelve `...redacted` columns and the two release flags into one JSON file and score:
+
+```bash
+python3 src/tests/narrative/score_seeded_run.py --live <rows.json> --settings none   # or: on
+```
+
+(`score_live_run.py` is a different instrument: it scores raw extractor output over the 20 corpus samples
+and does not read these rows.) The reason codes are not stored on the row; read them on the process
+owner's Teams card.
+
 ## What is not here
 
 No `rev_grant` data. Nothing deployed writes to that table yet — the DocuSign and

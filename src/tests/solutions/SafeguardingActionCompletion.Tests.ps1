@@ -11,8 +11,8 @@
 
     WHAT THIS CANNOT DO. A cloud flow cannot be executed without a live Dataverse environment.
     These tests assert nothing about runtime behaviour — not that the trigger fires, not that
-    the write lands, not that `_modifiedby_value` is actually present in a real trigger
-    payload (that is `A-SG-1`, still OPEN — see the flow's own `.notes.md`). They assert the
+    the write lands, not what the completed-by lookup resolves to at run time (A-SG-1 is
+    CLOSED on the binding SHAPE only — see the flow's own `.notes.md`). They assert the
     static shape a future edit could silently break: the loop guard, the target columns, the
     read-only form controls, and the failure-alert wiring every other flow in this solution
     carries.
@@ -48,6 +48,15 @@ Describe 'REV | Safeguarding | Action Completion — trigger and loop guard' {
         $params['subscriptionRequest/runas']      | Should -Be 3
     }
 
+    It 'the trigger carries a condition requiring the checkbox true AND the completion date empty, so the flow''s own write cannot start a run (loop guard, reviewer 2026-10-09)' {
+        $cond = $script:Trigger['conditions']
+        $cond.Count | Should -Be 1
+        $expr = $cond[0]['expression']
+        $expr | Should -Match "rev_safeguardingactioncompleted'\], true\)"
+        $expr | Should -Match 'empty\(coalesce\(string\(triggerOutputs\(\)\?\[''body/rev_safeguardingactioncompletedon''\]'
+        $script:Trigger['inputs']['parameters']['subscriptionRequest/filteringattributes'] | Should -Be 'rev_safeguardingactioncompleted'
+    }
+
     It 'the guard requires the checkbox true AND the completion date still empty' {
         $conditions = $script:Guard['expression']['and']
         $conditions.Count | Should -Be 2
@@ -78,7 +87,7 @@ Describe 'REV | Safeguarding | Action Completion — the write' {
         $params['entityName'] | Should -Be 'rev_applications'
         $params['recordId']   | Should -Be "@triggerOutputs()?['body/rev_applicationid']"
         $params.Keys | Should -Contain 'item/rev_safeguardingactioncompletedon'
-        $params.Keys | Should -Contain 'item/rev_safeguardingactioncompletedby'
+        $params.Keys | Should -Contain 'item/rev_safeguardingactioncompletedby@odata.bind'
     }
 
     It 'never writes item as a nested object (the known UpdateRecord trap)' {
@@ -89,8 +98,20 @@ Describe 'REV | Safeguarding | Action Completion — the write' {
         $script:Write['inputs']['retryPolicy']['type'] | Should -Be 'exponential'
     }
 
-    It 'declares the A-SG-1 open assumption at the point of the guess' {
-        $script:Write['description'] | Should -Match 'A-SG-1'
+    It 'binds the completed-by LOOKUP with @odata.bind to /systemusers(...), never a raw GUID into the lookup column (A-SG-1, DEV ground truth 2026-10-09)' {
+        $params = $script:Write['inputs']['parameters']
+        $params.Keys | Should -Not -Contain 'item/rev_safeguardingactioncompletedby'
+        $params['item/rev_safeguardingactioncompletedby@odata.bind'] | Should -Match '^/systemusers\(@\{.+\}\)$'
+    }
+
+    It 'reads the completed-by id from the row modifier (_modifiedby_value), not from the column being filled (A-SG-1, reviewer DEV edit)' {
+        $v = $script:Write['inputs']['parameters']['item/rev_safeguardingactioncompletedby@odata.bind']
+        $v | Should -Match '_modifiedby_value'
+        $v | Should -Not -Match '_rev_safeguardingactioncompletedby_value'
+    }
+
+    It 'records A-SG-1 as CLOSED at the point of the binding' {
+        $script:Write['description'] | Should -Match 'A-SG-1 \(CLOSED'
     }
 }
 

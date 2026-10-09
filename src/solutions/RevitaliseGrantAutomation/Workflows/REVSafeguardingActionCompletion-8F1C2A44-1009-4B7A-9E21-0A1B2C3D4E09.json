@@ -28,7 +28,12 @@
       "triggers": {
         "When_the_application_is_modified": {
           "type": "OpenApiConnectionWebhook",
-          "description": "Row MODIFIED on rev_application, Select-columns filtered to rev_safeguardingactioncompleted only (C-TECH-055 fix). message 3 = Modified, ground-truthed live 2026-08-28 for REVPortalRoundStatistics. scope 4, runas 3. See notes.md.",
+          "description": "Row MODIFIED on rev_application; column-filtered to rev_safeguardingactioncompleted, plus a trigger condition (checkbox true AND completion date empty) so the flow's own write cannot start a run. message 3 = Modified. See notes.md.",
+          "conditions": [
+            {
+              "expression": "@and(equals(triggerOutputs()?['body/rev_safeguardingactioncompleted'], true), empty(coalesce(string(triggerOutputs()?['body/rev_safeguardingactioncompletedon']), '')))"
+            }
+          ],
           "inputs": {
             "host": {
               "connectionName": "shared_commondataserviceforapps",
@@ -50,7 +55,7 @@
         "Check_the_action_was_just_ticked": {
           "type": "If",
           "runAfter": {},
-          "description": "Checkbox true AND date empty (EF-27, A-SG-1, C-TECH-055). Two loop guards: trigger fires only on a real checkbox change, and this write never touches that column; empty-date also blocks a same-tick race. See notes.md.",
+          "description": "Checkbox true AND date empty (EF-27, A-SG-1, C-TECH-055). Second layer behind the trigger condition: checkbox true AND date empty. Kept so a run that slips past the trigger still cannot write twice. See notes.md.",
           "expression": {
             "and": [
               {
@@ -81,7 +86,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "A-SG-1 (OPEN): rev_safeguardingactioncompletedby is read from this row's own _modifiedby_value - the platform's standard lookup-value convention, not yet ground-truthed against this flow's live trigger payload. See notes.md.",
+              "description": "A-SG-1 (CLOSED, DEV ground truth 2026-10-09): lookup written as item/<col>@odata.bind = /systemusers(<id>) with the id read from this row's _modifiedby_value (the user who ticked the box), as set by hand in DEV by the reviewer. See notes.md.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -91,8 +96,8 @@
                 "parameters": {
                   "entityName": "rev_applications",
                   "recordId": "@triggerOutputs()?['body/rev_applicationid']",
-                  "item/rev_safeguardingactioncompletedon": "@utcNow()",
-                  "item/rev_safeguardingactioncompletedby": "@triggerOutputs()?['body/_modifiedby_value']"
+                  "item/rev_safeguardingactioncompletedby@odata.bind": "/systemusers(@{triggerOutputs()?['body/_modifiedby_value']})",
+                  "item/rev_safeguardingactioncompletedon": "@utcNow()"
                 },
                 "authentication": "@parameters('$authentication')",
                 "retryPolicy": {

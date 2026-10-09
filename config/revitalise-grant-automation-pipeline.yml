@@ -1363,10 +1363,15 @@ environments:
         script: manual   # live environment write; depends on step 3 landing first
         owner: reviewer (or a session holding live-write permission)
 
-      # ══ wbs:3.2, Automation #3, DEV ONLY (EX-006/EX-007) ══════════════════════════
+      # ══ wbs:3.2, Automation #3, DEV steps only (no tst_acc/prd steps authored yet) ═══
       # REV | Acceptance | Create Envelope is source-complete as of this dispatch;
       # everything below is the manual, per-environment binding TAD section 12 (line ~1644)
       # already names as out of scope for development-agent.
+      # EX-006/EX-007 were CLOSED 2026-10-08 (contract/known-exceptions.json) and no longer
+      # govern this block. DEV-only means: only DEV steps exist here, the DEV values are the
+      # reviewer's own DocuSign template/account, and A-DS-11 / the Connect webhook have had no
+      # live confirmation. Promotion past DEV is a separate decision, gated by the normal
+      # test-agent gate and APPROVE PRD.
       - description: >
           Bind the rev_SharedDocuSign connection reference to the DEV DocuSign connection
           the reviewer already created (interactive OAuth, pre-existing — not created by this
@@ -1379,9 +1384,16 @@ environments:
           Set the CURRENT VALUE (never the default — IMP-0121) of rev_DocuSignAccountId and
           rev_DocuSignAcceptanceTemplateId for DEV. Template ID for DEV is
           b832b15e-489d-4b13-a78b-0abef700803a (the reviewer's own DocuSign template, built
-          directly from the acceptance letter forms — EX-006 waives Emily's formal template
-          review for this build). Account ID: read from DocuSign > Settings > Apps and Keys >
+          directly from the acceptance letter forms; Emily's formal template review was
+          closed as not needed, EX-006, 2026-10-08). Account ID: read from DocuSign > Settings > Apps and Keys >
           API Account ID, for the account rev-docusign now authenticates against.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Set the CURRENT VALUE (never the default — IMP-0121) of rev_DocuSignConnectName for
+          DEV to "REV Acceptance Completion - DEV". It names the DocuSign Connect configuration
+          the REV | Acceptance | Completion trigger registers when the flow is turned on.
+          TST/ACC and PRD take theirs from pac-import-tstacc.json / pac-import-prd.json.
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
@@ -1444,7 +1456,7 @@ environments:
         script: manual
         owner: reviewer (or a session holding live-write permission)
 
-      # ══ wbs:3.3/3.4, Automation #3, DEV ONLY (EX-006/EX-007) ═══════════════════════
+      # ══ wbs:3.3/3.4, Automation #3, DEV steps only (no tst_acc/prd steps authored yet) ═
       # REV | Acceptance | Reminders & Escalation and REV | Acceptance | Completion are
       # source-complete as of this dispatch. EscalationDays is already covered by the
       # seed-settings.ps1 -Env dev step above (it reads dev-scoring-settings.json, which
@@ -1464,13 +1476,12 @@ environments:
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
-          BEFORE turning REV | Acceptance | Completion on, open `When_the_envelope_completes`
-          in the DEV designer and let it resolve the real, connector-defined value for
-          'envelope completed' in the `events` picklist. Dev Summary section 10 (A-DS-8)
-          records that `"envelope-completed"` is an UNVERIFIED, plausible DocuSign Connect
-          event name — no design surface was reachable in this session to resolve the
-          connector's own dynamic event list. Correct, save, then `pac solution export` +
-          `unpack` and reconcile per `skills/how-to-verify-a-platform-contract.md`.
+          DONE 2026-10-09 (A-DS-8, A-DS-13): the reviewer replaced `When_the_envelope_completes`
+          in the DEV designer with the CreateHookEnvelopeV3 Connect trigger and saved; source was
+          reconciled against the live DEV definition the same day. Event: body/envelopeEvents =
+          "envelope-completed". Connect configuration name: body/name, bound to
+          rev_DocuSignConnectName (see the step that sets its DEV current value). Kept as a record
+          only; nothing to do.
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
@@ -1479,19 +1490,6 @@ environments:
           library. Dev Summary section 10 (A-DS-10) records the SharePoint `Create file`
           parameter names and the `rev_signedpdfurl` response-property read as E3/guessed, not
           E1-verified. Correct, save, then reconcile the same way as the item above.
-        script: manual
-        owner: reviewer (or a session holding live-write permission)
-      - description: >
-          BEFORE turning REV | Acceptance | Completion on, also resolve `A-DS-13` (Dev Summary
-          section 10) on `When_the_envelope_completes` — the 2026-09-25 designer error "Connect
-          configuration name is missing" is NOT resolved by this dispatch's fix, only narrowed:
-          the trigger's old `name` property was removed (a separate, E1-confirmed error), but no
-          source available this session names the current property that carries the Connect
-          configuration's own name, so nothing was guessed in its place. This flow should be
-          EXPECTED to still fail to save on this specific error. Open the trigger in the DEV
-          designer, let it resolve the actual required property, add it, save, then
-          `pac solution export` + `unpack` and reconcile per
-          `skills/how-to-verify-a-platform-contract.md`.
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
