@@ -1,0 +1,219 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "0.4"
+  ],
+  "items": [
+    "WI-0028"
+  ],
+  "build_date": "2026-10-09",
+  "build_number": 3,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20261009-3/",
+  "source_commit": "9ee9e003d0c5c916f555126bc9580e07c1ead9fe",
+  "source_commit_at_pack_time": "9ee9e003d0c5c916f555126bc9580e07c1ead9fe",
+  "source_tree_dirty_paths": 0,
+  "source_commit_note": "0 uncommitted paths under src/, provisioning/ and config/ at pack time; HEAD moved from 5aea0d4 to 9ee9e00 between the earlier builds and this one.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 27.0.0 arm64 (macOS)",
+  "constraint_check": "PASS",
+  "preflight": "PASS \u2014 83 steps executed, 18 skipped-unchanged, 1 out-of-context (auth), 102 declared, run via scripts/run-build.py",
+  "verification_level": "V2 \u2014 packaged; layout accepted by the packer. Content, platform acceptance and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "component-shape-packed",
+    "root-components-resolve",
+    "role-privilege-ownership",
+    "tad-coverage",
+    "forms-and-views-reachable",
+    "domain-invariants",
+    "flow-definition-language",
+    "flow-reads-no-trigger-body",
+    "no-hardcoded-environment-values",
+    "lint (pac solution check)"
+  ],
+  "warnings": {
+    "total": 3,
+    "resolved": 0,
+    "accepted": 3,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations:",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L1677"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations:",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L1677"
+    },
+    {
+      "step": "lint",
+      "signature": "Solution Checker: Critical 0, High 0, Medium 1, Low 0, Informational 0 [figures compared: 1 Medium = flow-avoid-recursive-loop on REVSafeguardingActionCompletion Set_the_completion_date_and_owner, the 1 the row states as standing; the row's 14 on the narrative-scrub flow were NOT reported, SARIF holds exactly 1 result]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L10324"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 152,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 1,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 1,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 48,
+    "constraint-verifiers": 1
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context \u2014 when: ci, needs GitHub OIDC token vars not present on a local run",
+      "level_not_established": "n/a \u2014 declared boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-audit",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-audit-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-install",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-install-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-typecheck",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-typecheck-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-lint",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-lint-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-unit-tests",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-unit-tests-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-visual-tests",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-visual-tests-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-build",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-build-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-bundle-budget",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-bundle-budget-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "package-code-app",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "package-code-app-cards",
+      "reason": "skipped-unchanged",
+      "level_not_established": "V1/V2 for the code apps \u2014 NOT re-proven in this scoped run; the artifact carries no code-app output",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "scoped": true,
+  "skipped_unchanged": [
+    "code-app-audit",
+    "code-app-audit-cards",
+    "code-app-install",
+    "code-app-install-cards",
+    "code-app-typecheck",
+    "code-app-typecheck-cards",
+    "code-app-lint",
+    "code-app-lint-cards",
+    "code-app-unit-tests",
+    "code-app-unit-tests-cards",
+    "code-app-visual-tests",
+    "code-app-visual-tests-cards",
+    "code-app-build",
+    "code-app-build-cards",
+    "code-app-bundle-budget",
+    "code-app-bundle-budget-cards",
+    "package-code-app",
+    "package-code-app-cards"
+  ],
+  "base_ref": "5aea0d42cddb0afcf0f34a2fdf84eafca27043cb",
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}

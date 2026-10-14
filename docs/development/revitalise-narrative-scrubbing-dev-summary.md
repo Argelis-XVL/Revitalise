@@ -11,6 +11,7 @@
 | 3 — postcode register, tunable settings with guard rails, the prompt stage up to the DEV boundary, rules v0.3 | 2026-10-06 | `wbs:5.3`, `5.6` (settings the process owner tunes), `5.4` (new review reasons) | **APPROVED 2026-10-06** (with Iteration 2) — [jump to Iteration 3](#iteration-3--register-settings-and-the-prompt-stage-2026-10-06) |
 | 4 — build blocker `IMP-1082`, the coverage reading, the prompt component and its run action | 2026-10-06 | `wbs:5.3` (component, run action), `5.4` (form test) | **APPROVED 2026-10-07** (*"Approved on dev summary"*); six changes after approval, one affecting the prompt component, listed under *Approval (Iteration 4)* — [jump to Iteration 4](#iteration-4--build-fix-and-the-prompt-run-action-2026-10-06) |
 | 5 — the failure diagnosis moves inside the column loop (designer save refused, `IMP-1098`) | 2026-10-09 | `wbs:5.3` | **Awaiting code review** — [jump to Iteration 5](#iteration-5--the-failure-diagnosis-moves-inside-the-column-loop-2026-10-09) |
+| 7 — first live DEV run: `substring()` started at the string length (`IMP-1109`) | 2026-10-12 | `wbs:5.3` | **Awaiting code review** — [jump to Iteration 7](#iteration-7--substring-never-starts-at-the-string-length-2026-10-12) |
 
 > **Iteration 1 is kept as approved.** Where it says the flow and the `TD-008` columns are not built, Iteration 2
 > below supersedes it: both are built.
@@ -1235,3 +1236,65 @@ made, so no diagnostic component exists.
 | Finding | Class | Severity | Lesson (one line) |
 |---|---|---|---|
 | [IMP-1099](../../logs/improvement-log.jsonl#L1095) | `platform-contract-guessed-not-groundtruthed` | rework | A loop whose progress step runs only on success needs a failure exit that works whether or not the platform continues after a failed iteration; test it with multi-iteration input under both readings |
+
+# Iteration 7 — substring() never starts at the string length (2026-10-12)
+
+**WBS:** `wbs:5.3` · **Date:** 2026-10-12 · **Author:** development-agent, standard tier · **Status:** awaiting code review ·
+**Items:** none carried · Nothing deployed, committed or re-built; `config/revitalise-grant-automation-pipeline.yml` untouched.
+
+## 7.1 Summary
+
+The first live DEV run failed in the finish step of a column with `InvalidTemplate`: the `substring` start index must be
+less than the string length (249). The text's last merged span ended on its last character, so the tail
+`substring(raw, lastMergedEnd)` started at the length, which the platform refuses (aka.ms/logicexpressions#substring:
+start >= 0 and < length, also with a length and on an empty string). The simulator allowed it, which is why 236 tests
+passed. Both are fixed, and the same defect was found in four more places that the lenient simulator also let through.
+
+## 7.2 What has been changed
+
+1. **Simulator** (`wdl_sim.f_substring`) now throws for start >= length, with or without a length, and on `''`.
+   With it, **273 failures and 30 errors** appeared across the suite, all from one lenient read in `Compose_window_end`
+   and, once that was fixed, three more: `Select_register_candidates`, `Compose_merge_step` (two reads) and the rebuild
+   gap reads. Nothing else in the other 10 flows uses `substring` on text that can end at the length (checked: their
+   uses start at fixed or loop-bounded positions).
+2. **Flow.** Every read from `Compose_raw_text` that could start at its length now uses
+   `substring(concat(raw, ' '), start, sub(length(raw), start))` (the tail with `start` clamped by `min`), and
+   `Select_extractor_spans` clamps `start` and `length` to the text. Details and rule table:
+   [notes, "substring() never starts at the string length"](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.notes.md).
+3. **Model** (`redaction_reference.extractor_spans`) clamps the same way, so flow and model still agree on the corpus.
+4. **Tests** (new [`test_text_end_spans.py`](../../src/tests/narrative/test_text_end_spans.py), 5 tests): the simulator's
+   substring boundary (start == length, empty string, with length); a text ending in an email plus a full stop, with the
+   entity ending on the last character, overrunning by 1, overrunning by 500 and stopping short, each agreeing with the
+   model, redacting the address and leaving nothing after it but the full stop; both `Compose_redacted_text` and
+   `Compose_skeleton_text` succeed; an entity wholly past the end is harmless. The shipped flow before this change
+   fails the first of these under the corrected simulator.
+5. **Not added:** a static check in `verify-flow-definition-language.py` for an unguarded two-argument `substring`. It needs
+   a reviewer decision on noise (the guarded idiom is a `concat(x, ' ')` source, which a regex can match, but any
+   other safe form would be flagged). Proposed in `IMP-1109`.
+
+## 7.3 Still open
+
+The live run has not been repeated: this is **V1 (simulator, now matching the documented platform rule)**, not V3. A DEV
+re-import and a run over `TESTDATA-TD-13` is the check. Source line anchors in Iterations 5 and 6 point at the flow as it
+was; the file moved by a few lines.
+
+## 7.4 Unvalidated Assumptions Register (C-TECH-052)
+
+No new row. The platform rule is documented, not assumed. `if()` stays eager in the simulator on purpose.
+
+## 7.5 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| Simulator rule | Executed | macOS, local | strict `f_substring`: 273 failures + 30 errors before the flow fix, all traced to the five reads above |
+| Flow logic | **V1, simulator** | macOS, local | `python3 -m unittest discover -s src/tests/narrative -p 'test*.py'`: **245 tests OK** (240 before the new file; 236 on the lead's count) |
+| Generator | V1 | macOS, local | `python3 src/tests/narrative/failure_catches.py`: the shipped definition is the generated one |
+| Flow-language gate | Executed | macOS, local | `verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation`: exit 0, checks 1-13 OK, 11 flows |
+| Pester | Executed | macOS, local | `NarrativeRedaction.Tests.ps1`: 2 passed, 0 failed |
+| Source gates | V1 | macOS, local | `run-source-gates.py config/revitalise-grant-automation-build.yml`: 19/19 PASS (one description first went over 256 chars and was shortened) |
+
+## Findings Logged (Iteration 7)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-1109 | `simulator-more-lenient-than-platform` | rework | A test double needs each documented range rule checked against the platform page, one test per boundary, and test data must put entities at both text boundaries |

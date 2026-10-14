@@ -287,6 +287,26 @@ register), fewer than 3,000 rows arrive and every record gets `postcode-register
 **If A-NS-22 is wrong** (no `modifiedon`, or a format `ticks()` rejects), the run fails and the record
 is held.
 
+### substring() never starts at the string length (2026-10-12, Iteration 7)
+
+**The defect (first live DEV run).** `InvalidTemplate` in `Compose_redacted_text`: *the 'start index' for function
+'substring' must be equal to or greater than zero and must be less than '249'*. The platform rule
+(aka.ms/logicexpressions#substring) is **start >= 0 and start < length(string)**, also with a length argument and on an
+empty string. The tail `substring(raw, lastMergedEnd)` is `substring(raw, length(raw))` whenever the last merged span
+ends on the last character, and that throws; it does not return an empty string. The simulator allowed start == length,
+so the model and every test passed.
+
+**Rules now in the flow.**
+
+| Rule | Where |
+|---|---|
+| A substring whose start can equal `length(raw)` reads `substring(concat(raw, ' '), start, sub(length(raw), start))`: the start is always below the padded length, and the explicit length leaves the pad out | tail of `Compose_redacted_text` / `Compose_skeleton_text` (start also clamped with `min(lastMergedEnd, length(raw))`), the gap reads in `Select_rebuild_pieces` / `Select_skeleton_pieces` and `Compose_merge_step`, the after-the-span reads in `Refine_each_name` and `Select_register_candidates`, and the window tail in `Compose_window_end` |
+| Spans are clamped to the text where they are made | `Select_extractor_spans`: `start` to 0..length(raw), `length` to 0..length(raw)-start. A model span that ends at, or overruns, the last character can no longer reach a later step. The Python model clamps the same way (`extractor_spans`) |
+| The simulator is at least as strict as the platform | `wdl_sim.f_substring`; `if()` stays eager there on purpose, so every substring above is safe in an if() branch that would not be taken on the platform |
+
+An entity wholly past the end becomes a zero-length span at the end: it adds a label and nothing else (over-redaction,
+never a leak).
+
 ## What is NOT here
 
 - **A prompt run.** The stage ships off, and no run has been made in any environment (TAD §12.6.1 R2–R5).

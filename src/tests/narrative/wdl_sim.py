@@ -346,8 +346,12 @@ class Engine:
     def f_substring(self, s, start, length=None):
         self._need_str(s)
         self._need_num(start)
-        if start < 0 or start > len(s):
-            raise WdlError(f"substring start {start} outside 0..{len(s)}")
+        # aka.ms/logicexpressions#substring: the start index must be >= 0 AND STRICTLY LESS than the
+        # string length, even when a length argument is given (substring(s, len(s), 0) and any
+        # substring of '' throw). Measured live 2026-10-12 (first DEV run, IMP: simulator allowed
+        # start == len and so shipped a tail substring that throws when the last span ends at EOT).
+        if start < 0 or start >= len(s):
+            raise WdlError(f"substring start {start} must be >= 0 and < {len(s)} (the string length)")
         if length is None:
             return s[start:]
         self._need_num(length)

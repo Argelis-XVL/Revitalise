@@ -729,12 +729,15 @@ def extractor_spans(text: str, entities: list[ExtractorEntity], offset: int,
             continue
         if code == "":
             continue
-        start = offset + e.startIndex
+        # Clamp to the text, as the flow's Select_extractor_spans does: an entity ending at, or
+        # overrunning, the last character must not reach a later substring() with start == length.
+        start = max(min(offset + e.startIndex, len(text)), 0)
+        length = max(min(e.length, len(text) - start), 0)
         if code == "N":
-            ctx = name_context(text, start, e.length)
+            ctx = name_context(text, start, length)
             if kin_before_hits(ctx, lists.kin_tails) or kin_after_hits(ctx, lists.kin_words):
                 code = "F"
-        spans.append({"start": start, "length": e.length, "code": code, "score": float(e.score)})
+        spans.append({"start": start, "length": length, "code": code, "score": float(e.score)})
     return spans, unmapped
 
 
