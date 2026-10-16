@@ -222,6 +222,24 @@ Describe 'verify-build-config: negative-test registry' {
             $r.Output | Should -Match 'no-negative-test.*verify-a-brand-new-ungated-thing|verify-a-brand-new-ungated-thing'
         } finally { Remove-Item $cfg -Force }
     }
+    It 'counts a step as registered only when a test TITLE names it, never an assertion body (IMP-1123)' {
+        # Improvement review 2026-10-16 row 2: `flow-definition-language` was quoted only inside an
+        # unrelated It body, which used to count as registration, so its own --selftest ran nowhere.
+        $probe = @'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("v", "scripts/verify-build-config.py")
+v = importlib.util.module_from_spec(spec); spec.loader.exec_module(v)
+body_only = "Describe 'something else' {\n    It 'does a thing' {\n        Get-X -StepName 'my-gate' | Should -Throw\n    }\n}\n"
+titled = "Describe 'Build gate: my-gate' {\n    It 'fails' { 1 | Should -Be 1 }\n}\n"
+it_quoted = "Describe 'x' {\n    It \"'my-gate' (the build step) fails on a known-bad input\" { }\n}\n"
+print(v._registered_in_suite("my-gate", body_only), v._registered_in_suite("my-gate", titled),
+      v._registered_in_suite("my-gate", it_quoted), v._registered_in_suite("my-gate-2", titled))
+'@
+        Push-Location $script:RepoRoot
+        try { $out = $probe | & python3 - } finally { Pop-Location }
+        $LASTEXITCODE | Should -Be 0
+        $out | Should -Be 'False True True False'
+    }
 }
 
 Describe 'resolve-artifact-dir' {

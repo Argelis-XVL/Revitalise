@@ -35,10 +35,13 @@ Key obligations for this platform:
   Legal-hold carve-outs are honoured and **reported to the requester** (FR-052).
 - **Art. 32 security** — least-privilege roles, column security, separation of duties, TLS 1.2+
   on every hop, MFA on the service identity under a scoped Conditional Access exception.
-- **Data residency** — 100% of processing, storage and backup in the **UK region**, across
-  Power Platform, Dataverse, AI Builder, DocuSign and QuickBooks. Zero transfers outside the UK.
-  ⚠️ **To be verified at environment setup and recorded as evidence, not assumed** (SDD NFR-009,
-  DPIA action A5, TAD risk A-R19 — still open).
+- **Data residency** — the requirement is **SDD NFR-009 and NFR-011 as amended by A-09 (approved
+  2026-10-16)**; read it there, this line does not restate it. In short: storage and backup in the UK
+  **or Switzerland** (Switzerland holds UK adequacy, client legal office 2026-10-16), AI prompt
+  processing in the EU Data Boundary, flex routing off. **Residency is verified per processing
+  service, not per environment** — an environment's region is not the region of every service in it
+  (IMP-1117). Where each service is measured to run is the TAD's evidence, not this file's
+  (DPIA action A5).
 
 ### Data (Use and Access) Act 2025 (DUAA)
 

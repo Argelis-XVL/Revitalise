@@ -629,8 +629,12 @@ def check_negative_tests(steps: list[dict], repo_root: Path) -> list[Violation]:
         name = s.get("name", "<unnamed>")
         if not is_gate(name, s.get("command", "") or "") or name in GATE_EXEMPT:
             continue
-        # The suite registers a gate by quoting its exact step name.
-        if f"'{name}'" in suite_text or f'"{name}"' in suite_text:
+        # The suite registers a gate by quoting its exact step name IN A TEST TITLE (Describe,
+        # Context or It). Until 2026-10-16 any quote anywhere in the file counted, and
+        # `flow-definition-language` was "registered" by an unrelated It block that quotes it as
+        # an argument -- so its own --selftest ran nowhere, and four red assertions went unseen
+        # (IMP-1122, IMP-1123; improvement review 2026-10-16 row 2).
+        if _registered_in_suite(name, suite_text):
             continue
         # SECOND, STRONGER PATH — added 2026-08-21. A gate whose command invokes a script that
         # supports `--selftest` proves it can fail by BEING RUN here, which is a better
@@ -654,6 +658,21 @@ def check_negative_tests(steps: list[dict], repo_root: Path) -> list[Violation]:
             )
         )
     return violations
+
+
+_TEST_TITLE_LINE = re.compile(r"^\s*(Describe|Context|It)\s+(['\"])(?P<title>.*)", re.MULTILINE)
+
+
+def _registered_in_suite(name: str, suite_text: str) -> bool:
+    """True when a Describe/Context/It title line in the suite quotes the step name exactly.
+
+    A mention in an assertion body is about something else and proves nothing about this gate."""
+    for match in _TEST_TITLE_LINE.finditer(suite_text):
+        title = match.group("title")
+        if f"'{name}'" in title or f'"{name}"' in title or f"`{name}`" in title \
+                or re.search(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", title):
+            return True
+    return False
 
 
 def _selftest_proof(step: dict, repo_root: Path):

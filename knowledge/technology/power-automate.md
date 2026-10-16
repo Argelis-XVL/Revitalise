@@ -483,6 +483,57 @@ section - these are the traps that bite when it is not yet available.
   `pac solution unpack` it to see exactly how the platform serialises it, rather than
   iterating against live-import error messages one guess at a time.
 
+### Designer save and activation — what import does not check
+
+Added by improvement review 2026-10-16. Every line below is something a solution import accepted
+and the platform refused later, or a measured fact about the platform outside the definition. Each
+carries its evidence and date. Checks 12–17 of `scripts/verify-flow-definition-language.py` enforce
+the definition-shape facts (b, c, e, f, g's weekDays half, and the lookup rule above).
+
+- **(a) A Draft import does not template-validate.** A definition that packs, imports and reads back
+  identical can still be unsavable; validation happens on designer save or activation. So the first
+  real check of a hand-authored flow is opening and saving it in the designer (V4) (IMP-1098, DEV
+  2026-10-09).
+- **(b) A Switch needs at least one case.** A Switch with only a default is refused at save: "add a
+  valid case" (IMP-1095, DEV 2026-10-08). Check 14.
+- **(c) A SetVariable to empty is `@string('')`, never the literal `""`.** The flow checker reports
+  the literal as no value (IMP-1095). Check 15.
+- **(d) `UpdateRecord` is the connector's *Upsert a row*; `UpdateOnlyRecord` is *Update a row*.**
+  An upsert creates the row when the id does not exist, so a write meant to update only must say so
+  (IMP-1095; learn.microsoft.com/connectors/commondataserviceforapps). Not gated: which one a write
+  needs is a design decision.
+- **(e) Nothing outside a Foreach or Until may read an action inside it.** `result()`, `actions()`,
+  `outputs()` or `body()` across a loop boundary is refused at save once more than one container
+  level separates them: InvalidTemplate, "Referencing repetition actions from outside the scope is
+  supported only when there are no multiple levels of nesting" (IMP-1098, DEV 2026-10-09). Read the
+  value inside the iteration and carry it out in a variable. Check 12.
+- **(f) A loop that advances only on success needs a failure exit.** Whether the platform starts
+  another iteration after a failed one is not documented, so design for both answers: a step after
+  the body's last step that runs on Failed/Skipped/TimedOut, sets a stop variable and fails on
+  purpose, with the loop's expression reading that variable (IMP-1099, 2026-10-09). Check 13.
+- **(g) Recurrence schedule keys are frequency-bound.** `weekDays` applies only to `Week`; `hours` and
+  `minutes` only to `Day` or `Week` (Microsoft Learn, *Workflow definition language triggers and
+  actions*, read 2026-10-16, E2). Measured: Day plus weekDays imported and would not turn on, and the
+  same trigger without weekDays turned on with no edit (IMP-1107, DEV 2026-10-09, V3). The designer's
+  Week-and-back toggle drops weekDays and rewrites the time zone. Check 16 covers weekDays; hours on a
+  Month frequency is unobserved (IMP-1124).
+- **(h) An import over an Activated flow leaves it Draft** ("the original workflow definition has
+  been deactivated and replaced"). Read the live statecode before a scoped import, and say in the
+  brief who turns it back on (IMP-1102, DEV 2026-10-09).
+- **(i) A webhook trigger's registration name on a shared external account is an environment
+  variable**, never a literal: a managed flow cannot be edited per environment, and the external
+  system sees every environment's registration side by side (IMP-1100, DocuSign Connect, 2026-10-09).
+- **(j) `listCallbackUrl` on `api.flow.microsoft.com` refuses an app-only token.** The provisioning
+  service principal's token is refused with `ClientScopeAuthorizationFailed`, "The x-ms-client-scope
+  header must not be null or empty" (IMP-1096, DEV 2026-10-08, V3). Do not guess a header; the
+  fallback is reading the URL from the trigger card by hand.
+- **(k) An expression is at most 8,192 characters.** An expression that reuses an intermediate value
+  can only repeat it, so nesting grows geometrically; put the intermediate in its own Compose
+  (IMP-1121, 12,701 characters, 2026-10-16). Enforced by the narrative suite's PlatformLimits test.
+- **(l) `substring()` start must be below the string's length**, even with a length argument, and any
+  substring of `''` throws (aka.ms/logicexpressions#substring; IMP-1109, first DEV run 2026-10-12).
+  `substring(raw, length(raw))` is the trap when a span ends on the last character.
+
 ## A Dataverse-Triggered Flow Is Not Live Until a `callbackregistration` Row Exists
 
 Four findings on 2026-08-20 and 08-21 were the same mistake read four ways, and the cost was
