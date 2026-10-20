@@ -1,7 +1,7 @@
 # Dev Summary Document — Narrative Scrubbing (Automation #5)
 
 **Feature slug:** `revitalise-grant-automation` (shared build configuration; see Iteration 2 §8)
-**TAD reference:** `docs/architecture/revitalise-grant-automation-architecture.md`, rev 19 (§5.5, `ADR-071`, `ADR-072`) for Iterations 1–2; rev 20 (§5.5.1, §12.6.1, `ADR-073`, `ADR-074`) for Iteration 3
+**TAD reference:** `docs/architecture/revitalise-grant-automation-architecture.md`, rev 19 (§5.5, `ADR-071`, `ADR-072`) for Iterations 1–2; rev 20 (§5.5.1, §12.6.1, `ADR-073`, `ADR-074`) for Iteration 3; **rev 22 (§5.5, §5.5.1, `ADR-075`, §12.6.1) for Iteration 9; rev 23 (`ADR-076`) for Iterations 10 and 11; rev 25 (`ADR-078`, and the record of Iteration 11) for Iteration 12**
 **Items:** none carried
 
 | Iteration | Date | WBS | Status |
@@ -12,6 +12,11 @@
 | 4 — build blocker `IMP-1082`, the coverage reading, the prompt component and its run action | 2026-10-06 | `wbs:5.3` (component, run action), `5.4` (form test) | **APPROVED 2026-10-07** (*"Approved on dev summary"*); six changes after approval, one affecting the prompt component, listed under *Approval (Iteration 4)* — [jump to Iteration 4](#iteration-4--build-fix-and-the-prompt-run-action-2026-10-06) |
 | 5 — the failure diagnosis moves inside the column loop (designer save refused, `IMP-1098`) | 2026-10-09 | `wbs:5.3` | **Awaiting code review** — [jump to Iteration 5](#iteration-5--the-failure-diagnosis-moves-inside-the-column-loop-2026-10-09) |
 | 7 — first live DEV run: `substring()` started at the string length (`IMP-1109`) | 2026-10-12 | `wbs:5.3` | **Awaiting code review** — [jump to Iteration 7](#iteration-7--substring-never-starts-at-the-string-length-2026-10-12) |
+| 8 — the client's Anonymisation Key: neutral terms, grammar, free-text question scope; rules v0.4; flow unchanged (`CASCADE: ARCH_GAP`) | 2026-10-14 | `wbs:5.6`, `5.1` | **Answered by TAD rev 22 and SDD A-09 (2026-10-16); superseded by Iteration 9** — [jump to Iteration 8](#iteration-8--the-clients-anonymisation-key-2026-10-14) |
+| 9 — the flow rebuilt to TAD rev 22: extractor labels, rewrite prompt, spelling prompt, checks P1/P2/P3; 313 → 90 actions; rules v0.5 | 2026-10-16 | `wbs:5.3`, `5.6`, `CO-009` (spelling) | **APPROVED 2026-10-16** (*"Approved"*, relayed by lead-agent); build held — [jump to Iteration 9](#iteration-9--the-flow-rebuilt-to-tad-rev-22-2026-10-16) |
+| 10 — TAD rev 23 (`ADR-076`): the rewrite rules move to four `rev_setting` rows, which are also checks P2 and P3; create-only seed; 97 actions; rules v0.6; **the two prompts exported from DEV and copied in (`A-NS-31` closed)** | 2026-10-16 | `wbs:5.6`, `5.3` | **Awaiting code review** — [jump to Iteration 10](#iteration-10--the-rewrite-rules-move-to-settings-tad-rev-23-2026-10-16) |
+| 11 — DEV synthetic run of 2026-10-19: a hyphenated surname fragment leaked; name spans widened and a P3 name-fragment check; *Dr* kept outside the label; name rules reordered with the writer's own name; a punctuation fidelity hold; rules v0.7; 100 actions | 2026-10-19 | `wbs:5.3`, `5.6` | **APPROVED 2026-10-19** (*"Approved to build."*, with Iteration 12) — [jump to Iteration 11](#iteration-11--name-fragments-name-rules-and-punctuation-2026-10-19) |
+| 12 — TAD rev 25 (`ADR-078`): the flow never releases; every scrubbed record is flagged and carded; `RedactionAutoRelease` retired; threshold seeded create-only at 0.85; SDD A-11: the writer's own name does not count as another person; rules v0.8; 97 actions | 2026-10-19 | `wbs:5.3`, `5.4`, `5.6` | **APPROVED 2026-10-19** (*"Approved to build."*, with Iteration 11); **12.9 fix after the DEV designer refused to save: APPROVED 2026-10-20** (*"Approved"*) — [jump to Iteration 12](#iteration-12--the-process-owner-releases-every-record-tad-rev-25-2026-10-19) |
 
 > **Iteration 1 is kept as approved.** Where it says the flow and the `TD-008` columns are not built, Iteration 2
 > below supersedes it: both are built.
@@ -599,7 +604,7 @@ not a container, so it fits. Any further container inside the prompt stage fails
 
 | Key | Environment | Notes |
 |---|---|---|
-| `RedactionPromptCategory.Name`, `.FamilyMember`, `.GpPractice`, `.Address`, `RedactionKinshipWordsExtra`, `RedactionPracticeSuffixesExtra`, `RedactionStreetWordsExtra`, `RedactionPracticeWordsExtra` | all | **New, none seeded** (`ADR-074` item 7). Absent leaves rev 19 behaviour. Synthetic example texts and each row's description are in [the prompt document §5](revitalise-redaction-prompt.md#5-r5-the-settings-rows-when-the-stage-is-to-be-switched-on-in-dev-reviewer) |
+| `RedactionPromptCategory.Name`, `.FamilyMember`, `.GpPractice`, `.Address`, `RedactionKinshipWordsExtra`, `RedactionPracticeSuffixesExtra`, `RedactionStreetWordsExtra`, `RedactionPracticeWordsExtra` | all | **New, none seeded** (`ADR-074` item 7). Absent leaves rev 19 behaviour. Synthetic example texts and each row's description are in [the prompt document §5](revitalise-redaction-prompt.md) |
 | `RedactionAutoRelease` | all | Unchanged key; now also needs to be saved after every other `Redaction*` row |
 | `RedactionPromptCalibrated` | all | Now a label list, e.g. `NAME, ADDRESS`; `true` no longer calibrates |
 | `rev_citysettlementregister` | all | Read, not written. Seeded by the existing `seed-city-settlement-register.ps1` `post_deploy` step; DEV holds 3,394 rows (E1) |
@@ -680,7 +685,7 @@ this build.
 | A-NS-20 | The prompt takes three named text inputs and returns `text` and `finishReason`; the run action passes `Categories`, `AllowedLabels` and `Narrative` by name | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 (template inputs E1) | Needs R1 | R1's export: read the action's parameter names and the output schema | OPEN |
 | A-NS-21 | *List rows* on the register with only `$select` returns all 3,394 rows in one response; if it returns fewer than 3,000, every record gets `postcode-register-unavailable` | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 (5,000 default page); **E1 that DEV holds 3,394 rows and the set name is `rev_citysettlementregisters`** (`pac env fetch`, 2026-10-06) | No flow run | First DEV run (§3.9): no `postcode-register-unavailable` and "LS62AB" replaced | OPEN |
 | A-NS-22 | *List rows* returns `modifiedon` as ISO 8601 that `ticks()` reads; a changed save moves it and an unchanged save does not; a row without it fails the run | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 | No run | DEV test (§3.9): edit a row after `RedactionAutoRelease`, see `auto-release-stale`; save `RedactionAutoRelease` unchanged, still stale | OPEN |
-| A-NS-23 | In DEV (`crm17`) with *Move data across regions* unticked, a prompt can be created, given a model, saved inside the solution and exported; if not, building the component needs a residency act and is an `ARCH_GAP` | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 only | Needs R0 and R1 | R1 itself, with R0's setting state recorded ([prompt document §3](revitalise-redaction-prompt.md#3-r1-create-the-prompt-in-dev-reviewer-interactive-maker-session)) | OPEN |
+| A-NS-23 | In DEV (`crm17`) with *Move data across regions* unticked, a prompt can be created, given a model, saved inside the solution and exported; if not, building the component needs a residency act and is an `ARCH_GAP` | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 only | Needs R0 and R1 | R1 itself, with R0's setting state recorded ([prompt document §3](revitalise-redaction-prompt.md)) | OPEN |
 | A-NS-24 | `split()` is case-sensitive and finds occurrences left to right without overlap, in the units `length()` and `substring()` use; otherwise a quote's offsets are wrong and a span lands on other characters | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 (`split` documented; case and overlap not stated) | No run | One DEV test `Compose`: `length(split('Ann ann Ann', 'Ann'))` = 3 and `length(split('aaa', 'aa'))` = 2 | OPEN |
 
 ## 3.11 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
@@ -810,7 +815,7 @@ and one solution export. The stage still ships off.
 | [`src/tests/narrative/test_prompt_component.py`](../../src/tests/narrative/test_prompt_component.py) | Tests (new, 14) | Component against the prompt document; the run action and its answer path against the component and against the designer-saved definitions | 5.3 |
 | [`src/tests/narrative/fixtures/run-a-prompt-action.json`](../../src/tests/narrative/fixtures/run-a-prompt-action.json) | Test fixture (new) | The DEV designer's saved *Run a prompt* action and its five output expressions (2026-10-07); test values removed | 5.3 |
 | [`test_scrub_flow_definition.py`](../../src/tests/narrative/test_scrub_flow_definition.py) | Tests | The stand-in splice removed: the mock answers the real operation, checks the id and the input names, and wraps the answer at the body path the flow reads; three new tests | 5.3 |
-| [`revitalise-redaction-prompt.md#L113`](revitalise-redaction-prompt.md#L113) | Prompt document | Status updated; section 6 records what the export showed | 5.3 |
+| [`revitalise-redaction-prompt.md#L166`](revitalise-redaction-prompt.md#L166) | Prompt document | Status updated; section 6 records what the export showed | 5.3 |
 
 ## 4.3 Data Model Changes
 
@@ -827,7 +832,7 @@ answer. The validation that follows is the Iteration 3 code, unchanged.
 
 **The flow is still at the platform's nesting limit of 8, and still passes it.** All three new actions are leaves.
 
-**What the export showed, and what was not adopted** (full table in [the prompt document §6](revitalise-redaction-prompt.md#L113)):
+**What the export showed, and what was not adopted** (full table in [the prompt document, section A2 (was §6 until 2026-10-16)](revitalise-redaction-prompt.md#L166)):
 
 | # | Drift from the prompt document | Adopted? |
 |---|---|---|
@@ -1298,3 +1303,985 @@ No new row. The platform rule is documented, not assumed. `if()` stays eager in 
 | Finding | Class | Severity | Lesson (one line) |
 |---|---|---|---|
 | IMP-1109 | `simulator-more-lenient-than-platform` | rework | A test double needs each documented range rule checked against the platform page, one test per boundary, and test data must put entities at both text boundaries |
+
+# Iteration 8 — the client's Anonymisation Key (2026-10-14)
+
+**WBS:** `wbs:5.6` (rules adjusted from the client's input), `wbs:5.1` (the free-text question mapping), `wbs:5.3`
+(the flow: **not changed**, see 8.5) · **Date:** 2026-10-14 · **Author:** development-agent, strategic tier ·
+**Status:** awaiting code review, and an architecture decision · **Items:** none carried · Nothing deployed, committed or
+built. The flow JSON, its notes and `config/revitalise-grant-automation-build.yml` are untouched in this iteration (the
+uncommitted Iteration 7 edits to them stand as they were).
+
+## 8.1 Summary
+
+The client's two spreadsheets are now the specification: gendered and relationship words become neutral ones, and the
+result must read correctly. The rules, the reference implementation and 24 new tests say exactly what the output must
+be. **The flow cannot produce it under the approved architecture**, so this iteration ends in an architecture gap
+rather than a flow change. Trustees still see the Iteration 7 output until the architect decides where the new stage runs.
+
+## 8.2 What has been built
+
+1. **The key is the rule, and the old "an unnamed relationship stays" is reversed** —
+   [rules 3.2](revitalise-redaction-rules.md#L173), [rules 10.1](revitalise-redaction-rules.md#L554), decision
+   [D-5](revitalise-redaction-rules.md#L787). Reviewer, 2026-10-14: *"1. follow the key file"*. "My mum" now becomes
+   "my parent", "my husband Derek" becomes "my partner [FAMILY MEMBER]".
+2. **The output reads correctly where a replacement breaks it** — [rules 10.1.2](revitalise-redaction-rules.md#L596),
+   [`_agree`](../../src/tests/narrative/redaction_reference.py#L1450), [`_her_form`](../../src/tests/narrative/redaction_reference.py#L1435).
+   Reviewer: *"2. Yes also add spell checking and auto correct that for readability"*. *She is* becomes *they are*; *her*
+   becomes *them* or *their* depending on the next word. Spell-checking the applicant's own words is not built (8.6, item 1).
+3. **The specification is executable** — [`neutral_rewrites`](../../src/tests/narrative/redaction_reference.py#L1467),
+   [`apply_with_rewrites`](../../src/tests/narrative/redaction_reference.py#L1505),
+   [`test_neutral_terms.py`](../../src/tests/narrative/test_neutral_terms.py#L53). Neutral words are found on the source
+   text beside the identifier labels, and a neutral word inside a label is dropped. Every change is applied from the end
+   of the text, as before.
+4. **The client's four examples are tests, without copying their text** —
+   [`ClientExamples`](../../src/tests/narrative/test_neutral_terms.py#L277), [rules 10.1.4](revitalise-redaction-rules.md#L617).
+   They may be real applications, so the tests read them from the spreadsheet rather than copy them. No key word survives
+   in any of the four. Where the oracle's wording differs from the client's, each difference is pinned and given a
+   reason. Most are slips like *they is*, and two are first names, which stay `[NAME]`.
+5. **The 15 free-text questions are mapped to columns** — [rules 2.1a](revitalise-redaction-rules.md#L121),
+   [`FREE_TEXT_QUESTIONS`](../../src/tests/narrative/redaction_reference.py#L1532). Twelve are the twelve columns already
+   scrubbed. **Three have no redacted counterpart**: *Benefit provider*, *source of additional funding* and *Awaiting
+   decision from*. Adding counterparts is schema work for the architect, and none is built.
+
+## 8.3 Elements added
+
+| Element | Where |
+|---|---|
+| Rules v0.4: 2.1a, 10.1 (10.1.1 to 10.1.5), D-5, D-6 | [`revitalise-redaction-rules.md`](revitalise-redaction-rules.md#L554) |
+| *NEUTRAL TERMS* section: `KEY_ROWS`, `KEY_DEVIATIONS`, `NEUTRAL_TERMS`, `neutral_rewrites`, `apply_with_rewrites`, `redact_and_neutralise`, `gendered_residue`, `FREE_TEXT_QUESTIONS` | [`redaction_reference.py`](../../src/tests/narrative/redaction_reference.py#L1309) |
+| 24 tests. 4 read the key spreadsheet and 2 read the examples spreadsheet, and each skips if its file is missing (both are committed) | [`test_neutral_terms.py`](../../src/tests/narrative/test_neutral_terms.py) |
+
+## 8.4 Elements changed
+
+| Element | Change |
+|---|---|
+| Rules 3.2, first bullet | "An unnamed relationship stays" becomes "stays, in a neutral word". The old text is kept as *Previously read* |
+| `redact_column`, `merge`, the flow model, the shipped flow | **Unchanged.** The new stage is separate, so the 245 existing tests are still about the flow as it ships |
+
+## 8.5 Why the flow is not changed: the architecture gap
+
+```
+CASCADE: ARCH_GAP — TAD ADR-071 item 5 and ADR-072 item 7 let the scrub write only a label from the flow's own map plus source text copied unchanged; the client's key needs neutral words, verb agreement and an inserted "my", which neither the deterministic rebuild nor the prompt (which may supply no text, and is off) is allowed to produce
+```
+
+- **Word-for-word substitution would fit the platform.** The flow already finds words at word boundaries for the prompt
+  quotes, and a neutral word could be one more entry in the label map. That still means changing what the TAD says a
+  label is, because a neutral word has no brackets and a trustee cannot tell it was rewritten.
+- **The grammar part does not fit.** Agreeing a verb (*relies* to *rely*) builds new text out of the applicant's own
+  word. Choosing *them* or *their* for *her* needs a word list that is a guess, and a second verb after *and* cannot be
+  agreed by any word list ([pinned limit](../../src/tests/narrative/test_neutral_terms.py#L179)). In Power Automate
+  this is a per-word loop over every window, and nothing like it exists in the approved design.
+- **Three designs for the architect, none chosen:** (a) a deterministic neutral-word stage in the flow, accepting a
+  stated grammar error rate; (b) the generative prompt rewrites, which reverses `ADR-072` item 7's no-text guarantee
+  and is blocked on residency anyway; (c) the C# plug-in `ADR-071` rejected, which needs a language-palette decision.
+  Whichever is chosen also needs a review check behind it: [`gendered_residue`](../../src/tests/narrative/redaction_reference.py#L1523)
+  is the candidate, with a reason code such as `residual-gendered-term`.
+
+## 8.6 Open questions for the reviewer
+
+The meeting notes behind the key are in Granola, which this session could not open (the connector is not authorised).
+Nothing below is taken from the meeting. Each item is a question, and the oracle's current answer is what the tests pin.
+
+1. **General spell-checking is a change-order decision, not built.** It is in no `wbs:5.x` task ([C-COM-002](../../constraints/commercial/commercial-constraints.md#L35)),
+   so lead-agent sends it to commercial-agent. For sizing: it changes the applicant's own words, so it needs either the
+   prompt stage writing text (design (b) above) or a dictionary component the TAD does not have. Either way it is an
+   architecture decision as well as a change order.
+2. **Key row 4 says *him* becomes *their*.** The oracle writes *them*, as the client's own examples do. Confirm.
+3. **Key row 7 says *hers* becomes *their*.** The oracle writes *theirs*. Confirm.
+4. **First names.** The client's examples turn *Ahmad* and *Kizzy* into *They*. The key has no row for names, and FR-026
+   says `[NAME]`, so the oracle writes `[NAME]`. Should a name become *They* instead? If so, FR-026 changes.
+5. **Plurals and words the key does not list.** The oracle also replaces plurals (*sons* becomes *children*, *women*
+   becomes *people*). It leaves alone *grandmother*, *stepson*, *auntie*, *niece*, *nephew*, *mummy*, *lady*, and the titles
+   *Mr*, *Mrs*, *Ms* and *Miss* (rules 3.2 keeps titles: "Mrs [NAME]"). Should these be added?
+6. **A second verb after *and* stays unagreed** ("they receive PIP and requires care"). Acceptable, or must design (a) be
+   ruled out for it?
+7. **Example 2 adds a full stop the applicant did not write** ("agony. They soothes"). The oracle does not. That is
+   editing, so it falls under item 1.
+8. **The two spreadsheets are now in git, and the examples may be real applications.** You committed both in `ffb42ef`
+   during this dispatch, so the example tests run in CI. The examples hold first names and health details (dementia,
+   PTSD). If they are real, that is personal data in git history, and the test-data rule says none comes from a real
+   application ([rules 11.1](revitalise-redaction-rules.md#L659)).
+   Please confirm whether they are real or made up. Neither file is listed in
+   [`docs/Import/MANIFEST.yml`](../Import/MANIFEST.yml) yet. Adding them is plan-agent's intake step.
+9. **Three questions have no redacted counterpart** (8.2, item 5). Two of their columns are not secured. Neither portal
+   shows them today, but any role that can read the application table can read them. Should they get counterparts?
+10. **SDD wording.** FR-026 lists only bracketed labels. The SDD's business context ([plan line 1189](../plans/revitalise-grant-automation-plan.md#L1189)) already said Emily
+   strips "gender references" by hand. An FR-026 amendment would make the SDD say what is now decided.
+
+## 8.7 Unvalidated Assumptions Register (C-TECH-052)
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| A-NS-28 | Key row 34, *"Brief confirmation13"*, is the carer-route question the intake reads as `brief_confirmation_2` into `rev_supportrecipientdisabilityimpactdescription`. If it is a different field, one scrubbed column is not in the client's list and one listed question may have no counterpart | `src/tests/narrative/redaction_reference.py` | E3: the only other *Brief confirmation* in TAD Appendix C is `brief_confirmation`, row 31; "13" matches no key in the 2026-09-25 payload sample | The meeting notes are not available | Ask Emily which form field "Brief confirmation13" is. Either answer is one row in rules 2.1a | OPEN |
+
+## 8.8 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| Neutral-term oracle | Executed (specification only, not a platform artefact) | macOS, local | `python3 -m unittest test_neutral_terms` in `src/tests/narrative`: **24 tests OK**, both spreadsheets present |
+| Whole narrative suite | V1 for the flow (unchanged) | macOS, local | `python3 -m unittest discover -s src/tests/narrative -p 'test*.py'`: **269 tests OK** (245 before) |
+| The tests can fail | Executed | macOS, local | Six mutations, each caught: agreement off (11 failures), *her* always *their* (3), *her* always *them* (3), a rewrite kept inside a label (1), apostrophe not part of a word (3), capitals copied from the source (3) |
+| Flow | Not changed | — | 8.5 |
+
+No tool warnings arose. No diagnostic component was created.
+
+## 8.9 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.6 | 2.5 h | Rules 10.1, the oracle stage, 24 tests, the example comparison |
+| 5.1 | 0.5 h | Rules 2.1a: 15 questions traced to the intake map and `Entity.xml` |
+
+## Findings Logged (Iteration 8)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-1110 | `client-input-reverses-approved-rule` | rework | A rule saying what is deliberately kept must be checked against the SDD's description of today's manual process, not only against the FRs |
+
+---
+
+# Iteration 9 — the flow rebuilt to TAD rev 22 (2026-10-16)
+
+**WBS:** `wbs:5.3` (the flow), `wbs:5.6` (the client's rules, the grammar), `CO-009` (spelling: approved, unbilled; proposed
+task 5.8) · **Date:** 2026-10-16 · **Author:** development-agent, strategic tier (`logs/routing.log` 12:09: custom
+disclosure controls on special-category text) · **Status:** awaiting code review · **Items:** none carried · Nothing
+deployed, built or committed. `config/revitalise-grant-automation-build.yml` and `config/revitalise-grant-automation-pipeline.yml`
+are unchanged (this amends the shared configuration; no step added).
+
+**Design:** TAD rev 22, `ADR-075` with its two errata; SDD Amendment A-09 (FR-026 as amended, FR-094 to FR-101, US-025,
+OQ-054 to OQ-056). **Two reviewer rulings arrived during this dispatch and are built** (both relayed by lead-agent,
+2026-10-16): *"My husband Derek becoms partner. not family member. the word husband is leading in this pattern."* and
+*"Keep the family member label for now. I am expecting one more itteration on the labels after Emily has tested."* The SDD
+(FR-095, OQ-054) and the TAD (`ADR-075` erratum 2) were corrected the same day by plan-agent and architect-agent.
+
+## 9.1 Summary
+
+The scrub flow is rebuilt, not edited: **313 actions become 90, nesting 8 becomes 5, and there is no `Until` and no
+`result()` left.** The extractor labels what it finds, one prompt rewrites the labelled text (the client's key, names to
+*They*, the grammar), a second corrects spelling, and three fixed checks decide what is written. **It cannot run yet:** the
+two prompts must first be created in DEV by you (decision 1), so do not deploy this build until then.
+
+## 9.2 What has been built
+
+1. **The model never receives a value the extractor found** — [`Select_labelled_pieces`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1197),
+   [`labelled_text`](../../src/tests/narrative/redaction_reference.py#L719), [`test_the_model_never_receives_a_value_the_extractor_found`](../../src/tests/narrative/test_scrub_flow_definition.py#L198).
+   Each extractor span is replaced by its label and the text rebuilt by offset before the rewrite prompt is called. A span
+   inside another is dropped; two that overlap without nesting hold the column ([`Select_overlap_trials`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1164)).
+2. **Whatever the models answer, a column is written only when checks P1 and P2 pass** —
+   [`Filter_surviving_identifiers`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1410) (P1), [`Filter_added_words`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1431) (P2),
+   [`Compose_column_outcome`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1631). P1: no extractor value is left in the final text. P2: every word the rewrite
+   wrote was in its input, or on the flow's closed list ([`closed_words`](../../src/tests/narrative/redaction_reference.py#L752)), so a model cannot add a name, a phone
+   number or a sentence. Proven against bad stand-in models: [`P2TheRewriteAddsNoWord`](../../src/tests/narrative/test_scrub_flow_definition.py#L227),
+   [`P1NoFoundIdentifierSurvives`](../../src/tests/narrative/test_scrub_flow_definition.py#L272).
+3. **The spelling answer is taken word by word, never as a whole** — [`Select_spelling_words`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1348),
+   [`take_correction`](../../src/tests/narrative/redaction_reference.py#L1036), [`SpellingAcceptedWordByWord`](../../src/tests/narrative/test_scrub_flow_definition.py#L288). A different word count discards it; a capitalised
+   word, a label, punctuation, a closed-list word, or a correction that would bring back a gendered word (*sun* to *son*)
+   is refused at that word. A failed spelling call writes the rewrite uncorrected, with no reason code.
+4. **The client's rules are the oracle, at A-09 and the reviewer's corrections** — [`neutral_rewrite`](../../src/tests/narrative/redaction_reference.py#L1537),
+   [`_name_pass`](../../src/tests/narrative/redaction_reference.py#L1442), [`NEUTRAL_TERMS`](../../src/tests/narrative/redaction_reference.py#L1281), [`Names`](../../src/tests/narrative/test_neutral_terms.py#L214), [`UserStory25`](../../src/tests/narrative/test_neutral_terms.py#L283). Names become
+   *They* (two different people keep `[NAME]`; *Dr [NAME]* stays); **"my husband Derek" becomes "my partner"**; *him* is
+   *them*, *hers* *theirs*, *herself* *themself*; the added words and their counterparts; titles removed; a second verb after
+   *and* agrees. Against the client's four examples the only differences left are the client's own grammar slips,
+   capitals and *them* for a possessive *her* — no name and no *themself* difference any more.
+5. **The label set is in one place, ready for the change after Emily's test** — [`Compose_constants`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L233),
+   [`LABEL_BY_CODE`](../../src/tests/narrative/redaction_reference.py#L525), [`test_the_label_set_is_read_from_one_place`](../../src/tests/narrative/test_scrub_flow_definition.py#L620). No other action spells a label; P2's
+   closed list must hold every label word; a test fails until flow and oracle agree. `[FAMILY MEMBER]` stays in the set by
+   your decision, although no rule now produces it.
+6. **One failure handler instead of 16 catch triplets and a failure descent** — [`Hold_the_record_for_review`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2280),
+   [`End_the_run_as_failed`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2343), [`TheFailureHandler`](../../src/tests/narrative/test_scrub_flow_definition.py#L488). Any failure inside the scope holds the record,
+   alerts once with the run link and ends the run as Failed; a failed extractor or prompt call inside a column is a reason
+   code, not a failed run. Tested by making each of 26 actions inside the column fail in turn.
+7. **The flow-language gate's selftest no longer depends on action names the rebuild removed** —
+   [`_UNTIL_FIXTURE`](../../scripts/verify-flow-definition-language.py#L341),
+   [planted check-12 read](../../scripts/verify-flow-definition-language.py#L482). Four selftest assertions went red because
+   they mutated the old flow's `Scan_the_column_in_windows` and `Follow_the_failure_inward`; the checks themselves read no
+   action names and are unchanged. Now 15 of 15.
+
+## 9.3 Elements added
+
+| Element | Where | WBS |
+|---|---|---|
+| The rev 22 flow (90 actions) and its maker notes | [flow JSON](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1), [notes](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.notes.md) | 5.3, 5.6, CO-009 |
+| Rev 22 flow model: `label_spans`, `labelled_text`, `accept_spelling`, `validate_rewrite`, `surviving_identifiers`, `residue_kinds`, `flow_scrub_record` | [`redaction_reference.py`](../../src/tests/narrative/redaction_reference.py#L480) | 5.3 |
+| Two prompt templates (rewrite; spelling) and the R1 steps | [`revitalise-redaction-prompt.md`](revitalise-redaction-prompt.md) §1–§4 | 5.6, CO-009 |
+| `corpus_support.py`: the simulated extractor and the prompt stand-ins | [`corpus_support.py`](../../src/tests/narrative/corpus_support.py) | 5.3 |
+| `test_solution_flows.py`: the platform-limit and trigger-loop tests, moved unchanged | [`test_solution_flows.py`](../../src/tests/narrative/test_solution_flows.py) | 5.3 |
+| Check-13 selftest fixture | [`verify-flow-definition-language.py`](../../scripts/verify-flow-definition-language.py#L341) | system |
+
+## 9.4 Elements changed
+
+| Element | Change | WBS |
+|---|---|---|
+| Flow size | 313 → **90 actions**; nesting 8 → 5; no `Until`, no `result()`. The TAD estimated *about 75–80*: the 10 above it are the threshold parse kept in its own Compose (an expression limit, below), two Selects for the neutral-terms row, the unmapped-type filter, and the separate age Select | 5.3 |
+| Neutral-term oracle | Brought to A-09: names to *They*, the corrected relationship rule, `themself`, standalone *his*, added words, second-verb agreement, possessive key words (*my wife's* → *my partner's*) | 5.6 |
+| Rules | v0.4 → [v0.5](revitalise-redaction-rules.md): §3, §4.4, §6b–§6c, §7, §7b, §7c, §10.1 rewritten; D-7 and D-8 recorded | 5.6 |
+| [`test_scrub_flow_definition.py`](../../src/tests/narrative/test_scrub_flow_definition.py#L1) | Rewritten for rev 22 (52 tests) | 5.3 |
+| [`test_neutral_terms.py`](../../src/tests/narrative/test_neutral_terms.py#L1), `test_prompt_component.py`, `test_narrative_test_data.py`, `score_live_run.py` | Brought to rev 22; the rev 20 detector component's own tests stand | 5.3, 5.6 |
+| `src/tests/data/narrative-test-data.json` | One `_rev22` note: its expectations are the rev 20 output and are stale (9.5) | 5.3 |
+| Removed | `test_flow_model.py`, `failure_catches.py` (the generator of the catches that no longer exist), `test_text_end_spans.py` (its boundary rule is in every new read: `concat(raw, ' ')`) | 5.3 |
+
+**Two gate results worth knowing.** The narrative suite's platform-limit test caught a generated threshold expression of
+12,701 characters against the 8,192 limit, which no other gate checks; it is now split. And the `flow-definition-language`
+gate passes over the new flow with checks 1 to 13.
+
+## 9.5 What is still open
+
+**The two prompts do not exist yet.** The run actions carry the placeholders `PENDING-A-NS-31-REWRITE-PROMPT-ID` and
+`PENDING-A-NS-31-SPELLING-PROMPT-ID`, never an invented id. Imported now, the flow would replace DEV's working rev 20
+flow with a Draft that cannot be saved or run (decision 1).
+
+**The seeded test data's expected texts are the rev 20 output.** [`narrative-test-data.json`](../../src/tests/data/narrative-test-data.json)
+now says so in a `_rev22` note. In rev 22 the text comes from the model, and TD-14 (10,456 characters) is no longer scrubbed
+at all (`too-long`). They are regenerated once the prompts exist, for `wbs:5.7`.
+
+**V2 at most.** The solution packs locally; nothing has been imported, saved in the designer or run. The prompts' quality is `wbs:5.7`'s question;
+these tests prove the checks hold against bad answers, not that good answers come back.
+
+**Check P1 is case-blind, as `ADR-075` item 5 states.** A name that is also an ordinary word ("Will"), found once by the
+extractor, also stops a column where the word is used as a verb. That column goes to Emily by hand: the safe direction.
+
+## 9.6 Unvalidated Assumptions Register (C-TECH-052)
+
+Rows new in this iteration, and the current status of earlier rows the rebuild touches. Rows not listed stand as written.
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| ~~A-NS-31~~ | The two prompt components (rewrite: inputs `Narrative`, `ExtraTerms`; spelling: input `Text`) export and import with the solution in the same shape as the rev 20 one, and each run action passes its inputs by these names and reads `text` and `finishReason` at `responsev2/predictionOutput`. If not, every call fails and every column is `prompt-error` (held, nothing written) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E1 for one prompt's shape and run action (DEV export and designer save, 2026-10-07); E3 for the two new ones | They do not exist; creating them is your R1 | R1, then export and unpack: replace the two placeholders with the exported ids; read the run specifications | CLOSED — VERIFIED 2026-10-16 by the DEV export (10.10) |
+| A-NS-33 | One rewrite call on a 5,000-character labelled text returns the whole text with `finishReason` `stop`. If it is cut off, the finish reason is not `stop` and the column is `prompt-error` | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 | No prompt exists | One DEV run on a synthetic 5,000-character text | OPEN |
+| A-NS-34 | An action that runs after a FAILED connector call can read its `body()`, and the answer path on it is null, so the column becomes `ai-error` or `prompt-error`. If the platform instead throws, that Compose fails, the run fails and the record is held (the safe direction) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 (the rev 20 register read used the same pattern; never seen to fail) | No run | One DEV run with the extractor failing (for example no AI credits on a test environment): the run Succeeds and the record shows `ai-error` | OPEN |
+| A-NS-35 | `replace()` is case-sensitive, so the spelling rule's "starts with a lower-case letter" and "keeps its first letter" tests are exact. If it were not, a capitalised word could be corrected | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 (the function reference states it) | No run | One DEV test `Compose`: `length(replace('abc', 'A', ''))` is 3 | OPEN |
+| A-NS-8 | Revised: a completed run of either new prompt returns `finishReason` `stop`; any other value is unusable (rewrite: `prompt-error`; spelling: the rewrite stands) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 | No prompt exists | As A-NS-33 | OPEN |
+| A-NS-15 | Revised: `sort(array, 'start')` and `sort(array, 'score')` sort ascending by that number (the rebuild and the lowest score) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 | No run | One DEV test `Compose` over `[{start:10},{start:2}]` | OPEN |
+| A-NS-12 | Unchanged claim, still in source: `secureData` on the extractor and on both prompt calls hides their inputs and outputs in run history | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 | No run | As before | OPEN |
+| A-NS-22 | Unchanged claim, still in source (`Filter_settings_saved_after_auto_release`) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 | No run | As before | OPEN |
+| A-NS-9 | The rev 20 detector prompt's run action. **No longer called**; its component stays in the solution (decision 2), and A-NS-31 replaces this row for the new prompts | — | — | — | — | WITHDRAWN |
+| A-NS-10 | The detector prompt's JSON answer. The new prompts answer plain text | — | — | — | — | WITHDRAWN |
+| A-NS-18 | `take()`/`lastIndexOf()` for windows. No windows any more | — | — | — | — | WITHDRAWN |
+| A-NS-19 | `result()` of a loop. The flow has no `result()` | — | — | — | — | WITHDRAWN |
+| A-NS-20 | The detector prompt's three inputs and their length. Replaced by A-NS-31 and A-NS-33 | — | — | — | — | WITHDRAWN |
+| A-NS-23 | Creating a prompt with *Move data across regions* off. The setting is on in DEV, TST/ACC and PRD (reviewer statements, 2026-10-16; TAD `A-NS-32a`) | — | — | — | — | WITHDRAWN |
+| A-NS-24 | `split()` occurrences for prompt quotes. Quote validation is gone | — | — | — | — | WITHDRAWN |
+| A-NS-26 | Nesting 8 deep. The flow nests 5 | — | — | — | — | WITHDRAWN |
+| A-NS-27 | The `int()` rethrows. They are gone | — | — | — | — | WITHDRAWN |
+
+TAD `A-NS-29` (an array read by a computed index) does not apply: every such read is `first(skip(…))`.
+
+## 9.7 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| Flow logic | **V1, simulator** with stand-in prompts | macOS, local | `python3 -m unittest discover -s src/tests/narrative -p 'test*.py'`: **170 tests OK** (269 before; most covered removed stages, ADR-075's gate table) |
+| The tests can fail | Executed | macOS, local | Seven mutations of the flow, each caught: P2 removed from the write (13 failures), P1 removed (6), the spelling answer taken whole (4), the gendered-word refusal removed (1), the raw text sent to the model (86 failures and errors), `secureData` dropped from one Select (1), contained spans kept (12) |
+| Flow-language gate | Executed | macOS, local | `python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation`: exit 0, checks 1–13, 11 flows, 0 Until loops. `--selftest`: exit 0, wrapper 15/15 |
+| Pester wrapper | Executed | macOS, local | `NarrativeRedaction.Tests.ps1`: 2 passed, 0 failed |
+| Source gates | V1 | macOS, local | `python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml`: 19 of 19 PASS (second run in the gate output) |
+| Pack | **V2** | macOS, local, pac CLI | `pac solution pack --packagetype Unmanaged` to a scratch folder: exit 0, no warning; the packed flow is 104,013 bytes (the rev 20 one was 344,007) and still carries the two `A-NS-31` placeholders |
+
+**V3 to V5 are not reached.** Nothing was imported, saved or run; the pack was to a scratch folder and is not a build artefact. No tool warning was emitted by any command above.
+No live call was made in this dispatch, so no diagnostic component exists.
+
+## 9.8 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.3 | 5.5 h | The rebuilt flow, the flow model, 52 flow tests, the stand-ins, the notes |
+| 5.6 | 2.0 h | The neutral-term oracle to A-09 and the two corrections, rules v0.5, the rewrite template |
+| CO-009 | 1.0 h | The spelling prompt, its template and the word-by-word acceptance with its tests |
+| system | 0.5 h | The gate selftest fixtures, two findings |
+
+## 9.9 What you need to decide
+
+**Create the two prompts in DEV before this build is deployed (TAD §12.6.1 R1)**
+
+**Problem** — the flow calls two prompts that do not exist, so its run actions carry placeholders.
+**Suggested fix** — follow [section 3 of the prompt document](revitalise-redaction-prompt.md); development-agent then exports them and replaces the placeholders.
+**What happens if you don't** — a deploy replaces DEV's working flow with one that cannot be saved or run, and no record is scrubbed until the ids are in.
+[`Run_the_rewrite_prompt`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1235)
+
+---
+
+**Remove or re-use the rev 20 detector prompt**
+
+**Problem** — *REV Narrative Redaction Prompt* is still a component of the solution, and nothing calls it.
+**Suggested fix** — remove it from the solution when the two new prompts are copied in; re-using it as the rewrite prompt is also possible, but its inputs differ.
+**What happens if you don't** — it ships, unused, to TST/ACC and PRD.
+[prompt document §5](revitalise-redaction-prompt.md)
+
+---
+
+**Confirm two readings of `ADR-075` this build made**
+
+**Problem** — (a) item 6's closed list does not include *a* and *an*, which "an uncle" → "a relative" needs; I added them. (b) The TAD retires the *practice suffixes* list, while item 2 says entities map "as now"; I kept the fixed suffix list in the flow and retired only the setting row.
+**Suggested fix** — confirm both, or say which to change (each is one constant and a test).
+**What happens if you don't** — nothing breaks: neither can disclose anything; (a) otherwise holds such columns as `rewrite-invalid`, (b) otherwise sends every organisation's name to the prompt unlabelled.
+[`closed_words`](../../src/tests/narrative/redaction_reference.py#L752)
+
+---
+
+Verification: 170 narrative tests, 0 failures; seven flow mutations each caught; flow-language gate and its selftest green; 19 of 19 source gates; a local pack (V2) with no warning.
+**Not verified:** any import, designer save or run (V3–V5), and the two prompts, which do not exist yet.
+
+## Findings Logged (Iteration 9)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1121](../../logs/improvement-log.jsonl) | `gate-fired` | friction | An expression that needs one intermediate value more than twice gets that value in its own Compose; only the narrative suite checks the 8,192 limit |
+| [IMP-1122](../../logs/improvement-log.jsonl) | `gate-proof-bound-to-live-artefact` | friction | A gate's selftest mutates a fixture it owns, never a live flow's action names; and a selftest no build runs proves nothing |
+| IMP-1098 (existing) | — | blocker, `fixed_in_flight` re-stamped | Its evidence needle named an action the rebuild removed; re-stamped to the rev 22 shape, which has no reference into the loop at all |
+
+---
+
+# Iteration 10 — the rewrite rules move to settings (TAD rev 23, 2026-10-16)
+
+**WBS:** `wbs:5.6` (rules the process owner tunes), `wbs:5.3` (the flow) · **Date:** 2026-10-16 · **Author:**
+development-agent, strategic tier (same transcript as Iteration 9) · **Status:** awaiting code review · **Items:** none
+carried · Nothing deployed, built, exported or committed. **Design:** TAD rev 23, `ADR-076`, approved 2026-10-16 (*"Approved
+for revision 23"*). It answers the reviewer's correction of approved Iteration 9: *"I noticed in the rewrite prompt there are
+quite some rules in there. We agreed that those rules would be set as settings on the settings table. So that Emily can
+change these without me changing the prompts or workflows."* Iteration 9 stays approved; this changes it as the ADR's table
+lists. This amends the shared build configuration (no step added); the pipeline configuration changes only in three step
+descriptions.
+
+## 10.1 Summary
+
+The key, the titles, the name rules and the labels now live in four `rev_setting` rows Emily edits. The rewrite prompt reads
+them as four inputs, and **the same rows are the lists checks P2 and P3 use**, derived in one action, so the prompt and the
+checks cannot drift apart. A missing or malformed row stops the scrub of the record and names the row. The deploy creates
+the four rows once in each environment and never overwrites them. **Waiting on you:** the R1b re-edit of the rewrite prompt in
+DEV (decision 1), then the export.
+
+## 10.2 What has been built
+
+1. **Four rows feed the prompt and the checks from one place** — [`Compose_settings`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L811),
+   [`run_context`](../../src/tests/narrative/redaction_reference.py#L1037), [`test_the_four_prompt_inputs_are_the_rows_as_written`](../../src/tests/narrative/test_scrub_flow_definition.py#L498).
+   `Compose_settings` turns the validated rows into the prompt's `NeutralTerms`, `Titles`, `NameRules` and `Labels`, P2's
+   allowed words (the right side of each key line, the words of each label) and P3's gendered words and titles. The flow
+   keeps fixed only what no rule chooses: the extractor's labels and the grammar set (*are, were, have, do, go*, their
+   *-n't* forms, *my, a, an*).
+2. **Every row fails closed** — [`Select_neutral_term_lines`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L736),
+   [`Filter_neutral_targets_that_are_terms`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L762), [`Select_title_lines`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L775),
+   [`Select_label_lines`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L788), [`Filter_columns_to_scrub`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L911), [`RuleRows`](../../src/tests/narrative/test_scrub_flow_definition.py#L498). Absent, blank, a line
+   without one `=`, a neutral word that is also a word to replace, a title over 10 letters, a label not in capitals: each gives
+   `redaction-setting-invalid:<key>`, and no extractor or prompt call is made for the record. `none` is an intended empty list.
+3. **A title is its own residue check, with its capitals** — [`Filter_residue_titles`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1610). *Ms Smith* is held, *MS*
+   (the condition) is not. It uses `replace()`, which is case-sensitive, not `contains()`, so it holds under either string
+   semantics: the tests run both (TAD `A-NS-37` does not arise).
+4. **The deploy seeds the rows once and then leaves them alone** — [`seed-settings.ps1`](../../provisioning/dataverse/seed-settings.ps1#L224),
+   [the seeded rows](../../provisioning/deploymentSettings/test-settings.json#L617),
+   [create-only tests](../../src/tests/provisioning/DataverseScripts.Tests.ps1#L298). A row marked `createOnly` that exists is
+   reported `EXISTS — left unchanged` and never written; an absent one is created with `If-None-Match: *`, so a row made in
+   the meantime is refused by Dataverse instead of overwritten. The seed values are TAD `ADR-076`'s, held once in
+   [`SEED_ROWS`](../../src/tests/narrative/redaction_reference.py#L1329) and asserted equal in all three settings files.
+5. **The rewrite template is the fixed contract only, with four slots** — [prompt document §1](revitalise-redaction-prompt.md#L13),
+   [R1b steps](revitalise-redaction-prompt.md#L87). The spelling prompt is unchanged.
+
+## 10.3 Elements added
+
+| Element | Where | WBS |
+|---|---|---|
+| Four `Find_setting_*` reads (three more), `Select_neutral_term_lines`, `Filter_neutral_targets_that_are_terms`, `Select_title_lines`, `Select_label_lines`, `Filter_residue_titles` | flow JSON | 5.3, 5.6 |
+| `parse_neutral_terms`, `parse_titles`, `parse_labels`, `parse_name_rules`, `SEED_ROWS`, `SEED_CONTEXT` | [`redaction_reference.py`](../../src/tests/narrative/redaction_reference.py#L925) | 5.6 |
+| Four `createOnly` rows | `dev-scoring-settings.json`, `test-settings.json`, `prd-settings.json` | 5.6 |
+| Create-only mode (`-ExtraHeaders` on `Invoke-DataverseApi` was added here and removed again in 10.11) | `seed-settings.ps1`, `provisioning-common.ps1` | 5.6 |
+| 9 flow tests (`RuleRows` and two others), 1 seed-equality test, 3 Pester tests | test files above | 5.3, 5.6 |
+| Reason code `residual-title:<column>` | flow, rules §6b | 5.6 |
+
+## 10.4 Elements changed
+
+| Element | Change | WBS |
+|---|---|---|
+| Flow size | 90 → **97 actions**, nesting still 5. The TAD estimated about 95: the extra two are the neutral-word cross-check and the labels row's validation | 5.3 |
+| `Compose_constants` | Keeps only the grammar set and the extractor's label words in `closedWords`; `genderedWords` removed | 5.3 |
+| `Run_the_rewrite_prompt` | `ExtraTerms` → `NeutralTerms`, `Titles`, `NameRules`, `Labels` | 5.3 |
+| `RedactionNeutralTermsExtra` | Retired; a leftover row is ignored | 5.6 |
+| Oracle | `neutral_rewrite` takes the rows (the stand-in model follows the rows it is given); `NEUTRAL_TERMS` gains *mummies*, *daddies* | 5.6 |
+| Rules | v0.5 → v0.6: §6b, §7c, §10.1 | 5.6 |
+| Prompt document | §1 rewritten (rev 23 template, R1b); §3 marked done; §4 waits for R1b | 5.6 |
+| Pipeline config | Three seed step descriptions: the four create-only rows; "36 rows" corrected to 40 | 5.6 |
+
+## 10.5 What is still open
+
+**The rewrite prompt in DEV is the rev 22 one.** Until R1b, its inputs (`Narrative`, `ExtraTerms`) do not match the flow's.
+Do not export before R1b (prompt document §4 step 0).
+
+**Before the first deploy that seeds the rows, every record is held** with `redaction-setting-invalid` for all four rows
+(`ADR-076` consequence 6). The deploy itself creates them, so this lasts only from the import to the end of that deploy's
+post-deploy steps.
+
+**The pipeline preflight is red for reasons outside this change.** `verify-pipeline-config.py` reports four DEV steps whose
+`blocked_on` notes are 15 to 17 days old (limit 14). It reports the same four on the tree without this iteration's edits.
+They are pipeline-agent's to re-test.
+
+## 10.6 Unvalidated Assumptions Register (C-TECH-052)
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| A-NS-36 | A keyed `PATCH` with `If-None-Match: *` creates a missing `rev_setting` row and returns 412 for an existing one, changing nothing. If it updated instead, the first deploy after a race could overwrite one of Emily's rows; the probe before it already skips every existing row | `provisioning/dataverse/seed-settings.ps1` | E2 (Dataverse Web API, upsert with update prevented) | No live run in this dispatch | In DEV: run the create-only seed twice, editing one row by hand between runs; the second run reports `EXISTS — left unchanged` and the edit stays | OPEN |
+| A-NS-35 | Revised: `replace()` is case-sensitive; the spelling rule and now the title check rely on it | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 | No run | As before; and a run on "I have MS" is not held for a title | OPEN |
+| ~~A-NS-31~~ | Revised: the rewrite prompt's inputs are now `Narrative`, `NeutralTerms`, `Titles`, `NameRules`, `Labels` (after R1b); the spelling prompt's `Text` | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 | R1b not done | R1b, then export and read the run specification | CLOSED — VERIFIED 2026-10-16 by the DEV export (10.10) |
+
+TAD `A-NS-37` (`contains()` case-sensitive) is not relied on: the title check uses `replace()`.
+
+## 10.7 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| Flow logic | V1, simulator | macOS, local | `python3 -m unittest discover -s src/tests/narrative -p 'test*.py'`: **180 tests OK** (170 in Iteration 9) |
+| The tests can fail | Executed | macOS, local | 13 flow mutations, each caught: Iteration 9's seven, plus the rule-row gate removed from `Filter_columns_to_scrub` (28 failures), the title check emptied (4), P2's list ignoring the rows (62 + 1 error), the prompt's `NeutralTerms` not from the row (52), the gendered list not from the row (2), the neutral-word cross-check off (1) |
+| Seed script | Executed (mocked Web API) | macOS, pwsh 7, Pester 5.7.1 | `DataverseScripts.Tests.ps1`, `DeploymentSettings.Tests.ps1`, `ProvisioningCommon.Tests.ps1`, `ScriptContract.Tests.ps1`, `NarrativeRedaction.Tests.ps1`: **635 passed, 0 failed, 1 skipped** |
+| Flow-language gate | Executed | macOS, local | exit 0, checks 1–13 |
+| Pack | **V2** | macOS, pac CLI | `pac solution pack --packagetype Unmanaged` to a scratch folder: exit 0, no warning |
+
+**V3 to V5 are not reached**, and the seed script has not run against any environment. No tool warning was emitted. No live
+call was made, so no diagnostic component exists.
+
+## 10.8 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.6 | 2.0 h | The four rows: parsing, guard rails, seed values in three files, the create-only seed and its tests, rules v0.6, the rev 23 template |
+| 5.3 | 1.5 h | The flow changes, 9 flow tests, six new mutations, notes |
+| system | 0.25 h | Two findings |
+
+## 10.9 What you need to decide
+
+**Re-edit the rewrite prompt in DEV (R1b)**
+
+**Problem** — the rewrite prompt in DEV still has the rev 22 template and its `ExtraTerms` input, which the flow no longer passes.
+**Suggested fix** — follow [R1b](revitalise-redaction-prompt.md#L87) (remove `ExtraTerms`, add four inputs, paste the rev 23 template); then development-agent exports both prompts.
+**What happens if you don't** — the export copies the wrong prompt and every rewrite call fails, so every column is `prompt-error` and nothing is written.
+[`Run_the_rewrite_prompt`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1210)
+
+---
+
+Verification: 180 narrative tests and 635 Pester tests, 0 failures; 13 flow mutations each caught; flow-language gate green;
+19 of 19 source gates; a local pack (V2) with no warning. **Not verified:** any import, designer save or run (V3–V5), and the
+create-only seed against a real environment (`A-NS-36`).
+
+## Findings Logged (Iteration 10)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1126](../../logs/improvement-log.jsonl) | `shared-working-tree-mutated-to-measure-a-baseline` | friction | While another dispatch may be writing the tree, never `git stash` to measure a baseline; use `git show` to a copy, or a separate worktree |
+| [IMP-1127](../../logs/improvement-log.jsonl) | `hand-maintained-count-drifts-from-source` | friction | A pipeline step description names what it seeds, not how many rows |
+
+## 10.10 Addendum — the two prompts exported and copied in (2026-10-16)
+
+**R1b is done** (reviewer, verbatim: *"ok prompt is edited and saved."*); the spelling prompt was not changed. This addendum
+does the prompt document §4 steps. Nothing deployed or committed; the rev 20 detector component is left in place.
+
+1. **Both components are now in source, exactly as exported** — [`Customizations.xml`](../../src/solutions/RevitaliseGrantAutomation/Other/Customizations.xml#L72),
+   [what the export showed](revitalise-redaction-prompt.md#L172), [`TheTwoNewComponents`](../../src/tests/narrative/test_prompt_component.py#L194).
+   A read-only `pac solution export` of `RevitaliseGrantAutomation` from DEV (14:37 UTC), unpacked to a scratch folder.
+   The two `AIModel` elements and their two `RootComponent type="401"` rows are copied unchanged; the rev 20 component in the
+   export is byte-identical to the one in source. The configurations are not newer than the export (`IMP-1088`): rewrite
+   14:36, spelling 11:51.
+2. **The flow names the exported ids** — the placeholders are replaced by `e853d7c8-dd36-4917-951f-50108a812fc4` (rewrite)
+   and `763cff31-d653-416b-a52f-7e6f400bce21` (spelling), each once.
+3. **Every input and output matches** — the decoded run specifications require exactly `Narrative`, `NeutralTerms`,
+   `Titles`, `NameRules`, `Labels` (rewrite) and `Text` (spelling), and return `text` and `finishReason`. Each also has the
+   prompt builder's optional `additionalContext`, as the rev 20 prompt does; the flow does not pass it. GPT-4.1 mini,
+   temperature 0, moderation Low, output text.
+4. **The template you typed is word for word the document's** — the only differences are the prompt builder's: a space each
+   side of every input token, and one newline at the end. The test pins exactly that, so any other change fails.
+5. **One gate false positive, fixed** — [`LEGACY_SHAPE_TOKEN`](../../scripts/verify-guid-syntax.py#L220). The GUID gate's
+   backstop scan read the exported JSON `{"type":"inputVariable","id":"Labels"}` (and `Titles`) as a malformed GUID,
+   because six-letter names make it exactly 36 characters. It now ignores a token with a double quote; the known-bad fixture
+   still fails. The engine's copy needs the same line (finding below).
+
+**`A-NS-31` is closed:**
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| A-NS-31 | The two prompt components export with the solution in the same shape as the rev 20 one, and each run action passes its inputs by the exported names and reads `text` and `finishReason` | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | **E1**: DEV export of 2026-10-16, run specifications decoded; the answer path is the designer-saved one (E1, 2026-10-07) | — | — | CLOSED — VERIFIED (export, 2026-10-16) |
+
+**Still open:** the import (V3) and a designer open-and-save (V4) of the flow with the new ids; a DEV run of each prompt
+(`A-NS-8`, `A-NS-33`); the create-only seed against DEV (`A-NS-36`). **Outside this change:** the
+`verify-pipeline-config` CI test (`BuildGates.Tests.ps1`) fails on the four stale DEV `blocked_on` notes of 10.5.
+
+**Verification (this addendum):** 184 narrative tests OK (180 before; 4 new component tests); Pester `BuildGates`,
+`NarrativeRedaction`, `DataverseScripts`, `DeploymentSettings`: 254 passed, 1 failed (the stale-note test above), 1 skipped;
+19 of 19 source gates; managed and unmanaged packs exit 0 with no warning (V2). One live read: the export and a `pac env
+fetch` of `msdyn_aiconfiguration`, both read-only.
+
+**Hours:** 5.3, 0.75 h (export, copy, tests, documents); system, 0.25 h (the GUID scan fix and its finding).
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1128](../../logs/improvement-log.jsonl) | `gate-fires-on-nothing` | friction | A length-only GUID shape scan matches exported prompt JSON by coincidence; exclude characters no GUID contains |
+
+## 10.11 Addendum — the create-only seed failed in DEV, and is fixed (2026-10-16)
+
+**What happened.** You ran `pwsh -NoProfile -File provisioning/dataverse/seed-settings.ps1 -Env dev` (PowerShell 7.6.7,
+macOS). The four create-only rows failed with `{"error":{"code":"0x80060891","message":"A record with the specified key
+values does not exist in rev_setting entity"}}`. Nothing was written for them; the other rows were unaffected.
+
+1. **The cause is the create call, not the 404 check** — [the create path](../../provisioning/dataverse/seed-settings.ps1#L253).
+   I measured what pwsh 7.6.7 throws for that exact 404 (a local server returning DEV's body):
+   `Microsoft.PowerShell.Commands.HttpResponseException`, `Response.StatusCode` 404. The script reads that correctly, and the
+   same path has created rows in DEV before. So the probe found the rows absent, and it was the create that failed: a
+   keyed `PATCH` with `If-None-Match: *` through the alternate key, which Dataverse answered 404 instead of creating
+   (`A-NS-36` is wrong).
+2. **The create is now a `POST` to the entity set** — it can only create, so it cannot overwrite your row either. If the
+   POST is refused, the script looks again: a row that exists now is `EXISTS — left unchanged (createOnly; created
+   meanwhile)`; otherwise the run fails with the POST's own error. `-ExtraHeaders` is removed from `Invoke-DataverseApi`
+   again.
+3. **A test now throws the real exception** — [`createOnly: with the REAL pwsh 7 exception …`](../../src/tests/provisioning/DataverseScripts.Tests.ps1#L346).
+   It builds the measured `HttpResponseException` with a 404, instead of the harness's own error object, and checks the row
+   is created by `POST`. Two more tests check: no keyed `PATCH` and no `If-None-Match` on a create; a refused POST is EXISTS
+   when the row is there and FAILED when it is not.
+
+**Re-run, for you** (same shell, `PROVISION_APP_ID` and `PROVISION_CERT_THUMBPRINT` exported):
+
+```bash
+pwsh -NoProfile -File provisioning/dataverse/seed-settings.ps1 -Env dev
+```
+
+Expected: `CREATED — Setting row 'RedactionNeutralTerms'`, `'RedactionTitles'`, `'RedactionNameRules'`, `'RedactionLabels'`;
+every other row `EXISTS — value upserted`; exit 0. A second run should report the four as `EXISTS — left unchanged
+(createOnly)`, which closes `A-NS-38`. Check afterwards (read-only):
+
+```bash
+pac env fetch --xml "<fetch><entity name='rev_setting'><attribute name='rev_name'/><attribute name='modifiedon'/><filter><condition attribute='rev_name' operator='like' value='Redaction%'/></filter></entity></fetch>"
+```
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| ~~A-NS-36~~ | A keyed `PATCH` with `If-None-Match: *` creates a missing `rev_setting` row | — | **Wrong**: answered 404 / 0x80060891 in DEV for all four rows (your run, 2026-10-16) | — | — | CLOSED — WRONG (DEV run, 2026-10-16) |
+| A-NS-38 | A `POST` to `rev_settings` creates a missing row, and is refused when a row with the same `rev_name` exists (the alternate key `rev_setting_name`), so a create-only row is never overwritten. If the second half is wrong, a race could create a duplicate name, which the alternate key forbids | `provisioning/dataverse/seed-settings.ps1` | E2 (Dataverse create; alternate keys are unique). The create half is how every other script here creates rows | No DEV write by an agent | Your re-run above, then a second run: CREATED then EXISTS | OPEN |
+
+**Files changed after 16:58** (so the build's result can be read as provisional for them):
+`provisioning/dataverse/seed-settings.ps1`, `provisioning/common/provisioning-common.ps1` (the `-ExtraHeaders` removal),
+`src/tests/provisioning/DataverseScripts.Tests.ps1`, this document, `logs/improvement-log.jsonl` and the regenerated
+`logs/known-failure-modes.md` / `-appendix.md`. No flow, solution or settings file changed. The TAD's `A-NS-36` row is
+architect-agent's to mark wrong.
+
+**Verification:** Pester `DataverseScripts`, `DeploymentSettings`, `ProvisioningCommon`, `ScriptContract`: 634 passed, 0
+failed, 1 skipped (12 seed-settings tests, 4 create-only). The real exception shape was measured locally; nothing was sent
+to DEV in this addendum. **Hours:** 5.6, 0.75 h.
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1131](../../logs/improvement-log.jsonl) | `platform-contract-guessed-not-groundtruthed` | rework | A create-only Dataverse write is a POST to the entity set; If-None-Match on an alternate-key PATCH was answered 404 here |
+
+## 10.12 Addendum — test report 20261016-3, defect D-1: the writes now hide the row they return (2026-10-16)
+
+**What test-agent found** ([test report, D-1](../tests/revitalise-grant-automation-test-report-20261016-3.md)): the 12
+counterpart writes secured their inputs only, and `Write_the_decision` and `Hold_the_record_for_review` secured nothing.
+"Update a row" returns the updated row, the flow's identity can read the 12 raw narratives, so a run would have kept them in
+run history for 28 days, outside column security (`C-DOM-004`). The run-history test missed it because its write stand-in
+returned nothing. The rev 20 flow had the same gap.
+
+1. **All 14 writes hide inputs and outputs** — [`Write_rev_narrativeredacted`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1696) and its 11 siblings,
+   [`Write_the_decision`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2184), [`Hold_the_record_for_review`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2300). Only `runtimeConfiguration` and the
+   description changed on those 14 actions; no other action changed, and the flow is still 97 actions.
+2. **The test double now returns the row, as the connector does** — [the write stand-in](../../src/tests/narrative/test_scrub_flow_definition.py#L135). With it, the canary
+   run-history test fails on the old flow: removing `outputs` from one counterpart write, from the decision write, or from the
+   hold each makes it fail (3 mutations, each caught).
+3. **A static test covers the same property** — [`test_every_dataverse_read_and_write_of_the_application_is_secured_both_ways`](../../src/tests/narrative/test_scrub_flow_definition.py#L696).
+   All 15 actions on `rev_applications` hide their outputs; the 14 writes also hide their inputs.
+
+**Every action that receives or returns narrative-bearing data, checked:**
+
+| Action | What it carries | Secured |
+|---|---|---|
+| Trigger `When_an_application_status_changes` | the changed row | outputs (unchanged) |
+| `Get_the_application` | returns the row: 12 raw narratives | outputs (its inputs are ids only) |
+| `Extract_entities_from_the_column` | the raw column in, entity values out | inputs and outputs |
+| `Run_the_rewrite_prompt`, `Run_the_spelling_prompt` | the labelled text and the rewrite | inputs and outputs |
+| 12 × `Write_rev_*redacted` | the written text in, **the row out** | inputs and outputs (**was inputs only**) |
+| `Write_the_decision`, `Hold_the_record_for_review` | flags in, **the row out** | inputs and outputs (**was nothing**) |
+| `Read_redaction_settings`, `List_postcode_districts` | `rev_setting` rows (synthetic rules only, `A-R87`) and outward codes | not secured: no narrative |
+| `Tell_the_process_owner_card`, `Tell_the_process_owner`, `Alert_on_failure` | the reference, reason codes, the run link | not secured: no narrative (tested) |
+| Every Compose, Select and Filter that sees text (25) | text or entity values | secured; checked by the canary run, which now also reads every write's returned row |
+
+The canary run checks the whole list dynamically: every action record, both ways, under a normal run and a failed write.
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| A-NS-39 | An `UpdateOnlyRecord` on `rev_applications` returns the updated row, including columns it did not write, and `secureData` on its outputs hides that row in run history. If the outputs are not secured, a maker reading the run sees the raw narratives | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 (connector reference: "Update a row" returns the row; test report D-1); the intake flow secures both sides of its writes | No DEV run | One DEV run on synthetic data: open a `Write_rev_*` action in run history and see *secured* on both panes | OPEN |
+
+**Not changed:** the spelling rule (test report O-1 waits for the reviewer).
+
+**Verification:** narrative suite 185 tests OK (184 before; 1 new static test; the stand-in change makes the existing canary
+test able to fail); 3 mutations caught; flow-language gate, source gates, pack — see the gate output. **Hours:** 5.3,
+0.5 h.
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1136](../../logs/improvement-log.jsonl) | `simulator-more-lenient-than-platform` | rework | A Dataverse write returns the row: secure its outputs, and make every test double return what the connector returns |
+
+---
+
+# Iteration 11 — name fragments, name rules and punctuation (2026-10-19)
+
+**WBS:** `wbs:5.3` (the flow), `wbs:5.6` (the client's rules, the `RedactionNameRules` row) · **Date:** 2026-10-19 ·
+**Author:** development-agent · **Status:** awaiting code review · **Items:** none carried · Nothing built, deployed,
+exported or committed; no write to any environment. **Authority:** reviewer, 2026-10-19, verbatim: *"Yes please, process the
+suggested changes"* (relayed by lead-agent with the DEV evidence below). This amends the shared build configuration: no step
+added, no step changed. The pipeline configuration is unchanged.
+
+**Evidence it answers** (lead-agent, `pac env fetch` of DEV, 2026-10-19, on the seeded synthetic cases TD-13 to TD-15 of
+[`narrative-test-data.json`](../../src/tests/data/narrative-test-data.json); no real applicant text): *"My name is they-Reed"*;
+*"they at [GP PRACTICE] reviews"* for *"Dr Adeyemi at …"*; *"Our child [NAME] who is …"*; *"I am they"* twice; full stops and
+commas missing in five columns.
+
+## 11.1 Summary
+
+A surname fragment reached a trustee-facing column, and no check saw it. It now cannot: a name is labelled whole when the
+extractor finds only part of it, and anything still joined to a label holds the record. *Dr* stays outside the label, the
+name rules now say what to do with the writer's own name and which rule wins, and a rewrite that drops punctuation is held.
+**Waiting on you:** a maker edit of one settings row in DEV (decision 1), and whether to try the one-clause prompt change
+for punctuation (decision 2).
+
+## 11.2 What has been built
+
+1. **A name is labelled whole when the extractor finds only part of it** — [`Select_entity_ages`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1078),
+   [`Select_spans`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1111), [`all_spans`](../../src/tests/narrative/redaction_reference.py#L739),
+   [`NameFragments`](../../src/tests/narrative/test_scrub_flow_definition.py#L511).
+   A person's name span now takes in one fragment joined to it on each side: a hyphen and letters after it (*Holloway-Reed*),
+   an apostrophe and two or more letters after it, or letters and a hyphen or apostrophe before it (*O'Brien*, *Mary-Ann*).
+   The possessive *'s* is never taken in, so *[NAME]'s* still reads as a possessive. With the DEV extractor answer for TD-13
+   the rewrite now receives *"My name is [NAME] and …"*, and *Reed* is in no prompt input and no written column.
+2. **Anything still joined to a label holds the record** — [`Filter_spans_with_a_joined_fragment`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1675),
+   [`Compose_column_outcome`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1696), [`joined_spans`](../../src/tests/narrative/redaction_reference.py#L753), [`final_joint`](../../src/tests/narrative/redaction_reference.py#L763).
+   New residue reason `residual-name-fragment:<column>`: written and held, like every residue. It looks in two places: the
+   column before labelling (any label, so a second fragment such as *Smith-Jones-Brown* or *[PHONE]-ext* is caught), and the
+   final text (so a model that writes *[NAME]-Reed* is caught). The first is the one that matters for DEV's case, because the
+   model turned *[NAME]-Reed* into *they-Reed*, which has no label left to look next to.
+3. **"Dr" stays outside the label** — same two actions, field `trim`; [`test_a_dr_title_stays_outside_the_label`](../../src/tests/narrative/test_scrub_flow_definition.py#L565).
+   A name span that starts with *Dr*, *Dr.* or *Doctor* is shortened past it, so the prompt sees *Dr [NAME]* and its "keep
+   [NAME] after Dr" rule can apply. The DEV output fits the extractor having included *Dr* in the name: the title disappeared
+   and the prompt applied its one-person rule. That cannot be confirmed from DEV, because the extractor's answer is secured in
+   run history; the trim makes the result the same either way.
+4. **The name rules say which rule wins, and cover the writer's own name** — [seed value](../../src/tests/narrative/redaction_reference.py#L1434),
+   [`dev-scoring-settings.json`](../../provisioning/deploymentSettings/dev-scoring-settings.json#L313), [`test-settings.json`](../../provisioning/deploymentSettings/test-settings.json#L633),
+   [`prd-settings.json`](../../provisioning/deploymentSettings/prd-settings.json#L693), [`_name_pass`](../../src/tests/narrative/redaction_reference.py#L1691).
+   The row now lists its rules in the order they apply: the writer's own name keeps `[NAME]`; *Dr [NAME]* stays; a name
+   straight after a relationship word goes **even when other people are named** (the old order let "two or more people"
+   win, which is why *Our child [NAME]* kept the name); then two or more people; then *they*. Each rule has a worked
+   example written with labels only. The expected-output model the tests use follows the same order, so the tests no longer
+   pin the old one.
+5. **A rewrite that drops punctuation is held** — [`Compose_check_texts`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1406),
+   [`dropped_punctuation`](../../src/tests/narrative/redaction_reference.py#L1237), [`PunctuationFidelity`](../../src/tests/narrative/test_scrub_flow_definition.py#L579).
+   The flow cannot lose punctuation itself: the labelled text copies everything between labels, and a spelling correction is
+   taken only when it keeps the word's end punctuation ([`Select_spelling_words`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1368)). So the rewrite model
+   dropped it. New fidelity reason `rewrite-dropped-punctuation:<column>`: written and held when the rewrite has at least two
+   fewer of `. , ; : ! ?` than its input and more than 10% fewer. One mark fewer is not held, so removing a title written *Mr.*
+   does not hold a record. The cure is in the prompt (decision 2).
+6. **The DEV cases are tests** — [`SeededCasesSeenInDev`](../../src/tests/narrative/test_scrub_flow_definition.py#L598), [`Names`](../../src/tests/narrative/test_neutral_terms.py#L251).
+   TD-13 and TD-15's own text, with the extractor answers the DEV output implies, run through the shipped flow: no *Reed*
+   anywhere, *Dr [NAME] at [GP PRACTICE] reviews …*, *Our child, who is [AGE 35 to 44], …*, and *I am [NAME] and since my
+   stroke …*. The expectations in `narrative-test-data.json` are not regenerated (`wbs:5.7` owns that).
+
+## 11.3 Elements added
+
+| Element | Where | WBS |
+|---|---|---|
+| `Select_raw_classes`, `Compose_raw_classes` (the column's letters as `A`), `Filter_spans_with_a_joined_fragment` | flow JSON | 5.3 |
+| Fields `trim`, `fwd`, `back` on `Select_entity_ages`; `inputPunct`, `rewritePunct` on `Compose_check_texts` | flow JSON | 5.3 |
+| Reasons `residual-name-fragment:<column>`, `rewrite-dropped-punctuation:<column>` | flow, rules §6b and §7 | 5.3 |
+| `dr_trim`, `joined_after`, `joined_before`, `joined_spans`, `final_joint`, `dropped_punctuation`, `_self_name` | [`redaction_reference.py`](../../src/tests/narrative/redaction_reference.py#L739) | 5.3, 5.6 |
+| 9 flow tests (3 classes), 4 name tests | test files above | 5.3, 5.6 |
+| Proposed prompt clause R1c, with a synthetic test-pane script | [prompt document §6](revitalise-redaction-prompt.md#L245) | 5.6 |
+
+## 11.4 Elements changed
+
+| Element | Change | WBS |
+|---|---|---|
+| Flow size | 97 → **100 actions** (the ceiling the definition test holds), nesting still 5 | 5.3 |
+| `Select_entities`, `Select_spans` | The offset clamp moved from `Select_spans` to `Select_entities`, unchanged, so the widening can read clamped offsets | 5.3 |
+| `Compose_column_outcome` | Runs after the new filter; two reasons added after `residual-title` and `rewrite-dropped-text` | 5.3 |
+| `RedactionNameRules` seed | 6 lines → 7, reordered, worked examples; the same text in all three settings files | 5.6 |
+| Expected-output model | Relationship word before two-or-more-people; the writer's own name keeps `[NAME]` | 5.6 |
+| Rules | v0.6 → [v0.7](revitalise-redaction-rules.md#L17): §6b, [§6c.1](revitalise-redaction-rules.md#L467), §7, §10.1.3 | 5.6 |
+| Flow notes | Action count, the label row, P3 and fidelity | 5.3 |
+
+## 11.5 What is still open
+
+**The DEV `RedactionNameRules` row is still the old one.** The row is create-only, so no deploy will change it, and no
+script here updates an existing row. Decision 1 gives the maker steps. Until then the DEV prompt keeps answering *"I am
+they"*. If the row already exists in TST/ACC it needs the same edit there; a first deploy that creates it uses the new text.
+
+**The TAD and the SDD need a record amendment, and the build should wait for it.** This iteration adds to `ADR-075` item 2
+(name spans are trimmed and widened before labelling) and item 7 (two new hold reasons), and changes the `RedactionNameRules`
+seed text quoted in `ADR-076`. FR-095 does not mention the writer's own name. You approved the mechanism; architect-agent
+and plan-agent record it. No other design changes.
+
+**The flow in DEV is still the Iteration 10 one.** The span widening, the two checks and the *Dr* trim reach DEV only with
+the next build and deploy.
+
+## 11.6 Unvalidated Assumptions Register (C-TECH-052)
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| A-NS-40 | On the platform, `first()` and `last()` of a string return its first and last character, and `indexOf()` / `lastIndexOf()` of a one-character non-letter string return its position, so the widening counts a fragment's letters. If `first()` of a string returned something else, the widening would be 0 and P3 `name-fragment` would still hold the record | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E2 (workflow expression reference: `first`, `last`, `indexOf`, `lastIndexOf` take a string); the simulator implements the stricter reading and runs both string semantics | No DEV run of this flow version | After the deploy, re-run TD-13 in DEV: `rev_narrativeredacted` starts *"My name is [NAME] and"* with no *Reed*, and no `residual-name-fragment` reason | OPEN |
+
+## 11.7 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| Flow logic | V1, simulator | macOS, local | `python3 -m unittest discover -s src/tests/narrative -p 'test_*.py'`: **198 tests OK** (185 before) |
+| The tests can fail | Executed | macOS, local | 7 flow mutations, each caught by the new tests: forward widening off (7 failures), backward off (6), *Dr* trim off (9), input-side fragment check off (1), output-side check off (2), punctuation reason off (1), apostrophe rule loosened to one letter (2) |
+| Settings and seed script | Executed (mocked Web API) | macOS, pwsh 7, Pester 5.7.1 | `NarrativeRedaction.Tests.ps1`, `DeploymentSettings.Tests.ps1`, `DataverseScripts.Tests.ps1`: **125 passed, 0 failed, 1 skipped** |
+| Source gates | V1 | macOS, local | 19 of 19; `field-length-limits` first failed on four new action descriptions over the 256-character designer limit, shortened, then green |
+| Pack | **V2** | macOS, pac CLI | `pac solution pack --packagetype Unmanaged` to a scratch folder: exit 0, no warning |
+
+**V3 to V5 are not reached.** No tool warning was emitted. No live call was made, so no diagnostic component exists.
+
+## 11.8 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.3 | 2.25 h | The widening, the two checks and the trim in the flow; 9 flow tests; 7 mutations; notes |
+| 5.6 | 0.75 h | The name-rules seed in three files, the expected-output model, rules v0.7, the R1c proposal and test script |
+| system | 0.25 h | Three findings |
+
+## 11.9 What you need to decide
+
+**1. Update the `RedactionNameRules` row in DEV by hand**
+
+**Problem** — the row is create-only, so the new rules reach DEV only by a maker edit; no repo script updates an existing row.
+**Suggested fix** — in make.powerapps.com, **REV-GrantApplications-DEV**, **Tables**, **Setting**, open the row whose Name is `RedactionNameRules`, replace its Value with the seven lines below exactly, and save. If `RedactionAutoRelease` is `true` in DEV, then open that row, set it to `false`, save, set it back to `true`, and save, so it is again the newest Redaction row.
+**What happens if you don't** — DEV keeps writing *"I am they"* and keeping names after relationship words. If you save this row and do not re-save `RedactionAutoRelease`, every DEV record is held with `auto-release-stale`, which is the intended guard (an edit to the rules reaches no trustee until the owner confirms again), not a fault.
+[seed value](../../provisioning/deploymentSettings/dev-scoring-settings.json#L313)
+
+```text
+When [NAME] is the writer's own name, as in "I am [NAME]", "I'm [NAME]" or "my name is [NAME]", keep [NAME].
+Keep [NAME] after Dr: "Dr [NAME] reviews my medication" stays as it is.
+When [NAME] comes straight after a relationship word, remove it and keep the neutral word, even when the text names other people: "my husband [NAME]" becomes "my partner", and "our son [NAME], who is [AGE 35 to 44]," becomes "our child, who is [AGE 35 to 44],".
+Otherwise, keep [NAME] when the text names two or more different people.
+If the text is about one named person, write they, them or their in place of [NAME], as the sentence needs, and make the verb agree: "[NAME] visits me." becomes "They visit me."
+A name inside the name of a GP practice is part of [GP PRACTICE].
+Mum or Dad used as a name, as in "Mum helps me", becomes "my parent".
+```
+
+Check afterwards (read-only):
+
+```bash
+pac env fetch --xml "<fetch><entity name='rev_setting'><attribute name='rev_name'/><attribute name='rev_value'/><attribute name='modifiedon'/><filter><condition attribute='rev_name' operator='in'><value>RedactionNameRules</value><value>RedactionAutoRelease</value></condition></filter></entity></fetch>"
+```
+
+Expected: `RedactionNameRules` starts *"When [NAME] is the writer's own name"*; if auto-release is on, `RedactionAutoRelease`'s
+`modifiedon` is later than `RedactionNameRules`'s.
+
+---
+
+**2. Try the one-clause punctuation change in the rewrite prompt (R1c)**
+
+**Problem** — the rewrite model drops full stops and commas; the template says not to add punctuation but never says to keep it.
+**Suggested fix** — follow [prompt document §6](revitalise-redaction-prompt.md#L245): test the current prompt with the synthetic text there, add one clause, test again, and tell development-agent the two answers; development-agent then exports it.
+**What happens if you don't** — records whose rewrite loses two or more marks are held for review instead of released, and shorter losses (one full stop) reach trustees.
+[prompt document §6](revitalise-redaction-prompt.md#L245)
+
+---
+
+Verification: 198 narrative tests and 125 Pester tests, 0 failures; 7 flow mutations each caught; 19 of 19 source gates; a
+local pack (V2) with no warning. **Not verified:** any import, designer save or run of this flow version (V3 to V5), and how
+the live model answers the new name rules or the proposed clause.
+
+## Findings Logged (Iteration 11)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1139](../../logs/improvement-log.jsonl) | `partial-extractor-span-leaks-joined-name-fragment` | **blocker** (fixed in this dispatch, stamped) | Never trust an extractor span as a word boundary: widen a name over a joined fragment and hold any label still joined to letters |
+| [IMP-1140](../../logs/improvement-log.jsonl) | `name-rule-order-conflict-and-title-inside-span` | rework | State the order of rules a prompt reads, in the row itself, and make the expected-output model apply that order |
+| [IMP-1141](../../logs/improvement-log.jsonl) | `rewrite-model-drops-punctuation` | rework | Tell an LLM rewrite what must survive, not only what not to add, and count it after the call |
+
+
+---
+
+# Iteration 12 — the process owner releases every record (TAD rev 25, 2026-10-19)
+
+**WBS:** `wbs:5.3` (the flow), `wbs:5.4` (the flag and the process owner's card), `wbs:5.6` (rules and settings) ·
+**Date:** 2026-10-19 · **Author:** development-agent · **Status:** awaiting code review, together with Iteration 11 ·
+**Items:** none carried · Nothing built, deployed, exported or committed; one read-only `pac env fetch` of DEV.
+**Design:** TAD rev 25, `ADR-078`, approved by the reviewer 2026-10-19 (relayed by lead-agent), on the reviewer's words:
+*"All records should be checked by the process owner regardless. So, we don't need that setting at all."* It also records
+Iteration 11's changes, so Iteration 11's request for a TAD amendment is answered. **And SDD Amendment A-11**, approved the
+same day: OQ-054 case (e), *"I am Sam and Pat helps me"* becomes *"I am [NAME] and they help me"*. The shared build
+configuration is unchanged; the pipeline configuration changes in one comment.
+
+## 12.1 Summary
+
+The flow no longer releases anything. It writes the counterparts as before, marks every scrubbed application *review
+required*, and sends the process owner one card per application; only she sets *Redaction Released*. The auto-release
+setting and its timestamp guard are gone, and the confidence threshold stays as a hint, seeded at 0.85. The writer's own
+name no longer counts as a second person. **Waiting on you:** one line of the `RedactionNameRules` row in DEV (decision 1).
+
+## 12.2 What has been built
+
+1. **No flow action writes the release gate** — [`Write_the_decision`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2222), [`Hold_the_record_for_review`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2318),
+   [`test_no_flow_action_writes_the_release_gate`](../../src/tests/narrative/test_scrub_flow_definition.py#L369).
+   Both writes drop `rev_redactionreleased`; it keeps its default, false, until the process owner sets it.
+   `rev_redactionreviewrequired` is true on every scrubbed application and in the failure handler. A run can no longer undo
+   a release made while it ran. `Stop_if_already_released` is unchanged.
+2. **Every scrubbed application reaches the process owner** — [`Tell_the_process_owner_card`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2258),
+   [`test_no_reason_still_waits_for_the_process_owner_with_a_card`](../../src/tests/narrative/test_scrub_flow_definition.py#L358),
+   [readable card](cards/redaction-review-card.json).
+   The `If` around the card is removed; the card runs after the decision write, and the HTML fallback keeps its run-after.
+   Heading *"Narrative ready for your review"*; the Reasons fact shows the codes, or *"None found by the checks"*. Still
+   reference and codes only.
+3. **`RedactionAutoRelease` is retired** — [`Read_redaction_settings`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L550), [`Compose_settings`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L786),
+   [`Filter_record_reasons`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L2196), [`test_a_retired_setting_row_is_ignored`](../../src/tests/narrative/test_scrub_flow_definition.py#L490),
+   [`test_an_edit_to_a_rule_row_needs_no_reconfirmation`](../../src/tests/narrative/test_scrub_flow_definition.py#L741).
+   Gone: its find, the *saved after every other row* filter, `autoRelease`, and the reasons `auto-release-off` and
+   `auto-release-stale`. `modifiedon` is no longer selected, so an edit to a rule row needs no re-save. A leftover row,
+   even `true`, changes nothing. Every other reason is unchanged and still decides per column what is written; at record
+   level it is a hint.
+4. **The threshold is seeded once, at 0.85** — [`dev-scoring-settings.json`](../../provisioning/deploymentSettings/dev-scoring-settings.json#L329),
+   [`test-settings.json`](../../provisioning/deploymentSettings/test-settings.json#L649), [`prd-settings.json`](../../provisioning/deploymentSettings/prd-settings.json#L709).
+   `createOnly`, so the deploy creates it where absent and never overwrites it. **DEV is unaffected:** read today, the DEV
+   row `RedactionConfidenceThreshold` is `0.85`, last modified 2026-10-08 18:44; no `RedactionAutoRelease` row exists in DEV.
+5. **The writer's own name is not a second person** (SDD A-11) — [seed line 4](../../src/tests/narrative/redaction_reference.py#L1418),
+   [`_name_pass`](../../src/tests/narrative/redaction_reference.py#L1681), [the example as a test](../../src/tests/narrative/test_neutral_terms.py#L258).
+   Line 4 now reads *"… two or more different people other than the writer."*, in all three settings files.
+6. **The expected-output model, the seeded test data and the scorer say the same** — [`flow_scrub_record`](../../src/tests/narrative/redaction_reference.py#L1325),
+   [`decide`](../../src/tests/narrative/redaction_reference.py#L402), [`test_every_expected_record_waits_for_the_process_owner`](../../src/tests/narrative/test_narrative_test_data.py#L163),
+   [`test_a_record_the_flow_released_fails`](../../src/tests/narrative/test_narrative_test_data.py#L173).
+   `narrative-test-data.json`: `withThresholdAndAutoRelease` became `withThreshold`, `released` is false and review required
+   true in every expected record, and `auto-release-off` left the expected reasons. A shape change only: no expected text
+   was regenerated (`wbs:5.7`). The scorer now fails a live record the flow released.
+
+## 12.3 Elements changed
+
+| Element | Change | WBS |
+|---|---|---|
+| Flow | 100 → **97 actions**: `Find_setting_RedactionAutoRelease`, `Filter_settings_saved_after_auto_release` and the `If` removed; the card and fallback moved up a level | 5.3, 5.4 |
+| `Entity.xml` | Descriptions of `rev_redactionreleased` and `rev_redactionreviewrequired` ([L2144](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2144), [L2183](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2183)); no schema change | 5.4 |
+| Review Required view | Description only; same id and filter | 5.4 |
+| Pipeline config | The `createOnly` comment names the fifth row and the retired one ([L587](../../config/revitalise-grant-automation-pipeline.yml#L587) and two copies) | 5.6 |
+| Rules | v0.7 → [v0.8](revitalise-redaction-rules.md#L17): §4.4, §7 items 1, 3, 4, 6, the reason table, the settings table, §7a, §7c; "held" becomes "flagged" | 5.6 |
+| Prompt document | [§6](revitalise-redaction-prompt.md#L245): what happens without R1c | 5.6 |
+| Test data | `narrative-test-data.json` and its README, as item 6 | 5.3 |
+| Tests | 6 tests rewritten, 5 added | 5.3, 5.4 |
+
+**Iteration 11 is superseded in one place:** its decision 1 told you to re-save `RedactionAutoRelease` after editing the
+name rules. That step no longer exists.
+
+## 12.4 What is still open
+
+**The SDD amendment for FR-029, FR-030 and FR-095 is plan-agent's**, in parallel; nothing here edits the SDD.
+`constraints/domain/special-category-register.yml` still calls the threshold *"the RedactionConfidenceThreshold gate"*;
+TAD `ADR-078` leaves that wording to its owner.
+
+**More Teams messages.** One card per scrubbed application per run, including those with no hint (TAD `A-R97`).
+
+## 12.5 Unvalidated Assumptions Register (C-TECH-052)
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| ~~A-NS-22~~ | *List rows* returns `modifiedon` as ISO 8601 that `ticks()` reads | — | — | — | — | CLOSED — WITHDRAWN 2026-10-19: `ADR-078` removed the only reader (`Filter_settings_saved_after_auto_release`), and `modifiedon` is no longer selected |
+
+## 12.6 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| Flow logic | V1, simulator | macOS, local | `python3 -m unittest discover -s src/tests/narrative -p 'test_*.py'`: **202 tests OK** |
+| The tests can fail | Executed | macOS, local | 4 flow mutations, each caught: the release written again (79 failures), review required only with a reason (18), the card only with a reason (18), the failure handler writing the release (2) |
+| Settings, seed script, script contract | Executed (mocked Web API) | macOS, pwsh 7, Pester 5.7.1 | `NarrativeRedaction`, `DeploymentSettings`, `DataverseScripts`, `ScriptContract`: **575 passed, 0 failed, 1 skipped** |
+| Source gates | V1 | macOS, local | 19 of 19. `shipped-content` first failed: the readable card in `docs/development/cards/` no longer matched the shipped card; regenerated from the flow, then green |
+| Pack | **V2** | macOS, pac CLI | unmanaged pack to a scratch folder: exit 0, no warning |
+| DEV settings | Read only | `pac env fetch`, DEV | Threshold row `0.85` (2026-10-08 18:44); no `RedactionAutoRelease` row; `RedactionNameRules` already holds Iteration 11's text (saved 2026-10-19 12:51) |
+
+**V3 to V5 are not reached.** No tool warning. No write to any environment, so no diagnostic component.
+
+## 12.7 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.3 | 1.0 h | Flow, model, test data, scorer, tests, mutations |
+| 5.4 | 0.5 h | The card, the review flag, view and column descriptions |
+| 5.6 | 0.5 h | Threshold seed in three files, A-11 rule and test, rules v0.8, prompt §6, pipeline comment |
+| system | 0.25 h | One finding |
+
+## 12.8 What you need to decide
+
+**1. Change line 4 of the `RedactionNameRules` row in DEV**
+
+**Problem** — the DEV row holds Iteration 11's text, saved by you at 12:51; SDD A-11 changes line 4, and the row is create-only.
+**Suggested fix** — in make.powerapps.com, **REV-GrantApplications-DEV**, **Tables**, **Setting**, open `RedactionNameRules`, replace its Value with the seven lines below, and save. No other row needs saving: auto-release is retired.
+**What happens if you don't** — in DEV, a text naming the writer and one other person keeps `[NAME]` for the other person instead of *they*. Nothing is disclosed either way.
+[seed value](../../provisioning/deploymentSettings/dev-scoring-settings.json#L313)
+
+```text
+When [NAME] is the writer's own name, as in "I am [NAME]", "I'm [NAME]" or "my name is [NAME]", keep [NAME].
+Keep [NAME] after Dr: "Dr [NAME] reviews my medication" stays as it is.
+When [NAME] comes straight after a relationship word, remove it and keep the neutral word, even when the text names other people: "my husband [NAME]" becomes "my partner", and "our son [NAME], who is [AGE 35 to 44]," becomes "our child, who is [AGE 35 to 44],".
+Otherwise, keep [NAME] when the text names two or more different people other than the writer.
+If the text is about one named person, write they, them or their in place of [NAME], as the sentence needs, and make the verb agree: "[NAME] visits me." becomes "They visit me."
+A name inside the name of a GP practice is part of [GP PRACTICE].
+Mum or Dad used as a name, as in "Mum helps me", becomes "my parent".
+```
+
+Check afterwards (read-only): `pac env fetch --xml "<fetch><entity name='rev_setting'><attribute name='rev_value'/><filter><condition attribute='rev_name' operator='eq' value='RedactionNameRules'/></filter></entity></fetch>"` — line 4 ends *"other than the writer."*
+
+---
+
+Verification: 202 narrative tests and 575 Pester tests, 0 failures; 4 flow mutations each caught; 19 of 19 source gates;
+a local pack (V2) with no warning. **Not verified:** any import, designer save or run of this flow version (V3 to V5), and
+how the live model applies the changed line 4.
+
+## Findings Logged (Iteration 12)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1147](../../logs/improvement-log.jsonl) | `flow-change-misses-companion-artefacts` | friction | When an action is removed or a card changes, grep its name and heading across docs/ and open registers: a retired-word grep cannot find those companions |
+
+## Approval (Iterations 11 and 12)
+
+**APPROVED 2026-10-19.** Reviewer, Xander Lykopoulos, verbatim, relayed by lead-agent: *"Approved to build."* This covers
+Iterations 11 and 12 together and accepts the SOFT warning `C-TECH-067` (eight literal counts in pre-existing provisioning
+tests; none in this change).
+
+**Decision 12.8.1 is done.** The DEV `RedactionNameRules` row now holds the exact seven-line A-11 value of section 12.8.
+Lead-agent wrote it at the reviewer's request (*"Run the redaction rules for me"*) with a `pac power-fx run` `Patch` on
+`rev_setting`, and verified it with a read-back `pac env fetch` (`modifiedon` 2026-10-19 14:49 local). No other row was
+changed; auto-release is retired, so no re-save follows. Iteration 11's decision 1 is answered by the same write.
+
+**Found while doing it:** `pac power-fx run --environment <url>` does reach Dataverse tables by logical name
+(`rev_setting`), which `docs/development/quick-view-form-formxml-reference.md` says it does not, and on this machine's
+locale its arguments are separated by `;`. Logged as a finding (below) for the knowledge base; this document does not
+change the reference file.
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1149](../../logs/improvement-log.jsonl) | `pac-power-fx-reaches-dataverse-tables` | friction | `pac power-fx run --environment <url>` can Patch and read table rows by logical name; on this locale separate arguments with `;`; verify with a read-back `pac env fetch` |
+
+
+## 12.9 Addendum — the designer refused to save the flow: a Compose may not secure its outputs (2026-10-20)
+
+**What happened** (relayed by lead-agent): build `20261019-1` imported into DEV, the scrub flow landed in Draft, and the
+reviewer's designer open-and-save failed, verbatim: *"Flow save failed with code 'InvalidSecureDataConfiguration' and
+message 'The secureData configuration of workflow action 'Compose_raw_classes' of type 'Compose' at line '1' and column
+'41325' is not valid. These values: 'outputs' are not supported in 'properties'.'"* (0x80060467). `Compose_raw_classes` is
+Iteration 11's action. I gave it the Select/Query shape, `["inputs", "outputs"]`; every other Compose in the eleven flows
+has `["inputs"]`.
+
+1. **The fix: `["inputs"]` only** — [`Compose_raw_classes`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1034). A Compose's outputs are its inputs, so it stays
+   secured; the run-history test already treats it that way and passes. One property and the description changed, nothing
+   else.
+2. **The build now fails on this shape, in every flow** — [check 18](../../scripts/verify-flow-definition-language.py#L388) of the
+   flow-definition gate (a HARD build step, in the group *shapes that import but do not save*), and
+   [`test_no_compose_in_any_flow_secures_outputs`](../../src/tests/narrative/test_scrub_flow_definition.py#L898) over all
+   `Workflows/*.json`. **Proven both ways:** before the fix the gate failed with exactly one finding, naming
+   `Compose_raw_classes`, and the test failed on the defect (re-applied in memory); after the fix both pass. The gate's
+   selftest now has a bad Compose beside two look-alikes that must not be flagged (a Compose with `["inputs"]`, a Select
+   with both): 23 of 23.
+3. **Why nothing caught it before DEV:** the rule is enforced only by the designer save (V4). Pack (V2) and import (V3)
+   both accepted it, and no check read `secureData` by action type.
+
+**Re-test needed after the next build and DEV import:** open the flow in the designer and save it (V4), then turn it on.
+
+**Verification:** narrative suite 203 tests OK; Pester `BuildGates` and `NarrativeRedaction` 133 passed, 0 failed; gate
+`exit 0` and selftest OK; 19 of 19 source gates; unmanaged pack exit 0, no warning (V2). **Not verified:** the designer save
+itself (V4). **Hours:** 5.3, 0.5 h (fix, check, test).
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1156](../../logs/improvement-log.jsonl) | `compose-securedata-outputs-refused-by-designer` | **blocker** (fixed in this dispatch, stamped) | A Compose secures `inputs` only; `outputs` imports but the designer refuses to save (0x80060467). Check 18 now fails the build |
+
+**Approval (addendum 12.9): APPROVED 2026-10-20.** Reviewer, Xander Lykopoulos, verbatim, relayed by lead-agent:
+*"Approved"*. This also accepts the SOFT warning `C-TECH-067` again (pre-existing provisioning-test literals; none in this
+change). Still open: the designer open-and-save (V4) after the next build and DEV import.

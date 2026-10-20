@@ -712,7 +712,7 @@ steps:
 
   - name: no-hardcoded-thresholds
     command: >
-      ! grep -rnE '"(KnockoutThreshold|BorderlineBandLower|BorderlineBandUpper|IncomeCeiling)"[[:space:]]*:[[:space:]]*[0-9]' src/solutions/RevitaliseGrantAutomation/Workflows
+      ! grep -rnE '"(KnockoutThreshold|BorderlineBandLower|BorderlineBandUpper|IncomeCeiling|AmountLimitHolidayAccommodation|AmountLimitDayTripsOrOutings|AmountLimitActivityOrExperience|AmountLimitRespiteCareFacilityStay|AmountLimitOther)"[[:space:]]*:[[:space:]]*[0-9]' src/solutions/RevitaliseGrantAutomation/Workflows
       && echo "FR-017 gate: no threshold literals in flow definitions"
 
   # TAD §6.3.1 + §6.3.3, ADR-038. Two properties of REV | Portal | Round Statistics:

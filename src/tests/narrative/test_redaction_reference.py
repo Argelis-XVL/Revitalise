@@ -306,13 +306,14 @@ class Decision(unittest.TestCase):
     def test_threshold_boundary_both_directions(self):
         at = rr.decide({"narrative": self.named(0.85)}, "0.85")
         below = rr.decide({"narrative": self.named(0.8499)}, "0.85")
-        self.assertEqual((at.review_required, at.released), (False, True))
-        self.assertEqual((below.review_required, below.released), (True, False))
+        self.assertEqual(at.reasons, ())                          # exactly at the threshold: no hint
         self.assertIn("below-threshold", below.reasons)
+        for d in (at, below):                                     # ADR-078: never released, always reviewed
+            self.assertEqual((d.review_required, d.released), (True, False))
 
     def test_threshold_change_needs_no_code_change(self):
-        self.assertTrue(rr.decide({"narrative": self.named(0.90)}, "0.95").review_required)
-        self.assertFalse(rr.decide({"narrative": self.named(0.90)}, "0.80").review_required)
+        self.assertIn("below-threshold", rr.decide({"narrative": self.named(0.90)}, "0.95").reasons)
+        self.assertNotIn("below-threshold", rr.decide({"narrative": self.named(0.90)}, "0.80").reasons)
 
     def test_lowest_score_across_all_columns_decides(self):
         d = rr.decide({"a": self.named(0.99), "b": self.named(0.70)}, "0.85")
@@ -330,12 +331,14 @@ class Decision(unittest.TestCase):
 
     def test_empty_columns_are_out_of_scope(self):
         d = rr.decide({"a": self.named(0.99), "b": (None, None), "c": ("   ", None)}, "0.85")
-        self.assertFalse(d.review_required)
+        self.assertEqual(d.reasons, ())          # no hint from an empty column (ADR-078: still reviewed)
 
-    def test_no_model_detections_goes_to_review_by_default_and_releases_only_by_policy(self):
+    def test_no_model_detections_is_a_hint_by_default_and_dropped_only_by_policy(self):
         cols = {"a": self.col("We would love a week by the sea.")}
         self.assertIn("no-model-detections", rr.decide(cols, "0.85").reasons)
-        self.assertFalse(rr.decide(cols, "0.85", empty_detection_policy="release").review_required)
+        d = rr.decide(cols, "0.85", empty_detection_policy="release")
+        self.assertEqual(d.reasons, ())
+        self.assertFalse(d.released)                                     # ADR-078: never released
 
     def test_rule_only_detections_do_not_count_as_model_confidence(self):
         cols = {"a": self.col("Call 07700 900123 please.")}
@@ -383,7 +386,7 @@ class RerunNeverOverwritesAHuman(unittest.TestCase):
         self.assertEqual(plan.writes, {"othercondition": "Asthma."})
         self.assertEqual(plan.kept, ("narrative",))
 
-    def test_a_kept_column_stops_the_flow_releasing_the_record(self):
+    def test_a_kept_column_is_a_hint_for_the_process_owner(self):
         text = "My name is Margaret Ellison."
         col = (text, rr.redact_column(text, [rr.PrebuiltEntity("PersonName", 11, 16, 0.99)]))
         plan = rr.plan_writes(False, {"narrative": "edited by admin"}, {"narrative": col[1].redacted})
@@ -405,13 +408,14 @@ class RerunNeverOverwritesAHuman(unittest.TestCase):
                 self.assertEqual(plan.writes, {"narrative": "[NAME] rang."})
                 self.assertEqual(plan.reasons, ())
 
-    def test_first_run_writes_everything_and_can_release(self):
+    def test_first_run_writes_everything_and_never_releases(self):
         text = "My name is Margaret Ellison."
         col = (text, rr.redact_column(text, [rr.PrebuiltEntity("PersonName", 11, 16, 0.99)]))
         plan = rr.plan_writes(False, {"narrative": None}, {"narrative": col[1].redacted})
         d = rr.decide_with_plan({"narrative": col}, "0.85", plan)
         self.assertEqual(plan.writes, {"narrative": "My name is [NAME]."})
-        self.assertEqual((d.review_required, d.released), (False, True))
+        self.assertEqual(d.reasons, ())
+        self.assertEqual((d.review_required, d.released), (True, False))     # ADR-078
 
 
 if __name__ == "__main__":

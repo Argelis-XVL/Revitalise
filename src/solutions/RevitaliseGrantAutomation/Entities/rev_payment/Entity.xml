@@ -49,13 +49,14 @@
   OptionSets/rev_paymentstatus.xml's own header for the full sourcing story (v0.2 names it;
   TAD section 3.1's own framing rule is why the omission is not read as exclusion).
 
-  rev_isfinalpayment IS A PLAIN BIT WITH NO WIRING BEHIND IT. Setting this column to true is
-  meant to eventually also set rev_grant.rev_finalpaymentdate (which starts the six-year
-  retention clock, per rev_grant/Entity.xml's own comment on that column) - but that wiring is
-  flow/automation work, out of this schema-only WBS task (contract/wbs.json 0.4: "columns,
-  option sets, autonumber keys and all relationships"). Flagged here so whoever builds WBS
-  8.1's finalisation or a later automation task does not assume the two columns are already
-  connected.
+  rev_isfinalpayment IS ACTED ON BY ONE FLOW, `REV | Finance | Capture Payment` (wbs:8.6, CO-010, TAD
+  rev 28 section 5.11, ADR-081). On every save of a payment that flow recomputes, from the
+  payments that exist, the grant's rev_finalpaymentdate (which starts the six-year retention
+  clock, per rev_grant/Entity.xml's own comment on that column), the application's status
+  (Approved / Grant Paid) and, for a final, dated, Pending payment, this row's own
+  rev_paymentstatus (Pending to Issued). The column itself is still a plain bit: the wiring is in
+  the flow, not in the schema. *Previously read (until wbs:8.6): "a plain bit with no wiring
+  behind it ... flow/automation work, out of this schema-only WBS task"; that wiring is now built.*
 -->
 <Entity>
   <Name LocalizedName="Payment" OriginalName="Payment">rev_payment</Name>

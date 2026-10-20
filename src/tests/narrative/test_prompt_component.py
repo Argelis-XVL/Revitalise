@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
-"""The REV Narrative Redaction Prompt component (ADR-072, wbs:5.3) against the repo's own documents and
-the flow that calls it.
+"""The AI prompt components (wbs:5.3) against the repo's own documents and the flow that calls them.
+
+REV 22 (Iteration 9, 2026-10-16). The flow now calls two NEW prompts (rewrite, spelling; ADR-075 items 3-4) that do
+not exist yet: their run actions carry placeholder ids until the reviewer creates them in DEV (TAD 12.6.1 R1,
+A-NS-31). The rev 20 detector component below is still in the solution and no longer called. Its tests stand, as a
+check on the component the solution ships; the run-action tests now check the TWO NEW actions against the one
+designer-saved run action this tenant has (fixtures/run-a-prompt-action.json), for host, parameter shape and answer
+path - the parts that are E1 for one prompt and E3 for the new ones.
 
 Run:  python3 -m unittest discover -s src/tests/narrative -p 'test_*.py' -v
 Also run by NarrativeRedaction.Tests.ps1 inside the HARD `unit-tests` build step.
@@ -42,13 +48,22 @@ def ai_models() -> list[str]:
     return re.findall(r"<AIModel>(.*?)</AIModel>", block.group(1), re.S) if block else []
 
 
-def model_id() -> str:
-    (m,) = ai_models()
-    return re.search(r"<AIModel>\s*<msdyn_aimodelid>\{([^}]+)\}", "<AIModel>" + m).group(1)
+DETECTOR = "REV Narrative Redaction Prompt"      # rev 20, no longer called; kept until the reviewer decides
+REWRITE = "REV Narrative Rewrite Prompt"         # rev 23 template (R1b), exported 2026-10-16
+SPELLING = "REV Narrative Spelling Prompt"       # rev 22 template, exported 2026-10-16
 
 
-def active_configuration() -> dict:
-    (m,) = ai_models()
+def model(name: str = DETECTOR) -> str:
+    (m,) = [x for x in ai_models() if f"<msdyn_name>{name}</msdyn_name>" in x]
+    return m
+
+
+def model_id(name: str = DETECTOR) -> str:
+    return re.search(r"<AIModel>\s*<msdyn_aimodelid>\{([^}]+)\}", "<AIModel>" + model(name)).group(1)
+
+
+def active_configuration(name: str = DETECTOR) -> dict:
+    m = model(name)
     active = re.search(r"<msdyn_activerunconfigurationid>\{([^}]+)\}", m).group(1)
     for cfg in re.findall(r"<AIConfiguration>(.*?)</AIConfiguration>", m, re.S):
         if re.search(r"<msdyn_aiconfigurationid>\{" + re.escape(active) + r"\}", cfg):
@@ -66,25 +81,32 @@ def exported_template(custom: dict) -> str:
     return "".join(p["text"] if p["type"] == "literal" else "{" + p["id"] + "}" for p in custom["prompt"])
 
 
-def documented_template() -> str:
-    return re.search(r"## 1\. The template.*?```text\n(.*?)\n```", PROMPT_DOC, re.S).group(1)
+def documented_template(heading: str = r"### A1\. The rev 20 detector template") -> str:
+    return re.search(heading + r".*?```text\n(.*?)\n```", PROMPT_DOC, re.S).group(1)
 
 
-def run_action() -> dict:
-    use = (FLOW["actions"]["Scrub_free_text"]["actions"]["For_each_column"]["actions"]
-           ["Scrub_the_column_if_it_has_text"]["actions"]["Keep_or_scrub_the_column"]["else"]["actions"]
-           ["Scan_the_column_in_windows"]["actions"]["Use_the_prompt_on_the_window"]["actions"])
-    return use
+def run_actions() -> dict:
+    """The column loop's If: every action the flow runs per column once the extractor has answered."""
+    return (FLOW["actions"]["Scrub_free_text"]["actions"]["For_each_column"]["actions"]
+            ["Label_rewrite_and_check_the_column"]["actions"])
+
+
+NEW_PROMPTS = {  # run action -> (answer Compose, documented section, input names)
+    "Run_the_rewrite_prompt": ("Compose_rewrite", r"## 1\. The rewrite prompt", {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}),
+    "Run_the_spelling_prompt": ("Compose_spelling", r"## 2\. The spelling prompt", {"Text"}),
+}
 
 
 class TheComponent(unittest.TestCase):
 
-    def test_exactly_one_ai_model_and_it_is_a_declared_root_component(self):
-        self.assertEqual(len(ai_models()), 1)
-        self.assertIn(f'<RootComponent type="401" id="{{{model_id()}}}" behavior="0" />', MANIFEST)
+    def test_three_ai_models_each_a_declared_root_component(self):
+        self.assertEqual(len(ai_models()), 3)
+        for name in (DETECTOR, REWRITE, SPELLING):
+            self.assertIn(f'<RootComponent type="401" id="{{{model_id(name)}}}" behavior="0" />', MANIFEST, name)
+        self.assertEqual(MANIFEST.count('<RootComponent type="401"'), 3)
 
     def test_it_is_the_redaction_prompt_on_the_prompt_template(self):
-        (m,) = ai_models()
+        m = model(DETECTOR)
         self.assertIn("<msdyn_name>REV Narrative Redaction Prompt</msdyn_name>", m)
         self.assertEqual(active_configuration()["custom"]["version"], "GptDynamicPrompt-2")
 
@@ -125,67 +147,90 @@ class TheComponent(unittest.TestCase):
         self.assertEqual(set(spec["OutputRootEntity"]["Attributes"]), {"text", "finishReason"})
 
 
-class TheFlowCallsThisComponent(unittest.TestCase):
+class TheFlowsRunActions(unittest.TestCase):
 
-    def test_the_run_action_names_the_component_by_its_exported_id(self):
-        act = run_action()["Run_the_redaction_prompt"]
-        self.assertEqual(act["inputs"]["parameters"]["recordId"], model_id())
-        self.assertEqual(act["inputs"]["host"]["connectionName"], "shared_commondataserviceforapps")
+    def test_the_rev20_detector_component_is_no_longer_called(self):
+        self.assertNotIn(model_id(), json.dumps(FLOW))
 
-    def test_the_run_action_passes_exactly_the_declared_inputs(self):
-        params = run_action()["Run_the_redaction_prompt"]["inputs"]["parameters"]
-        passed = {k.split("/", 2)[2] for k in params if k.startswith("item/requestv2/")}
-        self.assertEqual(passed, INPUTS)
-        self.assertEqual(set(params) - {f"item/requestv2/{n}" for n in INPUTS}, {"recordId"})
-        for n in INPUTS:
-            self.assertEqual(params[f"item/requestv2/{n}"], f"@outputs('Compose_prompt_request')?['{n}']")
-
-    def test_the_answer_is_read_from_the_declared_outputs(self):
-        spec_outputs = set(active_configuration()["runspec"]["OutputRootEntity"]["Attributes"])
-        ans = run_action()["Compose_prompt_answer"]["inputs"]
-        self.assertEqual(set(ans), spec_outputs)
-        for k in spec_outputs:
-            self.assertEqual(ans[k], f"@body('Run_the_redaction_prompt')?['responsev2']?['predictionOutput']?['{k}']")
-
-    def test_the_run_action_matches_the_designer_saved_action(self):
-        """A-NS-25 input half, E1: the action a maker saved in the DEV designer on 2026-10-07
-        (fixtures/run-a-prompt-action.json). Same host, same parameter names, same prompt id."""
+    def test_each_new_run_action_has_the_designer_saved_shape(self):
+        """A-NS-31, the part a source test can check: same host and operation as the action a maker saved in
+        the DEV designer on 2026-10-07, parameters named item/requestv2/<input>, plus recordId."""
         truth = json.loads((Path(__file__).resolve().parent / "fixtures" / "run-a-prompt-action.json")
                            .read_text(encoding="utf-8"))
-        act = run_action()["Run_the_redaction_prompt"]
-        self.assertEqual(act["type"], truth["type"])
-        self.assertEqual(act["inputs"]["host"], truth["inputs"]["host"])
-        self.assertEqual(set(act["inputs"]["parameters"]), set(truth["inputs"]["parameters"]))
-        self.assertEqual(act["inputs"]["parameters"]["recordId"], truth["inputs"]["parameters"]["recordId"])
+        for name, (_, _, inputs) in NEW_PROMPTS.items():
+            act = run_actions()[name]
+            self.assertEqual(act["type"], truth["type"])
+            self.assertEqual(act["inputs"]["host"], truth["inputs"]["host"])
+            self.assertEqual(set(act["inputs"]["parameters"]), {"recordId"} | {f"item/requestv2/{n}" for n in inputs})
+            self.assertEqual(act["inputs"]["parameters"]["recordId"],
+                             model_id(REWRITE if name == "Run_the_rewrite_prompt" else SPELLING))
 
-    def test_the_answer_path_is_the_one_the_designer_writes(self):
-        """A-NS-25, E1 (2026-10-07): the designer's own expressions for the action's outputs put text and
-        finishReason at body -> responsev2 -> predictionOutput. The flow uses body() with ?[] steps; the
-        designer uses outputs() with one slash path. Same location, compared key by key."""
+    def test_each_template_declares_exactly_the_inputs_its_action_passes(self):
+        for name, (_, heading, inputs) in NEW_PROMPTS.items():
+            tokens = set(re.findall(r"\{([A-Za-z]+)\}", documented_template(heading)))
+            self.assertEqual(tokens, inputs, name)
+
+    def test_the_answer_is_read_at_the_designer_path_and_a_failure_is_handled(self):
         truth = json.loads((Path(__file__).resolve().parent / "fixtures" / "run-a-prompt-action.json")
                            .read_text(encoding="utf-8"))["outputs_read_by_the_designer"]
-        ans = run_action()["Compose_prompt_answer"]["inputs"]
-        for k in ("text", "finishReason"):
-            designer = re.fullmatch(r"@outputs\('Run_a_prompt'\)\?\['body/([^']+)'\]", truth[k]).group(1).split("/")
-            ours = re.fullmatch(r"@body\('Run_the_redaction_prompt'\)((?:\?\['[^']+'\])+)", ans[k]).group(1)
-            self.assertEqual(re.findall(r"\['([^']+)'\]", ours), designer, k)
+        designer = re.fullmatch(r"@outputs\('Run_a_prompt'\)\?\['body/([^']+)'\]", truth["text"]).group(1).split("/")
+        for name, (compose, _, _) in NEW_PROMPTS.items():
+            acts = run_actions()
+            self.assertEqual(acts[name]["runtimeConfiguration"]["secureData"]["properties"], ["inputs", "outputs"])
+            ans = acts[compose]
+            self.assertEqual(ans["runAfter"], {name: ["Succeeded", "Failed", "TimedOut"]})
+            path = re.search(rf"body\('{name}'\)((?:\?\['[^']+'\])+)\?\['text'\]", ans["inputs"]["text"]).group(1)
+            self.assertEqual(re.findall(r"\['([^']+)'\]", path) + ["text"], designer)
 
-    def test_the_call_is_secured_both_ways_and_its_failure_is_handled(self):
-        use = run_action()
-        self.assertEqual(use["Run_the_redaction_prompt"]["runtimeConfiguration"]["secureData"]["properties"],
-                         ["inputs", "outputs"])
-        self.assertEqual(use["Record_a_prompt_call_failure"]["runAfter"], {"Run_the_redaction_prompt": ["Failed", "TimedOut"]})
-        self.assertEqual(use["Record_a_prompt_call_failure"]["inputs"], {"name": "promptState", "value": "error"})
-        self.assertEqual(use["Join_the_prompt_call_paths"]["runAfter"],
-                         {"Record_a_prompt_call_failure": ["Succeeded", "Skipped"],
-                          "Check_the_prompt_answer": ["Succeeded", "Skipped"]})
-
-    def test_no_setting_row_switches_the_stage_on_in_any_shipped_file(self):
-        """ADR-074 item 7: the stage ships off. No Redaction* row is seeded anywhere a deploy reads."""
+    def test_no_deploy_seeds_the_kill_switch(self):
+        """ADR-074 item 7, ADR-075 item 8: no Redaction* row is seeded by a deploy, so RedactionPromptStage is the
+        process owner's alone (absent: the prompts run; off: nothing is written)."""
         for folder in ("provisioning", "config"):
             for p in (REPO / folder).rglob("*"):
                 if p.is_file() and p.suffix in {".json", ".yml", ".yaml", ".ps1", ".csv"}:
                     self.assertNotIn("RedactionPromptStage", p.read_text(encoding="utf-8", errors="ignore"), str(p))
+
+
+class TheTwoNewComponents(unittest.TestCase):
+    """A-NS-31, closed by the DEV export of 2026-10-16 (after R1b): both components copied from it exactly,
+    and checked here against the prompt document and the flow that calls them."""
+    PROMPTS = {REWRITE: ("Run_the_rewrite_prompt", r"## 1\. The rewrite prompt",
+                         {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}),
+               SPELLING: ("Run_the_spelling_prompt", r"## 2\. The spelling prompt", {"Text"})}
+
+    def test_the_run_specification_declares_the_inputs_the_flow_passes_and_text_and_finish_reason(self):
+        for name, (action, _, inputs) in self.PROMPTS.items():
+            with self.subTest(name):
+                spec = active_configuration(name)["runspec"]
+                required = {k for k, v in spec["InputRootEntity"]["Attributes"].items() if not v.get("Optional")}
+                self.assertEqual(required, inputs)
+                self.assertEqual(set(spec["OutputRootEntity"]["Attributes"]), {"text", "finishReason"})
+                passed = {k.split("/", 2)[2] for k in run_actions()[action]["inputs"]["parameters"] if k.startswith("item/requestv2/")}
+                self.assertEqual(passed, inputs)
+
+    def test_model_settings_as_the_prompt_document_asks(self):
+        for name in self.PROMPTS:
+            with self.subTest(name):
+                custom = active_configuration(name)["custom"]
+                self.assertEqual(custom["modelParameters"], {"modelType": "gpt-41-mini", "gptParameters": {"temperature": 0}})
+                self.assertEqual(custom["definitions"]["output"], {"formats": ["text"]})
+                self.assertEqual(custom["settings"].get("contentModerationLevel"), "Low")
+                self.assertEqual(custom["version"], "GptDynamicPrompt-2")
+
+    def test_the_exported_template_is_the_documented_one_and_the_drift_is_exactly_the_known_drift(self):
+        """The reviewer typed both templates by hand (R1, R1b). The wording is identical to sections 1 and 2;
+        the only differences are the prompt builder's: a space each side of every input token, and one
+        newline at the end. Any other difference is new drift and must be reviewed, not absorbed."""
+        for name, (_, heading, inputs) in self.PROMPTS.items():
+            with self.subTest(name):
+                doc = documented_template(heading)
+                for t in inputs:
+                    doc = doc.replace("{" + t + "}", " {" + t + "} ")
+                self.assertEqual(exported_template(active_configuration(name)["custom"]), doc + "\n")
+
+    def test_the_rewrite_prompt_has_no_extra_terms_input_any_more(self):
+        custom = active_configuration(REWRITE)["custom"]
+        self.assertNotIn("ExtraTerms", {i["id"] for i in custom["definitions"]["inputs"]})
 
 
 if __name__ == "__main__":

@@ -1,0 +1,100 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "5.3",
+    "5.6"
+  ],
+  "items": [],
+  "build_date": "2026-10-16",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20261016-2/",
+  "source_commit": "790faa5879b2ccb426b86eadf91d031c94a076de",
+  "source_commit_at_pack_time": "790faa5879b2ccb426b86eadf91d031c94a076de",
+  "source_tree_dirty_paths": 24,
+  "source_commit_note": "Packed from a dirty tree: 24 uncommitted paths under src/, provisioning/, config/ at manifest time. A concurrent commit landed during the build (run began at HEAD 790faa5). provisioning/dataverse/seed-settings.ps1 was edited again after package-provisioning copied it, so the provisioning/ artifact differs from the working tree and is PROVISIONAL; development-agent owns that work.",
+  "build_tool": "pac (Power Platform CLI) via scripts/run-build.py; Vite 7.3.6; Pester 5.7.1",
+  "build_os": "Darwin 27.0.0 (macOS, local)",
+  "constraint_check": "PASS",
+  "preflight": "PASS - 102 steps declared, all gates with negative-test coverage per preflight-build-config",
+  "verification_level": "V2 - packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "component-shape",
+    "component-shape-packed",
+    "guid-syntax",
+    "flow-definition-language",
+    "code-app-bundle-budget",
+    "code-app-bundle-budget-cards"
+  ],
+  "unit_tests": "Pester 1348 passed, 0 failed, 1 skipped; command coverage 75.68% (measured); coverage-threshold step (line coverage) exit 0. Pester ran while provisioning scripts were being edited, so provisioning-covering results are provisional.",
+  "warnings": {
+    "total": 5,
+    "resolved": 0,
+    "accepted": 5,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations:",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L941"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations:",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L941"
+    },
+    {
+      "step": "lint",
+      "signature": "Solution Checker: Critical 0, High 0, Medium 1, Low 0, Informational 0 [figures compared: 1 Medium, the standing REVSafeguardingActionCompletion result; the row's 14 narrative-flow results were NOT reported this run]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L944"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 1,210.18 kB, css 77.64 kB; byte budget max 1,241,000 / 79,500, code-app-bundle-budget PASS; this feature's Dev Summary has no row for the first app, so the rationale is the standing one in the main Dev Summary]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build-cards",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 845.81 kB, css 148.64 kB, equal to the row's 845.81 kB]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L945"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 9,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 0,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 0,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 52,
+    "constraint-verifiers": 1
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context",
+      "level_not_established": "V3",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "scoped": false,
+  "skipped_unchanged": [],
+  "build_config_sha256": "0a3770643fd99809414062f7b4a70ca18ba8efcf82517338ab955f0aba020681",
+  "improvement_log_at_start": "1124 entries, 4 unread, 0 deploy-open",
+  "improvement_log_at_manifest": "1126 entries, 6 unread (IMP-1125..IMP-1130), 0 deploy-open, 0 governance blockers, 2 fixed-in-flight",
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}

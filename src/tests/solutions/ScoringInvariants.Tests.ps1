@@ -26,6 +26,7 @@
 
 BeforeAll {
     Import-Module (Join-Path $PSScriptRoot '_harness' 'SolutionSource.psm1') -Force
+    Import-Module (Join-Path $PSScriptRoot '_harness' 'WdlExpression.psm1') -Force
     $script:Scoring       = Get-FlowDefinition -NameLike 'REVScoringCalculateAndFlag'
     $script:ScoringExec   = Get-ExecutableDefinition -NameLike 'REVScoringCalculateAndFlag'
     $script:ScoringRaw    = Get-Content -Path (Get-FlowDefinitionPath -NameLike 'REVScoringCalculateAndFlag') -Raw
@@ -33,12 +34,16 @@ BeforeAll {
     $script:Actions       = $script:Scoring.properties.definition.actions
     $script:ScoreAndFlag  = $script:Actions.Score_and_flag.actions
 
-    # The eight rev_setting rows the calculation reads. Declared HERE, in BeforeAll, not in a
+    # The fifteen rev_setting rows the calculation reads (the eight scoring rows, and since ADR-079 the
+    # five AmountLimit* limits and the two rule switches). Declared HERE, in BeforeAll, not in a
     # Describe body: a Describe body runs at DISCOVERY and its variables are gone by the time
     # an It body runs, so the loops that read this would iterate nothing and pass vacuously.
     $script:ConfigKeys = @('LikertPointMap', 'FeelingScaleInversion', 'KnockoutThreshold',
                            'BorderlineBandLower', 'BorderlineBandUpper', 'IncomeCeiling',
-                           'IncomeBandUpperBoundMap', 'MaxCircumstanceScore')
+                           'IncomeBandUpperBoundMap', 'MaxCircumstanceScore',
+                           'AmountLimitHolidayAccommodation', 'AmountLimitDayTripsOrOutings',
+                           'AmountLimitActivityOrExperience', 'AmountLimitRespiteCareFacilityStay',
+                           'AmountLimitOther', 'SavingsRuleEnabled', 'PriorFundingRuleEnabled')
 
     $script:LikertMap     = Get-SeededSetting -Key 'LikertPointMap'      | ConvertFrom-Json -AsHashtable
     $script:Inversion     = Get-SeededSetting -Key 'FeelingScaleInversion' | ConvertFrom-Json -AsHashtable
@@ -653,7 +658,9 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         $scoreChainActions = @(
             'Collect_wellbeing_answers', 'Score_each_wellbeing_answer',
             'Invert_the_feeling_scale_answer', 'Calculate_circumstance_score',
-            'Round_the_circumstance_score', 'Derive_status'
+            'Round_the_circumstance_score', 'Derive_status',
+            # ADR-079: the five-rule decision and the reason text must not name the benefits answer either.
+            'Derive_eligibility_rules', 'Compose_reason_lines', 'Derive_autoreject_reason'
         )
         foreach ($actionName in $scoreChainActions) {
             $action = $script:ScoreAndFlag.$actionName
@@ -672,14 +679,20 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         # EF-34/EF-45 (2026-09-22) added rev_receivedfundingbefore and rev_morethan12monthsago
         # (read by Derive_status and Derive_autoreject_reason) and rev_autorejectreason
         # (written by Write_score_and_status, alongside rev_status).
+        # ADR-079 (2026-10-19) added the four columns the amount and savings rules read:
+        # rev_amountrequested, rev_breaktype, rev_exceptionalfundingrequested, rev_savingsover6000.
+        # rev_exceptionalfundingdetail, rev_employmentstatus and rev_additionalamountrequested are
+        # NOT read, and the expected list below is what fails if one is.
         $tokens = @([regex]::Matches($script:ScoringExec, 'rev_[a-z0-9]+') |
             ForEach-Object { $_.Value } | Sort-Object -Unique)
         $expected = @(
-            'rev_application', 'rev_applicationid', 'rev_applications', 'rev_autorejectreason',
-            'rev_circumstancescore', 'rev_feelingscaleanswer', 'rev_incomeband', 'rev_incomeflag',
-            'rev_morethan12monthsago', 'rev_name', 'rev_receivedfundingbefore',
-            'rev_receivesbenefits', 'rev_scorebreakdown', 'rev_scoredon', 'rev_scoringaudit',
-            'rev_setting', 'rev_settings', 'rev_status', 'rev_statusoverridden', 'rev_value'
+            'rev_amountrequested', 'rev_application', 'rev_applicationid', 'rev_applications',
+            'rev_autorejectreason', 'rev_breaktype', 'rev_circumstancescore',
+            'rev_exceptionalfundingrequested', 'rev_feelingscaleanswer', 'rev_incomeband',
+            'rev_incomeflag', 'rev_morethan12monthsago', 'rev_name', 'rev_receivedfundingbefore',
+            'rev_receivesbenefits', 'rev_savingsover6000', 'rev_scorebreakdown', 'rev_scoredon',
+            'rev_scoringaudit', 'rev_setting', 'rev_settings', 'rev_status', 'rev_statusoverridden',
+            'rev_value'
         ) + $script:WellbeingColumns
         ($tokens | Sort-Object) -join ',' | Should -Be (($expected | Sort-Object) -join ',') `
             -Because 'an unexpected token here is a new column the scoring flow has started reading, and it needs a look'
@@ -694,14 +707,14 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
 
 Describe 'FR-017 / NFR-019 — not one threshold is a literal in the definition' {
 
-    # The eight settings were read by eight chained Get-a-row-by-id actions until
+    # (Eight until ADR-079 added seven, so fifteen now.) The settings were read by eight chained Get-a-row-by-id actions until
     # 2026-08-20, each with an alternate-key expression in the Row ID field. The Web API
     # accepts that form; the CONNECTOR does not, and the flow failed on its first action on
     # all eleven runs of its first live test. These tests previously asserted that exact
     # shape - one of them required it by name - so the suite was holding the defect in
     # place. They now assert the shape that works.
-    It 'all eight configuration rows are read at run time, in one List rows call' {
-        @($script:ConfigKeys).Count | Should -Be 8 -Because 'a lost key list would make every loop below vacuous'
+    It 'all fifteen configuration rows are read at run time, in one List rows call' {
+        @($script:ConfigKeys).Count | Should -Be 15 -Because 'a lost key list would make every loop below vacuous'
         $readConfig = $script:ScoreAndFlag.Read_configuration.actions
         $read = $readConfig.Read_scoring_configuration
         $read | Should -Not -BeNullOrEmpty -Because 'the single configuration read is the source of every threshold'
@@ -753,14 +766,28 @@ Describe 'FR-017 / NFR-019 — not one threshold is a literal in the definition'
 
     It 'the status derivation names no numeric threshold of its own' {
         $derive = "$($script:ScoreAndFlag.Derive_status.inputs)"
-        $derive | Should -Match 'KnockoutThreshold'
+        $derive | Should -Match 'Derive_eligibility_rules' -Because 'the knockout is one of the five rules and is decided there'
         $derive | Should -Match 'BorderlineBandLower'
         $derive | Should -Match 'BorderlineBandUpper'
+        "$($script:ScoreAndFlag.Derive_eligibility_rules.inputs.score)" | Should -Match 'KnockoutThreshold'
         # The only bare integers permitted are the rev_applicationstatus option values.
         $statusOptions = @(Get-OptionSetValues -Name 'rev_applicationstatus')
         foreach ($match in [regex]::Matches($derive, '(?<![\w''])\d+(?![\w''])')) {
             $statusOptions | Should -Contain ([int]$match.Value) `
                 -Because "the literal $($match.Value) in Derive_status is neither a status option value nor a configured threshold"
+        }
+    }
+
+    It 'the five rules name no limit or ceiling of their own: the only bare integers are 0 and a rev_incomeflag option value' {
+        # ADR-079 item 2: every limit is a rev_setting row. A literal 500 or 100 in the rules would
+        # be a limit Emily cannot change.
+        $incomeFlagOptions = @(Get-OptionSetValues -Name 'rev_incomeflag') + 0
+        foreach ($name in @('Derive_eligibility_rules', 'Parse_amount_limits')) {
+            $text = (ConvertTo-Json $script:ScoreAndFlag.$name.inputs -Depth 20 -Compress)
+            foreach ($match in [regex]::Matches($text, '(?<![\w''"\\])\d+(?![\w''"])')) {
+                $incomeFlagOptions | Should -Contain ([int]$match.Value) `
+                    -Because "the literal $($match.Value) in $name is neither 0 nor an income-flag option value, so it would be a hard-coded limit"
+            }
         }
     }
 
@@ -774,8 +801,10 @@ Describe 'FR-017 / NFR-019 — not one threshold is a literal in the definition'
 Describe 'FR-014 — knockout is evaluated before the band, so a misconfigured band cannot let a knocked-out application through' {
 
     It 'the knockout comparison precedes both band comparisons in the expression' {
+        # Rev 26 (ADR-079): the knockout is the 'score' rule of Derive_eligibility_rules, and Derive_status
+        # reads it inside the or() that is evaluated before the band.
         $derive = "$($script:ScoreAndFlag.Derive_status.inputs)"
-        $knockoutAt = $derive.IndexOf('KnockoutThreshold')
+        $knockoutAt = $derive.IndexOf("outputs('Derive_eligibility_rules')?['score']")
         $lowerAt    = $derive.IndexOf('BorderlineBandLower')
         $knockoutAt | Should -BeGreaterOrEqual 0
         $lowerAt    | Should -BeGreaterThan $knockoutAt `
@@ -783,40 +812,45 @@ Describe 'FR-014 — knockout is evaluated before the band, so a misconfigured b
     }
 }
 
-Describe 'EF-34 — the 12-month funding rule is a second, independent Auto-reject path, evaluated before the score threshold' {
+Describe 'EF-34 / FR-104 — the 12-month funding rule is one of five Auto-reject rules, decided in Derive_eligibility_rules behind PriorFundingRuleEnabled' {
 
-    It 'the compound condition reads both rev_receivedfundingbefore and rev_morethan12monthsago' {
-        $derive = "$($script:ScoreAndFlag.Derive_status.inputs)"
-        $derive | Should -Match "rev_receivedfundingbefore'\], true"
-        $derive | Should -Match "rev_morethan12monthsago'\], false"
+    It 'the prior-funding rule reads both rev_receivedfundingbefore and rev_morethan12monthsago' {
+        $rule = "$($script:ScoreAndFlag.Derive_eligibility_rules.inputs.priorFunding)"
+        $rule | Should -Match "rev_receivedfundingbefore'\], true"
+        $rule | Should -Match "rev_morethan12monthsago'\], false"
+        $rule | Should -Match 'Setting_PriorFundingRuleEnabled'
     }
 
-    It 'the 12-month rule precedes the score threshold in the expression, making the reason deterministic' {
+    It 'Derive_status is the or() of exactly the five booleans, so no rule can be outvoted by a score' {
         $derive = "$($script:ScoreAndFlag.Derive_status.inputs)"
-        $fundingAt   = $derive.IndexOf('rev_receivedfundingbefore')
-        $knockoutAt  = $derive.IndexOf('KnockoutThreshold')
-        $fundingAt  | Should -BeGreaterOrEqual 0
-        $knockoutAt | Should -BeGreaterThan $fundingAt `
-            -Because 'when both the 12-month rule and the score threshold would reject the same application, evaluation order is what decides which one is recorded as the reason (plan: EF-45, "order matters")'
+        $orAt = $derive.IndexOf('@if(or(')
+        $orAt | Should -Be 0
+        $positions = @('amount', 'income', 'savings', 'priorFunding', 'score') | ForEach-Object {
+            $derive.IndexOf("outputs('Derive_eligibility_rules')?['$_']")
+        }
+        foreach ($pos in $positions) { $pos | Should -BeGreaterThan 0 }
+        @($positions | Sort-Object) -join ',' | Should -Be ($positions -join ',') -Because 'the five booleans are read in the order amount, income, savings, prior funding, score'
+        $derive.IndexOf('BorderlineBandLower') | Should -BeGreaterThan ($positions[4]) -Because 'the knockout is decided before the band'
+        $derive | Should -Not -Match 'rev_morethan12monthsago|rev_receivedfundingbefore' -Because 'the conditions live in one place, not a second copy'
     }
 
     It 'a null rev_morethan12monthsago does not trigger the rejection — the check is equals(..., false), never not(equals(..., true))' {
         # rev_morethan12monthsago is only asked when rev_receivedfundingbefore is Yes (Entity.xml).
-        # A genuinely missing answer must fall through to the ordinary score-based rules rather
-        # than manufacture an auto-reject from incomplete data (FR-022's philosophy, applied here
-        # without reusing its withhold-the-whole-outcome mechanism — see notes.md).
-        $derive = "$($script:ScoreAndFlag.Derive_status.inputs)"
-        $derive | Should -Match "equals\(triggerOutputs\(\)\?\['body/rev_morethan12monthsago'\], false\)"
-        $derive | Should -Not -Match "not\(equals\(triggerOutputs\(\)\?\['body/rev_morethan12monthsago'\], true\)\)"
+        # A genuinely missing answer must not manufacture an auto-reject from incomplete data (FR-022's
+        # philosophy, applied here without reusing its withhold-the-whole-outcome mechanism — see notes.md).
+        $rule = "$($script:ScoreAndFlag.Derive_eligibility_rules.inputs.priorFunding)"
+        $rule | Should -Match "equals\(triggerOutputs\(\)\?\['body/rev_morethan12monthsago'\], false\)"
+        $rule | Should -Not -Match "not\(equals\(triggerOutputs\(\)\?\['body/rev_morethan12monthsago'\], true\)\)"
     }
 }
 
-Describe 'EF-45 — the auto-reject reason is deterministic and written in the same call as status' {
+Describe 'FR-105 / ADR-079 — every reason that fired is written, in order, in the same call as status' {
 
-    It 'Derive_autoreject_reason exists and runs after Derive_status' {
+    It 'Derive_autoreject_reason exists and runs after Compose_reason_lines, which runs after Derive_status' {
         $action = $script:ScoreAndFlag.Derive_autoreject_reason
         $action | Should -Not -BeNullOrEmpty
-        @($action.runAfter.Keys) | Should -Contain 'Derive_status'
+        @($action.runAfter.Keys) | Should -Contain 'Compose_reason_lines'
+        @($script:ScoreAndFlag.Compose_reason_lines.runAfter.Keys) | Should -Contain 'Derive_status'
     }
 
     It 'is null for every status other than 4 Auto-reject' {
@@ -824,13 +858,26 @@ Describe 'EF-45 — the auto-reject reason is deterministic and written in the s
         $reason | Should -Match "not\(equals\(outputs\('Derive_status'\), 4\)\), null"
     }
 
-    It 'names the 12-month rule and the score threshold as the only two possible reasons, in the same precedence as Derive_status' {
-        $reason = "$($script:ScoreAndFlag.Derive_autoreject_reason.inputs)"
-        $fundingAt  = $reason.IndexOf('rev_receivedfundingbefore')
-        $scoreAt    = $reason.IndexOf('KnockoutThreshold')
-        $fundingAt | Should -BeGreaterOrEqual 0
-        $scoreAt   | Should -BeGreaterThan $fundingAt `
-            -Because 'this action must re-run the SAME condition Derive_status used, in the SAME order, or the written reason could name a rule that was not actually the one that fired'
+    It 'names the five reasons in the order amount, income, savings, prior funding, score, each from its own boolean' {
+        $lines = "$($script:ScoreAndFlag.Compose_reason_lines.inputs)"
+        $markers = @(
+            "['amount']", "['income']", "['savings']", "['priorFunding']", "['score']"
+        ) | ForEach-Object { $lines.IndexOf("outputs('Derive_eligibility_rules')?$_") }
+        foreach ($pos in $markers) { $pos | Should -BeGreaterOrEqual 0 }
+        @($markers | Sort-Object) -join ',' | Should -Be ($markers -join ',') `
+            -Because 'FR-105 lists the reasons in the order of FR-014: amount, income, savings, prior funding, score'
+        $sentences = @('Amount requested', 'The household income band', 'The applicant has savings over', 'Received funding from Revitalise before', 'Circumstance score ')
+        $at = $sentences | ForEach-Object { $lines.IndexOf($_) }
+        foreach ($pos in $at) { $pos | Should -BeGreaterOrEqual 0 }
+        @($at | Sort-Object) -join ',' | Should -Be ($at -join ',')
+    }
+
+    It 'the reason actions keep no second copy of any rule condition' {
+        foreach ($name in @('Compose_reason_lines', 'Derive_autoreject_reason')) {
+            $text = (ConvertTo-Json $script:ScoreAndFlag.$name.inputs -Depth 20 -Compress)
+            $text | Should -Not -Match 'rev_morethan12monthsago|rev_receivedfundingbefore|rev_savingsover6000|rev_exceptionalfundingrequested|rev_receivesbenefits|rev_employmentstatus' `
+                -Because "$name must read the five booleans and not re-derive them (ADR-079 item 1)"
+        }
     }
 
     It 'Write_score_and_status writes rev_autorejectreason from Derive_autoreject_reason, in the same call as rev_status' {
@@ -840,9 +887,14 @@ Describe 'EF-45 — the auto-reject reason is deterministic and written in the s
             -Because 'a status of 4 written without its reason in the same call would be exactly the failure this test guards against'
     }
 
-    It 'Compose_scoring_audit reuses Derive_autoreject_reason for status 4 rather than a second, driftable copy of the threshold text' {
+    It 'no other action writes rev_autorejectreason, so an override leaves the reasons in place (FR-105, A-10 example 13)' {
+        $json = $script:Scoring | ConvertTo-Json -Depth 40 -Compress
+        ([regex]::Matches($json, 'rev_autorejectreason')).Count | Should -Be 1
+    }
+
+    It 'Compose_scoring_audit repeats the reason lines for status 4 rather than a second, driftable copy of the text' {
         $audit = "$($script:ScoreAndFlag.Compose_scoring_audit.inputs)"
-        $audit | Should -Match "outputs\('Derive_autoreject_reason'\)"
+        $audit | Should -Match "4 Auto-reject:', outputs\('Compose_reason_lines'\)"
         @($script:ScoreAndFlag.Compose_scoring_audit.runAfter.Keys) | Should -Contain 'Derive_autoreject_reason'
     }
 }
@@ -1522,5 +1574,318 @@ Describe 'Dataverse write actions — the shape the connector actually accepts' 
         $flat.Count | Should -BeGreaterThan 10 -Because 'the walk must actually find the solution''s Dataverse writes, or this test passes vacuously'
         @($nested) | Should -BeNullOrEmpty `
             -Because 'a designer save empties a nested item object; write item/<column> keys (TAD section 5 rule)'
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────────────────────
+# Rev 26 (ADR-079, SDD Amendment A-10 rev 2): the five Auto-reject rules, EXECUTED.
+#
+# The Describe blocks above locate things in the definition. These run the five rules and the
+# reason text on chosen inputs, with the eager evaluator in _harness/WdlExpression.psm1 (if() and
+# and() evaluate every argument, so an expression that survives here survives lazy evaluation too).
+# They prove the EXPRESSIONS, not the platform: the three platform contracts the expressions lean on
+# (formatNumber's rendering, a money column arriving as a JSON number, the restart route) are
+# A-FLOW-18 to A-FLOW-20 and are measured in DEV, not here.
+# ─────────────────────────────────────────────────────────────────────────────────────────────
+Describe 'ADR-079 — the five auto-reject rules and their reasons, executed on the SDD A-10 worked examples' {
+
+    BeforeAll {
+        # The defaults of A-10 Finding 8: knockout 20, band 21 to 30, ceiling 25,000, both switches on.
+        function script:New-RuleTrigger {
+            param([hashtable]$With = @{})
+            $t = @{
+                'body/rev_receivesbenefits'           = $false
+                'body/rev_incomeband'                 = 1
+                'body/rev_savingsover6000'            = $false
+                'body/rev_receivedfundingbefore'      = $false
+                'body/rev_exceptionalfundingrequested' = $false
+            }
+            foreach ($k in $With.Keys) { $t["body/$k"] = $With[$k] }
+            return $t
+        }
+
+        function script:Invoke-RuleChain {
+            param([hashtable]$Trigger, [int]$Score = 45, [hashtable]$Settings = @{})
+            $s = @{
+                KnockoutThreshold = '20'; BorderlineBandLower = '21'; BorderlineBandUpper = '30'; IncomeCeiling = '25000'
+                IncomeBandUpperBoundMap = [string](Get-SeededSetting -Key 'IncomeBandUpperBoundMap')
+                AmountLimitHolidayAccommodation = '500'; AmountLimitDayTripsOrOutings = '100'
+                AmountLimitActivityOrExperience = '100'; AmountLimitRespiteCareFacilityStay = '500'
+                AmountLimitOther = '500'; SavingsRuleEnabled = 'true'; PriorFundingRuleEnabled = 'true'
+            }
+            foreach ($k in $Settings.Keys) { $s[$k] = $Settings[$k] }
+            $o = @{}
+            foreach ($k in $s.Keys) { $o["Setting_$k"] = @(@{ rev_name = $k; rev_value = $s[$k] }) }
+            $o['Round_the_circumstance_score'] = $Score
+            $chain = @('Parse_income_band_upper_bound_map', 'Resolve_income_band_upper_bound', 'Derive_income_flag',
+                'Parse_amount_limits', 'Compose_reason_labels', 'Derive_eligibility_rules', 'Derive_status',
+                'Compose_reason_lines', 'Derive_autoreject_reason', 'Compose_scoring_audit')
+            foreach ($name in $chain) {
+                $o[$name] = Invoke-WdlExpression -Value $script:ScoreAndFlag[$name].inputs -Outputs $o -Trigger $Trigger
+            }
+            return $o
+        }
+
+        $script:NL = "`n"
+        $script:Over500 = { param($amount, $type) "Amount requested £$amount is over the £500 limit for $type, and no exceptional funding was requested." }
+    }
+
+    It 'example <Ex>: <Name>' -ForEach @(
+        @{ Ex = 1;  Name = 'Holiday accommodation £500, no tick, score 45 -> Auto-pass, no reason (£500 is not over £500)'
+           T = @{ rev_breaktype = 1; rev_amountrequested = 500 }; Score = 45; Status = 2; Reason = $null }
+        @{ Ex = 2;  Name = 'Holiday accommodation £650, no tick -> Auto-reject with the amount reason'
+           T = @{ rev_breaktype = 1; rev_amountrequested = 650 }; Score = 45; Status = 4
+           Reason = 'Amount requested £650.00 is over the £500 limit for Holiday accommodation, and no exceptional funding was requested.' }
+        @{ Ex = 3;  Name = 'Holiday accommodation £650, exceptional ticked, additional £150 -> Auto-pass (the tick lifts the limit)'
+           T = @{ rev_breaktype = 1; rev_amountrequested = 650; rev_exceptionalfundingrequested = $true; rev_additionalamountrequested = 150 }; Score = 45; Status = 2; Reason = $null }
+        @{ Ex = 4;  Name = 'Respite Care Facility stay £400 -> Auto-pass (within £500)'
+           T = @{ rev_breaktype = 4; rev_amountrequested = 400 }; Score = 45; Status = 2; Reason = $null }
+        @{ Ex = 5;  Name = 'Day trip £100, score 25 -> Borderline (£100 is not over £100)'
+           T = @{ rev_breaktype = 2; rev_amountrequested = 100 }; Score = 25; Status = 3; Reason = $null }
+        @{ Ex = 6;  Name = 'not on benefits, income £25,000 to £34,999 -> Auto-reject on income'
+           T = @{ rev_incomeband = 3; rev_employmentstatus = 1 }; Score = 45; Status = 4
+           Reason = 'The household income band (£25,000 to £34,999) is above the income ceiling of £25,000.' }
+        @{ Ex = 7;  Name = 'not on benefits, retired, income over £35,000 -> Auto-reject (employment is not read)'
+           T = @{ rev_incomeband = 4; rev_employmentstatus = 5 }; Score = 45; Status = 4
+           Reason = 'The household income band (Over £35,000) is above the income ceiling of £25,000.' }
+        @{ Ex = 8;  Name = 'not on benefits, income £15,000 to £24,999 -> Auto-pass'
+           T = @{ rev_incomeband = 2 }; Score = 45; Status = 2; Reason = $null }
+        @{ Ex = 9;  Name = 'receives means-tested benefits, no band, savings blank -> Auto-pass'
+           T = @{ rev_receivesbenefits = $true; rev_incomeband = $null; rev_savingsover6000 = $null }; Score = 45; Status = 2; Reason = $null }
+        @{ Ex = 10; Name = 'savings over £6,000 Yes, income under £15,000 -> Auto-reject on savings'
+           T = @{ rev_savingsover6000 = $true; rev_incomeband = 1 }; Score = 45; Status = 4
+           Reason = 'The applicant has savings over £6,000.' }
+        @{ Ex = 11; Name = 'savings Yes, Holiday accommodation £650, funded 8 months ago, score 18 -> four lines in order'
+           T = @{ rev_savingsover6000 = $true; rev_breaktype = 1; rev_amountrequested = 650; rev_receivedfundingbefore = $true; rev_morethan12monthsago = $false }; Score = 18; Status = 4
+           Reason = @(
+               'Amount requested £650.00 is over the £500 limit for Holiday accommodation, and no exceptional funding was requested.'
+               'The applicant has savings over £6,000.'
+               'Received funding from Revitalise before, and that previous funding was within the last 12 months.'
+               'Circumstance score 18 is at or below the auto-reject threshold (20).') -join "`n" }
+        @{ Ex = 14; Name = 'Respite Care Facility stay £520 -> Auto-reject'
+           T = @{ rev_breaktype = 4; rev_amountrequested = 520 }; Score = 45; Status = 4
+           Reason = 'Amount requested £520.00 is over the £500 limit for Respite Care Facility stay, and no exceptional funding was requested.' }
+        @{ Ex = 15; Name = 'Activity or Experience £120 -> Auto-reject against £100'
+           T = @{ rev_breaktype = 3; rev_amountrequested = 120 }; Score = 45; Status = 4
+           Reason = 'Amount requested £120.00 is over the £100 limit for Activity or Experience, and no exceptional funding was requested.' }
+        @{ Ex = 16; Name = 'not on benefits, no income band -> Auto-pass (flag is not stated)'
+           T = @{ rev_incomeband = $null }; Score = 45; Status = 2; Reason = $null }
+        @{ Ex = 17; Name = 'receives benefits and a band of Over £35,000 on the record anyway -> Auto-pass'
+           T = @{ rev_receivesbenefits = $true; rev_incomeband = 4 }; Score = 45; Status = 2; Reason = $null }
+        @{ Ex = 18; Name = 'example 10 after the savings rule is switched off -> Auto-pass, no reason'
+           T = @{ rev_savingsover6000 = $true; rev_incomeband = 1 }; Score = 45; Status = 2; Reason = $null
+           Settings = @{ SavingsRuleEnabled = 'false' } }
+        @{ Ex = 19; Name = 'Day trips limit set to 150, a £120 day trip -> Auto-pass with no flow edit'
+           T = @{ rev_breaktype = 2; rev_amountrequested = 120 }; Score = 45; Status = 2; Reason = $null
+           Settings = @{ AmountLimitDayTripsOrOutings = '150' } }
+    ) {
+        $caseSettings = @{}; if (Test-Path variable:Settings) { $caseSettings = $Settings }   # strict mode (Invoke-Tests.ps1) makes an unset case key an error; PowerShell variable names are case-insensitive
+        $o = Invoke-RuleChain -Trigger (New-RuleTrigger -With $T) -Score $Score -Settings $caseSettings
+        $o['Derive_status'] | Should -Be $Status
+        if ($null -eq $Reason) {
+            $o['Derive_autoreject_reason'] | Should -BeNullOrEmpty
+        }
+        else {
+            $o['Derive_autoreject_reason'] | Should -BeExactly $Reason
+        }
+    }
+
+    It 'amount boundaries: the limit passes and one pound over rejects, for each break type' -ForEach @(
+        @{ Type = 1; Name = 'Holiday accommodation'; Limit = 500 }
+        @{ Type = 2; Name = 'Day trips or outings'; Limit = 100 }
+        @{ Type = 3; Name = 'Activity or Experience'; Limit = 100 }
+        @{ Type = 4; Name = 'Respite Care Facility stay'; Limit = 500 }
+        @{ Type = 5; Name = 'Other'; Limit = 500 }
+    ) {
+        $at = Invoke-RuleChain -Trigger (New-RuleTrigger -With @{ rev_breaktype = $Type; rev_amountrequested = $Limit })
+        $at['Derive_status'] | Should -Be 2 -Because "exactly £$Limit is not over £$Limit"
+        $over = Invoke-RuleChain -Trigger (New-RuleTrigger -With @{ rev_breaktype = $Type; rev_amountrequested = ($Limit + 1) })
+        $over['Derive_status'] | Should -Be 4
+        $over['Derive_autoreject_reason'] | Should -BeExactly "Amount requested £$($Limit + 1).00 is over the £$Limit limit for $Name, and no exceptional funding was requested."
+    }
+
+    It 'only rev_amountrequested is compared; a blank amount or a blank break type does not reject (FR-102)' {
+        $big = Invoke-RuleChain -Trigger (New-RuleTrigger -With @{ rev_breaktype = 1; rev_amountrequested = 400; rev_additionalamountrequested = 5000 })
+        $big['Derive_status'] | Should -Be 2 -Because 'the additional (exceptional) amount is never compared'
+        $noAmount = Invoke-RuleChain -Trigger (New-RuleTrigger -With @{ rev_breaktype = 2 })
+        $noAmount['Derive_status'] | Should -Be 2
+        $noType = Invoke-RuleChain -Trigger (New-RuleTrigger -With @{ rev_amountrequested = 650 })
+        $noType['Derive_status'] | Should -Be 2
+    }
+
+    It 'the amount rule reads a limit Emily changed, for the type it belongs to and no other' {
+        $o = Invoke-RuleChain -Trigger (New-RuleTrigger -With @{ rev_breaktype = 1; rev_amountrequested = 650 }) -Settings @{ AmountLimitHolidayAccommodation = '700' }
+        $o['Derive_status'] | Should -Be 2
+        $other = Invoke-RuleChain -Trigger (New-RuleTrigger -With @{ rev_breaktype = 5; rev_amountrequested = 650 }) -Settings @{ AmountLimitHolidayAccommodation = '700' }
+        $other['Derive_status'] | Should -Be 4 -Because 'Other keeps its own £500 limit'
+    }
+
+    It 'the prior-funding rule: rejects on Yes then No, never on a blank, and not when switched off (FR-104, AC-20)' {
+        $t = New-RuleTrigger -With @{ rev_receivedfundingbefore = $true; rev_morethan12monthsago = $false }
+        (Invoke-RuleChain -Trigger $t)['Derive_status'] | Should -Be 4
+        (Invoke-RuleChain -Trigger $t)['Derive_autoreject_reason'] | Should -BeExactly 'Received funding from Revitalise before, and that previous funding was within the last 12 months.'
+        (Invoke-RuleChain -Trigger $t -Settings @{ PriorFundingRuleEnabled = 'false' })['Derive_status'] | Should -Be 2
+        (Invoke-RuleChain -Trigger $t -Settings @{ PriorFundingRuleEnabled = ' FALSE ' })['Derive_autoreject_reason'] | Should -BeNullOrEmpty
+        $blank = New-RuleTrigger -With @{ rev_receivedfundingbefore = $true; rev_morethan12monthsago = $null }
+        (Invoke-RuleChain -Trigger $blank)['Derive_status'] | Should -Be 2
+        $moreThan = New-RuleTrigger -With @{ rev_receivedfundingbefore = $true; rev_morethan12monthsago = $true }
+        (Invoke-RuleChain -Trigger $moreThan)['Derive_status'] | Should -Be 2
+    }
+
+    It 'the score rule: at the threshold rejects, one above does not (FR-014)' {
+        $o = Invoke-RuleChain -Trigger (New-RuleTrigger) -Score 20
+        $o['Derive_status'] | Should -Be 4
+        $o['Derive_autoreject_reason'] | Should -BeExactly 'Circumstance score 20 is at or below the auto-reject threshold (20).'
+        (Invoke-RuleChain -Trigger (New-RuleTrigger) -Score 21)['Derive_status'] | Should -Be 3
+        (Invoke-RuleChain -Trigger (New-RuleTrigger) -Score 31)['Derive_status'] | Should -Be 2
+    }
+
+    It 'the income reason names the band and the ceiling only, and the income ceiling is the setting (FR-015, FR-105)' {
+        $t = New-RuleTrigger -With @{ rev_incomeband = 2 }
+        (Invoke-RuleChain -Trigger $t)['Derive_status'] | Should -Be 2
+        $lowered = Invoke-RuleChain -Trigger $t -Settings @{ IncomeCeiling = '20000' }
+        $lowered['Derive_status'] | Should -Be 4 -Because 'a band whose top (24,999) is above a 20,000 ceiling rejects'
+        $lowered['Derive_autoreject_reason'] | Should -BeExactly 'The household income band (£15,000 to £24,999) is above the income ceiling of £20,000.'
+    }
+
+    It 'an override leaves the reasons: only the scoring write names rev_autorejectreason, and an overridden record stops the flow first (example 13)' {
+        $first = @($script:Actions.Keys)[0]
+        $first | Should -Be 'Stop_if_the_process_owner_has_overridden_this_application'
+        $script:Actions.$first.expression | ConvertTo-Json -Compress -Depth 10 | Should -Match 'rev_statusoverridden'
+    }
+
+    It 'no rule is reached when a scored answer is missing: the limits are parsed after the FR-022 withhold gate (example 12)' {
+        $actions = $script:ScoreAndFlag
+        $seen = [System.Collections.Generic.HashSet[string]]::new()
+        $queue = [System.Collections.Generic.Queue[string]]::new()
+        $queue.Enqueue('Derive_eligibility_rules')
+        while ($queue.Count) {
+            $n = $queue.Dequeue()
+            if (-not $actions.Contains($n)) { continue }
+            foreach ($prev in @($actions[$n].runAfter.Keys)) { if ($seen.Add($prev)) { $queue.Enqueue($prev) } }
+        }
+        $seen.Contains('Withhold_the_outcome_when_a_scored_answer_is_missing') | Should -BeTrue `
+            -Because 'Under Review with no rule applied and no reason depends on the withhold gate stopping the run before any rule'
+    }
+
+    It 'the longest reason text fits rev_autorejectreason (1,000) and the audit fits rev_scoringaudit (4,000), with every rule firing' {
+        $t = New-RuleTrigger -With @{ rev_savingsover6000 = $true; rev_breaktype = 4; rev_amountrequested = 99999999.99; rev_receivedfundingbefore = $true; rev_morethan12monthsago = $false; rev_incomeband = 4 }
+        $o = Invoke-RuleChain -Trigger $t -Score 5 -Settings @{ IncomeCeiling = '14999'; AmountLimitRespiteCareFacilityStay = '1' }
+        @($o['Derive_autoreject_reason'] -split "`n").Count | Should -Be 5
+        $o['Derive_autoreject_reason'].Length | Should -BeLessThan 1000
+        $o['Compose_scoring_audit'].Length | Should -BeLessThan 4000
+        $o['Compose_scoring_audit'] | Should -Match '^Status: 4 Auto-reject:\n'
+    }
+
+    It 'the audit trail repeats the reason lines and records the five limits and both switches in force (ADR-079 item 7)' {
+        $t = New-RuleTrigger -With @{ rev_breaktype = 1; rev_amountrequested = 650 }
+        $o = Invoke-RuleChain -Trigger $t -Settings @{ AmountLimitDayTripsOrOutings = '150' }
+        $audit = $o['Compose_scoring_audit']
+        $audit | Should -Match ([regex]::Escape("Status: 4 Auto-reject:`nAmount requested £650.00 is over the £500 limit for Holiday accommodation"))
+        foreach ($line in @('Amount limit, Holiday accommodation: £500', 'Amount limit, Day trips or outings: £150',
+                'Amount limit, Activity or Experience: £100', 'Amount limit, Respite Care Facility stay: £500',
+                'Amount limit, Other: £500', 'Savings rule on: true', 'Prior funding rule on: true')) {
+            $audit | Should -Match ([regex]::Escape($line))
+        }
+        $o3 = Invoke-RuleChain -Trigger (New-RuleTrigger) -Score 25
+        $o3['Compose_scoring_audit'] | Should -Match '^Status: 3 Borderline'
+    }
+
+    It 'no reason text names an employment, benefits, disability or health answer (FR-016, FR-105)' {
+        $t = New-RuleTrigger -With @{ rev_savingsover6000 = $true; rev_breaktype = 1; rev_amountrequested = 650; rev_receivedfundingbefore = $true; rev_morethan12monthsago = $false; rev_incomeband = 4
+            rev_employmentstatus = 1; rev_exceptionalfundingdetail = 'hospice care'; rev_receivesbenefits = $false }
+        $o = Invoke-RuleChain -Trigger $t -Score 5
+        $o['Derive_autoreject_reason'] | Should -Not -Match '(?i)employ|benefit|disab|health|hospice|condition|work'
+        $o['Compose_scoring_audit'] | Should -Not -Match '(?i)hospice'
+    }
+}
+
+Describe 'ADR-079 — a malformed or missing setting stops the run with an alert instead of silently changing who is rejected' {
+
+    BeforeAll {
+        function script:Invoke-LimitParse {
+            param($Value)
+            $o = @{}
+            foreach ($k in @('AmountLimitHolidayAccommodation', 'AmountLimitDayTripsOrOutings', 'AmountLimitActivityOrExperience', 'AmountLimitRespiteCareFacilityStay', 'AmountLimitOther')) {
+                $o["Setting_$k"] = @(@{ rev_name = $k; rev_value = '100' })
+            }
+            $o['Setting_AmountLimitOther'] = @(@{ rev_name = 'AmountLimitOther'; rev_value = $Value })
+            Invoke-WdlExpression -Value $script:ScoreAndFlag.Parse_amount_limits.inputs -Outputs $o
+        }
+        function script:Test-SwitchGuardFires {
+            param($Savings, $Prior)
+            $o = @{
+                Setting_SavingsRuleEnabled = @(@{ rev_name = 'SavingsRuleEnabled'; rev_value = $Savings })
+                Setting_PriorFundingRuleEnabled = @(@{ rev_name = 'PriorFundingRuleEnabled'; rev_value = $Prior })
+            }
+            $guard = $script:ScoreAndFlag.Read_configuration.actions.Fail_if_a_rule_switch_is_not_true_or_false
+            foreach ($operand in @($guard.expression.or)) {
+                $inner = $operand.not.equals
+                $v = Invoke-WdlExpression -Value $inner[0] -Outputs $o
+                if ($v -ne $inner[1]) { return $true }
+            }
+            return $false
+        }
+    }
+
+    It 'a limit that is not a whole number fails Parse_amount_limits: <Value>' -ForEach @(
+        @{ Value = '£150' }, @{ Value = '150.50' }, @{ Value = '' }, @{ Value = $null }, @{ Value = 'five hundred' }
+    ) {
+        { Invoke-LimitParse -Value $Value } | Should -Throw -Because 'a limit of 0 from int(null) would silently reject every request'
+    }
+
+    It 'a whole-number limit parses, with surrounding spaces tolerated' {
+        $r = Invoke-LimitParse -Value ' 150 '
+        $r['5'] | Should -Be 150
+        $r['1'] | Should -Be 100
+    }
+
+    It 'a rule switch that is not true or false stops the run: <Savings> / <Prior> fires=<Fires>' -ForEach @(
+        @{ Savings = 'true'; Prior = 'true'; Fires = $false }
+        @{ Savings = 'false'; Prior = 'FALSE'; Fires = $false }
+        @{ Savings = ' True '; Prior = 'false'; Fires = $false }
+        @{ Savings = 'yes'; Prior = 'true'; Fires = $true }
+        @{ Savings = 'true'; Prior = ''; Fires = $true }
+        @{ Savings = 'true'; Prior = $null; Fires = $true }
+        @{ Savings = '1'; Prior = 'true'; Fires = $true }
+    ) {
+        Test-SwitchGuardFires -Savings $Savings -Prior $Prior | Should -Be $Fires
+    }
+
+    It 'the switch guard waits for both switch queries and terminates the run Failed, inside Read_configuration' {
+        $guard = $script:ScoreAndFlag.Read_configuration.actions.Fail_if_a_rule_switch_is_not_true_or_false
+        $guard | Should -Not -BeNullOrEmpty
+        @($guard.runAfter.Keys) | Should -Contain 'Setting_SavingsRuleEnabled'
+        @($guard.runAfter.Keys) | Should -Contain 'Setting_PriorFundingRuleEnabled'
+        $guard.actions.Stop_run_rule_switch_invalid.inputs.runStatus | Should -Be 'Failed'
+    }
+
+    It 'the five limits are parsed on every run, not only for their own break type' {
+        $parse = $script:ScoreAndFlag.Parse_amount_limits.inputs
+        @($parse.Keys).Count | Should -Be 5
+        foreach ($k in $parse.Keys) { "$($parse[$k])" | Should -Match 'int\(' }
+    }
+
+    It 'a run that fails in Parse_amount_limits is named by the alert: it is a direct child of Score_and_flag, found by Find_the_failed_action' {
+        $script:ScoreAndFlag.Contains('Parse_amount_limits') | Should -BeTrue
+        $script:Actions.Find_the_failed_action.inputs.from | Should -Be "@result('Score_and_flag')"
+    }
+}
+
+Describe 'ADR-079 — the no-reason path is safe whether if() is eager or lazy (power-automate.md (l))' {
+
+    It 'no auto-reject action calls substring(): the reason text is empty whenever no rule applies, and substring of an empty string throws' {
+        foreach ($name in @('Derive_eligibility_rules', 'Derive_status', 'Compose_reason_lines', 'Derive_autoreject_reason', 'Compose_scoring_audit')) {
+            (ConvertTo-Json $script:ScoreAndFlag.$name.inputs -Depth 20 -Compress) | Should -Not -Match 'substring\(' `
+                -Because "$name is evaluated on every run, including the Auto-pass and Borderline runs whose reason text is ''"
+        }
+    }
+
+    It 'a run where no rule applies completes the whole chain: reason null, status 2 or 3, under the eager evaluator that throws on substring of an empty string' {
+        $o = Invoke-RuleChain -Trigger (New-RuleTrigger) -Score 45
+        $o['Derive_status'] | Should -Be 2
+        $o['Compose_reason_lines'] | Should -BeExactly ''
+        $o['Derive_autoreject_reason'] | Should -BeNullOrEmpty
+        (Invoke-RuleChain -Trigger (New-RuleTrigger) -Score 25)['Derive_status'] | Should -Be 3
     }
 }

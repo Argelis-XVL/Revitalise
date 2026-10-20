@@ -552,7 +552,6 @@ placeholder text, because the reviewer requires every tab to be filled.
 |---|---|---|---|
 | prefill | Name | `rev_applicant.rev_fullname` | |
 | prefill | Amount | `rev_grant.rev_amountawarded`, `N2` | awarded, not requested |
-| prefill | Holiday type | `rev_application.rev_breaktype`, formatted | |
 | prefill | Holiday destination | `rev_application.rev_breaklocation` | |
 | prefill | Dates | `rev_grant.rev_holidaystart` – `rev_holidayend`, `d MMMM yyyy` | |
 | Grant Acceptor | First name / Last name | `rev_firstname` / `rev_lastname` | column-secured |
@@ -573,7 +572,7 @@ placeholder text, because the reviewer requires every tab to be filled.
 | either | `signHereTabs`, `fullNameTabs`, `dateSignedTabs` | not sent | reviewer |
 | either | `tabGroups` | not sent | no value; validation group |
 
-`""` clears the template's placeholder text so the signer types the value. The read-back requires the five prefill
+`""` clears the template's placeholder text so the signer types the value. The read-back requires the four prefill
 tabs and, for each signer, first name, last name, title, postcode and phone (the tabs both placeholder sets share).
 Every other tab is covered by the no-mapping stop, and every tab sent must hold the value sent. A checkbox is read
 back from `selected`, lower-cased.
@@ -586,3 +585,24 @@ and the tabs would be cleared silently; the run now stops instead and says so.
 split the name. `A-DS-5` stands: `rev_refereeemail` now fills the referee's email tabs. `A-DS-15` gains the
 role-to-placeholder-set question; `A-DS-16` gains the `Checkbox`, `Company` and `EmailAddress` enum strings, the
 checkbox's `selected` read-back, and whether an `emailAddressTabs` update is honoured.
+
+## Purpose label removed from the template (2026-10-19, wbs:3.2)
+
+The customer removed the "Purpose" label from the DocuSign template. The reviewer confirmed it is the prefill tab
+`p_type` (placeholder `Holiday type`), filled from `rev_application.rev_breaktype`'s formatted label. The flow no longer
+fills it.
+
+- `Compose_tab_values`: `label|p_type` and `prefill|Holiday type` removed. 57 keys become 55.
+- `Filter_missing_tabs`: `p_type` removed from the required ids. 15 become 14 (four prefill: `p_name`, `p_amt`, `p_venue`,
+  `p_dates`; five per signer).
+- `Get_the_application`: `rev_breaktype` dropped from `$select`. Nothing else in the flow read it (checked by grep).
+  `rev_breaklocation` stays; it feeds `p_venue`.
+- The earlier sections of this file that name `p_type` / `rev_breaktype` describe the flow as it stood then.
+
+**Template version dependency (by design, no workaround).** The template must be the version without the "Holiday type"
+tab. If an older template version that still carries it is bound, that tab has no mapping and the no-mapping check stops
+the run before the send, naming its placeholder text. That is the intended behaviour: the reviewer requires every tab on
+the template to be filled or deliberately mapped. Re-publish the template, not the flow.
+
+**Register effect.** None. No assumption row changes; the `rev_breaktype` formatted-value convention noted under A-DS-2 is
+no longer exercised by this flow.

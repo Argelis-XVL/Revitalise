@@ -290,3 +290,39 @@ files:
       Summary (not verbatim) of the reviewer's 2026-10-02 turn and Emily's relayed DocuSign
       feedback on the wbs:3.2 envelope flow. No contact details recorded. Records what was asked;
       authorises nothing (C-COM-002).
+  - name: "2026-10-19-docusign-template-feedback.md"
+    class: requirements
+    sha256: 9b04916c0ac5cfd6cb65bf4c5bd04d9212d8aac309027845e71c0861b17c99bb
+    bytes: 967
+    contains_commercial_terms: false
+    intaked_by: pm-agent (ledger intake)
+    note: >-
+      Summary (not verbatim) of the reviewer's 2026-10-19 turn: customer removed Purpose from the
+      DocuSign template and requested a signing order. No contact details. Authorises nothing (C-COM-002).
+  - name: "Anonymisation Key.xlsx"
+    class: requirements
+    sha256: 13605c2a5125dd2c974a4b2adbb24fe288d4e7903b069325834feedb00204ebc
+    bytes: 10133
+    contains_commercial_terms: false
+    intaked_by: plan-agent
+    note: >-
+      The client's Anonymisation Key, received 2026-10-14 and committed by the reviewer in ffb42ef.
+      Sheet 1 rows 2-27 list gendered and relationship words and the neutral word each becomes;
+      rows 30-44 list the 15 free-text form questions in scope. Adopted by SDD Amendment A-09
+      (FR-094 to FR-099), intaked 2026-10-16. Reviewer, 2026-10-14: "follow the key file". Where the
+      key and the client's worked examples disagree, the examples win (reviewer, 2026-10-16:
+      "Use the clients own examples"). Parsed with zipfile/XML; no personal data in this file.
+  - name: "Anonymised Examples.xlsx"
+    class: requirements
+    sha256: 8531fe2cd5999ea2438c44db24f822c54fbf627279a0a047a164693443e710f3
+    bytes: 11884
+    contains_commercial_terms: false
+    intaked_by: plan-agent
+    note: >-
+      Four before-and-after narratives showing how the client anonymises free text by hand,
+      received 2026-10-14 with the Anonymisation Key and committed in ffb42ef. Adopted by SDD
+      Amendment A-09 as the worked examples that settle where the key is silent or ambiguous
+      (names, him, -self forms). The text holds first names and health details. Whether the
+      examples are real applications is an existing open item (Dev Summary Iteration 8, section
+      8.6 item 8), not restated here. No repository document copies their text; the tests read
+      them from this file.

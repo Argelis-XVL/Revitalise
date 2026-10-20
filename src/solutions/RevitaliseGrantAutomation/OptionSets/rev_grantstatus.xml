@@ -46,7 +46,7 @@
         <label description="Acceptance Signed" languagecode="1033" />
       </labels>
     </option>
-    <!-- 4 = Paid. Payment has been issued. rev_finalpaymentdate starts the six-year retention clock from here. -->
+    <!-- 4 = Paid. Set by REV | Finance | Capture Payment (wbs:8.6, ADR-081, FR-113) in the same write as rev_finalpaymentdate, from 3 Acceptance Signed only, and returned to 3 when no final payment remains. rev_finalpaymentdate starts the six-year retention clock. Nothing else writes 4. -->
     <option value="4">
       <labels>
         <label description="Paid" languagecode="1033" />

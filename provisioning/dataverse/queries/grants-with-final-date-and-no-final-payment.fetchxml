@@ -1,0 +1,24 @@
+<fetch>
+  <!--
+    READ-ONLY. A-R100 listing (wbs:8.6, ADR-081, accepted by the reviewer 2026-10-20): grants that carry a
+    rev_finalpaymentdate and have NO payment marked final. The second query, in the file beside this one, lists grants at status Paid (4) with no payment marked final (A-R100 as widened by amendment b). The Capture Payment flow clears such a date the next
+    time any payment on that grant is saved. Run it against PRD before the flow is turned on there; expected
+    result: no rows. A row goes to the process owner before activation.
+    Returns the grant reference only (rev_name, pseudonymous): no name, amount or date. Nothing is written.
+    How to run it: the pipeline step for wbs:8.6 in config/revitalise-grant-automation-pipeline.yml (pac needs the text on one line, without this comment; measured on DEV 2026-10-20, 0 rows).
+    (after `pac auth select` for the target environment, as a user who can read Grant and Payment).
+  -->
+  <entity name='rev_grant'>
+    <attribute name='rev_name' />
+    <filter type='and'>
+      <condition attribute='rev_finalpaymentdate' operator='not-null' />
+      <condition entityname='finalpay' attribute='rev_paymentid' operator='null' />
+    </filter>
+    <link-entity name='rev_payment' from='rev_grantid' to='rev_grantid' link-type='outer' alias='finalpay'>
+      <attribute name='rev_paymentid' />
+      <filter type='and'>
+        <condition attribute='rev_isfinalpayment' operator='eq' value='1' />
+      </filter>
+    </link-entity>
+  </entity>
+</fetch>

@@ -282,12 +282,20 @@
            ADR-071; the ADR-072 prompt stage and its run action are in this build and ship
            OFF: no RedactionPromptStage row is seeded, 2026-10-06). -->
       <RootComponent type="29" id="{8f1c2a44-1011-4b7a-9e21-0a1b2c3d4e11}" />
+      <!-- REV | Portal | Finalise Decisions (Automation #6, wbs:6.6, TAD 5.7). Manual trigger; creates
+           the Grant rows that start REV | Acceptance | Create Envelope (A-DS-3). -->
+      <RootComponent type="29" id="{8f1c2a44-1012-4b7a-9e21-0a1b2c3d4e12}" />
+      <!-- REV | Finance | Capture Payment (Automation #8, wbs:8.6, CO-010, TAD rev 28 section 5.11, ADR-081).
+           Row trigger on rev_payment; sets rev_grant.rev_finalpaymentdate and moves the application. -->
+      <RootComponent type="29" id="{8f1c2a44-1013-4b7a-9e21-0a1b2c3d4e13}" />
       <!-- REV Narrative Redaction Prompt (AI Builder prompt, msdyn_aimodel, component type 401;
            ADR-072, wbs:5.3). Created by the reviewer in DEV inside this solution (TAD 12.6.1 R1,
            2026-10-06) and copied from the DEV export exactly as exported, including behavior="0"
            (A-NS-9). Its id is the platform's, read from the export, never chosen here (C-TECH-051).
            The flow's run action refers to it by this id. -->
       <RootComponent type="401" id="{122be8e0-4b6b-44cd-a9a9-d1faff162b02}" behavior="0" />
+      <RootComponent type="401" id="{763cff31-d653-416b-a52f-7e6f400bce21}" behavior="0" />
+      <RootComponent type="401" id="{e853d7c8-dd36-4917-951f-50108a812fc4}" behavior="0" />
       <!--
         App sitemap (type 62) and model-driven app (type 80) ARE DECLARED BY NAME, NOT BY GUID,
         AND THAT IS NOT A STYLE CHOICE. RootComponentsValidation builds a matching key for every
@@ -325,6 +333,8 @@
       <RootComponent type="380" schemaName="rev_SpoSignedAcceptanceUrl" />
       <RootComponent type="380" schemaName="rev_GrantAdminAppUrl" />
       <RootComponent type="380" schemaName="rev_ServiceMailbox" />
+      <!-- rev_FinanceAlertUpn (wbs:8.6, CO-010, ADR-081 item 5, 2026-10-20). isrequired=1, no default. -->
+      <RootComponent type="380" schemaName="rev_FinanceAlertUpn" />
       <RootComponent type="380" schemaName="rev_IntakeAllowedClientId" />
       <!-- rev_DocuSignAccountId and rev_DocuSignAcceptanceTemplateId (wbs:3.2) were MISSING
            from this list until this revision (2026-09-06) - found by

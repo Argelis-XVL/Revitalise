@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Workflow metadata for REV | Finance | Capture Payment. wbs:8.6 (change order CO-010, unbilled),
+  TAD rev 28 section 5.11, ADR-081. Dataverse row trigger on rev_payment, message 4 (Added or
+  Modified), scope 4, runas 3 (the flow owner).
+
+  WHY THIS FLOW EXISTS: rev_grant.rev_finalpaymentdate starts the six-year retention clock and
+  nothing wrote it. This flow makes it, the application's status (Approved / Grant Paid) and the
+  payment's own status (Pending / Issued) match the payments that exist. See the .notes.md.
+
+  IMPORTS SWITCHED OFF, SAME REASON AS EVERY OTHER FLOW IN THIS SOLUTION: StateCode 0 /
+  StatusCode 1 is Draft. Binding the connection reference requires interactive OAuth consent
+  and cannot be scripted (TAD section 12.1).
+
+  Category 5 is a modern cloud flow. PrimaryEntity is none, matching every other Dataverse-
+  triggered flow in this solution: the trigger is expressed inside the definition JSON.
+-->
+<Workflow WorkflowId="{8f1c2a44-1013-4b7a-9e21-0a1b2c3d4e13}" Name="REV | Finance | Capture Payment">
+  <JsonFileName>/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutoDelete>0</AsyncAutoDelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>0</StateCode>
+  <StatusCode>1</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName description="REV | Finance | Capture Payment" languagecode="1033" />
+  </LocalizedNames>
+</Workflow>

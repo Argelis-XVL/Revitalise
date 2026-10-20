@@ -1,0 +1,56 @@
+{
+  "_provenance": "Exported from REV-GrantApplications-DEV by pac env fetch (workflow.clientdata), 2026-10-20, flow 'Run a flow for selected rows' (workflowid ff876020-85cc-f111-a05c-7ced8d43e87d), a scratch flow made by the reviewer outside this solution's source. Only the trigger and the definition parameters are kept; the environment-specific connection id is dropped. TAD 12.8 A-FD-10.",
+  "parameters": {
+    "$authentication": {
+      "defaultValue": {},
+      "type": "SecureObject"
+    },
+    "$connections": {
+      "defaultValue": {},
+      "type": "Object"
+    },
+    "dynamicscrmonline.entityName": {
+      "defaultValue": "",
+      "type": "String"
+    }
+  },
+  "triggers": {
+    "manual": {
+      "splitOn": "@triggerBody()['rows']",
+      "type": "Request",
+      "kind": "ApiConnection",
+      "inputs": {
+        "operationId": "RecordSelected",
+        "parameters": {
+          "entityName": "rev_reviews"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "entity": {
+                    "properties": {},
+                    "type": "object",
+                    "required": []
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "rows"
+          ]
+        },
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['shared_commondataserviceforapps']['connectionId']"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "3.2"
+  ],
+  "items": [],
+  "build_date": "2026-10-19",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20261019-1/",
+  "source_commit": "790faa5879b2ccb426b86eadf91d031c94a076de",
+  "source_commit_at_pack_time": "790faa5879b2ccb426b86eadf91d031c94a076de",
+  "source_tree_dirty_paths": 27,
+  "source_commit_note": "Packed from a dirty tree: 27 uncommitted paths under src/, provisioning/, config/ at manifest time.",
+  "build_tool": "pac (Power Platform CLI) via scripts/run-build.py; Vite 7.3.6; Pester 5.7.1",
+  "build_os": "Darwin 27.0.0 (macOS, local)",
+  "constraint_check": "PASS",
+  "preflight": "PASS - 102 steps declared, all gates with negative-test coverage per preflight-build-config",
+  "verification_level": "V2 - packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "component-shape",
+    "component-shape-packed",
+    "guid-syntax",
+    "flow-definition-language",
+    "code-app-bundle-budget",
+    "code-app-bundle-budget-cards"
+  ],
+  "unit_tests": "Pester 1349 passed, 0 failed, 1 skipped; command coverage 75.80% (measured); coverage-threshold 91.63% line coverage (threshold 80.0%) exit 0.",
+  "warnings": {
+    "total": 5,
+    "resolved": 0,
+    "accepted": 5,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: [figures compared: 21 Type= lines, equal to build 20261017-1]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L941"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: [figures compared: 21 Type= lines, equal to build 20261017-1]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L941"
+    },
+    {
+      "step": "lint",
+      "signature": "Solution Checker: Critical 0, High 0, Medium 1, Low 0, Informational 0 [figures compared: 1 Medium, count equal to build 20261017-1; rule and component name not read from the log this run]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L944"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 1,210.18 kB, css 77.64 kB, equal to build 20261017-1; byte budget code-app-bundle-budget PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build-cards",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 845.81 kB, css 148.64 kB, equal to the row's 845.81 kB; code-app-bundle-budget-cards PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L945"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 9,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 1,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 0,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 48,
+    "constraint-verifiers": 1
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context",
+      "level_not_established": "V3",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "scoped": false,
+  "skipped_unchanged": [],
+  "build_config_sha256": "0a3770643fd99809414062f7b4a70ca18ba8efcf82517338ab955f0aba020681",
+  "improvement_log_at_start": "1134 entries, 0 deploy-open (read at manifest time; start read lost to a backgrounded call)",
+  "improvement_log_at_manifest": "re-checked at manifest time with --warn-only: 1134 entries, 0 deploy-open; 2 awaiting-approval non-blockers (IMP-1137, IMP-1138); no drift that blocks packaging",
+  "improvement_log_entries": [],
+  "status": "SUCCESS",
+  "supersedes": "build/artifacts/revitalise-grant-automation-20261017-1 (REVAcceptanceCreateEnvelope no longer fills the p_type prefill tab; read-back ids 15 to 14; rev_breaktype dropped from Get_the_application $select)"
+}

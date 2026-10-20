@@ -91,6 +91,13 @@ function ConvertTo-WdlString {
     return [string]$Value
 }
 
+function Assert-WdlNumbers {
+    param([string]$Name, [object[]]$A)
+    foreach ($x in $A) {
+        if ($null -eq $x -or $x -is [string] -or $x -is [bool]) { throw "WDL: $Name() needs numbers, got '$x'" }
+    }
+}
+
 function Invoke-WdlFunction {
     param([string]$Name, [object[]]$A, $Ctx)
     switch ($Name) {
@@ -109,11 +116,32 @@ function Invoke-WdlFunction {
         }
         'less'      { return , (($A[0] -lt $A[1])) }
         'greater'   { return , (($A[0] -gt $A[1])) }
+        # The four comparisons below throw on a string or a null, as the platform does: a money
+        # column that arrived as a string must fail the run with an alert, not compare as text (A-FLOW-19).
+        'lessOrEquals'    { Assert-WdlNumbers $Name $A; return , (($A[0] -le $A[1])) }
+        'greaterOrEquals' { Assert-WdlNumbers $Name $A; return , (($A[0] -ge $A[1])) }
+        'min'       { Assert-WdlNumbers $Name $A; return , ((($A | Measure-Object -Minimum).Minimum)) }
+        'int'       {
+            # int(null) is 0 (notes.md, Fail_if_a_setting_row_is_missing); a string must be a whole number.
+            if ($null -eq $A[0]) { return , ([long]0) }
+            if ($A[0] -is [string]) {
+                $n = 0L
+                if (-not [long]::TryParse($A[0], [System.Globalization.NumberStyles]::Integer, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$n)) {
+                    throw "WDL: int('$($A[0])') is not a whole number"
+                }
+                return , ($n)
+            }
+            return , ([long]$A[0])
+        }
+        'decodeUriComponent' { return , ([System.Uri]::UnescapeDataString([string]$A[0])) }
+        'utcNow'    { return , ([datetime]::UtcNow.ToString('o')) }
         'add'       { return , (($A[0] + $A[1])) }
         'sub'       { return , (($A[0] - $A[1])) }
         'contains'  {
             if ($null -eq $A[0]) { throw 'WDL: contains() of null' }
             if ($A[0] -is [string]) { return , ($A[0].Contains([string]$A[1])) }
+            # On an object the platform tests for a KEY (Scoring's Derive_eligibility_rules, ADR-079).
+            if ($A[0] -is [System.Collections.IDictionary]) { return , ($A[0].Contains([string]$A[1])) }
             foreach ($x in @($A[0])) { if (Test-WdlEqual $x $A[1]) { return , ($true) } }
             return , ($false)
         }
@@ -121,7 +149,9 @@ function Invoke-WdlFunction {
             if ($null -eq $A[0]) { throw 'WDL: substring() of null' }
             $s = [string]$A[0]; $start = [int]$A[1]
             $len = if ($A.Count -gt 2) { [int]$A[2] } else { $s.Length - $start }
-            if ($start -lt 0 -or $len -lt 0 -or $start + $len -gt $s.Length) {
+            # power-automate.md (l): the start must be BELOW the string's length even with a length argument,
+            # and any substring of '' throws. substring(raw, length(raw)) is the trap.
+            if ($start -lt 0 -or $len -lt 0 -or $start + $len -gt $s.Length -or $start -ge $s.Length) {
                 throw "WDL: substring('$s', $start, $len) is out of range"
             }
             return , ($s.Substring($start, $len))

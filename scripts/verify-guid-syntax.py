@@ -214,7 +214,10 @@ BRACED_IN_NAME = re.compile(r"\{([^{}]*)\}")
 # The pre-2026-08-21 shape scan, kept verbatim as a backstop so the rewrite cannot lose
 # IMP-0036 coverage anywhere the element list does not reach. It runs over RAW text, comments
 # included, exactly as before.
-LEGACY_SHAPE_TOKEN = re.compile(r"\{([^{}\s]{36})\}")
+# 2026-10-16 (narrative Dev Summary Iteration 10): a token holding a double quote is excluded. An exported AI
+# prompt's msdyn_customconfiguration is JSON, and `{"type":"inputVariable","id":"Labels"}` is exactly 36
+# characters between its braces; no GUID, malformed or not, contains a quote. Only this backstop changes.
+LEGACY_SHAPE_TOKEN = re.compile(r'\{([^{}\s"]{36})\}')
 
 
 def blank_comments(text: str) -> str:

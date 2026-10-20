@@ -246,6 +246,57 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         New-SettingsFixture -Env acc | Out-Null
     }
 
+    It 'a createOnly row does not bypass the pending-token pre-flight: nothing is written, create-only or not (ADR-079 item 6)' {
+        # KnockoutThreshold, the borderline band and IncomeCeiling are create-only since rev 26, and PRD
+        # still carries {{PENDING_OQ_*}} for them. Create-only must not turn the abort into a partial seed:
+        # the seven Automation #2 rows next to them are not created in PRD until the board has answered.
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc -Mutate {
+            param($s)
+            $s.dataverse.settingRows = @(
+                @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '{{PENDING_OQ_001}}'; description = 'unconfirmed'; createOnly = $true },
+                @{ key = 'AmountLimitOther'; dataType = 'Whole Number'; value = '500'; description = 'd'; createOnly = $true },
+                @{ key = 'SavingsRuleEnabled'; dataType = 'Boolean'; value = 'true'; description = 'd'; createOnly = $true }
+            )
+        } | Out-Null
+        Register-FakeDataverseResponse -Method GET  -UriPattern 'rev_settings' -StatusCode 404
+        Register-FakeDataverseResponse -Method POST -UriPattern 'rev_settings$' -Response ([pscustomobject]@{ rev_settingid = 'new-1' })
+
+        $output = & $script:SeedSettings -Env acc
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match 'Aborted before writing anything: 1 of 3 setting row\(s\) are unresolved'
+        @(Get-FakeDataverseCalls -Method POST).Count | Should -Be 0
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc | Out-Null
+    }
+
+    It 'a Boolean createOnly row is created with the Boolean option value and its text value (SavingsRuleEnabled, ADR-079)' {
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc -Mutate {
+            param($s)
+            $s.dataverse.settingRows = @(
+                @{ key = 'SavingsRuleEnabled'; dataType = 'Boolean'; value = 'true'; description = 'd'; createOnly = $true },
+                @{ key = 'AmountLimitDayTripsOrOutings'; dataType = 'Whole Number'; value = '100'; description = 'd'; createOnly = $true }
+            )
+        } | Out-Null
+        Register-FakeDataverseResponse -Method GET  -UriPattern 'rev_settings' -StatusCode 404
+        Register-FakeDataverseResponse -Method POST -UriPattern 'rev_settings$' -Response ([pscustomobject]@{ rev_settingid = 'new-1' })
+
+        & $script:SeedSettings -Env acc | Out-Null
+        $LASTEXITCODE | Should -Be 0
+        $sw = @(Get-FakeDataverseCalls -Method POST -UriPattern 'rev_settings$' | Where-Object { $_.Body.rev_name -eq 'SavingsRuleEnabled' })[0]
+        $sw.Body.rev_datatype | Should -Be 5
+        $sw.Body.rev_value | Should -BeExactly 'true'
+        $lim = @(Get-FakeDataverseCalls -Method POST -UriPattern 'rev_settings$' | Where-Object { $_.Body.rev_name -eq 'AmountLimitDayTripsOrOutings' })[0]
+        $lim.Body.rev_datatype | Should -Be 2
+        $lim.Body.rev_value | Should -BeExactly '100'
+
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc | Out-Null
+    }
+
     It 'rejects an unknown dataType before writing anything, naming the valid options' {
         Remove-SettingsFixture
         New-SettingsFixture -Env acc -Mutate {
@@ -290,6 +341,121 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         ($output -join "`n") | Should -Match 'FAILED — Setting row'
         ($output -join "`n") | Should -Not -Match 'CREATED'
         @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+    }
+
+    # ── Create-only rows (TAD rev 23, ADR-076 item 6, A-NS-36) ──────────────────────────────
+    # The four narrative-scrubbing rule rows are the process owner's once they exist: a deploy
+    # creates them where absent and never writes them again.
+    It 'createOnly: an EXISTING row is left unchanged and never written' {
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc -Mutate {
+            param($s)
+            $s.dataverse.settingRows = @(
+                @{ key = 'RedactionTitles'; dataType = 'Text'; value = "Mr`nMrs"; description = 'd'; createOnly = $true },
+                @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '20'; description = 'd' }
+            )
+        } | Out-Null
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings' -Response ([pscustomobject]@{ rev_name = 'x' })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings' -Response $null
+
+        $output = & $script:SeedSettings -Env acc
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "EXISTS — Setting row 'RedactionTitles' : left unchanged \(createOnly\)"
+        @(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='RedactionTitles'").Count | Should -Be 0
+        # the ordinary row next to it is still upserted
+        @(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='KnockoutThreshold'").Count | Should -Be 1
+
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc | Out-Null
+    }
+
+    It 'createOnly: an ABSENT row is created by POST to the entity set (never a keyed PATCH) and stamped effective-from' {
+        # 2026-10-16: a keyed PATCH with If-None-Match * was answered 404 / 0x80060891 in DEV for all four
+        # rows (Dev Summary 10.11). A POST can only create, so it cannot overwrite the owner's row either.
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc -Mutate {
+            param($s)
+            $s.dataverse.settingRows = @(@{ key = 'RedactionTitles'; dataType = 'Text'; value = "Mr`nMrs"; description = 'd'; createOnly = $true })
+        } | Out-Null
+        Register-FakeDataverseResponse -Method GET  -UriPattern 'rev_settings' -StatusCode 404
+        Register-FakeDataverseResponse -Method POST -UriPattern 'rev_settings$' -Response ([pscustomobject]@{ rev_settingid = 'new-1' })
+
+        $output = & $script:SeedSettings -Env acc
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "CREATED — Setting row 'RedactionTitles'"
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+        $call = @(Get-FakeDataverseCalls -Method POST -UriPattern 'rev_settings$')[0]
+        $call.Body.rev_name | Should -Be 'RedactionTitles'
+        $call.Body.rev_value | Should -Be "Mr`nMrs"
+        $call.Body.rev_effectivefrom | Should -Not -BeNullOrEmpty
+        $call.Headers.ContainsKey('If-None-Match') | Should -BeFalse
+
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc | Out-Null
+    }
+
+    It 'createOnly: with the REAL pwsh 7 exception a probe 404 is read as absent and the row is created' {
+        # The fake harness throws its own error object. This route throws what pwsh 7.6.7 throws for a
+        # Dataverse 404 (measured 2026-10-16 against a local server returning DEV's exact body):
+        # Microsoft.PowerShell.Commands.HttpResponseException with Response.StatusCode 404.
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc -Mutate {
+            param($s)
+            $s.dataverse.settingRows = @(@{ key = 'RedactionLabels'; dataType = 'Text'; value = '[NAME] = a name'; description = 'd'; createOnly = $true })
+        } | Out-Null
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_settings' -Response {
+            $message  = [System.Net.Http.HttpResponseMessage]::new([System.Net.HttpStatusCode]::NotFound)
+            throw [Microsoft.PowerShell.Commands.HttpResponseException]::new(
+                '{"error":{"code":"0x80060891","message":"A record with the specified key values does not exist in rev_setting entity"}}', $message)
+        }
+        Register-FakeDataverseResponse -Method POST -UriPattern 'rev_settings$' -Response ([pscustomobject]@{ rev_settingid = 'new-2' })
+
+        $output = & $script:SeedSettings -Env acc
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "CREATED — Setting row 'RedactionLabels'"
+        @(Get-FakeDataverseCalls -Method POST -UriPattern 'rev_settings$').Count | Should -Be 1
+
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc | Out-Null
+    }
+
+    It 'createOnly: a refused POST with the row there now is EXISTS; with no row it is FAILED, never a silent pass' {
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc -Mutate {
+            param($s)
+            $s.dataverse.settingRows = @(
+                @{ key = 'RedactionLabels'; dataType = 'Text'; value = '[NAME] = a name'; description = 'd'; createOnly = $true },
+                @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '20'; description = 'd' }
+            )
+        } | Out-Null
+        $probes = @{ n = 0 }
+        Register-FakeDataverseResponse -Method GET -UriPattern "rev_name='RedactionLabels'" -Response ({
+            $probes.n++
+            if ($probes.n -eq 1) { throw (New-FakeHttpError -StatusCode 404 -Message 'absent') }
+            [pscustomobject]@{ rev_name = 'RedactionLabels' }        # made meanwhile, by someone else
+        }.GetNewClosure())
+        Register-FakeDataverseResponse -Method GET   -UriPattern "rev_name='KnockoutThreshold'" -Response ([pscustomobject]@{ rev_name = 'KnockoutThreshold' })
+        Register-FakeDataverseResponse -Method POST  -UriPattern 'rev_settings$' -StatusCode 412
+        Register-FakeDataverseResponse -Method PATCH -UriPattern "rev_name='KnockoutThreshold'" -Response $null
+
+        $output = & $script:SeedSettings -Env acc
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "EXISTS — Setting row 'RedactionLabels' : left unchanged \(createOnly; created meanwhile\)"
+        @(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='RedactionLabels'").Count | Should -Be 0
+
+        # and when the row is still absent after a refused POST, the run fails and says so
+        Reset-FakeDataverse
+        . $script:InitFakeApi
+        Register-FakeDataverseResponse -Method GET   -UriPattern "rev_name='RedactionLabels'" -StatusCode 404
+        Register-FakeDataverseResponse -Method GET   -UriPattern "rev_name='KnockoutThreshold'" -Response ([pscustomobject]@{ rev_name = 'KnockoutThreshold' })
+        Register-FakeDataverseResponse -Method POST  -UriPattern 'rev_settings$' -StatusCode 400
+        Register-FakeDataverseResponse -Method PATCH -UriPattern "rev_name='KnockoutThreshold'" -Response $null
+        $output = & $script:SeedSettings -Env acc
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match "FAILED — Setting row 'RedactionLabels'"
+
+        Remove-SettingsFixture
+        New-SettingsFixture -Env acc | Out-Null
     }
 
     # ── D-020 fix (2026-08-14) — -Env dev reads a DEDICATED file, never dev-settings.json ──

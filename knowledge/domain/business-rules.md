@@ -28,13 +28,16 @@ position, not as settled, and do not build a gate on it without saying so.
 | BR-S02 | The life-satisfaction answer is **inverted**: reported 0 scores 10 points. Low wellbeing means high need |
 | BR-S03 | Each Likert answer maps by option **value**, position 1 → 5 points down to position 5 → 1 point. *Not sure* → **0.5**, the only non-integer value |
 | BR-S04 | All ten Likert questions are worded **positively**, so value 1 is the highest-need answer. This was verified against each question text individually, not assumed |
-| BR-S05 | The **knockout threshold** and **income ceiling** are held in Settings and adjustable by the process owner without editing a flow. ⚠️ **The board has not set the threshold value**; PRD seeding is blocked by design until it does (SDD OQ-001, OQ-002) |
+| BR-S05 | The **knockout threshold**, the **borderline band**, the **income ceiling** and the **amount limit for each type of break** are held in Settings, and the savings and prior-funding rules each have an **on/off switch**; the process owner changes them without editing a flow (FR-017). ⚠️ **The board has not set the threshold value**; PRD seeding is blocked by design until it does (SDD OQ-001, OQ-002) |
 | BR-S06 | *Borderline* means **within 5 points** of the knockout threshold, and every borderline case is reviewed by the process owner |
-| BR-S07 | An application over the income ceiling is rejected **regardless of score** |
+| BR-S07 | An applicant who does **not receive means-tested benefits** and whose income band is above the income ceiling is auto-rejected, **whatever the score**. Employment status is not read. A benefits Yes is never rejected on income, and no band given is not rejected (FR-014, FR-015, Amendment A-10 rev 2) |
 | BR-S08 | **Disability data, health-condition data and the free-text narrative must not influence the score.** HARD (FR-016, DUAA). Enforced by the `no-special-category-data-in-scoring` build gate — the guarantee is that no expression in the scoring flow *references* a special-category column |
 | BR-S09 | The process owner may **override any automated outcome**, and does not re-score by hand |
-| BR-S10 | ⚠️ Whether automatic rejection at the threshold stands without further human review is a **DPO decision under DUAA 2025** and is open. If tightened, auto-reject routes to the process owner instead of closing |
+| BR-S10 | ⚠️ Whether automatic rejection by any FR-014 rule (OQ-005, re-dated by A-10 to the first PRD deploy carrying FR-102 to FR-105) stands without further human review is a **DPO decision under DUAA 2025** and is open. If tightened, auto-reject routes to the process owner instead of closing |
 | BR-S11 | The £6,000 savings figure is the live form's own wording and is **fixed in a column label rather than configurable**. ⚠️ Confirm it is current before go-live; changing it later means changing form and label together |
+| BR-S12 | A request **over the limit for its type of break**, with no exceptional funding request, is auto-rejected: over £500 for Holiday accommodation, Respite Care Facility stay and Other, over £100 for Day trips or outings and Activity or Experience. Each limit is a setting, and the limit itself passes (FR-102) |
+| BR-S13 | **Savings over £6,000** (a Yes) is auto-rejected for every applicant while the savings switch is on, the default (FR-103, BR-S11) |
+| BR-S14 | **Revitalise funding within the last 12 months** is auto-rejected while the prior-funding switch is on, the default (FR-104; built under EF-34 before any FR stated it) |
 
 ## Panel Review Rules
 

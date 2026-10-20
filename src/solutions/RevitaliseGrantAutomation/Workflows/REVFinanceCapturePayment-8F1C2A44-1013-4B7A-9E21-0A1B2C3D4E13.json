@@ -1,0 +1,667 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedTeams"
+        },
+        "api": {
+          "name": "shared_teams"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Finance | Capture Payment (wbs:8.6, CO-010, TAD 5.11, ADR-081). Makes the grant's final payment date, the application's status and the payment's own status match the payments that exist. See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_FinanceAlertUpn": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_FinanceAlertUpn",
+            "description": "Environment variable. The finance contact told when a final payment cannot be applied, injected per environment at import (C-TECH-047). Never a literal address."
+          }
+        }
+      },
+      "triggers": {
+        "When_a_payment_is_recorded_or_changed": {
+          "type": "OpenApiConnectionWebhook",
+          "description": "rev_payment ADDED OR MODIFIED (message 4). A-CP-1: firing for both is unseen. A-CP-2: the filter names four secured columns. A-CP-4: concurrency 1 on a row trigger is unseen; omit it if refused. Outputs secured.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 4,
+              "subscriptionRequest/entityname": "rev_payment",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/runas": 3,
+              "subscriptionRequest/filteringattributes": "rev_isfinalpayment,rev_paymentdate,rev_paymentstatus,rev_grantid"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            },
+            "secureData": {
+              "properties": [
+                "outputs"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "Deep link to THIS run, built here so both alerts can carry it. Same pattern as every other flow in this solution.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Apply_the_payment": {
+          "type": "Scope",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "Everything the flow does, so one failure path covers it (FR-111). Reads, then three guarded writes in a fixed order, then the report. See notes.md.",
+          "actions": {
+            "Get_the_saved_payment": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "Reads the saved payment again, as it is now (ADR-081 item 2). A-CP-3: rev_paymentdate is assumed to come back as a yyyy-MM-dd string; Compose_saved_payment normalises either shape.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_payments",
+                  "$filter": "@{concat('rev_paymentid eq ', triggerOutputs()?['body/rev_paymentid'])}",
+                  "$select": "rev_name,_rev_grantid_value,rev_isfinalpayment,rev_paymentdate,rev_paymentstatus",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Compose_saved_payment": {
+              "type": "Compose",
+              "runAfter": {
+                "Get_the_saved_payment": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The saved payment as plain values. Status defaults to 1 (Pending, the column default). A-CP-9: the form rule makes the date required when Final is set; this flow is the backstop for writes that skip the form.",
+              "inputs": {
+                "reference": "@coalesce(first(outputs('Get_the_saved_payment')?['body/value'])?['rev_name'], 'unknown-payment')",
+                "grantId": "@coalesce(first(outputs('Get_the_saved_payment')?['body/value'])?['_rev_grantid_value'], '')",
+                "isFinal": "@equals(coalesce(first(outputs('Get_the_saved_payment')?['body/value'])?['rev_isfinalpayment'], false), true)",
+                "status": "@coalesce(first(outputs('Get_the_saved_payment')?['body/value'])?['rev_paymentstatus'], 1)",
+                "date": "@if(empty(coalesce(first(outputs('Get_the_saved_payment')?['body/value'])?['rev_paymentdate'], '')), '', formatDateTime(coalesce(first(outputs('Get_the_saved_payment')?['body/value'])?['rev_paymentdate'], '1900-01-01'), 'yyyy-MM-dd'))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            },
+            "Compose_saved_checks": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_saved_payment": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Four situations from the saved payment alone: final and dated, final and undated, final and Cancelled (OQ-058, FR-112), and linked to a grant. An undated final payment is not a final (answer 3).",
+              "inputs": {
+                "linked": "@not(empty(outputs('Compose_saved_payment')?['grantId']))",
+                "countsAsFinal": "@and(outputs('Compose_saved_payment')?['isFinal'], not(equals(outputs('Compose_saved_payment')?['status'], 4)), not(empty(outputs('Compose_saved_payment')?['date'])))",
+                "finalUndated": "@and(outputs('Compose_saved_payment')?['isFinal'], not(equals(outputs('Compose_saved_payment')?['status'], 4)), empty(outputs('Compose_saved_payment')?['date']))",
+                "finalCancelled": "@and(outputs('Compose_saved_payment')?['isFinal'], equals(outputs('Compose_saved_payment')?['status'], 4))",
+                "finalNotCancelled": "@and(outputs('Compose_saved_payment')?['isFinal'], not(equals(outputs('Compose_saved_payment')?['status'], 4)))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            },
+            "Compose_grant_lookup_id": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_saved_checks": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The grant id to read with. An all-zero id when no grant is linked, so the three reads always run and return nothing; the writes below stay guarded.",
+              "inputs": "@if(empty(outputs('Compose_saved_payment')?['grantId']), '00000000-0000-0000-0000-000000000000', outputs('Compose_saved_payment')?['grantId'])"
+            },
+            "Get_the_grant": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_grant_lookup_id": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The grant: its reference, its current final payment date and its application. A-CP-3: DateOnly read as a day string.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_grants",
+                  "$filter": "@{concat('rev_grantid eq ', outputs('Compose_grant_lookup_id'))}",
+                  "$select": "rev_name,rev_finalpaymentdate,rev_status,_rev_applicationid_value",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Get_the_latest_dated_final_payment": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Get_the_grant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The latest dated final payment on the grant: final, not Cancelled (OQ-058), dated. A-CP-5: status ne 4 is assumed to return a Pending payment. Empty means no final exists.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_payments",
+                  "$filter": "@{concat('_rev_grantid_value eq ', outputs('Compose_grant_lookup_id'), ' and rev_isfinalpayment eq true and rev_paymentstatus ne 4 and rev_paymentdate ne null')}",
+                  "$select": "rev_paymentdate",
+                  "$orderby": "rev_paymentdate desc",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Compose_grant": {
+              "type": "Compose",
+              "runAfter": {
+                "Get_the_latest_dated_final_payment": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The grant as plain values: reference, current final payment date as a day string, and its application id (all-zero when there is none).",
+              "inputs": {
+                "reference": "@coalesce(first(outputs('Get_the_grant')?['body/value'])?['rev_name'], 'no-grant')",
+                "date": "@if(empty(coalesce(first(outputs('Get_the_grant')?['body/value'])?['rev_finalpaymentdate'], '')), '', formatDateTime(coalesce(first(outputs('Get_the_grant')?['body/value'])?['rev_finalpaymentdate'], '1900-01-01'), 'yyyy-MM-dd'))",
+                "status": "@coalesce(first(outputs('Get_the_grant')?['body/value'])?['rev_status'], 0)",
+                "applicationId": "@coalesce(first(outputs('Get_the_grant')?['body/value'])?['_rev_applicationid_value'], '00000000-0000-0000-0000-000000000000')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            },
+            "Get_the_application": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_grant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The application's current status, read again so a run replayed from history acts on what is true now.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@{concat('rev_applicationid eq ', outputs('Compose_grant')?['applicationId'])}",
+                  "$select": "rev_status",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Compose_target_date": {
+              "type": "Compose",
+              "runAfter": {
+                "Get_the_application": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Target date: the latest dated final payment's own date (OQ-057), or empty when no final exists (FR-107, FR-110).",
+              "inputs": "@if(empty(coalesce(first(outputs('Get_the_latest_dated_final_payment')?['body/value'])?['rev_paymentdate'], '')), '', formatDateTime(coalesce(first(outputs('Get_the_latest_dated_final_payment')?['body/value'])?['rev_paymentdate'], '1900-01-01'), 'yyyy-MM-dd'))",
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            },
+            "Compose_application_status": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_target_date": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The application's status value; 0 when it could not be read.",
+              "inputs": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_status'], 0)"
+            },
+            "Compose_plan": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_application_status": [
+                  "Succeeded"
+                ]
+              },
+              "description": "What differs. New application status: Approved (7) to Grant Paid (11) when a final exists; Grant Paid back to Approved when none does; else 0 (write nothing). applicationMoves is true when the status is neither.",
+              "inputs": {
+                "dateDiffers": "@and(outputs('Compose_saved_checks')?['linked'], not(equals(outputs('Compose_grant')?['date'], outputs('Compose_target_date'))))",
+                "newApplicationStatus": "@if(and(not(empty(outputs('Compose_target_date'))), equals(outputs('Compose_application_status'), 7)), 11, if(and(empty(outputs('Compose_target_date')), equals(outputs('Compose_application_status'), 11)), 7, 0))",
+                "newGrantStatus": "@if(and(not(empty(outputs('Compose_target_date'))), equals(outputs('Compose_grant')?['status'], 3)), 4, if(and(empty(outputs('Compose_target_date')), equals(outputs('Compose_grant')?['status'], 4)), 3, 0))",
+                "grantStatusStays": "@not(or(equals(outputs('Compose_grant')?['status'], 3), equals(outputs('Compose_grant')?['status'], 4)))",
+                "applicationMoves": "@not(or(equals(outputs('Compose_application_status'), 7), equals(outputs('Compose_application_status'), 11)))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            },
+            "Check_the_grant_date_differs": {
+              "type": "If",
+              "runAfter": {
+                "Compose_plan": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-109: write the grant only when its date differs or its status must move (3 to 4, 4 to 3). Setting and clearing are one action (ADR-081 item 3, reviewer addition 2026-10-20).",
+              "expression": {
+                "or": [
+                  {
+                    "equals": [
+                      "@outputs('Compose_plan')?['dateDiffers']",
+                      true
+                    ]
+                  },
+                  {
+                    "not": {
+                      "equals": [
+                        "@outputs('Compose_plan')?['newGrantStatus']",
+                        0
+                      ]
+                    }
+                  }
+                ]
+              },
+              "actions": {
+                "Write_the_grant_date": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "One grant write: date and status (3 to 4 and back). A-CP-6: null assumed to CLEAR a DateOnly column. A-CP-3: day string assumed accepted. A-CP-7: secured write via team membership.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateOnlyRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_grants",
+                      "recordId": "@outputs('Compose_grant_lookup_id')",
+                      "item/rev_finalpaymentdate": "@if(empty(outputs('Compose_target_date')), null, outputs('Compose_target_date'))",
+                      "item/rev_status": "@if(equals(outputs('Compose_plan')?['newGrantStatus'], 0), outputs('Compose_grant')?['status'], outputs('Compose_plan')?['newGrantStatus'])"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Check_the_application_status_changes": {
+              "type": "If",
+              "runAfter": {
+                "Check_the_grant_date_differs": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-108, FR-110: Approved to Grant Paid and back, and nothing else (ADR-081 item 4). The writes are separate calls in a fixed order, so a stopped run is finished by the next save.",
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "equals": [
+                        "@outputs('Compose_plan')?['newApplicationStatus']",
+                        0
+                      ]
+                    }
+                  }
+                ]
+              },
+              "actions": {
+                "Write_the_application_status": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "One write on rev_application, flat item/rev_status: 11 when a final exists and it is Approved, 7 when none exists and it is Grant Paid. Never any other status.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateOnlyRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_applications",
+                      "recordId": "@outputs('Compose_grant')?['applicationId']",
+                      "item/rev_status": "@outputs('Compose_plan')?['newApplicationStatus']"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Check_the_payment_becomes_issued": {
+              "type": "If",
+              "runAfter": {
+                "Check_the_application_status_changes": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-112, ADR-081 item 7: only a final, not Cancelled, dated, Pending payment linked to a grant. The flow never writes Pending, Cleared or Cancelled, so this is the fixed point.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@outputs('Compose_saved_checks')?['linked']",
+                      true
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@outputs('Compose_saved_checks')?['countsAsFinal']",
+                      true
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@outputs('Compose_saved_payment')?['status']",
+                      1
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Write_the_payment_issued": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "Last write in the run: Pending (1) to Issued (2). A-CP-7: secured write by the flow owner. A-CP-8: this write starts one more run, which finds the payment not Pending and writes nothing.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateOnlyRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_payments",
+                      "recordId": "@triggerOutputs()?['body/rev_paymentid']",
+                      "item/rev_paymentstatus": 2
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Compose_application_status_name": {
+              "type": "Compose",
+              "runAfter": {
+                "Check_the_payment_becomes_issued": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The application status in words for the message, from the option set. Unlisted values read as their code.",
+              "inputs": "@if(equals(outputs('Compose_application_status'), 1), 'Submitted', if(equals(outputs('Compose_application_status'), 2), 'Auto-pass', if(equals(outputs('Compose_application_status'), 3), 'Borderline', if(equals(outputs('Compose_application_status'), 4), 'Auto-reject', if(equals(outputs('Compose_application_status'), 5), 'Under Review', if(equals(outputs('Compose_application_status'), 6), 'Eligible for Panel', if(equals(outputs('Compose_application_status'), 8), 'Rejected', if(equals(outputs('Compose_application_status'), 9), 'Withdrawn', if(equals(outputs('Compose_application_status'), 10), 'Incomplete', concat('status code ', string(outputs('Compose_application_status'))))))))))))"
+            },
+            "Compose_grant_status_name": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_application_status_name": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The grant status in words for the message. Unlisted values read as their code.",
+              "inputs": "@if(equals(outputs('Compose_grant')?['status'], 1), 'Awarded', if(equals(outputs('Compose_grant')?['status'], 2), 'Acceptance Issued', concat('status code ', string(outputs('Compose_grant')?['status']))))"
+            },
+            "Compose_reasons": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_grant_status_name": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The reasons to report (FR-111, FR-112), in words, with what to do. Never an amount, bank detail, date or name. Empty means nothing to report.",
+              "inputs": "@concat(if(and(not(outputs('Compose_saved_checks')?['linked']), outputs('Compose_saved_checks')?['finalNotCancelled']), 'The payment is marked final but is not linked to a grant. Link it to its grant, then untick Final payment, save, tick it again and save. ', ''), if(and(outputs('Compose_plan')?['dateDiffers'], outputs('Compose_plan')?['applicationMoves']), concat('The final payment date on the grant was changed, but its application is ', outputs('Compose_application_status_name'), ', and the flow only moves an application between Approved and Grant Paid, so the application was left as it is. Nothing finance can do changes that. '), ''), if(and(outputs('Compose_plan')?['dateDiffers'], outputs('Compose_plan')?['grantStatusStays']), concat('The grant itself is ', outputs('Compose_grant_status_name'), ', and the flow only moves a grant between Acceptance Signed and Paid, so the grant status was left as it is. Nothing finance can do changes that. '), ''), if(outputs('Compose_saved_checks')?['finalUndated'], 'The payment is marked final but has no payment date, so it starts no retention clock. Add the payment date and save. ', ''), if(outputs('Compose_saved_checks')?['finalCancelled'], 'The payment is marked final but is Cancelled, so it does not count as final; the grant and application were worked out without it. For information only. ', ''))"
+            },
+            "Check_there_is_a_reason": {
+              "type": "If",
+              "runAfter": {
+                "Compose_reasons": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-111: one message to finance and one to the process owner, built once, sent last so a failure to send never undoes the writes above.",
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "equals": [
+                        "@empty(outputs('Compose_reasons'))",
+                        true
+                      ]
+                    }
+                  }
+                ]
+              },
+              "actions": {
+                "Alert_process_owner_of_the_reason": {
+                  "type": "Workflow",
+                  "runAfter": {},
+                  "description": "REV | Ops | Failure Alert at severity Warning: an Error Log row and the process owner's Teams card. References and reason only.",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                    },
+                    "body": {
+                      "text": "REV | Finance | Capture Payment",
+                      "text_1": "@{workflow()?['run']?['name']}",
+                      "text_2": "@{outputs('Compose_reasons')}",
+                      "text_3": "@{concat(outputs('Compose_saved_payment')?['reference'], ' / ', outputs('Compose_grant')?['reference'])}",
+                      "text_4": "Warning",
+                      "text_5": "@{outputs('Compose_run_link')}"
+                    }
+                  }
+                },
+                "Tell_finance_in_Teams": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Alert_process_owner_of_the_reason": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The same reason to finance, 1:1 in Teams, to rev_FinanceAlertUpn. Blank value: this post fails, the run takes the failure path and finance is told nothing (ADR-081 item 5).",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_teams",
+                      "operationId": "PostMessageToConversation",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                    },
+                    "parameters": {
+                      "poster": "Flow bot",
+                      "location": "Chat with Flow bot",
+                      "body/recipient": "@parameters('rev_FinanceAlertUpn')",
+                      "body/messageBody": "<p><b>Grant automation: a final payment needs attention</b></p><p>Payment: @{outputs('Compose_saved_payment')?['reference']}<br/>Grant: @{outputs('Compose_grant')?['reference']}</p><p>@{outputs('Compose_reasons')}</p><p>No amount, bank detail, date or name is shown in this message by design.</p>"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            }
+          }
+        },
+        "Alert_capture_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Apply_the_payment": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "A platform failure: a read or write refused, or the Teams post failed. The grant, application and payment may be part-written; the next save of any payment on the grant finishes the job.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Finance | Capture Payment",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "Could not apply a payment to its grant, application or status, or could not tell finance. The records may be part-written. Fix the cause, untick Final payment on the payment, save, tick it again and save: both saves are safe to repeat.",
+              "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-payment')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_run_capture_failed": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_capture_failed": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Skipped is deliberately NOT accepted: on every healthy run the alert above is skipped, and accepting Skipped here would terminate every healthy run.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "CapturePaymentFailed",
+              "message": "A payment could not be applied to its grant, application or status, or finance could not be told."
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

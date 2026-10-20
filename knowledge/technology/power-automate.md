@@ -355,7 +355,16 @@ is not hidden automatically; it must set `secureData` itself. So the actions to 
 transitive closure from the trigger through every consumer of a value, not a short named list.
 `IntakeContract.Tests.ps1` asserts that closure for the intake flow. No gate checks it for any
 other flow yet, because a precise check needs a list of which columns are personal (improvement
-review 2026-09-28, cluster K).
+review 2026-09-28, cluster K). *Updated 2026-10-17:* that list now exists
+(`config/personal-data-columns.json`), and check 11 of `scripts/verify-flow-definition-language.py`
+requires secure outputs on a READ whose `$select` names a personal column. Writes are not checked.
+
+**A Dataverse write returns the row it wrote, so its outputs carry every column** (`IMP-1133`,
+`IMP-1136`). Add, Update and Upsert a row answer with the record, so a write to a table holding
+personal or special-category text puts that text in run history unless the action secures its
+**outputs** as well as its inputs. And a test stand-in for a write must return the row, not `{}`:
+the narrative suite's run-history test passed over 14 unsecured writes because its stand-in
+returned nothing. Documented connector behaviour; not yet observed in this tenant's run history.
 
 **The inputs pane of a Select or Filter array shows its whole from-array, not what it projects**
 (improvement review 2026-10-07, `IMP-1079`). A Select that outputs only a number per row still

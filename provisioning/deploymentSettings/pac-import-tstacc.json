@@ -23,6 +23,11 @@
       "_comment": "Recipient of the Teams 1:1 notifications: new application (FR-009), borderline review (FR-019), daily summary (FR-021), failure alerts (FR-010). In TST/ACC this is the maker or a test mailbox, never a real applicant-facing address."
     },
     {
+      "SchemaName": "rev_FinanceAlertUpn",
+      "Value": "{{FINANCE_ALERT_UPN_TSTACC}}",
+      "_comment": "Recipient of the Capture Payment flow's Teams message when a final payment cannot be applied (FR-111, wbs:8.6, ADR-081). TST/ACC carries the test finance user (Janine), never a real applicant-facing address."
+    },
+    {
       "SchemaName": "rev_ServiceMailbox",
       "Value": "{{SERVICE_MAILBOX_TSTACC}}",
       "_comment": "Outlook fallback address used when the Teams connector is unavailable (TAD §4)."

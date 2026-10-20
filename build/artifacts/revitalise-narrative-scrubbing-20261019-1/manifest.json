@@ -1,0 +1,104 @@
+{
+ "feature": "revitalise-narrative-scrubbing",
+ "wbs": [
+  "5.3",
+  "5.4",
+  "5.6",
+  "5.7"
+ ],
+ "items": [],
+ "build_date": "2026-10-19",
+ "build_number": 1,
+ "artifact_path": "build/artifacts/revitalise-narrative-scrubbing-20261019-1/",
+ "source_commit": "790faa5879b2ccb426b86eadf91d031c94a076de",
+ "source_commit_at_pack_time": "790faa5879b2ccb426b86eadf91d031c94a076de",
+ "source_tree_dirty_paths": 32,
+ "source_commit_note": "Packed from a dirty tree: 32 uncommitted paths under src/, provisioning/, config/ at manifest time.",
+ "build_tool": "pac (Power Platform CLI) 2.4.1 via scripts/run-build.py; Vite 7.3.6; Pester 5.7.1",
+ "build_os": "Darwin 27.0.0 (macOS, local)",
+ "constraint_check": "PASS",
+ "preflight": "PASS - 102 steps declared, all gates with negative-test coverage per preflight-build-config",
+ "verification_level": "V2 - packaged; layout accepted by the packer, content unverified",
+ "platform_limit_gates": [
+  "field-length-limits",
+  "component-shape",
+  "component-shape-packed",
+  "guid-syntax",
+  "flow-definition-language",
+  "code-app-bundle-budget",
+  "code-app-bundle-budget-cards"
+ ],
+ "unit_tests": "Pester 1349 passed, 0 failed, 1 skipped; command coverage 75.80% (measured); coverage-threshold step exit 0.",
+ "warnings": {
+  "total": 5,
+  "resolved": 0,
+  "accepted": 5,
+  "untriaged": 0
+ },
+ "warnings_detail": [
+  {
+   "step": "pack-managed",
+   "signature": "Following root components are not defined in customizations:",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L943"
+  },
+  {
+   "step": "pack-unmanaged",
+   "signature": "Following root components are not defined in customizations:",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L943"
+  },
+  {
+   "step": "lint",
+   "signature": "Solution Checker: Critical 0, High 0, Medium 1, Low 0, Informational 0 [figures compared: 1 Medium, the standing REVSafeguardingActionCompletion result; the row's 14 narrative-flow results were NOT reported this run]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L946"
+  },
+  {
+   "step": "code-app-build",
+   "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 1,210.18 kB, css 77.64 kB; code-app-bundle-budget PASS; this feature's Dev Summary has no row for the first app, so the rationale is the standing one in the main Dev Summary]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+  },
+  {
+   "step": "code-app-build-cards",
+   "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 845.81 kB, css 148.64 kB, equal to the row's 845.81 kB]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-narrative-scrubbing-dev-summary.md#L947"
+  }
+ ],
+ "soft_gates": {
+  "change-order-requirements": 2,
+  "routing-reconciliation": 136,
+  "post-deploy-completeness": 1,
+  "review-document": 5,
+  "commercial-events": 0,
+  "work-items": 1,
+  "dispatch-share": 0,
+  "open-questions": 3,
+  "document-status-consistency": 1,
+  "derived-counts": 3,
+  "postcode-region-map": 0,
+  "design-doc-mapping-claims": 2,
+  "import-manifest-intake": 7,
+  "dev-summary-artefacts-committed": 48,
+  "constraint-verifiers": 1
+ },
+ "steps_not_executed": [
+  {
+   "step": "auth",
+   "reason": "out-of-context",
+   "level_not_established": "V3",
+   "consecutive_deferrals": 0
+  }
+ ],
+ "scoped": false,
+ "skipped_unchanged": [],
+ "build_config_sha256": "0a3770643fd99809414062f7b4a70ca18ba8efcf82517338ab955f0aba020681",
+ "improvement_log_at_start": "1145 entries, 10 unread, 0 deploy-open",
+ "improvement_log_at_manifest": "1146 entries after one build-agent append; 0 deploy-open, 0 governance blockers",
+ "improvement_log_entries": [
+  "IMP-1150"
+ ],
+ "status": "SUCCESS"
+}

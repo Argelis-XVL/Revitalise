@@ -1,5 +1,6 @@
 {
  "_purpose": "Synthetic narrative text for REV | Narrative | Scrub Free-Text (WBS 5.3, 5.4). Same shape as scoring-test-data.json so provisioning/dataverse/seed-test-data.ps1 loads it with -DataPath. SYNTHETIC ONLY: every name, practice, address, phone number and email is invented. Phones are Ofcom drama ranges (07700 900xxx, 0113 496 0xxx); emails use example.org (narrative text) and example.invalid (applicant rows); postcodes are real districts with nobody attached. Nothing here comes from docs/Import/.",
+ "_rev22": "STALE SINCE 2026-10-16 (TAD rev 22, ADR-075; narrative Dev Summary Iteration 9). expectedRedacted and expectedRecord are the REV 20 deterministic flow's output. In rev 22 the redacted text comes from the rewrite prompt, so these expectations no longer describe a correct run: names now become They, gendered words are replaced, and TD-14 (over 5,000 characters) is no longer scrubbed at all (too-long). Regenerate them after the two prompts exist in DEV (TAD 12.6.1 R1), for wbs:5.7. Until then score_seeded_run.py measures against the rev 20 expectation and its FAILs are expected.",
  "_readMeFirst": "src/tests/data/README.md, section 'narrative-test-data.json'",
  "_wbsTasks": [
   "5.3",
@@ -21,7 +22,7 @@
   {
    "caseId": "TD-13",
    "purpose": "Typical application: names, a family member, GP practice, address, phone, email and ages spread over six columns.",
-   "proves": "Every direct-identifier label is produced, an age lands in the right band, and a written record that passes every check is released when the process owner has switched auto-release on.",
+   "proves": "Every direct-identifier label is produced, an age lands in the right band, and a written record that passes every check carries no hint and still waits for the process owner, who releases every application (TAD ADR-078).",
    "flow": "REV | Narrative | Scrub Free-Text",
    "wbsTasks": [
     "5.3",
@@ -117,13 +118,12 @@
      "released": false,
      "rev_redactionreviewrequired": true,
      "reasons": [
-      "threshold-missing-or-invalid",
-      "auto-release-off"
+      "threshold-missing-or-invalid"
      ]
     },
-    "withThresholdAndAutoRelease": {
-     "released": true,
-     "rev_redactionreviewrequired": false,
+    "withThreshold": {
+     "released": false,
+     "rev_redactionreviewrequired": true,
      "reasons": []
     }
    },
@@ -226,11 +226,10 @@
      "rev_redactionreviewrequired": true,
      "reasons": [
       "redacted-exceeds-4000:rev_narrativeraw",
-      "threshold-missing-or-invalid",
-      "auto-release-off"
+      "threshold-missing-or-invalid"
      ]
     },
-    "withThresholdAndAutoRelease": {
+    "withThreshold": {
      "released": false,
      "rev_redactionreviewrequired": true,
      "reasons": [
@@ -339,11 +338,10 @@
       "residual-street-word:rev_narrativeraw",
       "residual-practice-word:rev_narrativeraw",
       "kept-existing-counterpart:rev_disabilityimpactdescription",
-      "threshold-missing-or-invalid",
-      "auto-release-off"
+      "threshold-missing-or-invalid"
      ]
     },
-    "withThresholdAndAutoRelease": {
+    "withThreshold": {
      "released": false,
      "rev_redactionreviewrequired": true,
      "reasons": [
@@ -356,5 +354,5 @@
    "extraAssertions": []
   }
  ],
- "_expectedRecord": "`expectedRecord` is what the flow must write to rev_redactionreleased / rev_redactionreviewrequired, and the reason codes it must report to the process owner (Teams card), for each of the two settings states. The reasons are not stored on the row. TD-13's 'released: true' assumes the live extractor scores every name, practice, family member, age and email it redacts at 0.85 or more; a lower live score gives 'below-threshold' and is a finding about the model (wbs:5.7), not about the flow. The other cases do not depend on the model's scores."
+ "_expectedRecord": "`expectedRecord` is what the flow must leave on rev_redactionreleased / rev_redactionreviewrequired, and the reason codes (hints) it must report to the process owner (Teams card), for each of the two settings states. Since TAD rev 25 (ADR-078) the flow never writes rev_redactionreleased: it stays false (its default) until the process owner releases the application, and rev_redactionreviewrequired is true on every scrubbed application. The reasons are not stored on the row. TD-13's empty 'withThreshold' reasons assume the live extractor scores every name, practice, age and email it redacts at 0.85 or more; a lower live score gives 'below-threshold' and is a finding about the model (wbs:5.7), not about the flow. The other cases do not depend on the model's scores. Previously read: 'withThresholdAndAutoRelease', with TD-13 released."
 }

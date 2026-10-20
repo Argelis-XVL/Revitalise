@@ -1,18 +1,98 @@
-# Free-Text Redaction Rules — v0.3 (direct identifiers)
+# Free-Text Redaction Rules — v0.5 (direct identifiers, the client's neutral terms, and the rev 22 checks)
 
-**Automation #5, Narrative Scrubbing · `wbs:5.1` (rules), `wbs:5.2` (corpus and harness), `wbs:5.3` (the flow)**
-**Version:** 0.3 · **Date:** 2026-10-06 · **Author:** development-agent · **Status:** v0.1 APPROVED 2026-10-06 with
-decisions D-1 to D-3 as drafted (section 12); v0.2 adds the flow's form of the rules (sections 6a to 6c, 7); v0.3 adds the
-postcode register, the settings the process owner may tune, and the prompt stage's validation as built (TAD rev 20), for review
+**Automation #5, Narrative Scrubbing · `wbs:5.1` (rules), `wbs:5.2` (corpus and harness), `wbs:5.3` (the flow), `wbs:5.6` (the client's rules)**
+**Version:** 0.8 · **Date:** 2026-10-19 · **Author:** development-agent · **Status:** v0.8 for review (TAD rev 25 `ADR-078`, Dev Summary Iteration 12); v0.7 for review (Dev Summary Iteration 11, recorded in TAD rev 25); v0.6 for review (TAD rev 23 `ADR-076`); v0.5 (TAD rev 22 `ADR-075`, SDD Amendment A-09,
+both approved 2026-10-16) code-reviewed and approved; v0.1 APPROVED 2026-10-06 with decisions D-1 to D-3 as drafted (section 12); v0.2 to v0.4 are kept where
+v0.5 does not say otherwise, and each superseded section says so at its top.
 **Executable form:** [`src/tests/narrative/redaction_reference.py`](../../src/tests/narrative/redaction_reference.py). Its first
-half is the v0.1 specification, written with regular expressions. Its second half, *FLOW MODEL*, is the same rules with only
-what Power Automate offers, and it is the oracle for the flow. 173 tests, run inside the HARD `unit-tests` build step through
-[`NarrativeRedaction.Tests.ps1`](../../src/tests/narrative/NarrativeRedaction.Tests.ps1):
-[`test_redaction_reference.py`](../../src/tests/narrative/test_redaction_reference.py) (44, v0.1),
-[`test_flow_model.py`](../../src/tests/narrative/test_flow_model.py) (80, the flow model against the corpus) and
-[`test_scrub_flow_definition.py`](../../src/tests/narrative/test_scrub_flow_definition.py) (49, the shipped flow JSON executed
-in [`wdl_sim.py`](../../src/tests/narrative/wdl_sim.py) and compared with the model).
+half is the v0.1 specification, written with regular expressions. Its second half, *FLOW MODEL*, is the rev 22 flow step for
+step, and *NEUTRAL TERMS* is what a good rewrite looks like. The narrative suite runs inside the HARD `unit-tests` build step
+through [`NarrativeRedaction.Tests.ps1`](../../src/tests/narrative/NarrativeRedaction.Tests.ps1):
+[`test_redaction_reference.py`](../../src/tests/narrative/test_redaction_reference.py) (v0.1),
+[`test_scrub_flow_definition.py`](../../src/tests/narrative/test_scrub_flow_definition.py) (the shipped flow JSON executed in
+[`wdl_sim.py`](../../src/tests/narrative/wdl_sim.py) with stand-in prompts, compared with the model) and
+[`test_neutral_terms.py`](../../src/tests/narrative/test_neutral_terms.py) (section 10.1).
 Where this document and the code disagree, the tests decide and this document is wrong.
+
+### What changed in v0.8 (TAD rev 25, `ADR-078`; Dev Summary Iteration 12; 2026-10-19)
+
+Reviewer, 2026-10-19, verbatim: *"All records should be checked by the process owner regardless. So, we don't need that
+setting at all."*
+
+- **The flow never releases a record.** It never writes `rev_redactionreleased`; the process owner releases every
+  application (section 7). `rev_redactionreviewrequired` is true on every application the flow scrubs.
+- **`RedactionAutoRelease` is retired**, and with it `auto-release-off`, `auto-release-stale` and the *saved after every
+  other row* guard. An edit to a `Redaction*` row needs no re-confirmation.
+- **Every other reason code is a hint**: still computed, still deciding per column whether a counterpart is written, and
+  shown on the process owner's card. Where this document says a code *holds* the record, read *flags* it.
+- **`RedactionConfidenceThreshold` is seeded create-only at 0.85** (FR-029's initial value); `below-threshold` is a hint.
+- **The writer's own name does not count toward "two or more people"** (SDD A-11, OQ-054 (e)): `RedactionNameRules` line 4.
+- **One Teams card per scrubbed application**, *Narrative ready for your review*, with *None found by the checks* when
+  there is no hint.
+
+### What changed in v0.7 (Dev Summary Iteration 11; DEV run on synthetic TD-13 to TD-15, 2026-10-19)
+
+Reviewer, 2026-10-19, verbatim: *"Yes please, process the suggested changes"*.
+
+- **A name joined to a fragment is labelled whole** (section 6c.1). The extractor returned *Beatrix Holloway* for *Beatrix
+  Holloway-Reed*, and *-Reed* reached the trustee text. A person's name is now widened over one fragment joined by a hyphen,
+  or by an apostrophe and two or more letters, on each side, before labelling; never over the possessive *'s*.
+- **A label still joined to letters is a residue** (`residual-name-fragment`, section 6b), in the column or in the final text.
+- **A name span that starts with *Dr* keeps *Dr* outside the label**, so the rewrite prompt sees *Dr [NAME]* (section 6c.1).
+- **The name rules changed** (section 10.1.3, the `RedactionNameRules` seed): the writer's own name keeps `[NAME]`; the
+  relationship word leads even when other people are named; worked examples, labels only.
+- **A rewrite that drops punctuation is held** (`rewrite-dropped-punctuation`, section 7), a fidelity check.
+
+### What changed in v0.6 (TAD rev 23, `ADR-076`; 2026-10-16)
+
+- **The rules Emily may change are four `rev_setting` rows, not words in the prompt** (section 7c). Reviewer, verbatim:
+  *"We agreed that those rules would be set as settings on the settings table. So that Emily can change these without me
+  changing the prompts or workflows."* `RedactionNeutralTerms` (the whole key), `RedactionTitles`, `RedactionNameRules` and
+  `RedactionLabels` reach the rewrite prompt as four inputs, and **the same rows are checks P2 and P3**: the neutral words
+  P2 allows and the gendered words and titles P3 looks for are read from them in the same run. *Previously read (v0.5):
+  the key, titles, name rules and labels were in the rewrite template, and `RedactionNeutralTermsExtra` only added to them.*
+- **A missing, blank or malformed rule row stops the scrub for the record** (`redaction-setting-invalid:<key>`, nothing
+  written). The rows are created once per environment by the deploy (create-only) and from then on are Emily's.
+- **A title left in the text is its own residue check** (`residual-title`), matched with its capitals: *Ms Smith* is held,
+  *MS* (the condition) is not.
+
+### What changed in v0.5 (TAD rev 22, `ADR-075`; SDD Amendment A-09; 2026-10-16)
+
+- **The flow no longer detects UK phones, postcodes or family members itself, and no longer rebuilds the text on its own.**
+  The extractor labels what it finds (section 4.4); the **rewrite prompt** applies the client's key, turns names into *They*,
+  fixes the grammar and labels anything identifying the extractor missed; the **spelling prompt** corrects slips. Three fixed
+  checks decide what is written (section 7b): **P1** no value the extractor found survives, **P2** the rewrite added no word,
+  **P3** the residue checks (section 6b, plus a gendered word).
+- **Names become *They*** (FR-095), except: two or more different people keep `[NAME]`; a name after *Dr* keeps it; and,
+  **by the reviewer's correction of 2026-10-16, a name straight after a relationship word is dropped and the relationship
+  word leads**: *"My husband Derek becoms partner. not family member. the word husband is leading in this pattern."* So
+  "my husband Derek" becomes "my partner". *Previously read (v0.4 and the OQ-054 (c) default): "my husband [FAMILY MEMBER]"
+  / "my partner [FAMILY MEMBER]".* The SDD (FR-095, OQ-054) and the TAD (`ADR-075` erratum) were corrected the same day.
+- **`[FAMILY MEMBER]` is kept in the label set although no rule now produces it** (reviewer, 2026-10-16: *"Keep the family
+  member label for now. I am expecting one more itteration on the labels after Emily has tested."*). P2 accepts it.
+- **Where the key and the client's examples differ, the examples win** (A-09): *him* is *them*, *hers* and a standalone *his*
+  are *theirs*, *himself* and *herself* are *themself* (OQ-056). **Added words** (FR-096, OQ-055): grandmother, stepson,
+  auntie, niece, nephew, mummy, lady and their counterparts; the titles Mr, Mrs, Ms and Miss are removed. **A second verb
+  after *and* agrees** (FR-098).
+- **A column over 5,000 characters is not scrubbed** (`too-long`), because there are no windows any more.
+- **Settings:** `RedactionNeutralTermsExtra` is new; `RedactionPromptStage` is a kill switch (`off` writes nothing);
+  `RedactionPromptCalibrated`, the four `RedactionPromptCategory.*` rows, `RedactionKinshipWordsExtra` and
+  `RedactionPracticeSuffixesExtra` are retired (section 7c).
+
+### What changed in v0.4 (client Anonymisation Key, 2026-10-14; `wbs:5.6`)
+
+- **Gendered words and relationship words are replaced with neutral ones** (section 10.1), from the client's
+  `docs/Import/Anonymisation Key.xlsx`: *he/she* become *they*, *my mum* becomes *my parent*, *my husband* becomes
+  *my partner*. This reverses the v0.3 rule that an unnamed relationship stays (section 3.2), by reviewer decision.
+- **The output must read correctly.** Where a replacement breaks the grammar, the oracle fixes it: *she is* becomes
+  *they are*, and *her* becomes *them* or *their* by the word after it.
+- **This is the specification only. The flow does not do it yet.** The approved TAD lets the flow write only labels and
+  the applicant's own words, and a neutral word is neither. That is an architecture question (Dev Summary Iteration 8,
+  `CASCADE: ARCH_GAP`).
+- **The client's list of free-text questions is mapped to the columns** (section 2.1a). Twelve of the 15 questions are
+  the twelve columns already scrubbed. Three have no redacted counterpart.
+- Executable form: the *NEUTRAL TERMS* section of [`redaction_reference.py`](../../src/tests/narrative/redaction_reference.py),
+  24 tests in [`test_neutral_terms.py`](../../src/tests/narrative/test_neutral_terms.py).
 
 ### What changed in v0.3 (TAD rev 20, approved 2026-10-06)
 
@@ -103,6 +183,34 @@ Every source column is `ntext`, `IsSecured=1`, `MaxLength` 1,048,576. Every coun
 
 **Row 12 is not in the TAD's redacted-counterpart rows** (TAD §3.1). It was added on the reviewer's pack-order decision of 2026-09-30 ("Show rev_carecostsexplanation as a narrativescrubbed version, like other columns"). It is in scope here because the column exists. The TAD omission is logged as a finding rather than edited.
 
+### 2.1a The client's free-text questions (v0.4)
+
+The Anonymisation Key, rows 30 to 44, lists 15 form questions as in scope. Each is matched to the column the intake writes
+(TAD Appendix C intake map) and then to the table above.
+
+| Key row | Question | Raw column | Redacted counterpart |
+|---|---|---|---|
+| 30 | Other conditions or illnesses affect you | `rev_otherconditionraw` | row 2 |
+| 31 | Brief confirmation | `rev_disabilityimpactdescription` | row 4 |
+| 32 | Brief description | `rev_caresupportdescription` | row 9 |
+| 33 | Other conditions or illnesses | `rev_supportrecipientotherconditionraw` | row 3 |
+| 34 | Brief confirmation13 | `rev_supportrecipientdisabilityimpactdescription` | row 5. **Probable, not certain** (`A-NS-28`): the form key is `brief_confirmation_2`, and "13" is read as the client's field number |
+| 35 | Other types of care and support personally provided | `rev_othercareprovidedtype` | row 11 |
+| 36 | Please provide one brief example of the level of care required | `rev_careprovidedexample` | row 10 |
+| 37 | Benefit provider | `rev_benefitprovider` | **None** |
+| 38 | Please briefly explain the significant care costs or medical expenses | `rev_carecostsexplanation` | row 12 |
+| 39 | Please briefly explain why you're unable to fund this break yourself | `rev_unabletofundexplanation` | row 6 |
+| 40 | Please specify source of additional funding | `rev_otherfundingsource` | **None** |
+| 41 | Awaiting decision from | `rev_awaitingdecisionfrom` | **None** |
+| 42 | Other exceptional circumstance | `rev_otherexceptionalcircumstance` | row 8 |
+| 43 | Briefly explain exceptional circumstance | `rev_exceptionalfundingdetail` | row 7 |
+| 44 | Please briefly explain how this break would benefit you | `rev_narrativeraw` | row 1 |
+
+**Three questions have no counterpart**, so nothing scrubs them: rows 37, 40 and 41. Giving them one is schema work for the
+TAD, and nothing is built here. Today `rev_benefitprovider` is secured (`IsSecured=1`). `rev_otherfundingsource` and
+`rev_awaitingdecisionfrom` are **not** secured, and neither trustee portal renders them (grepped 2026-10-14: they appear only in
+the generated `.power/schemas` files).
+
 **A free-text column with no counterpart is not redacted, and therefore never reaches a trustee.** For example `rev_consentexplanation`, `rev_breaklocation` and `rev_provisionaldate` have no counterpart. Giving one a counterpart is new schema work for the TAD, not a rules change.
 
 ### 2.2 Column security does not change
@@ -117,8 +225,8 @@ Every source column is `ntext`, `IsSecured=1`, `MaxLength` 1,048,576. Every coun
 
 | Label | Replaces | Source |
 |---|---|---|
-| `[NAME]` | A person's name who is not identified as a family member: the applicant, a carer, a neighbour, a clinician | FR-026 |
-| `[FAMILY MEMBER]` | A **named** family member: "my husband Derek" becomes "my husband [FAMILY MEMBER]" | FR-026 |
+| `[NAME]` | A person's name, where the rewrite keeps one (v0.5, FR-095): two or more different people in the text, or after *Dr*. The one person a text is about becomes *They*, *them* or *their* instead | FR-026 as amended by A-09 |
+| `[FAMILY MEMBER]` | **Produced by no rule since v0.5, kept by decision** (2026-10-16). A name straight after a relationship word is dropped: "my husband Derek" becomes "my partner". *Previously read: "A **named** family member: 'my husband Derek' becomes 'my husband [FAMILY MEMBER]'".* | FR-026 |
 | `[GP PRACTICE]` | The name of a GP practice, including one that contains a person's name ("Dr Patel's Surgery") | FR-026 |
 | `[ADDRESS]` | A street address, full or partial (a street name on its own, or a postcode on its own). A town written inside an address goes with it | FR-026 |
 | `[PHONE]` | A phone number in any UK format, or any format the model recognises | FR-026 |
@@ -127,9 +235,14 @@ Every source column is `ntext`, `IsSecured=1`, `MaxLength` 1,048,576. Every coun
 
 ### 3.2 What a label does **not** replace
 
-- **An unnamed relationship stays.** "My sister helps" and "my mum" stay as written. The relationship is part of the case a trustee weighs, and on its own it identifies nobody. A relationship that does narrow the field is an indirect identifier (section 10).
-- **A title stays.** "Dr Okafor" becomes "Dr [NAME]".
-- **A possessive ending stays.** "jack's wheelchair" becomes "[FAMILY MEMBER]'s wheelchair".
+- **An unnamed relationship stays, in a neutral word** (v0.4, section 10.1). "My sister helps" becomes "My sibling helps",
+  and "my mum" becomes "my parent". The relationship is still there for the trustee to weigh; the gender is not.
+  *Previously read (v0.1 to v0.3): "An unnamed relationship stays. 'My sister helps' and 'my mum' stay as written."* Reversed
+  by the reviewer on 2026-10-14: *"follow the key file"*.
+- **Dr stays; other titles go** (v0.5, FR-096). "Dr Okafor" becomes "Dr [NAME]"; "Mrs Patel" loses *Mrs*, and the name is
+  handled as any name. *Previously read: "A title stays."*
+- **A possessive name becomes *their*** (v0.5). "Sam's wheelchair" becomes "their wheelchair" when Sam is the one person
+  named. *Previously read: "A possessive ending stays. 'jack's wheelchair' becomes '[FAMILY MEMBER]'s wheelchair'."*
 
 ---
 
@@ -156,7 +269,7 @@ TAD §5.5 and §4 specify an *"AI Builder prebuilt PII detection model"*. **No s
 
 | Model `type` (A-NS-1) | Handling |
 |---|---|
-| `PersonName` | `[NAME]`, refined to `[FAMILY MEMBER]` by kinship context (section 5.1) |
+| `PersonName` | `[NAME]` (v0.5: no kinship refinement; the rewrite prompt turns it into *They* or drops it after a relationship word) |
 | `Organization` | `[GP PRACTICE]` **only** when the value ends in a practice suffix (section 6). Every other organisation is kept: "Revitalise", "Leeds Carers Centre" |
 | `PhoneNumber` | `[PHONE]` |
 | `StreetAddress`, `ZipCode` | `[ADDRESS]` |
@@ -180,11 +293,25 @@ TAD §5.5 and §4 specify an *"AI Builder prebuilt PII detection model"*. **No s
 
 **Three of the five FR-026 labels cannot be produced by the prebuilt model alone.** The deterministic rules in section 6 close that gap in the reference implementation. **In production they run in the flow**, in the forms sections 6a to 6c describe (TAD rev 19 `ADR-071`).
 
-### 4.4 Who owns each label in production (TAD §5.5, `ADR-071` item 2)
+### 4.4 Who owns each label in production (v0.5: TAD rev 22, `ADR-075`)
 
-| Label | Owner | Second detector | If both miss it |
+| Label | Owner | Second | If both miss it |
 |---|---|---|---|
-| `[NAME]` | Extractor `PersonName` | Prompt, when on | Nothing can find a missed name by pattern. Review catches it: `auto-release-off` until calibration, `no-model-detections` (D-2), and Emily's check |
+| `[NAME]` | Extractor `PersonName` | The rewrite prompt (rule 6 of its template) | Review: the process owner reads and releases every application (v0.8, `ADR-078`; *previously read: `auto-release-off` until calibration*), the hint `no-model-detections` (D-2). A repeat of a name the extractor found once is caught by **P1** |
+| `[GP PRACTICE]` | Extractor `Organization` with a practice suffix | The rewrite prompt | `residual-practice-word` |
+| `[ADDRESS]` postcode | **The rewrite prompt** (the extractor's `ZipCode` is US format) | — | `residual-postcode`, `residual-district` |
+| `[ADDRESS]` street | Extractor `StreetAddress` | The rewrite prompt | `residual-street-word` |
+| `[PHONE]` | **The rewrite prompt** (the extractor's `PhoneNumber` is US format) | — | `residual-digit-run` |
+| `[EMAIL]` | Extractor `Email` | The rewrite prompt | `residual-at-sign` |
+| `[AGE <band>]` | Extractor `Age` + band | — | `residual-age-phrase` |
+| `[FAMILY MEMBER]` | No rule (kept by decision, 2026-10-16) | — | — |
+
+*Previously read (rev 19-20): the flow's own shape detectors owned phones and postcodes, and kinship refinement owned
+`[FAMILY MEMBER]`.* Those detectors are retired (`ADR-075` Rejected list): with the prompt always running they only reduced
+how many records reach review, and the residue checks still stop a UK phone or postcode both miss.
+
+---|---|---|---|
+| `[NAME]` | Extractor `PersonName` | Prompt, when on | Nothing can find a missed name by pattern. Review catches it: Emily reads and releases every application (v0.8), and the hint `no-model-detections` (D-2) |
 | `[FAMILY MEMBER]` | Extractor name + the kinship refinement (6c) | Prompt, when on | Labelled `[NAME]` instead: less precise, nothing disclosed |
 | `[GP PRACTICE]` | Extractor `Organization` + the practice-suffix check (6c) | Prompt, when on | `residual-practice-word` |
 | `[ADDRESS]` postcode | Shape detector (6a) | Extractor `ZipCode` | `residual-postcode` |
@@ -196,6 +323,12 @@ TAD §5.5 and §4 specify an *"AI Builder prebuilt PII detection model"*. **No s
 ---
 
 ## 5. The logic — merge, refine, replace
+
+> **v0.5: this section is the v0.1 specification, kept as approved.** The rev 22 flow does less, on purpose: a span inside
+> another is dropped and two that overlap without nesting hold the column (`overlapping-identifiers`, not written); there is
+> no kinship refinement (5.1 items 1-2), no merging of touching address parts, and no windows (5.4): a column over 5,000
+> characters is `too-long`. Replacement by offset from the end (5.3) is how the flow builds the **labelled text** the
+> rewrite prompt receives.
 
 These are the rules the reviewer asked to have proven. Each has a named test in [`test_redaction_reference.py`](../../src/tests/narrative/test_redaction_reference.py).
 
@@ -250,9 +383,13 @@ Every pattern is a named regular expression in [`redaction_reference.py`](../../
 | `AGE_RULE`, `AGED_RULE` | "72 years old", "ninety-one years old", "a 12-year-old", "aged 45" | "for five years", "waited 3 years" (durations are kept) |
 | kinship context (`_KIN_BEFORE`, `_KIN_AFTER`, `_LIST_JOIN`) | turns a detected name into a family member | an unnamed relative ("my sister") is never turned into a label |
 
-**These patterns are the v0.1 specification, not the run-time component.** Power Automate's expression language has no regular expressions. The flow implements sections 6a to 6c instead, and the corpus proves the two agree on all 20 samples (`test_flow_model_agrees_with_the_v0_1_regex_rules_on_every_sample`).
+**These patterns are the v0.1 specification, not the run-time component.** Power Automate's expression language has no regular expressions. Until v0.5 the flow implemented sections 6a to 6c instead, and the corpus proved the two agreed on all 20 samples (the retired `test_flow_model.py`). In v0.5 the rewrite prompt does the detection these patterns describe, and only the residue checks (6b) remain deterministic.
 
 ### 6a. UK phone and postcode shapes — the flow's deterministic detector (`ADR-071` item 3)
+
+> **Retired in v0.5** (`ADR-075` supersedes `ADR-071` item 3). The flow no longer replaces phones or postcodes by shape; the
+> rewrite prompt labels them, and the postcode shapes below live on only in the `residual-postcode` check (6b). Kept as
+> history.
 
 Each window is turned into a **class string**: a digit becomes `9`, a letter `A`, and every other character stays itself (the
 `Select_referee_phone_digits` pattern already in `REV | Acceptance | Create Envelope`). A shape matches where the class string
@@ -282,6 +419,10 @@ the end of a window cannot produce a shorter false match. The 200-character over
 
 ### 6a.1 The postcode register (v0.3, `ADR-073`, TAD §5.5.1)
 
+> **v0.5: the register no longer creates `[ADDRESS]` spans** (`ADR-073` superseded in part). It is read once per run for the
+> `residual-district` check only; a postcode without its space is caught by `residual-postcode` when the prompt does not
+> label it. The table below is history except its *Unavailable* paragraph, which still applies.
+
 The flow reads `rev_citysettlementregister` once per run: 3,394 outward codes, all of shape `A9`, `A99`, `AA9` or `AA99`,
 and none of shape `A9A` or `AA9A` (so no `EC1A`, `W1A` or `SW1A`). The seed file is the register's source; DEV holds the same
 3,394 rows (measured read-only, 2026-10-06). **The register only adds detections and never removes one.**
@@ -307,11 +448,11 @@ Details the TAD leaves to this document:
   district residue check are skipped, full postcodes and `residual-postcode` still apply, and the record gets
   `postcode-register-unavailable`.
 
-### 6b. Residue checks — what the flow checks in what it wrote (`ADR-071` item 6)
+### 6b. Residue checks — check P3 on what the flow is about to write (`ADR-071` item 6, `ADR-075` item 7)
 
-After the rebuild, the flow checks the text it is about to write. A hit never changes the text; it sends the record to review
-with `residual-<kind>:<column>`. The checks read a **skeleton**: the rebuilt text with `|` where each label goes, so a label
-never trips a check (`[GP PRACTICE]` contains *practice*).
+The flow checks the final text (the rewrite with the accepted spelling corrections). A hit never changes the text: the
+column **is written** and the record is flagged with `residual-<kind>:<column>`, a hint on the process owner's card (v0.8; every record waits for her release anyway). The checks read the final text with **every
+label replaced by a bar**, so a label never trips a check (`[GP PRACTICE]` contains *practice*).
 
 | Kind | Fires on | Owner it backs up |
 |---|---|---|
@@ -322,6 +463,9 @@ never trips a check (`[GP PRACTICE]` contains *practice*).
 | `practice-word` | surgery, medical centre, health centre, practice | `[GP PRACTICE]` |
 | `age-phrase` | a figure then "years old", "year-old", "yrs old" | `[AGE]` |
 | **`district`** (v0.3) | a register-confirmed district on its own (section 6a.1). Skipped when the register is unavailable | `[ADDRESS]` postcode |
+| **`gendered-term`** (v0.5, FR-101; **v0.6: read from `RedactionNeutralTerms`**) | a left-hand word of `RedactionNeutralTerms`, as a whole word. *Previously read (v0.5): the key, the added words and `RedactionNeutralTermsExtra`, plus mr and mrs* | the rewrite prompt |
+| **`title`** (v0.6, `ADR-076`) | a `RedactionTitles` title followed by a space, **with its capitals as written**, so *Ms Smith* trips it and *MS* does not | the rewrite prompt |
+| **`name-fragment`** (v0.7) | a label with letters joined to it: directly after it a hyphen and a letter, or an apostrophe and two letters (so *[NAME]'s* does not trip it); directly before it a letter and a hyphen or apostrophe. Checked in the column against every kept span (before the prompt) and in the final text | the span widening (6c.1) |
 
 **v0.3: the street and practice words are a floor plus a setting** (section 7c). The words above are the tested floor;
 `RedactionStreetWordsExtra` and `RedactionPracticeWordsExtra` can add to them, never remove.
@@ -336,7 +480,25 @@ never trips a check (`[GP PRACTICE]` contains *practice*).
 - **With an extractor that finds nothing**, every sample whose non-name identifier is the extractor's goes to review with the
   right residual code, and phones and postcodes are still redacted by shape.
 
+### 6c.1 A person's name: the *Dr* trim and the joined fragment (v0.7)
+
+Applied to every `PersonName` span before labelling, deterministically, letters meaning ASCII letters:
+
+| Step | Rule | Example |
+|---|---|---|
+| *Dr* trim | A span that starts with *Doctor *, *Dr. * or *Dr * (any capitals), and is longer than that, starts after it | *Dr Adeyemi* gives *Dr [NAME]* |
+| After | A hyphen and one or more letters, or an apostrophe (straight or curly) and **two or more** letters, directly after the span join it | *Holloway* + *-Reed*; never *'s*, *'d*, *'m* |
+| Before | One or more letters and a hyphen or apostrophe directly before the span join it | *O'* + *Brien*; *Mary-* + *Ann* |
+
+One fragment per side. A second (*Smith-Jones-Brown*) stays outside the label and is flagged by `name-fragment` (6b). P1 still
+searches the extractor's own value; the fragment cannot come back, because P2 refuses a word that is not in the labelled
+input. Flow: `Select_entity_ages` (`trim`, `fwd`, `back`), `Select_spans`; reference: `all_spans`.
+
 ### 6c. Refinement in the flow (`ADR-071` item 4)
+
+> **v0.5: only the GP-practice and age items below remain in the flow.** Kinship refinement, the list rule, the extendable
+> lists and the merge are retired (`ADR-075` supersedes `ADR-071` item 4); the rewrite prompt handles a name next to a
+> relationship word. Kept as history.
 
 - **Kinship before a name:** the 60 characters before it, lower-cased with punctuation as spaces, end with a kinship word
   (optionally followed by *called*, *named* or *is*), and one of *my, our, his, her, their* is among the three words before
@@ -359,30 +521,41 @@ never trips a check (`[GP PRACTICE]` contains *practice*).
 
 ## 7. From entity scores to one decision per record (FR-029, FR-030, NFR-017, NFR-018)
 
-The decision is taken **once per application**, over all twelve columns together. `rev_redactionreleased` is one flag per record, and trustees see all twelve counterparts or none.
+The hints are computed **once per application**, over all twelve columns together. `rev_redactionreleased` is one flag per record, set only by the process owner (v0.8, `ADR-078`), and trustees see all twelve counterparts or none.
 
-1. **Threshold.** Read at run time from the `rev_setting` row `RedactionConfidenceThreshold` (TAD NFR-017 row). It accepts "0.85", "85" or "85%". **A missing or unreadable setting sends the record to review.** Not seeded by any deploy (section 7, `ADR-074` item 5): a deploy-time upsert would re-save it and make `RedactionAutoRelease` stale. The process owner creates it, starting value 0.85.
+1. **Threshold.** Read at run time from the `rev_setting` row `RedactionConfidenceThreshold` (TAD NFR-017 row). It accepts "0.85", "85" or "85%". **A missing or unreadable setting gives the hint `threshold-missing-or-invalid`.** v0.8: seeded **create-only at 0.85** by the deploy (`ADR-078` item 5), then the process owner's. *Previously read: not seeded, because a deploy-time upsert would have made `RedactionAutoRelease` stale.*
 2. **Record confidence = the lowest model score of any span actually redacted, across all columns.** Rule-only spans (score 1.0) neither raise nor lower it. Retained types (dates, money and so on) do not count.
-3. **Released (`rev_redactionreleased = true`) only when there is no reason to review.** The reasons, each a fixed code, are:
+3. **Never released by the flow (v0.8, `ADR-078`).** Every scrubbed application waits for the process owner; the reasons below are hints on her card, each a fixed code. *Previously read: "Released (`rev_redactionreleased = true`) only when there is no reason to review."*
 
 | Reason code | When | Why it fails closed |
 |---|---|---|
-| `threshold-missing-or-invalid` | The setting is absent or unparseable | No threshold, no comparison, so no release |
+| `threshold-missing-or-invalid` | The setting is absent or unparseable | No threshold, no comparison, so the hint says the signal is off |
 | `ai-error:<column>` | The model call failed for any non-empty column, including no credits | TAD §5.5: degrade, never disclose. 100% manual review |
-| `below-threshold` | Record confidence < threshold. **Exactly at the threshold releases** (≥, both directions tested) | FR-029 |
+| `below-threshold` | Record confidence < threshold. **Exactly at the threshold: no flag** (≥, both directions tested). *Previously read: "releases"* | FR-029 |
 | `no-model-detections` | Non-empty text in scope and the model found nothing it maps | **Finding nothing is not evidence there is nothing.** A missed name has no score to fall below the threshold. Decision D-2 asks whether to keep this |
 | `unmapped-entity-type:<column>` | The model returned a type string this document does not know | Guards A-NS-1: an unknown type might be a name |
 | `redacted-exceeds-4000:<column>` | The redacted text is longer than the counterpart column holds | Truncating would hide content without telling anyone; section 9.2 |
 | `kept-existing-counterpart:<column>` | The counterpart already held text (section 7a) | The flow cannot vouch for text it did not write |
 | **`residual-<kind>:<column>`** (v0.2) | A residue check fired on what the flow is about to write (section 6b) | A detector missed something it owns |
-| **`auto-release-off`** (v0.2) | The `rev_setting` row `RedactionAutoRelease` is absent or not `true` | **No release without the process owner until `wbs:5.7` calibrates the threshold** (`ADR-071` item 8). Absent is the safe value |
+| ~~`auto-release-off`~~ (v0.2, **retired v0.8**, `ADR-078`) | The `rev_setting` row `RedactionAutoRelease` is absent or not `true` | **No release without the process owner until `wbs:5.7` calibrates the threshold** (`ADR-071` item 8). Absent is the safe value |
 | **`prompt-error:<column>`** (v0.2) | The prompt stage ran and its call failed, returned nothing usable or unparseable, or stopped for a reason other than a normal finish. **v0.3: the run action is not in this build (TAD §12.6.1), so a running stage always gives this code.** It wins over `prompt-output-invalid` for the same column | `ADR-072` item 8 |
 | **`prompt-output-invalid:<column>`** (v0.2) | The prompt's answer failed validation (section 7b) in any window of the column | `ADR-072` item 6: a partly wrong answer is not partly trusted |
 | **`uncalibrated-stage:prompt`** (v0.2, **rewritten v0.3**) | The prompt stage is on and `RedactionPromptCalibrated` does not list exactly the labels of the valid category rows, or was saved before another `RedactionPrompt*` row. *Previously read (v0.2): "is not `true`". `true` no longer calibrates* | A prompt gives no score, so it is released only once calibrated (`ADR-072` item 8, `ADR-074` item 5) |
-| **`auto-release-stale`** (v0.3) | `RedactionAutoRelease` is `true` but another `Redaction*` row was saved after it | `ADR-074` item 5: an edit to the rules reaches no trustee until the process owner confirms again |
+| ~~`auto-release-stale`~~ (v0.3, **retired v0.8**, `ADR-078`) | `RedactionAutoRelease` is `true` but another `Redaction*` row was saved after it | `ADR-074` item 5: an edit to the rules reaches no trustee until the process owner confirms again |
 | **`prompt-config-invalid`** (v0.3) | The prompt stage is on and there is no category row, or a category row is empty or has a key the flow does not know. The stage does not run | `ADR-074` item 4 |
 | **`postcode-register-unavailable`** (v0.3) | The register read failed or returned fewer than 3,000 rows | `ADR-073` item 2: the seed did not run there |
 | **`redaction-setting-invalid:<key>`** (v0.3) | A word-list row is present but empty, or has a line that is not 2 to 40 characters of a–z, space, hyphen and apostrophe with at least one letter. The row is ignored; the floor applies | `ADR-074` item 4 |
+| **`too-long:<column>`** (v0.5) | The raw text is over 5,000 characters: not scrubbed, not written | `ADR-075` item 1: one extractor call per column |
+| **`overlapping-identifiers:<column>`** (v0.5) | Two extractor spans overlap without one containing the other: not written | `ADR-075` item 2 |
+| **`prompt-error:<column>`** (v0.5, redefined) | The rewrite call failed, or did not finish with a normal stop and some text: not written. *Previously read: the detector prompt's failure* | `ADR-075` item 9 |
+| **`identifier-survived:<column>`** (v0.5) | Check P1: a value the extractor found is still in the final text: not written | `ADR-075` item 5 |
+| **`rewrite-invalid:<column>`** (v0.5) | Check P2: the rewrite contains a word that is not in its input and not on the closed list: not written | `ADR-075` item 6 |
+| **`rewrite-dropped-text:<column>`** (v0.5) | The rewrite is more than 10% shorter in words than its input, labels removed: written, flagged | `ADR-075` item 7, fidelity |
+| **`rewrite-dropped-punctuation:<column>`** (v0.7) | The rewrite has at least two fewer of `. , ; : ! ?` than its input **and** more than 10% fewer: written, flagged. One mark fewer (a title written *Mr.* removed) is not flagged | Fidelity; Dev Summary Iteration 11 |
+| **`residual-name-fragment:<column>`** (v0.7) | Section 6b: written, flagged | Dev Summary Iteration 11 |
+| **`residual-gendered-term:<column>`** (v0.5) | Section 6b: written, flagged | FR-101 |
+| **`prompt-stage-off`** (v0.5) | `RedactionPromptStage` is `off`: nothing is scrubbed | `ADR-075` item 8, the kill switch |
+| ~~`prompt-output-invalid`, `uncalibrated-stage:prompt`, `prompt-config-invalid`~~ | **Retired in v0.5** with the detector prompt and its category rows | `ADR-075` |
 
 **v0.2 refinements to the rows above.** `ai-error:<column>` also covers an extractor answer the flow cannot read (no entity
 array at the expected place) and a column whose windows did not all get scanned: neither is ever read as "no entities".
@@ -390,13 +563,17 @@ array at the expected place) and a column whose windows did not all get scanned:
 the flow's conversion cannot throw. `no-model-detections` (D-2, kept) applies when at least one column was scanned without
 error and no extractor span was redacted. A kept column is not scanned again, so it neither adds nor removes a score.
 
+> **v0.5: the settings table below is the v0.3 one, kept as history.** The rev 22 settings are in section 7c and TAD §5.5.1:
+> the threshold, auto-release, the street and practice word rows, `RedactionNeutralTermsExtra`, and `RedactionPromptStage` as a
+> kill switch (absent: the prompts run).
+
 **The settings, all absent at first deploy, and absent is safe** (rewritten v0.3 for `ADR-074`; no `Redaction*` row is seeded
 by any deploy, and names are matched without regard to case):
 
 | `rev_setting` row | Value that changes behaviour | Absent | Malformed or empty |
 |---|---|---|---|
 | `RedactionConfidenceThreshold` | a number, e.g. `0.85`, `85` or `85%` | `threshold-missing-or-invalid` | `threshold-missing-or-invalid` |
-| `RedactionAutoRelease` | `true` (case and spaces ignored), **saved at or after every other `Redaction*` row** | `auto-release-off` | `auto-release-off`; saved before a later edit: `auto-release-stale` |
+| ~~`RedactionAutoRelease`~~ (**retired v0.8**, `ADR-078`: not read; a leftover row is ignored) | `true` (case and spaces ignored), saved at or after every other `Redaction*` row | `auto-release-off` | `auto-release-off`; saved before a later edit: `auto-release-stale` |
 | `RedactionPromptStage` | `on` | stage off | stage off |
 | `RedactionPromptCalibrated` | the confirmed labels, e.g. `NAME, FAMILY MEMBER, GP PRACTICE, ADDRESS` (order, case and spaces ignored), **saved after every other `RedactionPrompt*` row** | stage on: `uncalibrated-stage:prompt` | the same |
 | `RedactionPromptCategory.Name`, `.FamilyMember`, `.GpPractice`, `.Address` | plain text: what the prompt looks for under that label | that label is not asked for; stage on and no category row: `prompt-config-invalid` | stage on: `prompt-config-invalid`, and the stage does not run |
@@ -404,37 +581,66 @@ by any deploy, and names are matched without regard to case):
 
 *Previously read (v0.2): `RedactionPromptCalibrated` changed behaviour only with the value `true`.*
 
-4. **A low-scoring entity is still redacted.** Over-redaction is the safe direction. The low score sends the record to review; it never decides whether the text is replaced.
+4. **A low-scoring entity is still redacted.** Over-redaction is the safe direction. The low score gives the hint `below-threshold`; it never decides whether the text is replaced.
 5. **The decision carries no input text.** It holds the flag, the confidence and the reason codes. A test checks every corpus sample's decision against every word of its input. This is what makes the decision safe to write to `rev_errorlog`, a notification or a run history (NFR-012, FR-031). The raw text itself is never logged or notified.
-6. **Records sent to review stay withheld** until the process owner reviews, corrects and releases (FR-030; `wbs:5.4` builds that step).
+6. **Every record stays withheld** until the process owner reviews, corrects and releases it (FR-030; `wbs:5.4` builds that step; v0.8, `ADR-078`: every record, not only those with a hint).
 
-### 7b. The prompt stage and its validation (`ADR-072`, `ADR-074`; built to TAD §12.6.1, v0.3)
+### 7b. The rewrite, the spelling correction, and checks P1 and P2 (v0.5, `ADR-075` items 3 to 6)
 
-**When it runs.** Only when `RedactionPromptStage` is `on` **and** the category rows are valid (section 7). It runs on the same
-windows as the extractor. Its three inputs are `Categories` (one line `LABEL: text` per category row, sorted by label),
-`AllowedLabels` (those labels, comma-separated) and `Narrative` (the window). The fixed template is in
-[`revitalise-redaction-prompt.md`](revitalise-redaction-prompt.md).
+**The rewrite prompt** receives the **labelled text**: the column with every extractor span replaced by its label, rebuilt by
+offset, so it never receives a value the extractor found. Its second input is the valid lines of `RedactionNeutralTermsExtra`.
+Its fixed template is in [`revitalise-redaction-prompt.md`](revitalise-redaction-prompt.md) section 1. A usable answer has
+`finishReason` `stop` and some text; anything else is `prompt-error` and the column is not written.
 
-**A usable answer** has `finishReason` `stop` and non-blank text that parses as JSON. Anything else is `prompt-error`.
+**The spelling prompt** receives only the rewrite. Its answer is accepted **word by word**: both texts are split on single
+spaces; a different word count discards the correction; otherwise a corrected word is taken only when the original starts with
+a lower-case letter, the correction keeps that first letter and the original's end punctuation, the length changes by at most
+two, neither word is part of a label, the original is not a closed-list word, and the correction is not a gendered word (so
+*sun* never becomes *son*, FR-100). A failed or refused spelling answer is not a safety event: the rewrite is written as it is.
 
-**A valid answer** is a JSON array of `{label, quote}`. Every item must pass: the label is **one of this run's category
-labels** (v0.3; previously any of the four); the quote is 2 to 200 characters; and the quote occurs **verbatim** in the window
-at least once **at word boundaries**. Occurrences are found left to right **without overlap** (v0.3, the way `split()` finds
-them). Each one at word boundaries becomes a span with no score; one inside a longer word ("Ann" in "annual") is skipped. An
-empty array is valid and adds nothing. **If any item in any window fails, the whole prompt result for that column is
-discarded** (`prompt-output-invalid`), and the column is still written from the other detectors.
+**Check P1:** every extractor value, normalised (lower case; punctuation, apostrophes and brackets to spaces), is searched for
+as whole words in the final text. A hit: `identifier-survived`, not written. *Note:* it is case-blind, so a name that is also
+a common word ("Will") found once by the extractor also stops a column where the word appears as a verb; that column goes to
+Emily by hand. That is the safe direction and `ADR-075` item 5's rule as written.
 
-The prompt never supplies text: the label comes from the flow's own map and every other character from the source, so an
-instruction hidden in a narrative can only cause over-redaction or a miss, never added or altered text. Executable form:
-`prompt_window()` and `validate_prompt_items()`, tested in `PromptStage`, `PromptValidation` and, against the shipped flow,
-`PromptStageInTheShippedFlow` (23 answer shapes).
+**Check P2:** every word of the rewrite, labels removed, must be a word of the labelled input, a **closed-list** word, or a
+plural form of an input word with its ending removed (*rely* when *relies* is in the input). The closed list is: *they, them,
+their, theirs, themself, themselves, they're, they've, they'd, they'll*; the neutral nouns *parent(s), sibling(s), child(ren),
+partner(s), person, people, grandparent(s), grandchild(ren), stepchild(ren), stepparent(s), relative(s)*; the agreed forms
+*are, were, have, do, go* and their *-n't* forms; *my*, *a* and *an*; the words of every label; and the neutral words of a
+valid `RedactionNeutralTermsExtra` row. *a* and *an* are an addition to `ADR-075` item 6's list, needed for "an uncle" to
+become "a relative"; neither can identify anyone. A miss: `rewrite-invalid`, not written. This is the proof that the model
+cannot add an identifier: whatever it writes was in the text it was given after labelling, or is on a list the flow holds.
+
+Executable form: `validate_rewrite()`, `accept_spelling()`, `surviving_identifiers()` and `residue_kinds()`, tested against
+bad stand-in models in `test_scrub_flow_definition.py` (`P2TheRewriteAddsNoWord`, `P1NoFoundIdentifierSurvives`,
+`SpellingAcceptedWordByWord`).
 
 ### 7c. Word lists the process owner may extend (v0.3, `ADR-074` items 3–4)
 
 | Row | Adds to | Floor (tested; changed only by a flow change with tests, `wbs:5.6`) |
 |---|---|---|
-| `RedactionKinshipWordsExtra` | the kinship words, each also with *called*, *named*, *is* (section 6c) | 59 words, from *husband* to *brother in law* |
-| `RedactionPracticeSuffixesExtra` | the suffixes that make an `Organization` a GP practice | surgery, medical centre, medical center, health centre, medical practice, group practice, family practice |
+| ~~`RedactionKinshipWordsExtra`~~ | **Retired in v0.5**: no kinship refinement. A leftover row is ignored | — |
+| ~~`RedactionPracticeSuffixesExtra`~~ | **Retired in v0.5**: the suffixes are a fixed list in the flow (`Select_spans`). A leftover row is ignored | surgery, medical centre, medical center, health centre, medical practice, group practice, family practice |
+| ~~`RedactionNeutralTermsExtra`~~ (v0.5) | **Replaced in v0.6** by `RedactionNeutralTerms`, below. A leftover row is ignored | — |
+
+**v0.6: the four rule rows** (`ADR-076`). They are **not** additive over a built-in list: each row *is* the rule, so Emily can
+change or remove a line as well as add one. Each is required; a list meant to be empty holds the single line `none`.
+
+| Row | One line is | Valid when | Feeds |
+|---|---|---|---|
+| `RedactionNeutralTerms` | `word = neutral word`, or `word = first or second` (*her = their or them*) | exactly one `=`; each side 1 to 40 characters of letters, spaces, hyphens and apostrophes; **no neutral word is also a word to replace** | the prompt's `NeutralTerms`; P2 (the right side, *or* splitting the choices); P3 `gendered-term` (the left side) |
+| `RedactionTitles` | one title | 1 to 10 letters, an optional full stop | the prompt's `Titles`; P3 `title`, with the capitals as written |
+| `RedactionNameRules` | one rule in plain words for a `[NAME]` | any non-blank text | the prompt's `NameRules` only |
+| `RedactionLabels` | `[LABEL] = what it covers` | starts with a label of capitals, digits and spaces in square brackets | the prompt's `Labels`; P2 (the label's words) |
+
+**One absent, blank or malformed row stops the scrub of the whole record:** no extractor or prompt call, no column
+written, `redaction-setting-invalid:<key>` for each bad row. An edit to any of them takes effect at the next run and needs
+no re-confirmation (v0.8; *previously read: "makes auto-release stale until the process owner confirms again"*). **What stays fixed in the flow:** the extractor's labels (FR-026, FR-027), the grammar set P2
+allows (*are, were, have, do, go* and their *-n't* forms, *my, a, an*), and the street and practice words above. **Deleting a
+key line lets that word through without review**, because the residue list loses it too (TAD `A-R93`); P1, which guards
+identity, reads no setting. **Seeded once:** the deploy creates the four rows where absent, with the values of TAD
+`ADR-076`, and never writes them again (`seed-settings.ps1`, `createOnly`).
 | `RedactionStreetWordsExtra` | the street words of the residue check (section 6b) | road, street, lane, avenue, close, drive, crescent, terrace, gardens, grove |
 | `RedactionPracticeWordsExtra` | the practice words of the residue check | surgery, medical centre, health centre, practice |
 
@@ -451,7 +657,7 @@ The grant admin reviews and edits the redacted text on the **Narrative Scrubbing
 
 1. **If the record is released (`rev_redactionreleased = true`), the flow does nothing to it.** No counterpart is written, and no flag or score changes.
 2. **Otherwise the flow writes a redacted counterpart only when that counterpart is empty** (null or whitespace only). A non-empty counterpart is left exactly as it is.
-3. **If any counterpart was left as it was, the flow may not release the record.** It adds the reason `kept-existing-counterpart:<column>`, and the record stays withheld until the grant admin releases it. The flow cannot vouch for text it did not produce.
+3. **If any counterpart was left as it was, the card says so.** It adds the hint `kept-existing-counterpart:<column>`; like every record, it stays withheld until the grant admin releases it (v0.8). The flow cannot vouch for text it did not produce.
 4. **To have one column scrubbed again, the grant admin clears it.** The next run fills it.
 
 Executable form: `plan_writes()` and `decide_with_plan()` in the reference implementation. Five tests cover it (`RerunNeverOverwritesAHuman`), and two mutations of the rule are each caught (§11.3). **The flow implements both checks** (`Stop_if_already_released`, `Keep_or_scrub_the_column`), and `test_scrub_flow_definition.py` executes them: a released row gets one read and nothing else, and a kept column is neither scanned nor written.
@@ -505,6 +711,115 @@ The v0.1 text, superseded:
 
 ---
 
+## 10.1 Neutral terms — the client's Anonymisation Key (v0.4, brought to SDD A-09 in v0.5; `wbs:5.6`)
+
+> **Reviewer decisions, Xander Lykopoulos, verbatim (relayed by lead-agent).** 2026-10-14: *"1. follow the key file"* and
+> *"2. Yes also add spell checking and auto correct that for readability"*. 2026-10-16: *him*/*hers* *"Use the clients own
+> examples"*; first names *"Change to the clients key and examples"*; *"Yes, add words for these: grandmother, stepson,
+> auntie, niece, nephew, mummy, lady, and the titles Mr, Mrs, Ms and Miss."*; on a second word after *and*, *"if the second
+> word that belongs to end is identifyable information than it also needs to change."*; and, correcting OQ-054 (c) after
+> A-09's approval, *"My husband Derek becoms partner. not family member. the word husband is leading in this pattern."*
+> SDD Amendment A-09 (FR-094 to FR-101, OQ-054 to OQ-056 at their defaults) was approved 2026-10-16. Spelling (FR-099) is
+> `CO-009`, approved, unbilled.
+
+**Source:** [`docs/Import/Anonymisation Key.xlsx`](../Import/Anonymisation%20Key.xlsx), rows 2 to 27, and four worked examples in
+[`docs/Import/Anonymised Examples.xlsx`](../Import/Anonymised%20Examples.xlsx). **Where the two disagree, the examples win**
+(A-09 Finding 1), except the examples' grammar slips (*they is*), which FR-098 corrects.
+
+**Who does this in production (v0.5):** the rewrite prompt, behind checks P1 and P2 (section 7b). The tables below are what a
+good rewrite does; `neutral_rewrite()` in the reference implementation is their executable form and the expected output
+`wbs:5.7` scores the live model against. *Previously read (v0.4, 10.1.5): "Not in the flow yet."*
+
+**Where the rules live (v0.6, `ADR-076`):** the table in 10.1.1 is the **seed value** of the `RedactionNeutralTerms` row
+(and the titles row of `RedactionTitles`, the name rules of 10.1.3 of `RedactionNameRules`). From the first deploy the rows,
+not this document, are the rules in force: Emily edits them in the app, and the prompt and checks P2 and P3 follow at the
+next scrub. `test_neutral_terms.py` proves the seed row says exactly what the table says.
+
+### 10.1.1 What is replaced
+
+Each word is matched as a whole word, ignoring case. A hyphen and an apostrophe end a word, so *mother-in-law* becomes
+*parent-in-law*, and *my wife's car* becomes *my partner's car*. A word inside another word is never touched: *the*,
+*there*, *shelter*, *manage* stay.
+
+| Written | Becomes | Source |
+|---|---|---|
+| he, she | they | key; the verb after it agrees (10.1.2) |
+| he's, she's | they're, or they've before *got*, *been*, *gone* and similar | key |
+| he'd, she'd, he'll, she'll | they'd, they'll | forced by *he* and *she* |
+| him | **them** | the examples (the key says *their*) |
+| her | **them** or **their** | the key gives both: *their* before a noun or adjective, *them* elsewhere |
+| his | their; **theirs** when it stands alone (*the car is his.*) | key; OQ-056 |
+| hers | **theirs** | OQ-056 (the key says *their*) |
+| himself, herself | **themself** | the examples (the key says *themselves*); OQ-056 |
+| mother, father, mum, dad, mummy, daddy | parent; a capitalised *Mum* or *Dad* used as a name becomes *my parent* | key, examples; *mummy* FR-096, *daddy* OQ-055 |
+| brother, sister | sibling | key |
+| daughter, son | child | key |
+| wife, husband, girlfriend, boyfriend | partner | key (spelt *Boyfrind*) |
+| man, woman, girl, boy, lady, gentleman | person | key; *lady* FR-096, *gentleman* OQ-055 |
+| grandmother, grandfather | grandparent | FR-096, OQ-055 |
+| grandson, granddaughter | grandchild | OQ-055 |
+| stepson, stepdaughter | stepchild | FR-096, OQ-055 |
+| stepmother, stepfather | stepparent | OQ-055 |
+| aunt, auntie, uncle, niece, nephew | relative | FR-096, OQ-055 |
+| Mr, Mrs, Ms, Miss | removed; the name after it is handled as a name (10.1.3) | FR-096 |
+| the plurals of these nouns | the plural neutral word: sons become children, women become people | A-09 |
+| a `RedactionNeutralTermsExtra` word | its neutral word | `ADR-075` item 8 |
+
+**FR-097:** each word joined by *and*, *or* or a comma is judged on its own, which word-by-word replacement does: *my wife and
+son* becomes *my partner and child*. **Capitals:** a word in capitals stays in capitals; otherwise the new word has a capital
+only at the start of a sentence.
+
+### 10.1.2 Grammar the replacement needs (FR-098)
+
+- **The verb after a replaced *he*, *she* or name agrees with *they*.** Adverbs such as *also* or *really* may sit between
+  them. *is* becomes *are*, *was* *were*, *has* *have*, *does* *do* (and the *-n't* forms), *relies* *rely*, *watches* *watch*.
+  A modal or a past tense is left alone.
+- **A second verb joined by *and* agrees too** (v0.5): "He receives PIP and requires care" becomes "They receive PIP and require
+  care". *Previously read (v0.4): a known limit, left unagreed.* The reference implementation does this by rule within the
+  same clause, and only when the word after *and* is followed by more of the clause, so "a cat and dogs." keeps *dogs*. The live
+  model does the real work; P2 accepts either form, because *require* is *requires* with its ending removed.
+- **Only a replaced subject triggers this.** "My son needs help" becomes "My child needs help", still singular.
+
+### 10.1.3 Names (FR-095, OQ-054 as corrected on 2026-10-16)
+
+| Case | Becomes | Example |
+|---|---|---|
+| **The writer's own name** (v0.7) | keeps `[NAME]` | "I am [NAME]", "I'm [NAME]", "my name is [NAME]" |
+| After *Dr* | keeps `[NAME]` | "Dr [NAME]" |
+| Straight after a relationship word | **the name is dropped; the relationship word leads, even when other people are named (v0.7)** | "my husband Derek" becomes "my partner"; "our son [NAME], who is …" becomes "our child, who is …" |
+| Two or more different people named **other than the writer** (v0.8, SDD A-11, OQ-054 (e)) | each keeps `[NAME]`, so two people are not merged into one *they* | "[NAME] and [NAME] help me"; but "I am Sam and Pat helps me" becomes "I am [NAME] and they help me" |
+| The one person the text names | *They*, *them* or *their*, as the sentence needs; the verb agrees | "Sam relies on me" becomes "They rely on me"; "Sam's chair" becomes "their chair" |
+| Inside a practice name | the practice's label | "[GP PRACTICE]" |
+
+The rows apply in the order shown (v0.7). *Previously read (v0.6): the one-person rule first and two-or-more-people second,
+so "Our child [NAME]" kept the name in a text naming two people, and the writer's own name became "they" ("I am they").*
+*Previously read (v0.4 and the A-09 OQ-054 (c) default): a name next to its relationship word kept `[FAMILY MEMBER]` ("my
+partner [FAMILY MEMBER]").* The rewrite prompt sees `[NAME]`, not the name, so it cannot tell whether two `[NAME]`s are one
+person or two: a text naming one person twice may keep `[NAME]`, and two people named once each may both become *they*
+(`ADR-075` consequence 3). Either way nothing is disclosed; `wbs:5.7` measures how often it happens.
+
+### 10.1.4 The client's four examples
+
+The tests read the examples from the spreadsheet and never copy their text into a test file (section 11.1). Measured over all
+four (v0.5): **no key word remains** in the good rewrite, and it has **exactly as many words** as the client's text. Every word
+that differs is one of these:
+
+| Difference | Count | Why |
+|---|---|---|
+| The client left the verb unchanged (*they is*, *they needs*) | 15 | FR-098: the copy must read correctly |
+| The client capitalised *They* mid-sentence | 7 | Capitals follow position |
+| The client wrote *them* for a possessive *her* (*them mood*) | 4 | The key gives *their* as one reading |
+| The client added a full stop before "They soothes" | 1 | Editing the applicant's own words; the spelling step adds no punctuation (FR-099) |
+
+*Previously read (v0.4): two first names and their three verbs differed (the oracle wrote `[NAME]`), and one *themself*
+(the oracle wrote *themselves*). A-09 settled both in the client's favour.*
+
+### 10.1.5 Where it runs
+
+In the rewrite prompt (`ADR-075` item 3), whose output P1 and P2 check before anything is written, and P3 checks for a gendered
+word left behind (`residual-gendered-term`, FR-101). *Previously read (v0.4): "Not in the flow yet ... Until then, a trustee
+sees the v0.3 output."*
+
 ## 10. EXTENSION POINT — indirect identifiers (OUT of v0.1)
 
 > **Not in this iteration, by reviewer decision of 2026-10-05.** To be specified after Emily's input.
@@ -518,6 +833,10 @@ The flow design (`wbs:5.3`) must keep the same seam: detection, then refinement,
 **The flow keeps it** (`ADR-071` item 9): every detector appends offset-only spans to one array, and the merge, rebuild,
 residue checks and decision read that array without knowing which detector wrote a span. An indirect rule, or the prompt
 (`ADR-072`), is one more stage writing into it.
+
+> **v0.5: `ADR-071` item 9's seam is superseded** (`ADR-075`). An indirect identifier is now added in one of two places: an
+> instruction in the rewrite template's rule 6 (the prompt labels it; P2 already accepts any label word), or a residue check
+> (P3, which holds the record). Neither changes P1 or P2.
 
 ---
 
@@ -651,4 +970,8 @@ The report gives recall, misses and false positives per label for the model alon
 | **D-1** | Keep a town or place on its own in v0.1 (section 8.2), deferring FR-027's place half to the indirect-identifier iteration | **DECIDED 2026-10-06: kept, as drafted.** Reviewer: *"Agreed"* |
 | **D-2** | A narrative where the model finds nothing goes to manual review (`no-model-detections`) | **DECIDED 2026-10-06: kept until the live run shows the model's recall, as drafted.** Reviewer: *"Agreed"* |
 | **D-3** | Add `[EMAIL]` to FR-026's label set | **DECIDED 2026-10-06: added, as drafted.** Reviewer: *"Agreed"* |
+| **D-5** | Replace gendered and relationship words with the client's neutral ones (section 10.1) | **DECIDED 2026-10-14: *"follow the key file"*.** Section 3.2's "an unnamed relationship stays" now keeps the relationship in a neutral word |
+| **D-6** | Make the output read correctly where a replacement breaks it, and spell-check the applicant's own words | **DECIDED 2026-10-14, in part:** *"Yes also add spell checking and auto correct that for readability"*. Fixing the grammar the replacement breaks is specified (10.1.2). General spell-checking is a change-order decision (`C-COM-002`) and is not built. **v0.5: spelling is built** as the separate spelling prompt (FR-099, `CO-009` approved unbilled, 2026-10-16), accepted word by word (section 7b) |
+| **D-7** (v0.5) | Names: *They*, or a label | **DECIDED 2026-10-16** (A-09, FR-095, OQ-054), **corrected the same day**: *"My husband Derek becoms partner. not family member. the word husband is leading in this pattern."* (section 10.1.3) |
+| **D-8** (v0.5) | Keep `[FAMILY MEMBER]` although no rule produces it | **DECIDED 2026-10-16:** *"Keep the family member label for now. I am expecting one more itteration on the labels after Emily has tested."* The label set is held in one place in the flow (`Compose_constants.labels`) and in the oracle (`LABEL_BY_CODE`), and a test fails until they agree |
 | **D-4** | Should NHS numbers, National Insurance numbers and dates of birth written in free text be labelled? The model returns none of them as a type. A date of birth comes back only as a date, which is kept | **REFERRED TO EMILY 2026-10-06** (reviewer). Open. Until she answers they are not labelled; an NHS number (ten digits) trips `residual-digit-run` and goes to review; a National Insurance number and a date of birth do not. Each is one rule, or one shape, if wanted |

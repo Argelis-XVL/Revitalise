@@ -26,9 +26,13 @@ month-by-month recompute with anomaly flagging (`CO-005`, `wbs:6.10`, resolving 
 below** ·
 **Amendment A-08 APPROVED 2026-09-25 — the website intake transfer rule and the answers it newly
 stores (`wbs:4.1`, `4.2`, `4.3`, contracted rework; answering TAD rev 10 Appendix C §C.9; OQ-051 to OQ-053 answered) —
-see below**
+see below** ·
+**Amendment A-09 APPROVED 2026-10-16 — Narrative Scrubbing follows the client's Anonymisation Key: gendered and relationship words become neutral ones, names become *They*, the redacted copy reads correctly and is spell-checked (`wbs:5.6`; spell-check under `CO-009`, approved unbilled); hosting in Switzerland and EU prompt processing accepted (NFR-009); OQ-054 to OQ-056 adopted at their defaults — see below** ·
+**Amendment A-10 APPROVED 2026-10-19 (revision 2, after reviewer feedback) — Auto-reject extended to three financial eligibility rules (amount over the limit for the break type without an exceptional request, £100 or £500 by type; income above the ceiling for an applicant not on means-tested benefits; savings over £6,000), every rule's parameter a setting the process owner changes, every reason that fired written for Emily, the 12-month prior-funding rule written down as built (`wbs:2.4`, `2.7`; not billable) — see below** ·
+**Amendment A-11 APPROVED 2026-10-19 — the process owner reviews and releases every redacted narrative, not only flagged ones, and nothing is released automatically; the confidence threshold becomes a flag for her attention (FR-029, FR-030, NFR-017, NFR-018, US-007 AC-4 and AC-5); the applicant's own name keeps `[NAME]` and a name right after a relationship word is dropped even when other people are named (FR-095) (`wbs:5.3`, `5.4`, `5.6`; no new ids; OQ-054 case (e) confirmed) — see below** ·
+**Amendment A-12 APPROVED 2026-10-20 — recording the final payment starts the six-year retention clock: the grant's final payment date is set and the application moves to "Grant Paid" (FR-107 to FR-112, US-026; `wbs:8.6`, change order `CO-010`, scope accepted unbilled; OQ-057 and OQ-058 answered; **reviewer-directed revision 2026-10-20: a final payment must carry a payment date, and marking it final sets its status to Issued**, with OQ-059 raised and answered *"No. payment final means final."*; **second revision 2026-10-20: the grant's own status also moves to "Paid", FR-113, with OQ-060 raised and answered *"Keep default."***) — see below**
 
-<!-- id-allocation: FR-001..FR-063, FR-070..FR-079, FR-080..FR-082, FR-083..FR-093, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, OQ-049..OQ-050, OQ-051..OQ-053, US-001..US-016, US-020..US-023, US-024 -->
+<!-- id-allocation: FR-001..FR-063, FR-070..FR-079, FR-080..FR-082, FR-083..FR-093, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, OQ-049..OQ-050, OQ-051..OQ-053, US-001..US-016, US-020..US-023, US-024, FR-094..FR-101, OQ-054..OQ-056, US-025, FR-102..FR-106, FR-107..FR-111, OQ-057..OQ-058, US-026, FR-112, OQ-059, FR-113, OQ-060 -->
 
 ---
 
@@ -1168,6 +1172,544 @@ see below**
 
 ---
 
+> ## 📌 Amendment A-09 — APPROVED 2026-10-16
+>
+> **Raised by:** plan-agent, 2026-10-16, strategic tier, dispatched by lead-agent after the reviewer's
+> 2026-10-14 and 2026-10-16 decisions on Narrative Scrubbing (Automation #5). **Contracted scope:**
+> `wbs:5.6` (redaction rules adjusted from Emily's review) and `wbs:5.1` (which free-text fields are
+> redacted). **One requirement, FR-099, depends on change order `CO-009`**, which is PROPOSED and not
+> approved. This amendment records that dependency. It decides no billing and no task id
+> (`C-COM-002`). §10 is unaffected and restates no figure (`C-COM-008`).
+>
+> ### Why this session ran
+>
+> On 2026-10-14 the client sent two spreadsheets: an **Anonymisation Key** (gendered and relationship
+> words, and the neutral word each becomes) and **four anonymised examples** showing how Emily does it by
+> hand. The reviewer said *"follow the key file"*. Development-agent wrote the rules and tests from them
+> (Dev Summary Iteration 8; redaction rules v0.4 §10.1). Neither this SDD's FR-026 nor any other
+> requirement says gendered words are replaced, names become *They*, or the text is spell-checked. This
+> amendment writes those requirements. It decides no flow, prompt, model or column. Those are the TAD's,
+> and architect-agent is revising the TAD on the same decisions in parallel.
+>
+> ### The reviewer's decisions — verbatim (Xander Lykopoulos, relayed by lead-agent)
+>
+> | Date | Subject | Words |
+> |---|---|---|
+> | 2026-10-14 | The key | *"1. follow the key file"* |
+> | 2026-10-14, 2026-10-16 | Spelling | *"Yes also add spell checking and auto correct that for readability"*; *"This feature should be added to the design, because its a requirement that came up during the meeting with Emily."* |
+> | 2026-10-16 | *him* and *hers* | *"Use the clients own examples"* |
+> | 2026-10-16 | First names | *"Change to the clients key and examples"* |
+> | 2026-10-16 | Words the key does not list | *"Yes, add words for these: grandmother, stepson, auntie, niece, nephew, mummy, lady, and the titles Mr, Mrs, Ms and Miss."* |
+> | 2026-10-16 | A second word after *and* | *"This depends... if the second word that belongs to end is identifyable information than it also needs to change."* |
+> | 2026-10-16 | Three questions with no redacted copy | *"don't have to be in the trustee portal. All fields in the trustee portal right now is what the trustees use to make their decisions on."* |
+> | 2026-10-16 | Hosting in Switzerland, quoting Revitalise's legal office | *"Under UK GDPR, personal data does not necessarily have to be stored in the UK. Switzerland is recognised under the UK's adequacy regulations as providing an adequate level of protection for personal data, as confirmed in the ICO's guidance. So, from an international data transfer perspective, there is no issue with the Grant Application Solution being hosted in Switzerland simply because of its location."* |
+> | 2026-10-16 | *Move data across regions* (AI prompts processed in the EU Data Boundary) | *"the move data accross regions options is on in both dev and acc. This is standard."* Then, confirming: *"Yes, the AI prompt processed in EU is agreed."* Then: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"* Previously read: *"Flex routing is not decided"* |
+>
+> ### What changes, at business level
+>
+> | ID | Requirement | WBS | Supersedes / relates to |
+> |---|---|---|---|
+> | FR-026 | Adds `[EMAIL]`; a person's name follows FR-095 instead of always `[NAME]` | 5.6 | **Amends FR-026**, original kept |
+> | FR-094 | Replace the key's gendered and relationship words with its neutral words | 5.6 | New |
+> | FR-095 | A person's name becomes *They* / *them* / *their*, as in the client's examples | 5.6 | New; narrows FR-026's `[NAME]` |
+> | FR-096 | Also replace grandmother, stepson, auntie, niece, nephew, mummy, lady, Mr, Mrs, Ms, Miss | 5.6 | New |
+> | FR-097 | Each word joined by *and* is judged on its own | 5.6 | New |
+> | FR-098 | Fix the grammar a replacement breaks, so the copy reads correctly | 5.6 | New |
+> | FR-099 | Correct spelling and typing slips in the redacted copy, as a separate step | **`CO-009`** | New; commercial dependency |
+> | FR-100 | A correction never changes a label or brings back a replaced word | 5.6 | New; guards FR-098, FR-099 |
+> | FR-101 | A gendered word left in the redacted copy sends it to Emily's review | 5.6 | New; relates to FR-029, FR-030 |
+> | NFR-009, NFR-011 | Storage and backup in the UK **or Switzerland**; AI prompt processing may be in the **EU Data Boundary**; nothing outside it | 0.2 | **Amends both**, originals kept. Depends on flex routing being off: **met**, stated by the reviewer 2026-10-16 (disabled at tenant level), not measured by an agent. Previously read: *"open reviewer decision, TAD `A-R92` / `A-NS-32`"* |
+> | US-025 | *I stop taking gender out by hand* | — | Traces FR-094 to FR-101 |
+>
+> §7.0, §7.3 and §7.7 R6 follow NFR-009. §7.1c classifies two free-text answers that were never
+> classified. §9 adds OQ-054 to OQ-056 and widens OQ-048.
+>
+> ### Findings that shaped the text
+>
+> **1. Where the key and the examples disagree, the examples win.** The reviewer answered the *him* and
+> *hers* question with *"Use the clients own examples"*, and the names question with *"the clients key and
+> examples"*. The examples write *him* as *them* where the key says *their*. So FR-094 follows the examples
+> on every point they cover, and the key everywhere else. **The examples' grammar slips are not followed**
+> (*they is*, *they needs*, *them mood*). The 2026-10-14 decision asked for readable text, and FR-098
+> carries it.
+>
+> **2. The SDD was behind a decision already made.** The reviewer added `[EMAIL]` to FR-026's labels on
+> 2026-10-06 (redaction rules decision D-3, *"Agreed"*), but FR-026 still listed five labels. It is
+> corrected here rather than raised as a question.
+>
+> **3. The reviewer's *and* answer is about identifying words, so it does not settle verb agreement on its
+> own, and it does not need to.** The question asked whether *"They receive PIP and requires care"* is
+> acceptable. The answer says the second word changes when it identifies someone: *my wife and son*
+> becomes *my partner and child* (FR-097). The verb is a different matter, and an earlier decision settles
+> it: 2026-10-14 asked for the text to be corrected *"for readability"*, and `CO-009`'s own scope places
+> grammar the replacement breaks in `wbs:5.6`. So FR-098 requires the second verb to agree. It is not
+> raised again. Whether the TAD's mechanism can do it is the TAD's question.
+>
+> **4. Spelling and substitution grammar are two requirements, not one.** FR-098 fixes only what a
+> replacement broke, and is contracted under `wbs:5.6`. FR-099 corrects the applicant's own spelling, which
+> `CO-009` sizes as a separate step. Keeping them apart means FR-098 can be accepted while `CO-009` is still
+> open. Both run on the redacted copy only. The stored original never changes (FR-031).
+>
+> **5. Names: the examples settle the common case and leave four cases open.** In the examples, the one
+> person a narrative is about becomes *They* and the verb agrees. The examples never show two different
+> people named in one text, a doctor's name, a name next to its relationship word (*my husband Derek*), or
+> a title. FR-095 states the common case. OQ-054 gives a default for the other four, so FR-026 still says
+> something correct for each of them. No real name from the examples is quoted in this SDD, because they
+> may be real applications.
+>
+> **6. The three questions with no redacted copy get none, and two of them were never classified.** The
+> reviewer ruled they need not reach the trustee portal, so FR-079 is not extended to them. Two of their
+> answers, *source of additional funding* and *awaiting decision from*, are free text, unsecured
+> (`IsSecured=0` in `Entities/rev_application/Entity.xml`, read 2026-10-16), and in none of §7.1a to §7.1c.
+> §7.1c now classifies them. The third, *benefit provider*, is already secured and classified (§7.1b).
+>
+> **7. Residency: the requirement moves to where the solution already is.** All three environments are on
+> `crm17.dynamics.com`, which Microsoft maps to Switzerland (measured 2026-10-05). **The entity extractor runs
+> in Switzerland; AI prompts do not.** Per Microsoft Learn, as cited in TAD `ADR-075`, every prompt model in the
+> Switzerland geography is *"GA (cross-geo)"*, and with *Move data across regions* allowed a Swiss environment's
+> prompts are processed by Azure OpenAI in the EU Data Boundary. The reviewer says that setting is on in DEV
+> and TST/ACC (*"This is standard."*), and agreed the EU processing: *"Yes, the AI prompt processed in EU is agreed."* Revitalise's legal office says Swiss hosting is no transfer problem under
+> UK GDPR, because Switzerland holds UK adequacy. NFR-009 now requires storage and backup in the UK or
+> Switzerland, allows prompt processing inside the EU Data Boundary, and allows nothing outside it. The EEA is
+> also covered by UK adequacy regulations. That is context, **not verified by plan-agent**, and the legal
+> office's statement names only Switzerland. **Flex routing**, which can process prompts outside the EU Data
+> Boundary at peak load, has to be off for NFR-009 to hold. **It is off:** the reviewer, 2026-10-16,
+> *"Ah, the flex routing option is disabled on tenant level. Only EU handling"*. That is the reviewer's statement, not an agent measurement. Previously read: *"Whether it is
+> off is an open reviewer decision (TAD `A-R92`, `A-NS-32`), so NFR-009 records the dependency and decides
+> nothing."* Each
+> component's location still has to be verified and recorded; that has been done for the environments, and
+> not yet for the signature and finance services. The DPIA and RoPA still say UK only, which is a recording
+> task under OQ-048, not a new question.
+>
+> ### Resolution — 2026-10-16
+>
+> **APPROVED by the reviewer, Xander Lykopoulos, 2026-10-16**, relayed to plan-agent by lead-agent from the
+> reviewer's own turn: *"Approved for requirements Amendment A-09"*. The reviewer was told that approval accepts the open questions' defaults unless
+> changed, and changed none, so **OQ-054, OQ-055 and OQ-056 are adopted at their proposed defaults.** In the same
+> turn: *"CO-009 Approved with unbilled tag. Features always expand a bit during development and this one is within reasonable limits."* `CO-009` is therefore approved and unbilled. commercial-agent records the billing; this SDD decides none.
+>
+> ### Flagged for architect-agent — TAD-stage items this amendment does not decide
+>
+> 1. **Where FR-094 to FR-101 run, and how.** TAD rev 21's neutral-term design was returned by the
+>    reviewer as too large. This SDD names no mechanism. FR-098 requires a second verb after *and* to agree,
+>    which rev 21's word-list design recorded as a limit it cannot meet.
+> 2. **FR-099 is a separate step on the redacted copy only** (reviewer: *"I think it's better to keep it
+>    separated"*). NFR-009 now allows prompt processing in the EU Data Boundary, which removes the residency block on
+>    the prompt stage. Flex routing is disabled at tenant level (reviewer, 2026-10-16: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"*), which bears on
+>    TAD `A-R92` and `A-NS-32`. Previously read: *"provided flex routing is off (TAD `A-R92`, `A-NS-32`)"*.
+> 3. **`rev_otherfundingsource` and `rev_awaitingdecisionfrom` are unsecured free text.** They are classified
+>    Personal (Art. 6) in §7.1c on the `rev_breaklocation` precedent. Free text can carry health detail, so
+>    whether to secure them is the TAD's call against C-DOM-001.
+> 4. **The redaction rules' kinship word list is extendable by Emily** (rules §7c). Whether the new words of
+>    FR-096 join that list or the fixed floor is the TAD's.
+
+---
+
+> ## 📌 Amendment A-10 — APPROVED 2026-10-19 (revision 2)
+>
+> **Raised by:** plan-agent, 2026-10-19, strategic tier (financial eligibility data), dispatched by
+> lead-agent on the reviewer's request of the same day. **Revised the same day** on the reviewer's
+> feedback (Xander Lykopoulos, 2026-10-19, relayed by lead-agent); see *Revision 2* below. **Contracted
+> scope:** `wbs:2.4` (*"compare score to threshold from Settings, set status (Auto-pass/Borderline/Auto-reject),
+> check income ceiling"*) and `wbs:2.7` (*"Adjust flow, views, and Settings based on Emily's feedback"*),
+> per `contract/wbs.json`. The reviewer confirmed it is not billable beyond the contract and asked for it
+> during the build of the scoring flow, so no change order is raised (`C-COM-002`). §10 is unaffected and
+> restates no figure (`C-COM-008`).
+>
+> ### Revision 2 — what the reviewer's feedback changed (2026-10-19)
+>
+> | # | Change | Where |
+> |---|---|---|
+> | 1 | The override of Emily's EF-31 and EF-32 is a **reviewer decision**, not an open item | Finding 1 |
+> | 2 | Amount limits split by break type: **£100** for Day trips or outings and Activity or Experience; **£500** for Holiday accommodation, Respite Care Facility stay and Other | FR-102, AC-14, examples 4, 14, 15 |
+> | 3 | **Every** auto-reject rule's parameter is a setting the process owner changes without touching the flow. Where the form fixes the figure, the setting is an on/off switch | FR-017, FR-103, FR-104, Finding 8 |
+> | 4 | The income rule applies only when the applicant does **not** receive means-tested benefits. **Employment status is not read** | FR-015, FR-016, examples 6 to 8, 16, 17, Findings 2 to 4 |
+> | 5 | The employment-status carve-out and the approval line's sign-off for it are **withdrawn** | Finding 3, architect item 1, approval line |
+> | 6 | Trustees never see the reason: **FR-106 and the securing item are withdrawn**, the classification rows stay | FR-106, AC-19, Finding 6, §7.1d, architect item 3 |
+> | 7 | Round 4 impact re-run: **0 of 63** rejected on amount (was 5), **4 of 63** on income (was 0) | Findings 1 and 2 |
+>
+> Unchanged from revision 1, as the reviewer confirmed: savings over £6,000 rejects alone for every
+> applicant, and a missing scored answer gives Under Review with no eligibility rule applied (FR-022).
+>
+> ### Why this session ran
+>
+> Today the scoring flow sets Auto-reject for two reasons only: a score at or below the knockout
+> threshold, and funding from Revitalise within the last 12 months. The income check records a flag and
+> rejects nothing. The amount requested, the type of break, the exceptional-funding tick and the savings
+> answer are not read at all (read 2026-10-19 in
+> `Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json`, actions
+> `Derive_income_flag`, `Derive_status`, `Derive_autoreject_reason`). The reviewer wants three financial
+> eligibility rules to reject as well, with every reason written where Emily reads it.
+>
+> ### The reviewer's decisions — verbatim (Xander Lykopoulos, 2026-10-19, relayed by lead-agent)
+>
+> | Subject | Words |
+> |---|---|
+> | The rule | *"Every one of the following SHALL set status Auto-reject (4) and write a plain-language reason into rev_autorejectreason (shown on the application main form), so the grant admin (Emily, process owner) does not have to hunt for why. When several rules fire, ALL reasons are listed, not just the first."* |
+> | Amount (revision 2, in force) | *"That is correct. This overrides that decision."* Day trips or outings and Activity or Experience: over £100. Holiday accommodation, Respite Care Facility stay and Other: over £500. Over the limit (strictly greater) with exceptional funding not ticked: Auto-reject. Only `rev_amountrequested` is compared, not `rev_additionalamountrequested` (revision 1, unchanged). |
+> | ~~Amount (revision 1)~~ | ~~*"rev_amountrequested > 500 GBP where rev_breaktype = 1 (Holiday accommodation) and rev_exceptionalfundingrequested is not ticked. For every other break type (2 Day trips, 3 Activity/Experience, 4 Respite Care Facility stay, 5 Other): rev_amountrequested > 100 GBP and exceptional funding not ticked."*~~ Superseded by revision 2 for break types 4 and 5. |
+> | Income (revision 2, in force) | *"The flow should only look at income band when the applicant has not receiving means tested benefits. Employment status doesn't have to be checked."* |
+> | ~~Income (revision 1)~~ | ~~*"applicant is employed (rev_employmentstatus 1 full-time or 2 part-time) AND income band is above the configured IncomeCeiling (25,000; bands 3 and 4) -> reject."*~~ Superseded by revision 2. |
+> | Savings | *"rev_savingsover6000 = Yes rejects on its own, for every applicant regardless of employment or benefits."* Unchanged in revision 2. |
+> | Prior funding, score | *"Funded before within 12 months (already built) -> reject, as today."* *"Score at or below KnockoutThreshold (already built) -> reject, as today."* |
+> | Missing scored answer | Keep FR-022: Under Review, no automated outcome. The eligibility rules do not fire in that path. Unchanged in revision 2. |
+> | Human check | Every auto-reject is checked by the grant admin, who agrees or overrides it (FR-018). |
+> | Configurable (revision 2) | *"These thresholds should be in the settings table, so that the process owner can change them. Just like income ceiling is on the settings table. Do the same for the other auto-reject reasons."* |
+> | Trustee exposure (revision 2) | *"Trustees don't see these fields in the portal. They don't have the link to the admin app, that app is not shared with their security role."* |
+>
+> ### What changes, at business level
+>
+> | ID | Requirement | WBS | Supersedes / relates to |
+> |---|---|---|---|
+> | FR-014 | Auto-reject when **any** of five rules applies; otherwise Borderline or Auto-pass by score, as today | 2.4 | **Amends FR-014**, original kept |
+> | FR-015 | An applicant not on means-tested benefits whose income band is above the ceiling is rejected; the flag stays | 2.4 | **Amends FR-015**, original kept; answers half of OQ-003 |
+> | FR-016 | No change: the income rule reads no disability, health or employment answer | 2.4 | **Annotates FR-016** (revision 1's employment scoping withdrawn) |
+> | FR-017 | Every auto-reject rule's parameter is a setting Emily can change | 2.4, 2.7 | **Amends FR-017**, original kept |
+> | FR-022 | No eligibility rule fires when a scored answer is missing | 2.4 | **Annotates FR-022** |
+> | FR-102 | Amount requested over the limit for the break type, no exceptional request: reject | 2.7 | New |
+> | FR-103 | Savings over £6,000: reject, while the rule is switched on | 2.4 | New |
+> | FR-104 | Funded by Revitalise within the last 12 months: reject, while the rule is switched on. Built, never written down | 2.7 | New; records built behaviour |
+> | FR-105 | Every reason that fired is written, in plain language, where Emily reads the case | 2.7 | New; widens the reason already built |
+> | ~~FR-106~~ | ~~The reason text is shown to staff only, never to a trustee~~ **WITHDRAWN, revision 2** (reviewer ruling, Finding 6) | — | Identifier stays allocated, with no force |
+> | US-006 | AC-4, AC-5 and AC-7 amended; AC-13 to AC-18 and AC-20 added; ~~AC-19~~ withdrawn | — | Traces the above |
+>
+> §7.1d classifies the reason text. §7.4 and OQ-005 widen the DPO's automated-decision question to the
+> new reasons. OQ-003 is half answered. FR-020 and FR-021 are unchanged: every new reason sets Auto-reject,
+> so those cases leave the active list and are counted in the daily summary as they are today.
+>
+> ### The rules on worked examples
+>
+> All examples use the default settings of Finding 8: knockout threshold 20, borderline band 21 to 30,
+> income ceiling £25,000, both switches on. The knockout values are provisional in DEV and TST/ACC (OQ-001).
+> *Not on benefits* means the applicant answered anything other than Yes to receiving means-tested benefits.
+>
+> | # | Application | Status | Reason text Emily reads |
+> |---|---|---|---|
+> | 1 | Holiday accommodation, £500 requested, no exceptional tick, score 45 | Auto-pass | *(empty)*. £500 is not over £500 |
+> | 2 | Holiday accommodation, £650, no exceptional tick, score 45 | Auto-reject | *Amount requested £650.00 is over the £500 limit for Holiday accommodation, and no exceptional funding was requested.* |
+> | 3 | Holiday accommodation, £650, exceptional ticked, additional amount £150, score 45 | Auto-pass | *(empty)*. The tick lifts the limit; the additional amount is never compared |
+> | 4 | Respite Care Facility stay, £400, no exceptional tick, score 45 | Auto-pass | *(empty)*. £400 is within the £500 limit. *Revision 1 rejected this against £100.* |
+> | 5 | Day trip, £100, no exceptional tick, score 25 | Borderline | *(empty)*. £100 is not over £100 |
+> | 6 | Not on benefits, in work full-time, income £25,000 to £34,999, score 45 | Auto-reject | *The household income band (£25,000 to £34,999) is above the income ceiling of £25,000.* |
+> | 7 | Not on benefits, retired, income over £35,000, score 45 | Auto-reject | *The household income band (Over £35,000) is above the income ceiling of £25,000.* Employment is not read. *Revision 1 passed this.* |
+> | 8 | Not on benefits, income £15,000 to £24,999, score 45 | Auto-pass | *(empty)*. The band's top, £24,999, is within £25,000 |
+> | 9 | Receives means-tested benefits, so the form asked no income, employment or savings question, score 45 | Auto-pass | *(empty)*. The income rule does not apply, and a blank savings answer is not a Yes |
+> | 10 | Savings over £6,000 Yes, not on benefits, income under £15,000, score 45 | Auto-reject | *The applicant has savings over £6,000.* |
+> | 11 | Savings Yes, Holiday accommodation £650 without tick, funded 8 months ago, score 18 | Auto-reject | Four lines, in this order: amount; savings; *Received funding from Revitalise before, and that previous funding was within the last 12 months.*; *Circumstance score 18 is at or below the auto-reject threshold (20).* |
+> | 12 | Savings Yes, one wellbeing answer missing | Under Review | *(empty)*. FR-022 applies, and no eligibility rule fires |
+> | 13 | Example 10, then Emily overrides to Eligible for Panel | Eligible for Panel | Unchanged: *The applicant has savings over £6,000.* Her override is recorded separately (FR-018) |
+> | 14 | Respite Care Facility stay, £520, no exceptional tick, score 45 | Auto-reject | *Amount requested £520.00 is over the £500 limit for Respite Care Facility stay, and no exceptional funding was requested.* |
+> | 15 | Activity or Experience, £120, no exceptional tick, score 45 | Auto-reject | *Amount requested £120.00 is over the £100 limit for Activity or Experience, and no exceptional funding was requested.* |
+> | 16 | Not on benefits, no income band given, score 45 | Auto-pass | *(empty)*. The income flag records *not stated*, as it does today; a band that is not given is not above the ceiling |
+> | 17 | Receives means-tested benefits, and an income band of Over £35,000 is on the record anyway, score 45 | Auto-pass | *(empty)*. The income rule does not apply to a benefits claimant |
+> | 18 | Example 10, after Emily switches the savings rule off | Auto-pass | *(empty)*. A switched-off rule never applies and writes no reason |
+> | 19 | Emily changes the Day trips or outings limit to £150; a £120 day trip, no exceptional tick, score 45 | Auto-pass | *(empty)*. No flow is edited |
+>
+> ### Findings that shaped the text
+>
+> **1. The amount limits override two earlier client positions, by reviewer decision.** Emily's September
+> feedback set £500 for *"holidays/respite"* (`docs/plans/emily-review-feedback-2026-09-plan.md`, EF-31)
+> and, confirmed 2026-09-18, *"Other takes no automatic threshold and is flagged for manual review"*
+> (EF-32). Both were a flag, not a rejection. The reviewer ruled on 2026-10-19: *"That is correct. This
+> overrides that decision."* Respite keeps EF-31's £500; Other now has a £500 limit; and going over it
+> rejects. Measured on the Round 4 board pack (`docs/Import/3. Round 4 - Individual Applications.pdf`,
+> 63 applications, re-read 2026-10-19): **0 of 63 would be auto-rejected on amount.** Every request above
+> its limit carried an exceptional amount. The 3 respite stays (£400, £500, £500) and 2 Other (£500, £500)
+> that revision 1's £100 limit rejected are all within £500, and the 3 day trips sit exactly on £100. The
+> pack shows the exceptional amount, not the tick, so a blank amount was read as *not ticked*.
+>
+> **2. The income rule now rejects 4 of the 6 Round 4 applicants it can reach.** 57 of 63 receive
+> means-tested benefits, so the income rule does not apply to them (and the live form asks them no income,
+> employment or savings question, EF-28b). Of the other 6, 4 have a band above £25,000 and **4 of 63 are
+> rejected on income**: one retired, and three who answered that they cannot work because of disability,
+> health or caring. One of the four also answered savings Yes, so **1 of 63 is rejected on savings**, the same
+> applicant. **In all, 4 of 63 are auto-rejected on financial grounds**, against 6 in revision 1. This is
+> the rule as decided; it is recorded so approval is given with the numbers in view, not raised as a question.
+>
+> **3. WITHDRAWN, revision 2: the scoring flow does not read the employment status.** The reviewer
+> decided employment status is not checked, so no carve-out in the special-category register is needed
+> and C-DOM-030 holds as it stands today. Revision 1 read: ~~3. The income rule reads a special-category
+> column, scoped so the health answer has no effect of its own. `rev_employmentstatus` is classified Art. 9
+> (§7.1a, D-1), because one of its five answers is "No, unable to work due to disability/health/caring
+> responsibilities". The column is barred from the scoring flow (C-DOM-030 in
+> `constraints/domain/domain-constraints.md`). The rule only asks in work (answers 1 and 2) or not:
+> answers 3, 4 and 5 and a blank all produce the same result. So the disability answer has no effect that
+> retired or other reason would not also have. This needs a scoped carve-out in the special-category
+> register, of the same kind already approved for benefit status (`rev_receivesbenefits`, reviewer
+> sign-off 2026-09-18). Approving this amendment is that sign-off, and the approval line says so.~~
+>
+> **4. The income rule uses the existing income flag, which already takes benefits into account.** The flag
+> records *qualifies on benefits* whenever the benefits answer is Yes, and *above the ceiling* only for
+> anyone else whose band's top is above the ceiling; a band that is not given is recorded as *not stated*
+> (read 2026-10-19, `Derive_income_flag`). So *"reject when the flag says above the ceiling"* is exactly the
+> reviewer's rule: benefits Yes never rejects on income, and no band never rejects. The benefits answer is
+> special category, and the scoring flow may read it only to set this flag (`rev_receivesbenefits` gate
+> exception, reviewer sign-off 2026-09-18). Reading the flag keeps that exception's scope intact. The
+> income reason therefore names only the band and the ceiling, never benefits or employment.
+>
+> **5. The 12-month prior-funding rule was built with no requirement behind it.** It came from Emily's
+> feedback (EF-34, `wbs:2.7`) and is in the flow, but no FR in this SDD stated it. FR-104 writes it down
+> as built. The reason column itself (EF-45) is built, on the main form's Casework tab, and holds one
+> reason; FR-105 makes it hold all of them.
+>
+> **6. WITHDRAWN, revision 2: the reason text needs no securing, by reviewer ruling.** The reviewer ruled that trustees do not see these columns: *"They don't have the link to the admin app, that
+> app is not shared with their security role."* Revision 2 also removed the cause: with employment not read,
+> no reason repeats a secured answer (Finding 4). Checked 2026-10-19: neither trustee portal code app
+> (`src/code-apps/trustee-review-portal`, `trustee-review-portal-cards`) names `rev_autorejectreason` or
+> `rev_scoringaudit` in any screen or query; both appear only in the generated table models, which list
+> every column of the table. The trustee role does read the application table, which the portal needs, so
+> the ruling rests on no trustee surface showing the text. FR-106 is withdrawn; §7.1d keeps the rows.
+> Revision 1 read: ~~6. The reason text repeats a secured answer in an unsecured column. Example 6's reason
+> contains the employment answer, which trustees must never see (FR-078, D-1). `rev_autorejectreason` and
+> `rev_scoringaudit` are both `IsSecured=0` (read 2026-10-19). An application Emily overrides into the
+> panel round (example 13) carries its reason with it. FR-106 keeps the reason from trustees; §7.1d
+> classifies the column. How it is secured is the TAD's.~~
+>
+> **7. The automated-decision question now covers financial rejections, and the reviewer has described a
+> human check.** OQ-005 asked whether rejection *at the threshold* stands. It now also covers amount,
+> income, savings and prior funding. The reviewer stated that Emily checks every auto-reject and agrees
+> or overrides it. That is the stronger form §7.4 describes. Only an override leaves a record today; an
+> agreement leaves none. OQ-005 stays the DPO's, and is re-dated to an event.
+>
+> **8. Every rule has a setting; where the form fixes the figure, the setting is an on/off switch.** The
+> savings question is a Yes/No answer to *"over £6,000"* and the prior-funding question a Yes/No answer to
+> *"more than 12 months ago"*. The flow never sees an amount or a date, so neither figure can be a setting:
+> changing it means changing the form (BR-S11). What Emily can change for those two rules is whether they
+> apply. The defaults follow the reviewer's decision that both reject.
+>
+> | Rule | What the process owner changes | Default |
+> |---|---|---|
+> | Amount (FR-102) | One limit per type of break | Holiday accommodation £500; Day trips or outings £100; Activity or Experience £100; Respite Care Facility stay £500; Other £500. Seeded in all three environments |
+> | Income (FR-015) | The income ceiling, as today | £25,000 in DEV and TST/ACC; PRD per OQ-003 |
+> | Savings (FR-103) | On or off | On |
+> | Prior funding (FR-104) | On or off | On |
+> | Score (FR-014) | The knockout threshold, as today | 20, provisional (OQ-001) |
+>
+> A missing setting stops the run with no outcome and alerts, as a missing setting does today.
+>
+> ### Resolution — 2026-10-19
+>
+> **APPROVED by the reviewer, Xander Lykopoulos, 2026-10-19**, revision 2, relayed to plan-agent by lead-agent
+> from the reviewer's own turn: *"Approved"*. The approval covers the requirement text as revision 2 states it,
+> the setting defaults of Finding 8 and the four worked-example sets the rules are written on. Three things it
+> does not do:
+>
+> - It does not answer **OQ-003**'s remaining question. £25,000 for PRD still needs the board's confirmation;
+>   PRD stays unseeded until then, and the event is the first PRD seed of the income ceiling.
+> - It does not answer **OQ-005**. The DPO decision, now covering the amount, income, savings and prior-funding
+>   rules, is still due before the first PRD deploy of the scoring flow carrying FR-102 to FR-105.
+> - It authorises no read of `rev_employmentstatus`. Revision 2 reads no employment answer, so no
+>   `gate_exception` is needed for it.
+>
+> The reviewer's statement that this work is inside `wbs:2.4` and `2.7` and not billable stands; commercial-agent
+> records the billing. The TAD items below go to architect-agent.
+>
+> ### Flagged for architect-agent — TAD-stage items this amendment does not decide
+>
+> 1. **WITHDRAWN, revision 2: employment is not read.** Instead, **build the income rule on the income
+>    flag's *above the ceiling* value**, not by reading the benefits answer again, so `rev_receivesbenefits`
+>    stays inside its existing scoped gate exception (Finding 4). Revision 1 read: ~~The special-category
+>    carve-out for `rev_employmentstatus` (Finding 3): a `gate_exception` in
+>    `constraints/domain/special-category-register.yml` with its own build step, on the
+>    `rev_receivesbenefits` precedent, so the scoring flow can read the column for the income rule only.~~
+> 2. **How the settings are held** (FR-017, Finding 8): five amount limits by break type (five settings, or
+>    one map) and two on/off switches. Either form meets FR-017. Seed the defaults in all three environments;
+>    the reviewer gave every value. The flow's check on the number of setting rows it reads grows with them.
+> 3. **WITHDRAWN, revision 2** (reviewer ruling, Finding 6). Revision 1 read: ~~Securing the reason text
+>    (FR-106, §7.1d): `rev_autorejectreason`, and `rev_scoringaudit`, which repeats it, must be unreadable
+>    by the trustee role.~~
+> 4. **Reason length.** Five reasons fit in the column's 1,000 characters at the wording in the examples.
+>    Confirm against the final wording.
+> 5. **Re-scoring and override.** Example 13 requires an override to leave the reason in place. Whether a
+>    later re-score rewrites it is the TAD's, so long as the text always matches the status in force.
+
+---
+
+> ## 📌 Amendment A-11 — APPROVED 2026-10-19
+>
+> **Raised by:** plan-agent, 2026-10-19, standard tier, dispatched by lead-agent after the reviewer approved TAD
+> rev 25 (`ADR-078`) the same day and asked for the SDD to follow. **Contracted scope:** `wbs:5.3`, `5.4`
+> and `5.6`. **No new ids:** FR-029, FR-030, FR-095, NFR-017, NFR-018 and US-007 AC-4 and AC-5 are amended in
+> place, and two acceptance criteria join US-025. The id-allocation declaration above is unchanged.
+>
+> ### The reviewer's decision, verbatim
+>
+> *"All records should be checked by the process owner regardless. So, we don't need that setting at all."*
+> (Xander Lykopoulos, 2026-10-19, relayed by lead-agent.) In the same turn he approved TAD rev 25.
+>
+> ### What changes, at business level
+>
+> | ID | Requirement | WBS | Supersedes / relates to |
+> |---|---|---|---|
+> | FR-030 | The process owner reviews and releases **every** redacted narrative, flagged or not; nothing is released automatically | 5.4 | **Amends FR-030**, original kept |
+> | FR-029 | The confidence threshold flags a narrative for her attention; it no longer decides release | 5.3, 5.4 | **Amends FR-029**, original kept |
+> | NFR-017, NFR-018 | Follow FR-029 and FR-030: every redaction is reviewed, and the threshold only orders her attention | 5.4 | **Amends both**, originals kept |
+> | US-007 AC-4, AC-5 | Follow FR-029 and FR-030 | 5.4 | **Amends both**, originals kept |
+> | FR-095 | The applicant's own name keeps `[NAME]`; a name right after a relationship word is dropped even when other people are named | 5.6 | **Amends FR-095**, original kept |
+> | US-025 AC-11, AC-12 | One example each for the two FR-095 changes | 5.6 | New criteria |
+>
+> §1's scope table, the OQ-054 resolution row, Appendix A and the Approval section follow.
+>
+> ### Findings that shaped the text
+>
+> **1. The threshold keeps a job; it loses the one that made it a gate.** Under FR-029 as approved, a narrative
+> above 85% could reach trustees without a person looking at it. The reviewer has ruled that no narrative does.
+> The threshold stays, because it still tells Emily which narratives the redaction was least sure about, and the
+> reviewer did not ask for it to go (*"we don't need that setting at all"* names the auto-release setting, which
+> TAD rev 25 retires). NFR-019 still lets her change the threshold without a developer.
+>
+> **2. FR-030 is no longer a response to a flag.** It said *"WHEN a narrative has been flagged"*. It now applies
+> to every redacted narrative. FR-079's withheld state therefore holds for every record until she releases it,
+> as it already did for a record she had not released.
+>
+> **3. The applicant's own name was not covered, and the built rule had already handled it.** FR-095 says a name
+> becomes *They*. For the writer's own name that is wrong: *I am Sam* would read *I am they*. The DEV run of
+> 2026-10-19 produced exactly that. FR-095 now keeps `[NAME]` for a name the writer gives for themselves (*I am
+> …*, *I'm …*, *my name is …*). TAD rev 25 `ADR-076`'s name rules already say so; this brings the SDD level with
+> them, so the architecture is not ahead of the requirement.
+>
+> **4. The relationship word wins even when other people are named.** FR-095 said a name beside its relationship
+> word is dropped, but its last sentence kept `[NAME]` for any name in a text with two or more people, so the
+> two statements disagreed for *my husband Derek and my sister Ann*. The reviewer's 2026-10-16 ruling, *"the word
+> husband is leading in this pattern"*, settles the order: the relationship rule comes first. This is a
+> correction of a contradiction inside FR-095, not a new decision.
+>
+> **5. One default is stated for a case the decision leaves open (OQ-054, case (e)).** When the writer gives
+> their own name and one **other** person is named, does that other person become *They*? **Default, applied
+> until answered:** the writer's own name is not counted as another person, so the one other named person still
+> becomes *They*. Example: *"I am Sam and Pat helps me"* becomes *"I am [NAME] and they help me"*. The
+> alternative is to keep `[NAME]` for Pat because two names are present (*"I am [NAME] and [NAME] helps me"*). The default follows the direction of
+> the reviewer's examples, where the one person a narrative is about becomes *They*. Whether the mechanism can
+> tell the writer's name from another person's is the TAD's question, not this SDD's, as in A-09.
+>
+> **6. Emily's workload.** US-007 promises *"three to four hours per board cycle"* saved. Checking every
+> narrative, rather than only flagged ones, spends some of it. The reviewer made the decision knowing it; the
+> figure in §1 and US-007 is the original sizing and is **not restated or re-sized here**. Whether the saving
+> still stands is for Emily's first live cycle to show.
+>
+> **7. Data and contract.** No column, access rule or lawful basis changes, so §7.1 and §7.1c stand (C-DOM-001,
+> C-DOM-002). The check on every record adds a control rather than removing one. `wbs:5.4`'s flag and review view are
+> still delivered, so no change order is raised here. Whether anything follows from the review step now covering
+> every record is commercial-agent's to decide; this SDD decides none.
+>
+> ### Resolution
+>
+> **APPROVED 2026-10-19.** Xander Lykopoulos, relayed by lead-agent, verbatim: *"That is correct... the assumed default is the desired output. Approved."* Finding 5's default is therefore **confirmed, not assumed**: *"I am Sam and Pat helps me"* becomes *"I am [NAME] and they help me"*, with other people counted without the writer. OQ-054 case (e) is resolved. Wherever this amendment's text says PROPOSED, read APPROVED 2026-10-19.
+
+
+> ## 📌 Amendment A-12 — APPROVED 2026-10-20
+>
+> **Raised by:** plan-agent, 2026-10-20, standard tier, dispatched by lead-agent. **Contracted scope:** `wbs:8.6`, a
+> change-order task that exists only in `contract/change-orders/CO-010.md` (scope accepted **unbilled** by the
+> reviewer on 2026-10-20, `CE-0021`, `EX-012`). `wbs:8.6` is not in `contract/wbs.json`. **New ids:** FR-107 to
+> FR-111, US-026, OQ-057 and OQ-058, declared above. No existing requirement is amended; FR-048 and FR-050 already
+> depend on the date this amendment makes someone write.
+>
+> ### The reviewer's decision, verbatim
+>
+> *"Yes, this flow needs to be build. 2- 4 hours of work on a new WBS 8.6. Non-billable. Because I thought this was
+> already inlcuded."* (Xander Lykopoulos, 2026-10-20, relayed by lead-agent, as recorded in `CO-010`.) The decision
+> accepts the scope and the size. It supplies no requirement text, and that is what this amendment adds.
+>
+> ### What changes, at business level
+>
+> | ID | Requirement | WBS | Supersedes / relates to |
+> |---|---|---|---|
+> | FR-107 | Recording a payment as the final payment sets the grant's final payment date | 8.6 | New; the start of FR-048's six-year period |
+> | FR-108 | The same event moves the application to "Grant Paid" | 8.6 | New; the status §7.6 keys retention to |
+> | FR-109 | A payment that is not final changes nothing, and saving the same payment again changes nothing | 8.6 | New |
+> | FR-110 | Removing or correcting the final mark puts the grant and application back as they were | 8.6 | New |
+> | FR-111 | A final payment that cannot be applied is reported, never dropped | 8.6 | New |
+> | FR-112 | Marking a payment final sets its status to Issued | 8.6 | New, reviewer-directed revision 2026-10-20 |
+> | FR-113 | The same event moves the grant's own status to "Paid" | 8.6 | New, reviewer-directed revision 2026-10-20 (second) |
+>
+> ### Findings that shaped the text
+>
+> **1. The gap is a compliance gap, not an automation gap.** FR-048 deletes a paid grant's full record six years
+> from its final payment date, and §7.6 starts the period at status "Grant Paid". Finance's payment form (`wbs:8.3`,
+> FR-150 to FR-154) records that a payment is final and tells nothing else. Today the date is written by no one, so
+> for every paid grant the six years never begin, and the record is neither deleted when it should be nor, if a
+> person forgets, protected for as long as the Charities Act 2011 duty requires. TAD §5.11 and risk A-R56 carry
+> the same fact. This amendment is the requirement text those two were waiting for.
+>
+> **2. Which date starts the clock is a decision, and it is stated.** The regulation says *"from final payment
+> date"* (`knowledge/domain/regulations.md`, retention schedule). A payment can be entered some days after it was
+> made. FR-107 therefore uses the date the payment itself carries, not the day finance typed it in. OQ-057 holds
+> the default for confirmation.
+>
+> **3. The wrong date errs in a known direction.** A date that is too early deletes a financial record before the
+> duty allows. A date that is too late keeps personal data longer than the schedule allows. FR-109 therefore takes
+> the **latest** final payment when a grant has more than one, and FR-110 clears the date rather than leaving a stale
+> one, so a record is never left holding a date no payment supports.
+>
+> **4. A correction must be able to undo the start of the clock.** Finance ticks the final box by mistake. Without
+> FR-110 the clock starts and the application reads "Grant Paid" for a grant still owed money. FR-110 reverses both
+> effects, and only when no other final payment supports them.
+>
+> **5. The duplicate-payment re-check is excluded.** TAD §5.11 lists the check among three things this flow "would
+> have" done: the second call site of FR-023, before a payment is issued. `CO-010` does not add it. Its
+> verification stays with `wbs:8.5`. If it is wanted in this flow it needs a separate reviewer decision and a
+> re-price. **Nothing in FR-107 to FR-111 performs it.**
+>
+> **6. The change order's other limits are kept.** FR-107 and FR-108 are the two writes `CO-010` names; FR-109 and
+> FR-110 define when they do and do not happen; FR-111 is the logged-alert case `CO-010` allows. `CO-010` says the
+> high end of its hours rises if a retry or missing-grant case needs more than a logged alert, and FR-111 stops at
+> the alert for that reason. **FR-111 asks for no retry.** Hours are `CO-010`'s to cite; this SDD restates none.
+>
+> ### Open questions raised
+>
+> OQ-057 and OQ-058 in §9, each with a default and an example, each dated against the event that makes it
+> load-bearing.
+>
+> ### Resolution
+>
+> **APPROVED 2026-10-20.** Xander Lykopoulos (relayed by lead-agent): *"Approved. OQ-057: Payment date. OQ-058: Correct.
+> All payments marked final."* Both open questions are answered, both at their defaults, so FR-107 to FR-111 stand as
+> written. Previously read: *"PROPOSED, awaiting review."* See the Approval section and OQ-057 and OQ-058 in §9.
+>
+> ### Reviewer-directed revision, 2026-10-20 (after the architect's TAD rev 28 / ADR-081 questions)
+>
+> **Recorded as approved. The gate is not re-opened.** The reviewer answered the architect's three decisions, verbatim
+> (Xander Lykopoulos, relayed by lead-agent): *"1. Agreed. 2. For now use the same as the process owner Emily. At the
+> moment that is a combined role. but in the future probably separated. During testing this can be set to Janine.
+> 3. Make payment date required when final payment is set. The the flow can set the payment status to issued.
+> APPROVED"*
+>
+> **Answer 3 changes two business rules approved above.**
+>
+> | | Previously read | Now reads |
+> |---|---|---|
+> | (a) FR-107, OQ-057 | *"If the payment carries no date, the day it is recorded is used."* | A payment cannot be saved as final on the Payment form without a payment date (an undated final payment from any other route is ignored and reported, FR-107, FR-111). The fallback is withdrawn, so no retention date ever rests on the day of typing. The date stays the payment's own date (AC-2 is unchanged). |
+> | (b) new FR-112 | Marking final changed only the grant and the application. | Marking a Pending payment final also sets its status to Issued, in the same event. A new id was needed because no row in FR-107 to FR-111 owns the payment's own status. |
+>
+> **How (b) meets FR-110 and OQ-058.** (1) *Pending marked final* (OQ-058): still counts, and now becomes Issued, so
+> finance no longer updates a second field; OQ-058's answer stands. (2) *Already Issued or Cleared:* left as it is, so
+> the flow never moves a payment backwards from Cleared. (3) *Cancelled:* never counts as final, stays Cancelled and
+> is reported under FR-111. (4) *Final mark removed, or payment cancelled (FR-110):* the grant and application are put
+> back as before, but the payment's status is **not** reverted. The flow cannot know whether the money moved, so
+> it never guesses. OQ-059 was raised because the reviewer's answer was silent on it, and is now answered: *"No. payment final means final."* The payment stays Issued.
+>
+> **Answers 1 and 2 are architecture-level and change no requirement.** The finance alert of FR-111 goes to the process
+> owner (Emily, a combined role for now, likely to be separated later), and in testing to Janine. FR-111 already says
+> "finance and the process owner" without naming a person; the TAD records who. Nothing else here depends on them.
+>
+> **New id and question.** FR-112 and OQ-059, declared above. OQ-059 is **resolved**: *"No. payment final means final."* (Previously read: *"pending"*, due before `wbs:8.6` development encodes FR-110's reversal.)
+> No hours are restated; `CO-010` is unchanged and its limit on hours is still `CO-010`'s to cite.
+
+### Second reviewer-directed revision, 2026-10-20: the grant's own status moves to "Paid"
+
+**Recorded as approved. The gate is not re-opened; no conflict found with FR-107 to FR-112.** Reviewer (Xander Lykopoulos, relayed by lead-agent), verbatim: *"Obviously the final payment should change the grant status as well."* The architect had flagged this as outside `CO-010` (*"a paid grant's own status still reads Acceptance Signed"*). The reviewer has now put it in scope; it stays under `wbs:8.6`, `CO-010`, unbilled, and no hours are restated.
+
+| | Previously read | Now reads |
+|---|---|---|
+| FR-113 (new) | A final payment changed the grant's date (FR-107), the application's status (FR-108) and the payment's status (FR-112). The grant's own status was not touched and read "Acceptance Signed" for ever. | The same event also moves the grant's own status from "Acceptance Signed" (3) to "Paid" (4). Any other grant status is left alone and reported under FR-111. FR-110's reversal returns a "Paid" grant to "Acceptance Signed". |
+
+**Two statuses, not one.** The *application* status "Grant Paid" (FR-108) and the *grant* status "Paid" (FR-113) are separate fields. The grant statuses are 1 Awarded, 2 Acceptance Issued, 3 Acceptance Signed (2 and 3 are set by the acceptance flows, FR-045) and 4 Paid. Each rule runs on its own condition, so a Withdrawn application can still have its grant moved to Paid, and an Approved application can have its application moved while the grant is reported.
+
+**No open question remains:** OQ-060 (a final payment recorded before the acceptance is signed) is resolved, *"Keep default."* New ids: FR-113, OQ-060, declared above. AC-16 to AC-19 are added to US-026.
+
+---
+
 ## 1. Business Context
 
 Revitalise is a charity that awards respite-holiday grants to unpaid carers and the disabled
@@ -1249,7 +1791,7 @@ Seven automations, in the source's priority order:
 | 2 | Scoring Engine | Circumstance score, status flags and daily summary calculated automatically |
 | 3 | Acceptance Workflow (DocuSign) | Pre-populated dual-signature acceptance with reminders and escalation |
 | 4 | Website → System-of-Record Intake | Submissions become records automatically, with a reference number |
-| 5 | AI-Assisted Anonymisation & Trustee Pack Preparation | Free-text narratives redacted with human review of low-confidence cases |
+| 5 | AI-Assisted Anonymisation & Trustee Pack Preparation | Free-text narratives redacted, each one reviewed and released by the process owner *(Amendment A-11; previously read: "human review of low-confidence cases")* |
 | 6 | Trustee Review Portal | One place for trustees to review anonymised cases and record verdicts |
 | 7 | Duplicate-Grant Check (QuickBooks) | Prior grants flagged before assessment |
 
@@ -1301,7 +1843,8 @@ than anything the pass touched and needs its own decision.
 Carried over from the source, unchanged:
 
 - **Payment process automation** (company card, provider payments) — involves financial controls
-  and provider agreements, not technology.
+  and provider agreements, not technology. *(Amendment A-12 narrows nothing here: it covers only what
+  follows a payment finance has already recorded as final, FR-107 to FR-111. Paying a provider stays out.)*
 - **Impact reporting automation** — already handled by Ian's existing dashboard.
 - **Grants management system evaluation or replacement** — a separate decision if Revitalise
   outgrows the platform.
@@ -1355,15 +1898,20 @@ are specified here.
 | FR-011 | The system SHALL calculate a circumstance score out of 60 from the applicant's wellbeing answers WHEN an application record is created, SO THAT scoring is consistent and no longer performed by hand. | High |
 | FR-012 | The system SHALL invert the applicant's reported feeling answer so that a lower reported feeling produces a higher score, WHEN calculating the circumstance score, SO THAT the score reflects need rather than positivity. | High |
 | FR-013 | The system SHALL convert each Likert wellbeing response to its configured point value (Strongly Disagree = 5, Disagree = 4, Neutral = 3, Agree = 2, Strongly Agree = 1) WHEN calculating the circumstance score, SO THAT the charity's agreed need criteria are applied identically to every application. ⚠️ **This wording is now known to be incomplete — see Amendment A-01 (PROPOSED) at the top of this document, and test-report D-009.** The agree/disagree labels are correct for only **three** of the ten wellbeing questions; the other seven use a frequency scale, and a sixth response ("Not sure", 0.5 points) is missing entirely. Left as originally approved pending plan-agent re-issue; replacement wording is proposed in A-01. | High |
-| FR-014 | The system SHALL set the application status to Auto-pass, Borderline or Auto-reject by comparing the circumstance score against the configured knockout threshold and borderline band WHEN the score has been calculated, SO THAT staff attention goes only to the cases that need human judgement. | High |
-| FR-015 | The system SHALL evaluate the applicant's financial answers against the configured income ceiling and record the outcome as a separate eligibility flag WHEN an application is scored, SO THAT applications outside the financial eligibility criteria are identified independently of the circumstance score. | High |
-| FR-016 | The system SHALL exclude disability data, health-condition data and the free-text narrative from the circumstance score calculation, SO THAT special-category data does not influence an automated outcome. | High |
-| FR-017 | The system SHALL allow the process owner to change the knockout threshold, the borderline band and the income ceiling without any change to the automation logic, SO THAT the board can adjust criteria without developer involvement. | High |
+| FR-014 | The system SHALL set the application status to Auto-reject WHEN one or more of these rules applies: the amount requested is over the limit for the type of break with no exceptional funding requested (FR-102); the applicant does not receive means-tested benefits and their income band is above the income ceiling (FR-015); the applicant has savings over £6,000 (FR-103); the applicant was funded by Revitalise within the last 12 months (FR-104); or the circumstance score is at or below the configured knockout threshold. A rule the process owner has switched off (FR-017) does not apply. Otherwise it SHALL set Borderline or Auto-pass by comparing the circumstance score against the configured borderline band. SO THAT staff attention goes only to the cases that need human judgement. None of these rules applies WHEN FR-022 withholds an automated outcome. ⚠️ **AMENDED, Amendment A-10 (APPROVED 2026-10-19, revision 2).** Reviewer, 2026-10-19: *"Every one of the following SHALL set status Auto-reject (4)"*. A rule that applies rejects whatever the score: savings Yes with a score of 45 is Auto-reject, not Auto-pass. The knockout and 12-month rules are unchanged; the 12-month rule was built (EF-34) before any FR stated it. Revision 1's income clause read *"the applicant is in work with an income band above the income ceiling"*; the reviewer withdrew the employment condition on 2026-10-19. Previously: *"The system SHALL set the application status to Auto-pass, Borderline or Auto-reject by comparing the circumstance score against the configured knockout threshold and borderline band WHEN the score has been calculated, SO THAT staff attention goes only to the cases that need human judgement."* | High |
+| FR-015 | The system SHALL evaluate the applicant's financial answers against the configured income ceiling and record the outcome as a separate eligibility flag WHEN an application is scored, and SHALL set Auto-reject (FR-014) WHEN the flag records the income band as above the ceiling, SO THAT an applicant who does not receive means-tested benefits and whose household income is above the ceiling is rejected on that ground alone. A benefits Yes sets the flag to *qualifies on benefits*, so the income band is not looked at and the rule cannot reject. Any other benefits answer, a blank one included, means the band is compared. A band is above the ceiling when its top is above it: at a £25,000 ceiling, *£25,000 to £34,999* and *Over £35,000* are above, and *£15,000 to £24,999* is not. An applicant not on benefits who gave no income band is recorded as *not stated*, as the flag does today, and is not rejected (A-10 example 16). The employment status is not read. ⚠️ **AMENDED, Amendment A-10 (APPROVED 2026-10-19, revision 2).** Reviewer, 2026-10-19: *"The flow should only look at income band when the applicant has not receiving means tested benefits. Employment status doesn't have to be checked."* Answers the second half of OQ-003. The flag is kept as it is. Revision 1 also required the employment status to be *Yes, full-time* or *Yes, part-time*; that condition is withdrawn. Previously: *"The system SHALL evaluate the applicant's financial answers against the configured income ceiling and record the outcome as a separate eligibility flag WHEN an application is scored, SO THAT applications outside the financial eligibility criteria are identified independently of the circumstance score."* | High |
+| FR-016 | The system SHALL exclude disability data, health-condition data and the free-text narrative from the circumstance score calculation, SO THAT special-category data does not influence an automated outcome. ⚠️ **Annotated, Amendment A-10 (APPROVED 2026-10-19, revision 2).** No auto-reject rule reads a disability, health or employment answer. The income rule reads the income flag, which uses the benefits answer only as the gate exception approved on 2026-09-18 allows (A-10 Finding 4). The score calculation is unchanged and still reads none of these columns. Revision 1's annotation, which let the income rule read the employment status as *in work or not*, is withdrawn with that condition. | High |
+| FR-017 | The system SHALL allow the process owner to change, without any change to the automation logic: the knockout threshold, the borderline band, the income ceiling, the amount limit for each type of break (FR-102), and whether the savings rule (FR-103) and the prior-funding rule (FR-104) apply, SO THAT the board can adjust criteria without developer involvement. The £6,000 and 12-month figures are the form's own Yes/No questions, so they change only with the form (BR-S11); what the process owner changes for those two rules is whether they apply. Defaults: A-10 Finding 8. Example: Emily sets the Day trips or outings limit to £150; a £120 day trip with no exceptional request is then no longer rejected, and no flow is edited. Example: Emily switches the savings rule off; savings Yes with a score of 45 is then Auto-pass, with no reason. ⚠️ **AMENDED, Amendment A-10 (APPROVED 2026-10-19, revision 2).** Reviewer, 2026-10-19: *"These thresholds should be in the settings table, so that the process owner can change them. Just like income ceiling is on the settings table. Do the same for the other auto-reject reasons."* Revision 1 added only the two amount limits. Previously: *"change the knockout threshold, the borderline band and the income ceiling"*. | High |
 | FR-018 | The system SHALL allow the process owner to override the automatically assigned status on any application and SHALL record that an override was made, WHEN the process owner disagrees with the automated outcome, SO THAT a named human remains accountable for every outcome. | High |
 | FR-019 | The system SHALL route every application with status Borderline to the process owner for manual review before it progresses, SO THAT marginal cases receive human judgement rather than an automated verdict. | High |
 | FR-020 | The system SHALL remove applications with status Auto-reject from the active working list into a separate rejected list WHEN the status is set, SO THAT the active list shows only applications requiring action. | Medium |
 | FR-021 | The system SHALL send the process owner a daily summary stating how many applications were scored, how many were auto-rejected and how many are borderline awaiting review, SO THAT the process owner has oversight without opening the system. | Medium |
-| FR-022 | The system SHALL withhold a final automated outcome and route the application to the process owner WHEN any answer required by the scoring methodology is absent, SO THAT incomplete data cannot produce a spurious automated rejection. *(DERIVED — see Interpretations; behaviour to be confirmed under OQ-002.)* | High |
+| FR-022 | The system SHALL withhold a final automated outcome and route the application to the process owner WHEN any answer required by the scoring methodology is absent, SO THAT incomplete data cannot produce a spurious automated rejection. *(DERIVED — see Interpretations; behaviour to be confirmed under OQ-002.)* ⚠️ **Annotated, Amendment A-10 (APPROVED 2026-10-19).** The status is Under Review and no Auto-reject rule of FR-014 applies, the eligibility rules included, so no reason is written (FR-105). Reviewer, 2026-10-19: keep today's behaviour. Example: savings Yes and one wellbeing answer missing gives Under Review with no reason. | High |
+| FR-102 | The system SHALL set Auto-reject (FR-014) WHEN the amount requested from Revitalise is over the limit for the type of break and the applicant has not ticked the exceptional funding request: over £500 for *Holiday accommodation*, *Respite Care Facility stay* and *Other*; over £100 for *Day trips or outings* and *Activity or Experience*. Each limit is a setting (FR-017). *Over* means strictly greater: £500 and £100 themselves pass. Only the main amount requested is compared, never the additional (exceptional) amount. A blank amount or a blank type of break does not reject. SO THAT a request above the standard maximum that does not use the exceptional-funding route is rejected rather than passed to the panel. (New, Amendment A-10 (APPROVED 2026-10-19, revision 2). Reviewer, 2026-10-19: *"That is correct. This overrides that decision."* This overrides EF-31 and EF-32 by reviewer decision; see A-10 Finding 1. Revision 1 put *Respite Care Facility stay* and *Other* under the £100 limit.) | High |
+| FR-103 | The system SHALL set Auto-reject (FR-014) WHEN the savings rule is switched on (FR-017, on by default) and the applicant has answered Yes to having savings over £6,000, whatever their employment, income or benefits, SO THAT an applicant with savings above the charity's limit is rejected on that ground alone. A blank answer, as the form leaves it for a benefits claimant, does not reject. (New, Amendment A-10 (APPROVED 2026-10-19, revision 2); unchanged in revision 2 except the switch. Reviewer: *"rev_savingsover6000 = Yes rejects on its own, for every applicant regardless of employment or benefits."* The £6,000 figure is the form's wording, not a setting: BR-S11. The switch is what the process owner can change, A-10 Finding 8.) | High |
+| FR-104 | The system SHALL set Auto-reject (FR-014) WHEN the prior-funding rule is switched on (FR-017, on by default) and the applicant has received funding from Revitalise before and has answered No to that funding being more than 12 months ago, SO THAT the charity does not fund the same applicant twice within a year. (New, Amendment A-10 (APPROVED 2026-10-19, revision 2). The 12 months is the form's question, not a setting; the switch is what the process owner can change, A-10 Finding 8. Records the behaviour built under EF-34, `wbs:2.7`, which no FR stated. Reviewer: *"already built -> reject, as today"*.) | High |
+| FR-105 | The system SHALL write a plain-language reason for every rule of FR-014 that applied, one per line and all of them, WHEN it sets Auto-reject, and SHALL show that text on the application's main record for staff, SO THAT Emily sees why without working it out. Reasons are listed in the order of FR-014's rule list: amount, income, savings, prior funding, score. Each names the values that decided it (A-10 worked examples 2, 6, 10, 11, 14). The income reason names the band and the ceiling only. A switched-off rule writes no reason. The text SHALL be empty for every other status. An override (FR-018) SHALL leave the text as it was, so the record shows both why the system rejected and who overrode it. (New, Amendment A-10, APPROVED 2026-10-19. Reviewer: *"When several rules fire, ALL reasons are listed, not just the first."* The single-reason column built under EF-45 is the starting point.) | High |
+| ~~FR-106~~ | **WITHDRAWN, Amendment A-10 (APPROVED 2026-10-19, revision 2) — reviewer ruling, 2026-10-19:** *"Trustees don't see these fields in the portal. They don't have the link to the admin app, that app is not shared with their security role."* Checked 2026-10-19: no trustee portal screen or query names the reason columns (A-10 Finding 6). The identifier stays allocated, with no force. Revision 1 read: ~~The system SHALL NOT show the auto-reject reason text, or any record that repeats it, to a trustee in any surface, SO THAT an answer trustees must not see, such as the employment status (FR-078, D-1), does not reach them through the reason. (New, Amendment A-10, PROPOSED 2026-10-19; A-10 Finding 6, §7.1d.)~~ | — |
 
 ### D. Duplicate-grant check (Automation #7)
 
@@ -1377,14 +1925,41 @@ are specified here.
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-026 | The system SHALL produce a redacted copy of each free-text narrative in which detected personal identifiers are replaced with category labels (`[NAME]`, `[FAMILY MEMBER]`, `[GP PRACTICE]`, `[ADDRESS]`, `[PHONE]`) WHEN an application becomes eligible for trustee review, SO THAT trustees can weigh a real case without learning whose it is. | High |
+| FR-026 | The system SHALL produce a redacted copy of each free-text narrative in which detected personal identifiers are replaced with category labels (`[NAME]`, `[FAMILY MEMBER]`, `[GP PRACTICE]`, `[ADDRESS]`, `[PHONE]`, `[EMAIL]`), except that a person's name is replaced as FR-095 states, WHEN an application becomes eligible for trustee review, SO THAT trustees can weigh a real case without learning whose it is. ⚠️ **AMENDED, Amendment A-09 (APPROVED 2026-10-16).** Two changes. `[EMAIL]` joins the labels, by the reviewer's 2026-10-06 decision D-3 (*"Agreed"*), which this SDD had not yet recorded. A person's name becomes *They*, *them* or *their* where FR-095 applies, by the reviewer's 2026-10-16 decision *"Change to the clients key and examples"*; `[NAME]` stays for the cases OQ-054 lists. Previously: *"replaced with category labels (`[NAME]`, `[FAMILY MEMBER]`, `[GP PRACTICE]`, `[ADDRESS]`, `[PHONE]`)"*. | High |
 | FR-027 | The system SHALL present age only as the age band the applicant chose on the form, SHALL replace any specific age appearing in free text with an age band, and SHALL replace specific locations with a region, in all trustee-visible content, SO THAT an applicant cannot be identified from quasi-identifiers. ⚠️ **CORRECTED, Amendment A-08 (APPROVED 2026-09-25).** Previously *"replace specific ages with an age band"* treated a date of birth as the source of the band. The form collects no date of birth. It asks for the age range directly. An applicant who picks *"Prefer not to say"* has that answer recorded, and no band is inferred. The date-of-birth column stays empty (TAD rev 10 `ADR-051` item 9). The free-text and location halves are unchanged. | High |
 | FR-028 | The system SHALL retain region, preferred dates, circumstance score, holiday preferences and general condition information in trustee-visible content WHEN redacting, SO THAT trustees keep the information they need to reach a funding decision. | High |
-| FR-029 | The system SHALL flag a redacted narrative for manual review and SHALL withhold it from trustees WHEN the redaction confidence falls below the configured threshold (initially 85%), SO THAT no unreviewed low-confidence redaction reaches the board. | High |
-| FR-030 | The system SHALL allow the process owner to review, correct and release a flagged redaction WHEN a narrative has been flagged, SO THAT a human confirms every uncertain redaction before disclosure to trustees. | High |
+| FR-029 | The system SHALL flag a redacted narrative for the process owner's attention WHEN the redaction confidence falls below the configured threshold (initially 85%), SO THAT she sees which narratives the redaction was least sure about and can look at them first. The flag does not decide release: every narrative is reviewed and released under FR-030, flagged or not. ⚠️ **AMENDED, Amendment A-11 (PROPOSED 2026-10-19), on the reviewer's decision of the same day** (*"All records should be checked by the process owner regardless. So, we don't need that setting at all."*). Previously read: *"The system SHALL flag a redacted narrative for manual review and SHALL withhold it from trustees WHEN the redaction confidence falls below the configured threshold (initially 85%), SO THAT no unreviewed low-confidence redaction reaches the board."* | High |
+| FR-030 | The system SHALL require the process owner to review, correct where needed and release every redacted narrative before a trustee can see it, WHEN a narrative has been redacted, and SHALL NOT release any narrative automatically, whatever its confidence, SO THAT a human confirms every redaction before disclosure to trustees. ⚠️ **AMENDED, Amendment A-11 (PROPOSED 2026-10-19), on the reviewer's decision of the same day** (*"All records should be checked by the process owner regardless."*). Previously read: *"The system SHALL allow the process owner to review, correct and release a flagged redaction WHEN a narrative has been flagged, SO THAT a human confirms every uncertain redaction before disclosure to trustees."* | High |
 | FR-031 | The system SHALL make the original unredacted narrative readable only to the administrator role and the service identity, SO THAT raw special-category free-text is not disclosed beyond those who need it. | High |
 | FR-032 | The system SHALL generate a per-application anonymised document containing the redacted narrative, score breakdown, holiday details and staff recommendation, SO THAT trustees who cannot use the review portal are not excluded from the decision. ⚠️ **Field list aligned with FR-035's adopted wording — see Amendment A-02, Finding 1 (top of this document).** | Medium |
 | FR-033 | The system SHALL allow trustee-pack preparation to be run on demand by the process owner and SHALL also run it on a schedule ahead of each board meeting, SO THAT the pack is ready without anyone remembering to start it. | Medium |
+
+### E+. Neutral wording, readability and spelling of the redacted copy (Amendment A-09 — `wbs:5.6`; FR-099 depends on `CO-009`)
+
+⚠️ **New subsection, Amendment A-09, APPROVED 2026-10-16.** These requirements apply
+to every redacted copy FR-026 and FR-079 produce. They replace what Emily does by hand today: she
+strips *"gender references"* as well as names (§1). The source is the client's
+`docs/Import/Anonymisation Key.xlsx` (sheet 1, rows 2 to 27) and its four worked examples in
+`docs/Import/Anonymised Examples.xlsx`. Where the two disagree, the examples win (Amendment A-09,
+Finding 1). The stored original is never changed by any of them (FR-031).
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-094 | The system SHALL replace, in the redacted copy, every gendered word and relationship word the client's Anonymisation Key lists with the neutral word it gives (*he* and *she* become *they*; *mum*, *dad*, *mother* and *father* become *parent*; *brother* and *sister* become *sibling*; *son* and *daughter* become *child*; *husband*, *wife*, *boyfriend* and *girlfriend* become *partner*; *man*, *woman*, *boy* and *girl* become *person*; *he's* and *she's* become *they're*), matching whole words only, in any capitalisation, and including the plural of each noun, WHEN the redacted copy is produced, SO THAT a trustee learns the relationship but not the gender. Where the key and the client's examples differ, the examples are followed: *him* becomes *them*; *her* becomes *their* before a noun and *them* elsewhere; *Mum* or *Dad* used as a name becomes *my parent*. *hers*, *his* standing alone, and the *-self* forms follow OQ-056. A word inside another word is never changed (*the*, *shelter*, *manage*). | High |
+| FR-095 | The system SHALL replace a person's name in the redacted copy with *They*, *them* or *their*, whichever fits its place in the sentence, WHEN that person is the only person named in the text, the name is not the applicant's own, and the name does not follow a title such as *Dr*, SO THAT the copy reads the way the client's own examples do (*Sam relies on me* becomes *They rely on me*). The system SHALL keep `[NAME]` for the applicant's own name, a name the writer gives for themselves (*I am …*, *I'm …*, *my name is …*), and SHALL NOT turn it into *they* (*I am Sam* becomes *I am [NAME]*, not *I am they*). WHEN a name sits right after a relationship word, the system SHALL drop the name and keep only the relationship word, neutralised under FR-094 or FR-096 (*my husband Derek* becomes *my partner*), because the relationship word leads, **even when other people are named in the text**. Any other name in a text that names two or more people, or a name after a title such as *Dr*, keeps `[NAME]` (OQ-054). ⚠️ **AMENDED, Amendment A-11 (PROPOSED 2026-10-19)**, on the reviewer's TAD rev 25 approval and his 2026-10-16 ruling below. Two changes: the applicant's own name keeps `[NAME]`, and the relationship word leads even when other people are named. Previously read: *"The system SHALL replace a person's name in the redacted copy with *They*, *them* or *their*, whichever fits its place in the sentence, WHEN that person is the only person named in the text and the name does not follow a title such as *Dr*, SO THAT the copy reads the way the client's own examples do (*Sam relies on me* becomes *They rely on me*). WHEN a name sits next to the relationship word for the same person, the system SHALL drop the name and keep only the relationship word, neutralised under FR-094 or FR-096 (*my husband Derek* becomes *my partner*), because the relationship word leads. A name in a text that names two or more people, or after a title such as *Dr*, keeps `[NAME]` (OQ-054)."* ⚠️ **CORRECTED 2026-10-16 by the reviewer, after approval:** *"My husband Derek becoms partner. not family member. the word husband is leading in this pattern."* Previously read: *"… and it does not sit next to the relationship word for the same person … In the other cases the name keeps its FR-026 label (`[NAME]`, or `[FAMILY MEMBER]` in *my partner [FAMILY MEMBER]*); OQ-054 asks the reviewer to confirm or replace that default."* | High |
+| FR-096 | The system SHALL also replace *grandmother*, *stepson*, *auntie*, *niece*, *nephew*, *mummy* and *lady*, and the titles *Mr*, *Mrs*, *Ms* and *Miss*, in the redacted copy WHEN the redacted copy is produced, SO THAT words the key does not list cannot give away a gender. **Default replacements, pending OQ-055:** *grandmother* becomes *grandparent*, *stepson* becomes *stepchild*, *mummy* becomes *parent*, *lady* becomes *person*, and *auntie*, *niece* and *nephew* become *relative*. A title is removed, and the name after it is treated under FR-095. The other-gender counterparts of these words are included on the same terms (OQ-055). | High |
+| FR-097 | The system SHALL judge each word joined by *and*, *or* or a comma on its own, and SHALL replace a later word in that list WHEN it is itself a word FR-094 or FR-096 replaces, or an identifier FR-026 labels, SO THAT *my wife and son* becomes *my partner and child*, not *my partner and son*. Reviewer, 2026-10-16: *"if the second word that belongs to end is identifyable information than it also needs to change."* | High |
+| FR-098 | The system SHALL correct the grammar that a replacement under FR-094 to FR-097 breaks, so the redacted copy reads correctly, WHEN a replacement changes a word the rest of the sentence depends on, SO THAT a trustee reads *they are*, not *they is*. This covers: the verb agreeing with *they* (*she relies* becomes *they rely*), including a second verb joined by *and* (*he receives PIP and requires care* becomes *they receive PIP and require care*); a name replaced under FR-095 (*Sam has* becomes *They have*); *her* as *their* or *them*; and capitals following the position in the sentence, not the replaced word. It SHALL NOT change any word the replacement did not affect. Correcting the applicant's own mistakes is FR-099. | High |
+| FR-099 | The system SHALL correct spelling mistakes and obvious typing slips in the redacted copy, as a separate step that runs only on text that has already been redacted, WHEN a redacted copy is produced, SO THAT trustees can read the applicant's case easily. It SHALL correct only the misspelt or mistyped word. It SHALL NOT reword, reorder, add punctuation the applicant did not write, or change meaning. **Commercial dependency:** change order `CO-009`, **approved, unbilled** (reviewer, 2026-10-16: *"CO-009 Approved with unbilled tag. Features always expand a bit during development and this one is within reasonable limits."*). Billing is recorded by commercial-agent, not decided here. Previously read: *"(PROPOSED, not approved)"*. The reviewer placed this in the design on 2026-10-16 (*"a requirement that came up during the meeting with Emily"*). This SDD records the requirement, and decides neither its billing nor its task id. | Medium |
+| FR-100 | The system SHALL keep every label, and every word written under FR-094 to FR-097, exactly as redaction wrote it when FR-098 or FR-099 corrects the text, and SHALL withhold the copy from trustees and flag it for manual review WHEN a correction would change or remove a label, bring back a word that was replaced, or add a word that corrects nothing, SO THAT making the text readable can never undo the anonymisation. | High |
+| FR-101 | The system SHALL withhold a redacted copy from trustees and flag it for manual review WHEN a word that FR-094 or FR-096 replaces is still present in it, SO THAT a gendered word the scrub missed reaches Emily (FR-030) and not a trustee. | High |
+
+**Not in scope, by reviewer decision of 2026-10-16.** The key's rows 37, 40 and 41 (*Benefit provider*,
+*Please specify source of additional funding*, *Awaiting decision from*) get no redacted copy and are not
+shown to trustees: *"don't have to be in the trustee portal. All fields in the trustee portal right now is
+what the trustees use to make their decisions on."* FR-079 is not extended to them. The other twelve
+questions in the key are the twelve columns FR-079 already covers (redaction rules v0.4 §2.1a). §7.1c
+classifies the two answers that were unclassified.
 
 ### F. Trustee review portal (Automation #6)
 
@@ -1564,6 +2139,23 @@ written into FR-035.
 | FR-092 | The system SHALL record the applicant's answer to *"Are you receiving funding from any other sources for this break?"* as exactly one of **Yes**, **No** or **Applied and awaiting decision**, WHEN the applicant answers it, SO THAT an applicant waiting on another funder's decision can be told apart from one with no other funding. *(This closes form-validation spec M-08 on the data side. FR-035 is unchanged: the board pack carries no other-funding row, so A-05's basis for FR-035 does not reach it. See Amendment A-08, Finding 5. TAD §C.9 item 4.)* | Medium |
 | FR-093 | The system SHALL record the applicant's middle name, name suffix and address state or province WHEN, and only WHEN, the form shows those fields to the applicant and the applicant fills them in, SO THAT FR-083 applies to these three exactly as it does to every other field. The last check of the live page, on 2026-08-13, found all three hidden (form-validation spec §4, Page 2). The form has changed since, because the title sub-field now arrives, so that check is not conclusive. **Until Alex confirms they are shown (OQ-053), nothing is stored for them and no field is built.** ⚠️ **Conditional.** *(TAD §C.9 item 6.)* | Low |
 
+### L. A final payment starts the retention clock (Amendment A-12 — `wbs:8.6`, `CO-010`)
+
+⚠️ **New subsection, Amendment A-12, APPROVED 2026-10-20.** Finance records payments by hand
+(`wbs:8.3`, FR-150 to FR-154). These requirements say what follows when finance records one as the
+**final** payment against a grant. Scope accepted unbilled under `CO-010`. The pre-issue duplicate-payment
+re-check (FR-023's second call site, `wbs:8.5`) is **excluded** and is not in any row below.
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-107 | The system SHALL record the date of the final payment on the grant WHEN finance records a payment as the final payment against that grant, SO THAT the six-year retention period in FR-048 has a start date. The date is the payment's own date (OQ-057), not the day it was entered, and the Payment form SHALL NOT let finance save a payment as final without one (revision 2026-10-20; the reviewer's intent: *"Make payment date required when final payment is set"*), so there is no fallback date. WHEN a payment reaches the system as final with no date by any route other than that form (for example an API write), the system SHALL ignore it for this requirement, so no date is recorded and no retention clock starts, and SHALL report "final payment has no date" to finance and the process owner (FR-111). *(Wording aligned 2026-10-20 to the reviewer-approved design, ADR-081; not a new decision. Previously read: "a payment SHALL NOT be saved as final without one".)* WHEN a grant has more than one payment recorded as final, the grant carries the latest of their dates. | High |
+| FR-108 | The system SHALL move the grant's application to the status "Grant Paid" in the same event as FR-107, WHEN the application is at "Approved", SO THAT the retention schedule in §7.6, which starts at "Grant Paid", applies. WHEN the application is at any other status, the system SHALL leave the status as it is and report the case under FR-111. | High |
+| FR-109 | The system SHALL change neither the grant nor the application WHEN a payment is not recorded as final, and SHALL leave both exactly as they are WHEN the same payment is saved again without a change to what makes it final, SO THAT recording an instalment, or saving twice, never moves the retention date. | High |
+| FR-110 | The system SHALL withdraw the effect of FR-107 and FR-108 WHEN a payment that was recorded as final stops counting as final (the mark is removed, or the payment is cancelled), and SHALL record the corrected date WHEN the date of a final payment is corrected. Where another payment on the grant is still final, the grant carries the latest date among those payments. Where none is, the grant's final payment date is cleared and the application returns to "Approved" if it is still "Grant Paid"; an application whose status has since moved on is left as it is and reported under FR-111. The grant's own status is also withdrawn (FR-113). The payment's own status is not reverted (FR-112; OQ-059, answered: *"No. payment final means final."*). SO THAT a mistaken tick never leaves a grant with a retention clock running for a payment that is not final. | High |
+| FR-111 | The system SHALL make a final payment that cannot be applied visible to finance and the process owner, with the payment, the grant and the reason, WHEN the payment is not linked to a grant, or the application is at a status FR-108 does not move, or the date cannot be recorded, SO THAT no retention date is silently missing. It SHALL NOT retry in the background: finance corrects the cause and saves the payment again, which FR-109 makes safe. | High |
+| FR-112 | The system SHALL set a payment's status to Issued, in the same event as FR-107, WHEN finance records the payment as final and its status is Pending, SO THAT a final payment does not need a second field updated by hand. It SHALL leave the status as it is WHEN it is already Issued or Cleared. A payment that is Cancelled does not count as final (FR-110): the status stays Cancelled and the case is reported under FR-111. The system SHALL NOT change the payment's status WHEN the final mark is later removed (FR-110): finance sets any status correction by hand (OQ-059). *(Added by the reviewer-directed revision of Amendment A-12, 2026-10-20.)* | High |
+| FR-113 | The system SHALL move the grant's own status to "Paid" in the same event as FR-107, WHEN finance records a payment as final and the grant's status is "Acceptance Signed", SO THAT a paid grant no longer reads as one still awaiting payment. WHEN the grant is at Awarded or Acceptance Issued, or at any other status except "Paid", the system SHALL leave the grant's status as it is and report the case under FR-111 (OQ-060), in the run where the final payment date is written or cleared; it SHALL NOT move a grant that has not been signed to "Paid". WHEN the grant is already at "Paid" and the payment is saved again, the system SHALL change nothing and report nothing (FR-109), so a repeat save of a paid grant is silent. WHEN FR-110 withdraws the last final payment on the grant and the grant is at "Paid", the system SHALL return it to "Acceptance Signed"; a grant at any other status is left as it is and reported under FR-111. This rule mirrors FR-108 but depends only on the grant's status, never on the application's. *(Added by the second reviewer-directed revision of Amendment A-12, 2026-10-20: *"Obviously the final payment should change the grant status as well."*)* *(Wording aligned 2026-10-20 to the reviewer-approved, built design (TAD §5.11); not a new decision. Previously read: "Awarded, Acceptance Issued, Paid already, or anything else" reported, which read literally reports every repeat save of a paid grant and contradicts FR-109.)* | High |
+
 ---
 
 ## 5. Non-Functional Requirements
@@ -1578,16 +2170,16 @@ written into FR-035.
 | NFR-006 | Every connection to an external system SHALL be owned by a non-personal service identity, so access survives staff changes and is governed centrally. | Security |
 | NFR-007 | Only the approved connector set SHALL be permitted; all other connectors SHALL be blocked in both the development and production environments. | Security |
 | NFR-008 | The application-intake endpoint SHALL accept submissions only from the authenticated charity website. | Security |
-| NFR-009 | 100% of processing, storage and backup SHALL remain in the UK region across every component, including the redaction service, signature service and finance system. Zero transfers outside the UK. Verified at environment setup. | Compliance |
+| NFR-009 | 100% of storage and backup SHALL remain in the UK or in Switzerland across every component, including the redaction service, signature service and finance system, and processing SHALL take place there too, with one exception: AI prompt inference MAY be processed inside the EU Data Boundary. No personal data SHALL be processed or stored outside the UK, Switzerland and the EU Data Boundary, which requires the platform's flex-routing option for AI prompts to be off. Each component's location SHALL be verified at environment setup and recorded as evidence. ⚠️ **AMENDED, Amendment A-09 (APPROVED 2026-10-16; revised the same day before approval).** All three environments are hosted in Switzerland (`crm17.dynamics.com`, measured 2026-10-05). The entity extractor runs there. AI prompts in a Swiss environment are processed by Azure OpenAI in the EU Data Boundary when *Move data across regions* is allowed (Microsoft Learn, as cited in TAD `ADR-075`), and the reviewer says that setting is on in DEV and TST/ACC: *"This is standard."* **Decided by the reviewer, 2026-10-16:** *"Yes, the AI prompt processed in EU is agreed."* Revitalise's legal office, quoted by the reviewer on 2026-10-16: *"Switzerland is recognised under the UK's adequacy regulations as providing an adequate level of protection for personal data, as confirmed in the ICO's guidance. So, from an international data transfer perspective, there is no issue with the Grant Application Solution being hosted in Switzerland simply because of its location."* The EEA is also covered by UK adequacy regulations. That is context, not verified by plan-agent, and the legal office's statement names only Switzerland. **Dependency met:** flex routing, which can process prompts outside the EU Data Boundary at peak load, is disabled at tenant level. The reviewer stated this on 2026-10-16 (*"Ah, the flex routing option is disabled on tenant level. Only EU handling"*); no agent has measured it. Previously read: *"its state is an open reviewer decision (TAD `A-R92`, `A-NS-32`)"*. Location recorded for the environments, and flex routing recorded as off on the reviewer's statement; not yet recorded for the signature and finance services. Previously read: *"not yet for the signature and finance services, or for flex routing"*. Previously: *"100% of processing, storage and backup SHALL remain in the UK region … Zero transfers outside the UK. Verified at environment setup."* | Compliance |
 | NFR-010 | Retention SHALL be enforced automatically by status and trigger date (6 years / 12 months / 6 months per FR-048), with the enforcement run occurring at least monthly; irreversibly anonymised statistics are retained indefinitely. No deletion SHALL depend on a person remembering to act. | Compliance |
-| NFR-011 | The backup and point-in-time restore window SHALL sit within the retention period of the records it covers, and all backups SHALL remain in the UK region, so a deleted record cannot survive indefinitely inside a backup. | Compliance |
+| NFR-011 | The backup and point-in-time restore window SHALL sit within the retention period of the records it covers, and all backups SHALL remain in the UK or in Switzerland, so a deleted record cannot survive indefinitely inside a backup. ⚠️ **AMENDED, Amendment A-09 (APPROVED 2026-10-16)**, following NFR-009. Previously: *"remain in the UK region"*. | Compliance |
 | NFR-012 | No personal data SHALL be written to operational logs; operational logging is limited to run status, error message and record reference. | Compliance |
 | NFR-013 | Only the fields needed to assess, decide, pay and report on a grant SHALL be collected (data minimisation, UK GDPR Article 5(1)(c)). | Compliance |
 | NFR-014 | Every create, update and delete on a record holding personal data SHALL be recorded with timestamp (UTC), actor, action, affected record identifier, and before/after values. | Audit |
 | NFR-015 | Access to the trustee review view SHALL be logged, recording which user opened it and when. | Audit |
 | NFR-016 | The retention and erasure evidence log SHALL be retained as a durable record and SHALL contain no personal data. | Audit |
-| NFR-017 | Automated redaction with a confidence below 85% SHALL be routed to human review; the threshold SHALL be adjustable after launch without redesign. | Compliance |
-| NFR-018 | 100% of Borderline scoring outcomes and 100% of low-confidence redactions SHALL receive human review before they progress or are disclosed. | Compliance |
+| NFR-017 | Automated redaction with a confidence below 85% SHALL be flagged for the process owner's attention; the threshold SHALL be adjustable after launch without redesign. ⚠️ **AMENDED, Amendment A-11 (PROPOSED 2026-10-19).** Previously read: *"Automated redaction with a confidence below 85% SHALL be routed to human review; the threshold SHALL be adjustable after launch without redesign."* | Compliance |
+| NFR-018 | 100% of Borderline scoring outcomes and 100% of redactions SHALL receive human review before they progress or are disclosed. ⚠️ **AMENDED, Amendment A-11 (PROPOSED 2026-10-19).** Previously read: *"100% of Borderline scoring outcomes and 100% of low-confidence redactions SHALL receive human review before they progress or are disclosed."* | Compliance |
 | NFR-019 | The process owner SHALL be able to change scoring thresholds, the income ceiling, the redaction confidence threshold, document templates and field mappings without developer involvement and without changing automation logic. | Maintainability |
 | NFR-020 | Applicant-facing guidance, labels and error messages SHALL be written for a reading age of approximately 12. | Usability |
 | NFR-021 | The solution SHALL support approximately 200 applications per year with headroom to at least 250 per year, and a cumulative grant history of at least 300 records, without redesign. | Scalability |
@@ -1675,15 +2267,23 @@ I control, **so that** I only spend time on the cases that need a human.
 - Given a new application record, when it is created, then a circumstance score out of 60 is calculated from the wellbeing answers. → FR-011
 - Given the applicant reported a low feeling score, when the score is calculated, then that answer contributes more points, not fewer. → FR-012
 - Given a Likert answer of "Strongly Disagree", when the score is calculated, then it contributes the configured maximum points for that question. → FR-013 ⚠️ *Incomplete — "Strongly Disagree" is the position-1 answer on only three of the ten questions. Replacement criterion proposed in Amendment A-01.*
-- Given the score is calculated, when it is compared to the threshold, then the application is flagged Auto-pass, Borderline or Auto-reject. → FR-014
-- Given the applicant's finances exceed the income ceiling, when the application is scored, then a separate income eligibility flag is set. → FR-015
+- Given the score is calculated, when it is compared to the threshold, then the application is flagged Auto-pass, Borderline or Auto-reject. → FR-014 ⚠️ *Amended, Amendment A-10 (APPROVED 2026-10-19): and given any rule of FR-014 applies, then the status is Auto-reject whatever the score.*
+- Given the applicant's finances exceed the income ceiling, when the application is scored, then a separate income eligibility flag is set. → FR-015 ⚠️ *Amended, Amendment A-10 (APPROVED 2026-10-19, revision 2): and given the applicant does not receive means-tested benefits and their income band is above the ceiling, then the status is Auto-reject whatever their employment; given they receive means-tested benefits, then the income band does not reject. Revision 1 rejected only an applicant in work; withdrawn.*
 - Given an application contains health-condition data and a free-text narrative, when the score is calculated, then neither influences the score. → FR-016
-- Given the board changes the cut-off, when I update the threshold, then the change takes effect without a developer editing anything. → FR-017
+- Given the board changes the cut-off, when I update the threshold, then the change takes effect without a developer editing anything. → FR-017 ⚠️ *Amended, Amendment A-10 (APPROVED 2026-10-19, revision 2): the same holds when I change the amount limit for any type of break, or switch the savings or prior-funding rule off (AC-20).*
 - Given I disagree with an automated status, when I override it, then the new status applies and the override is recorded. → FR-018
 - Given an application is Borderline, when it is flagged, then it waits for my review before progressing. → FR-019
 - Given applications were auto-rejected, when I open my active list, then they are not in it. → FR-020
 - Given a day's applications have been scored, when the daily summary arrives, then it states how many were scored, auto-rejected and are awaiting my review. → FR-021
 - Given a scored answer is missing, when the application is processed, then no final automated outcome is set and the case comes to me. → FR-022
+- Given a Holiday accommodation request of £650 with no exceptional funding ticked, when it is scored, then it is Auto-rejected; given £500, or £650 with exceptional funding ticked, then the amount does not reject it. → FR-102 *(AC-13, Amendment A-10)*
+- Given a Day trips or outings or Activity or Experience request of £101 with no exceptional funding ticked, when it is scored, then it is Auto-rejected; given £100, then the amount does not reject it. Given a Respite Care Facility stay or Other request of £501 with no exceptional funding ticked, then it is Auto-rejected; given £500, then the amount does not reject it. → FR-102 *(AC-14, Amendment A-10, revision 2; revision 1 put Respite Care Facility stay and Other under £100)*
+- Given the applicant answered Yes to savings over £6,000, when the application is scored, then it is Auto-rejected whatever the score, employment or benefits. → FR-103 *(AC-15, Amendment A-10)*
+- Given the applicant was funded by Revitalise and not more than 12 months ago, when the application is scored, then it is Auto-rejected. → FR-104 *(AC-16, Amendment A-10)*
+- Given an application to which three rules apply, when I open it, then I see all three reasons in plain language, each with the values that decided it. → FR-105 *(AC-17, Amendment A-10)*
+- Given I override an auto-rejected application, when I open it again, then the reasons are still there beside my override. → FR-105, FR-018 *(AC-18, Amendment A-10)*
+- ~~Given an overridden application reaches the panel round, when a trustee opens it in any surface, then no auto-reject reason is shown. → FR-106 *(AC-19, Amendment A-10)*~~ **WITHDRAWN with FR-106, revision 2** (reviewer ruling, 2026-10-19).
+- Given I have switched the savings rule off, when an application with savings over £6,000 Yes and a score of 45 is scored, then it is Auto-pass and no savings reason is written; the same holds for the prior-funding rule. → FR-017, FR-103, FR-104 *(AC-20, Amendment A-10, revision 2)*
 
 ### US-007: I stop anonymising by hand, but I keep the last word
 **As** Emily, **I want** narratives redacted automatically with anything uncertain flagged to me,
@@ -1693,8 +2293,8 @@ I control, **so that** I only spend time on the cases that need a human.
 - Given an application becomes eligible for trustee review, when redaction runs, then personal identifiers in the free-text narrative are replaced with category labels. → FR-026
 - Given a narrative mentions a specific age or place, when redaction runs, then they are generalised to an age band and a region. → FR-027
 - Given redaction has run, when a trustee reads the case, then region, dates, score, holiday preferences and general condition information are still present. → FR-028
-- Given redaction confidence is below the configured threshold, when the narrative is processed, then it is flagged to me and withheld from trustees. → FR-029
-- Given a narrative is flagged, when I review and release it, then trustees can see it. → FR-030
+- Given redaction confidence is below the configured threshold, when the narrative is processed, then it is flagged for my attention. → FR-029 ⚠️ *Amended, Amendment A-11 (PROPOSED 2026-10-19). Previously read: "… then it is flagged to me and withheld from trustees."*
+- Given a narrative has been redacted, flagged or not, when I have not released it, then trustees cannot see it, and when I review and release it, then trustees can see it. → FR-030 ⚠️ *Amended, Amendment A-11 (PROPOSED 2026-10-19). Previously read: "Given a narrative is flagged, when I review and release it, then trustees can see it."*
 - Given I need the original text, when I open the record, then I can read the unredacted narrative and no one outside the administrator role can. → FR-031
 - Given the board meeting is approaching, when the schedule fires or I trigger it, then pack preparation runs. → FR-033
 
@@ -1864,6 +2464,55 @@ applicant told us.
 - Given an applicant answers "Applied and awaiting decision from" for other funding, when the record is created, then that answer is stored as itself, not as Yes or No. → FR-092
 - Given the form does not show the middle-name field, when a submission is received, then no middle name is stored. → FR-093
 
+### US-025: I stop taking gender out by hand
+*(Amendment A-09, APPROVED 2026-10-16.)*
+
+**As** Emily, **I want** the redacted copy to use neutral words for people, the way my Anonymisation
+Key and examples do, and to read correctly, **so that** I no longer strip gender references by hand
+before each board cycle, and trustees read a case that makes sense.
+
+**Acceptance Criteria:**
+- Given a narrative says *"My mum helps me and she is up at night"*, when redaction runs, then the trustee reads *"My parent helps me and they are up at night"*. → FR-094, FR-098
+- Given a narrative says *"I help her with her mood"*, when redaction runs, then the trustee reads *"I help them with their mood"*. → FR-094
+- Given a narrative names one person, *"Sam relies on me"*, when redaction runs, then the trustee reads *"They rely on me"*. → FR-095, FR-098
+- Given a narrative names two different people, when redaction runs, then neither name is shown and the two are not merged into one *they*. → FR-095, FR-026
+- Given a narrative says *"my grandmother and Mrs Patel"*, when redaction runs, then no gendered word and no title is shown. → FR-096
+- Given a narrative says *"my wife and son"*, when redaction runs, then the trustee reads *"my partner and child"*. → FR-097
+- Given a narrative says *"He receives PIP and requires care"*, when redaction runs, then the trustee reads *"They receive PIP and require care"*. → FR-098
+- Given a redacted copy contains a misspelt word, when the spelling step runs, then the trustee copy is spelt correctly, no other word has changed, and the stored original is unchanged. → FR-099, FR-031
+- Given a correction would change a label or bring back a replaced word, when the correction runs, then the copy is withheld and flagged to me. → FR-100
+- Given a gendered word is left in a redacted copy, when the copy is checked, then it is withheld and flagged to me. → FR-101
+- Given a narrative says *"I am Sam and I need a break"*, when redaction runs, then the trustee reads *"I am [NAME] and I need a break"*, never *"I am they"*; the same holds for *"My name is Sam"*. → FR-095 *(AC-11, Amendment A-11, PROPOSED 2026-10-19)*
+- Given a narrative names two people and one of them follows a relationship word, *"my husband Derek and my sister Ann help me"*, when redaction runs, then the trustee reads *"my partner and my sibling help me"*: each name after a relationship word is dropped and the word neutralised although two people are named. → FR-095, FR-094 *(AC-12, Amendment A-11, PROPOSED 2026-10-19)*
+
+### US-026: Recording the last payment starts the clock for me
+*(Amendment A-12, APPROVED 2026-10-20.)*
+
+**As** finance staff recording a disbursement, **I want** marking a payment as the final one to start the grant's
+retention period, **so that** I never have to remember a second step, and the process owner is not left with a paid
+grant whose records have no deletion date.
+
+**Acceptance Criteria:**
+- Given a grant whose application is "Approved", when I record a payment dated 14 November 2026 as final, then the grant's final payment date is 14 November 2026 and the application reads "Grant Paid". → FR-107, FR-108
+- Given I enter that payment on 18 November 2026, when it is saved, then the grant's final payment date is still 14 November 2026. → FR-107
+- Given a grant already has two payments, when I record a third that is not final, then the grant's final payment date and the application's status are unchanged. → FR-109
+- Given a payment already recorded as final, when I open it and save it again without changing it, then nothing about the grant or the application changes. → FR-109
+- Given a grant carries two payments recorded as final, dated 14 November and 2 December 2026, when the grant's date is read, then it is 2 December 2026. → FR-107
+- Given I ticked final by mistake on the only final payment, when I remove the mark, then the grant's final payment date is empty and the application reads "Approved" again. → FR-110
+- Given a payment recorded as final is later cancelled and no other payment is final, when it is saved as cancelled, then the same reversal happens. → FR-110
+- Given a payment recorded as final is dated 14 November and I correct its date to 12 November, when it is saved, then the grant's final payment date is 12 November. → FR-110
+- Given I record a payment as final that is not linked to a grant, when it is saved, then no grant or application changes and finance and the process owner can see the payment and why it was not applied. → FR-111
+- Given the application is "Withdrawn" when a final payment is recorded, when it is saved, then the status is unchanged, the grant's date is recorded, and the case is reported to finance and the process owner. → FR-108, FR-111
+- Given a final payment is recorded, when the process owner looks at the pre-issue duplicate check, then nothing in this change has run it. → excluded; `wbs:8.5`, FR-023
+- Given I tick final on a payment that has no payment date, when I try to save it, then it is not saved as final and I am told a payment date is required; the grant and the application are unchanged. Given the same undated final payment arrives by an API or other non-form write, then no date is recorded, no clock starts, the application is unchanged, and finance and the process owner see "final payment has no date". → FR-107, FR-111 *(AC-12, revision 2026-10-20; wording aligned 2026-10-20)*
+- Given a Pending payment dated 14 November 2026, when I save it as final, then its status reads Issued, the grant's final payment date is 14 November 2026 and the application reads "Grant Paid". → FR-112, FR-107, FR-108 *(AC-13)*
+- Given a payment that is already Cleared, when I save it as final, then it stays Cleared. → FR-112 *(AC-14)*
+- Given a Pending payment saved as final (so Issued), when I remove the final mark, then the grant and application are put back as in AC-6 and the payment still reads Issued. → FR-110, FR-112, OQ-059 (answered: *"No. payment final means final."*) *(AC-15)*
+- Given a grant at "Acceptance Signed" whose payment dated 14 November 2026 is saved as final, then the grant's own status reads "Paid", the grant's final payment date is 14 November 2026 and the application reads "Grant Paid". → FR-113, FR-107, FR-108 *(AC-16)*
+- Given a grant at "Awarded" or "Acceptance Issued" when a final payment is saved, then the grant's status is unchanged and finance and the process owner see the payment, the grant and why its status was not moved. → FR-113, FR-111 *(AC-17)*
+- Given the only final payment on a grant at "Paid" has its final mark removed, or is cancelled, then the grant returns to "Acceptance Signed". Given another payment is still final, then the grant stays "Paid". → FR-113, FR-110 *(AC-18)*
+- Given a non-final payment is recorded, or a final payment is saved again unchanged, then the grant's status does not change. → FR-113, FR-109 *(AC-19)*
+
 ---
 
 ## 7. Compliance & Regulatory Considerations
@@ -1880,7 +2529,7 @@ applicant told us.
 
 Revitalise is the **data controller**. Argelis Consultancy is the **processor** and builder, acting
 on Revitalise's instruction. AI Builder (redaction), DocuSign (signing) and QuickBooks Online
-(financial record) act as sub-processors, all within the UK. The named service identity
+(financial record) act as sub-processors, storing data in the UK or Switzerland, with AI prompts processed in the EU Data Boundary (NFR-009, amended by Amendment A-09, APPROVED 2026-10-16, which depends on flex routing being off; previously *"all within the UK"*). The named service identity
 `svc-grantautomation` owns the external connections; it is not a personal login.
 
 ### 7.1 Data classification (satisfies C-DOM-001 at plan level)
@@ -2058,6 +2707,8 @@ specified by the TAD and not yet built (`TD-010` / `TD-011`).
 | Someone helping (FR-090) | `rev_someonehelping` | Personal (Art. 6): a fact about how the application was made | No | Not on any trustee surface |
 | Provisional date (FR-091) | `rev_provisionaldate` | Personal (Art. 6): a break fact in the applicant's words, the same kind of text as `rev_breaklocation` | No | Not bound by this amendment (`wbs:6.3` / EF-09) |
 | Other-funding status (FR-092) | `rev_otherfundingstatus` | Personal (Art. 6): a financial circumstance, the same kind as `rev_incomeband` | No | Not on any trustee surface. FR-035 unchanged |
+| Source of additional funding (FR-092; *added by Amendment A-09*) | `rev_otherfundingsource` *(exists, `IsSecured=0`, read 2026-10-16)* | Personal (Art. 6): a financial circumstance in the applicant's words, usually a funder's name. Free text, so it can carry health or third-party detail | No, as built. **Flagged to architect-agent** (A-09 item 3) | Nothing. No redacted copy, by reviewer decision 2026-10-16 (§4 E+) |
+| Awaiting decision from (FR-092; *added by Amendment A-09*) | `rev_awaitingdecisionfrom` *(exists, `IsSecured=0`, read 2026-10-16)* | Personal (Art. 6): the same kind of text as the row above | No, as built. **Flagged to architect-agent** (A-09 item 3) | Nothing. No redacted copy, by reviewer decision 2026-10-16 (§4 E+) |
 | Middle name, suffix (FR-093, conditional) | `rev_middlename`, `rev_namesuffix` | Personal (Art. 6): identity | Yes, as identity (`REV_TrusteeRestricted`) | Restricted state, no value (FR-078), if bound |
 | State or province (FR-093, conditional) | *none specified yet*; the TAD says it needs one if shown | Personal (Art. 6): address, so identity | Must follow the address columns | Nothing |
 
@@ -2082,7 +2733,7 @@ bases are Revitalise's own, from its Privacy Notice of 20 February 2026, as §7.
 |---|---|---|---|
 | Applicant's Equality Act answer and disability description | Necessary to assess and administer the grant | Art. 9(2)(b) social protection; 9(2)(h) health and social care | Application: *"disability data … processed to assess eligibility and need only"* |
 | Person supported's Equality Act answer and disability description | Necessary to assess the grant | Art. 9(2)(b); 9(2)(h) | Support-recipient / cared-for person |
-| Hear-about-us, someone helping, provisional date, other-funding status | Necessary to assess and administer the grant | n/a | Application |
+| Hear-about-us, someone helping, provisional date, other-funding status, source of additional funding and awaiting decision from *(last two: Amendment A-09)* | Necessary to assess and administer the grant | n/a | Application |
 | Middle name, suffix, state or province | Necessary to assess and administer the grant | n/a | Applicant (identity, contact) |
 
 **Why the Art. 9 condition is not raised as a question.** The four answers are disability data about
@@ -2105,7 +2756,29 @@ Art. 30(1)(c) categories. The DPO confirms or rewrites it:
 > supported. Collected on the application form, stored as given, used to assess eligibility and
 > need, never used in the automated score, held behind column-level security with auditing, and
 > retained and erased with the application record. Trustee exposure: the Yes/No answers are shown to trustees;
-> the descriptions are shown only after AI redaction and human release of low-confidence results.*
+> the descriptions are shown only after AI redaction and human release of the redacted text.* ⚠️ *Amended, Amendment A-11 (PROPOSED 2026-10-19). Previously read: "… human release of low-confidence results."*
+
+### 7.1d Per-column classification for the auto-reject rules and reason (Amendment A-10, satisfies C-DOM-001 and C-DOM-002)
+
+⚠️ **New subsection, Amendment A-10, APPROVED 2026-10-19.** Every column the new rules read is already
+classified, and is restated here so the rules' inputs are in one place. The reason text is new content in
+an existing column, and is classified here. Values read 2026-10-19 from `Entities/rev_application/Entity.xml`.
+Lawful basis: all are Application financial answers or outputs, under §7.2's Application row (Art. 6,
+necessary to assess the grant). No new basis is needed. **Revision 2:** the employment status is no longer
+read, so revision 1's Art. 9(2)(b) basis for it is not needed here, and the reason text no longer repeats a
+special-category answer (A-10 Finding 4).
+
+| Column | Read by | Classification | Secured | What a trustee sees |
+|---|---|---|---|---|
+| `rev_amountrequested` | FR-102 | Personal (Art. 6) | No | The value (FR-035 total) |
+| `rev_breaktype` | FR-102 | Personal (Art. 6) | No | The value |
+| `rev_exceptionalfundingrequested` | FR-102 | Personal (Art. 6), §7.1a | No | The value |
+| `rev_savingsover6000` | FR-103 | Personal (Art. 6), §7.1b | No | The value |
+| `rev_incomeflag` (from `rev_incomeband` and, under its 2026-09-18 gate exception, `rev_receivesbenefits`) | FR-015 | Personal (Art. 6), §7.1b | No | The value |
+| ~~`rev_employmentstatus`~~ | **Not read, revision 2** (reviewer, 2026-10-19). Revision 1: ~~FR-015, *in work or not* only~~ | Special category (Art. 9), §7.1a D-1 | Yes | Restricted state, no value (FR-078) |
+| `rev_receivedfundingbefore`, `rev_morethan12monthsago` | FR-104 | Personal (Art. 6) | No | Unchanged by this amendment |
+| `rev_autorejectreason` | written by FR-105 | **Personal (Art. 6), financial** (revision 2): names the amount and break type, the income band and ceiling, savings, prior funding and score; never employment, benefits, disability or health. Revision 1: ~~Special category (Art. 9), because the income reason repeats the employment answer~~ | No, and not required (revision 2) | **Nothing.** Shown only on the admin app's main form, which is not shared with the trustee role (reviewer ruling, 2026-10-19); no trustee portal screen or query names it (checked 2026-10-19) |
+| `rev_scoringaudit` | repeats FR-105's text | **Personal (Art. 6), financial**, same reason (revision 2). Revision 1: ~~Special category (Art. 9), same reason~~ | No, and not required (revision 2) | **Nothing**, as above |
 
 ### 7.2 Lawful basis per data grouping (satisfies C-DOM-002)
 
@@ -2136,14 +2809,14 @@ records them; it does not set them.
 | **Art. 5(1)(b)** purpose limitation | Use only for stated purposes | Data used only to assess, decide, pay and report; anonymised statistics carry no identifiers and cannot be linked back |
 | **Art. 5(1)(c)** data minimisation | Collect only what is necessary | Only fields needed to assess and pay a grant are collected (NFR-013). Health free-text and disability data do not feed the automated score (FR-016) |
 | **Art. 5(1)(e)** storage limitation | Keep no longer than necessary | Automated retention by status and trigger date (FR-048, NFR-010). ⚠️ Six-year retention of the health free-text is the open DPO decision OQ-006 |
-| **Art. 5(1)(f)** integrity and confidentiality | Appropriate security | Least privilege, field-level restriction of identity columns, separation of duties on bank data, UK residency, connector restriction (NFR-001 to NFR-009) |
+| **Art. 5(1)(f)** integrity and confidentiality | Appropriate security | Least privilege, field-level restriction of identity columns, separation of duties on bank data, storage in the UK or Switzerland, AI prompts in the EU Data Boundary, flex routing off (NFR-009, amended by A-09), connector restriction (NFR-001 to NFR-009) |
 | **Art. 5(2)** accountability | Demonstrate compliance | Native field-change auditing of every create/update/delete (NFR-014); app-access logging (NFR-015); retention/erasure evidence log (FR-054, NFR-016) |
 | **Art. 6** lawful basis | Documented per entity | §7.2 above |
 | **Art. 9** special-category condition | Art. 9 condition required | Art. 9(2)(b) social protection and Art. 9(2)(h) health and social care, per the Privacy Notice |
 | **Art. 15** right of access | SAR fulfilment | Complete extract producible for a named individual (FR-053). ⚠️ No internal response-time SLA recorded — OQ-023 |
 | **Art. 17** right to erasure | Erasure path with carve-outs | On-demand erasure across the system of record and every linked copy including referees, helpers, group members and emergency contacts (FR-051); legal-hold carve-out disclosed to the requester (FR-052) |
 | **Art. 30** records of processing | Art. 30(1) controller record and Art. 30(2) processor record | Both drafted in the RoPA v0.1 — **concept status, not confirmed**; published DPO contact details still outstanding (OQ-009) |
-| **Art. 32** security of processing | Technical and organisational measures | Least privilege; field-level column restriction; separation of duties; MFA and Conditional Access; UK residency; connector policy; native auditing; automated retention and deletion |
+| **Art. 32** security of processing | Technical and organisational measures | Least privilege; field-level column restriction; separation of duties; MFA and Conditional Access; storage in the UK or Switzerland, AI prompts in the EU Data Boundary, flex routing off (NFR-009, amended by A-09); connector policy; native auditing; automated retention and deletion |
 | **Art. 35** DPIA | Required for high-risk processing | DPIA exists at v0.1 concept status. It is required here because the solution processes special-category health data about people in vulnerable circumstances, at scale, and uses automated processing to screen applications |
 
 ### 7.4 Data (Use and Access) Act 2025 — automated decision-making
@@ -2164,6 +2837,14 @@ design can route auto-reject outcomes through the process owner instead of closi
 automatically — a configuration change within the current design, not a rebuild. This SDD's
 FR-014, FR-018, FR-019 and FR-022 are written so that either position can be adopted without
 changing the requirement set.
+
+⚠️ **Amendment A-10 (APPROVED 2026-10-19) widens what is automated.** Auto-reject is now also set on
+financial eligibility: the amount requested over the limit for the break type without an exceptional
+request (FR-102), an applicant not on means-tested benefits with income above the ceiling (FR-015), savings over £6,000
+(FR-103) and prior funding within 12 months (FR-104). None of them reads a disability, health or employment
+answer (FR-016 annotation, revision 2). The reviewer stated on 2026-10-19 that Emily checks every auto-reject and agrees or
+overrides it, with every reason in front of her (FR-105). That is the stronger form of review described
+above. An override is recorded (FR-018); an agreement is not. OQ-005's scope is widened to match.
 
 ### 7.5 Charities Act 2011 — retention duty
 
@@ -2195,10 +2876,10 @@ an explicit statement of what is held under legal hold (FR-052).
 |---|---|---|---|
 | R1 | A trustee identifies an applicant from data that should be redacted (field-level security gap or incomplete redaction) | High | Low |
 | R2 | Special-category health data exposed to someone without a need to see it (role misconfiguration) | High | Low |
-| R3 | An applicant is wrongly rejected by the automated score without meaningful human review | High | **Medium — pending DPO confirmation (OQ-005)** |
+| R3 | An applicant is wrongly rejected by the automated score or, since Amendment A-10, by an automated financial eligibility rule, without meaningful human review | High | **Medium — pending DPO confirmation (OQ-005).** Emily checks every auto-reject with its reasons (reviewer, 2026-10-19; FR-105) |
 | R4 | Health free-text kept longer than necessary on granted records (6-year retention) | Medium | **Medium — DPO decision open (OQ-006)** |
 | R5 | Bank or payment details accessed by someone outside the finance role | Medium | Low |
-| R6 | Data processed or stored outside the UK, breaching the residency commitment | Medium | Low |
+| R6 | Data stored outside the UK and Switzerland, or processed outside them and the EU Data Boundary (for example, AI prompts under flex routing), breaching the residency commitment *(amended by Amendment A-09; previously "outside the UK")* | Medium | Low. Flex routing is disabled at tenant level (reviewer, 2026-10-16). Previously read: *"Low until flex routing is confirmed off (TAD `A-R92`)"* |
 | R7 | An erasure request is not honoured across every system holding a copy | Medium | Low |
 | R8 | The service account is compromised, exposing the whole dataset through its broad access | Medium | Low |
 | R9 | A leaver keeps access after their role ends | Medium | Low |
@@ -2220,7 +2901,7 @@ basis until they are recorded.
 
 Two further DPIA closing actions are open: **A4** — confirm expected application volume and the
 role-review cadence (process owner; OQ-007, OQ-008); and **A5** — verify UK residency and backup
-arrangements at environment setup (builder / Wanstor; OQ-018, OQ-019).
+arrangements at environment setup (builder / Wanstor; OQ-018, OQ-019). ⚠️ **Amendment A-09:** the requirement A5 verifies is now *storage in the UK or Switzerland, AI prompts inside the EU Data Boundary, flex routing off* (NFR-009). The environments are verified as Swiss. Flex routing is off at tenant level, on the reviewer's statement of 2026-10-16 (*"Ah, the flex routing option is disabled on tenant level. Only EU handling"*), not an agent measurement. The signature and finance services are not yet verified. Previously read: *"The signature and finance services, and the flex-routing state, are not yet verified."*
 
 ### 7.9 Universal controls checklist (`skills/compliance-checklist.md` §1)
 
@@ -2346,9 +3027,11 @@ team.
 | | ⚠️ **STILL OPEN.** Amendment A-01 does **not** resolve this, despite being commissioned as though it would — `Book(Sheet1).csv` holds scores and answers but no accept/reject outcomes, so no cut-off can be inferred from it. This is a board decision. **What did change:** the reachable floor of a fully answered application dropped from **10 to 5** (see A-01), so thresholds at or below 5 are now reachable where they were not. | | |
 | OQ-002 | Confirm the exact scoring methodology: the feeling-scale inversion, the Likert point mapping, and the required behaviour when a scored answer is missing (see FR-022) | Emily | Before Automation #2 build |
 | | ✅ **RESOLVED BY EVIDENCE — see Amendment A-01 (PROPOSED)** at the top of this document. 25 real hand-scored applications reproduce exactly under the recorded methodology, asserted permanently in `src/tests/solutions/ScoringInvariants.Tests.ps1`. Two corrections came with it: the ten wellbeing questions use **two** response scales, not one, and **"Not sure"** is a valid answer worth 0.5 points. Formal closure awaits plan-agent re-issue of FR-013. | | |
-| OQ-003 | What is the income ceiling value, and does an income-only failure reject outright or flag for review? | Board / Emily | Before Automation #2 build |
+| OQ-003 | What is the income ceiling value, and does an income-only failure reject outright or flag for review? | Board / Emily | The first PRD seed of the income ceiling by `provisioning/dataverse/seed-settings.ps1` *(re-dated by Amendment A-10; previously "Before Automation #2 build")* |
+| | ⚠️ **HALF ANSWERED 2026-10-19, Amendment A-10 (APPROVED 2026-10-19).** *Reject or flag:* the reviewer decided an income-only failure rejects outright, **only when the applicant does not receive means-tested benefits** (FR-015, revision 2): *"The flow should only look at income band when the applicant has not receiving means tested benefits. Employment status doesn't have to be checked."* Revision 1's *"only when the applicant is in work"* is withdrawn. *The value:* the reviewer's revision 1 rule named £25,000, the value already seeded in DEV and TST/ACC. **Narrowed to:** confirm £25,000 as the board's value for PRD. **Default:** PRD stays unseeded until confirmed, as `provisioning/deploymentSettings/prd-settings.json` requires today. **Event:** the first PRD seed of the income ceiling by `provisioning/dataverse/seed-settings.ps1`. | | |
 | OQ-004 | **DPO decision (DPIA A1):** is field-level column security an acceptable trustee control in place of the manual, single-key-holder anonymisation? | DPO | **Before build starts** |
-| OQ-005 | **DPO decision (DPIA A2):** does automatic rejection at the threshold, with oversight and override, satisfy Revitalise's automated-decision position under the DUAA 2025? | DPO | **Before build starts** |
+| OQ-005 | **DPO decision (DPIA A2):** does automatic rejection at the threshold, with oversight and override, satisfy Revitalise's automated-decision position under the DUAA 2025? | DPO | Before the first PRD deploy of the scoring flow carrying FR-102 to FR-105 (`wbs:2.4`, `2.7`) *(re-dated by Amendment A-10; previously "Before build starts")* |
+| | ⚠️ **SCOPE WIDENED, Amendment A-10 (APPROVED 2026-10-19). Not a new question.** The decision now also covers automatic rejection on the amount requested, income for an applicant not on means-tested benefits, savings, and prior funding (FR-015, FR-102 to FR-104). None reads a disability, health or employment answer (revision 2). **Default, as the reviewer described it on 2026-10-19:** Emily checks every auto-reject with all its reasons (FR-105) and agrees or overrides it (FR-018); only an override is recorded. **Event (also in the due column):** before the first PRD deploy of the scoring flow carrying FR-102 to FR-105 (`wbs:2.4`, `2.7`). | | |
 | OQ-006 | **DPO decision (DPIA A3):** is six-year retention of the health free-text preferred over earlier minimisation? | DPO | **Before build starts** |
 | OQ-007 | Confirm the expected number of applications per round and per year, so the scale of processing is on record (DPIA §2.2 TBC) | Emily | Before DPIA sign-off |
 | OQ-008 | Confirm the role-membership review cadence — quarterly, or at the start of each panel round? | Emily / DPO | Before DPIA sign-off |
@@ -2410,6 +3093,7 @@ team.
 | OQ-048 | **Who amends the DPIA and RoPA to record that trustees process the exceptional-circumstance category, and when?** *(Amendment A-04, was OQ-039)* D-6 makes an Art. 9 column trustee-visible. Both documents already record the same arrangement for `rev_conditionprofile`, so this is an amendment to an existing entry and not a new disclosure — but NFR-031 requires it to be written down, not inferred. | DPO / Emily | **Still open** — before go-live, with the DPIA conclusion at OQ-030 |
 | | ⚠️ **SCOPE WIDENED, Amendment A-05, 2026-08-27 — not re-opened, and not a new question.** The same DPIA/RoPA amendment now also has to record the widened redaction scope FR-079 introduces. The DPIA describes redaction as covering *"the free-text narrative"* — singular; FR-079 extends it to five further free-text columns. **The trustee audience and the app surface are not new to the DPIA**, which already states *"Trustees review eligible applications through a dedicated app that hides identity by field-level security, and record a verdict"* — the Code App is that app, which supports the reviewer's own framing that the process is being automated rather than newly created. Handled the way §7.1a handled OQ-004 and OQ-006: the surface changes, the question stays open, and the DPO is told rather than left to discover it. | | |
 | | ⚠️ **SCOPE WIDENED AGAIN, Amendment A-08 (APPROVED 2026-09-25). Not a new question.** The same DPIA and RoPA amendment must now also name four special-category answers the intake begins storing: the Equality Act 2010 answer and the disability description, for the applicant and for the person supported (FR-086 to FR-089). **No new Art. 9 condition is involved**, because §7.2's existing groupings cover them (§7.1c). Proposed wording is at §7.1c. **Event:** before the first PRD deploy that creates those four columns (`wbs:4.3`), because that is the first time real applicants' answers are held. | | |
+| | ⚠️ **SCOPE WIDENED A THIRD TIME, Amendment A-09 (APPROVED 2026-10-16). Not a new question.** The same DPIA and RoPA amendment must now also record three things: the solution is hosted in Switzerland, on the UK adequacy basis Revitalise's legal office confirmed, and AI prompts are processed in the EU Data Boundary (NFR-009); the redacted copy is rewritten with neutral words for people (FR-094 to FR-098); and, if `CO-009` goes ahead, its spelling is corrected by a second model step that reads only redacted text (FR-099). No new lawful basis or Art. 9 condition is involved: the text is the same Application free text, used for the same purpose. **Event:** before the first PRD deploy of the scrubbing flow that writes neutral words (`wbs:5.6`). | | |
 | OQ-049 | **What numeric definition of "sudden spike or drop" gates FR-081's anomaly flag?** *(Amendment A-07, `CO-005`, `wbs:6.10`)* Neither CO-005 nor the EF-11 walkthrough states a threshold, and this is a business judgement about what a board of trustees should be alerted to, not a modelling default plan-agent or architect-agent may pick — the same standing this document already gives `k = 5` (OQ-043, *"this value is a disclosure control, not a tunable"*). **Architecturally-derived default, per this document's own standing rule (§ "Every open question is dated against an EVENT"):** until answered, FR-081 flags no month — an unflagged screen is fail-safe and matches the existing convention for an unseeded `rev_setting`-backed control. | Reviewer | **Gates FR-081 only, not the rest of `wbs:6.10`** — before `development-agent`'s `wbs:6.10` dispatch encodes a flagging rule; FR-080's recompute and FR-082's settings can build and ship independently with FR-081 rendering its fail-safe unflagged state |
 | | ✅ **RESOLVED 2026-09-19 — reviewer.** A month is flagged when it deviates from its own trailing six-month mean by more than a threshold, held as a **third, configurable `rev_setting`** (not a hardcoded literal), starting value **50%**. See FR-081 for the restated rule. **Not fully closed at architecture level:** TAD Revision 9 / ADR-049 designed FR-080's grouping mechanism and FR-082's two settings but did not design for this third setting or the mean/deviation comparison logic inside FR-080's month-by-month loop — routed back to architect-agent for a further TAD pass (naming the setting, extending §5.1.3's flow design), same division of labour as the original "Flagged for architect-agent" section above. | | |
 | OQ-050 | **What are the actual seed values for FR-082's two new settings** — the date from which this system's application record is complete, and the count of applications the charity received before that date? *(Amendment A-07, `CO-005`, `wbs:6.10`)* These are historic facts about the charity's own grant-giving history, not derivable from any source in this repository or decidable by architect-agent at TAD stage — see also Amendment A-06's own 16 February 2026 reference date, which this answer should be checked against rather than assumed to match, since CO-005's framing ("this system started later than the charity itself did") implies the charity's own history may predate that date. | Emily / Reviewer | Before the `post_deploy` seeding step of `wbs:6.10`'s first environment deploy — FR-082 SHALL render its fail-safe unseeded state until then |
@@ -2420,6 +3104,21 @@ team.
 | | ✅ **RESOLVED 2026-09-25 — Xander Lykopoulos (relayed by lead-agent):** *"Agreed on consent dates on submission receival."* The consent-date fields hold the time the submission reached the system, meaning *"when this consent reached us"*. That is TAD rev 10's current design. | | |
 | OQ-053 | **Does the live form show the middle-name, name-suffix and state/province fields?** *(Amendment A-08, FR-093. Asked of Alex as TAD rev 10 `ADR-011` question 8.)* **Default:** no. They were hidden at the last check, on 2026-08-13, so nothing is stored and no field is built. The title sub-field has been enabled since that check, so the form has changed and the old reading cannot be relied on. | Alex | Before development-agent's `wbs:4.3` dispatch builds the TAD's conditional columns (`TD-011`) |
 | | ✅ **RESOLVED 2026-09-25 — Xander Lykopoulos (relayed by lead-agent):** *"Agreed on the middle name, suffix and state/province."* All three are treated as hidden. Nothing is stored and nothing is built until Alex confirms the form shows them. FR-093 stays conditional. | | |
+| OQ-054 | **Which names keep a label instead of becoming *They*?** *(Amendment A-09, FR-095.)* The client's examples show one case: the one person a narrative is about becomes *They*. They never show the four cases below. **Default, applied until answered:** (a) two or more different people named in one text each keep `[NAME]`, so two people are not merged into one *they*; (b) a name after a title such as *Dr* keeps `[NAME]` (*Dr [NAME]*); (c) a name next to its relationship word keeps `[FAMILY MEMBER]` (*my partner [FAMILY MEMBER]*), the approved v0.4 behaviour; (d) a name inside a practice name stays `[GP PRACTICE]`. Confirm, or replace any of the four. | Reviewer / Emily | Before development-agent's `wbs:5.6` dispatch encodes FR-095's name rule |
+| | ✅ **RESOLVED 2026-10-16 — default adopted.** Xander Lykopoulos (relayed by lead-agent): *"Approved for requirements Amendment A-09"*, having been told approval accepts the defaults unless changed; none was changed. The four default cases keep their labels as stated: two or more people each `[NAME]`; a name after a title such as *Dr* `[NAME]`; a name next to its relationship word is dropped and the relationship word neutralised (*my husband Derek* becomes *my partner*); a name inside a practice name `[GP PRACTICE]`. FR-095 stands as written. ⚠️ **CORRECTED 2026-10-16 by the reviewer, after approval, for case (c) only:** *"My husband Derek becoms partner. not family member. the word husband is leading in this pattern."* Previously read: *"a name next to its relationship word `[FAMILY MEMBER]`"*. **After this correction no case in this SDD produces `[FAMILY MEMBER]`:** FR-026 still lists the label, and the only place it could still apply, a family member in a text naming two or more people (case (a)), is labelled `[NAME]`. | | |
+| | ⚠️ **AMENDED, Amendment A-11 (PROPOSED 2026-10-19). Case (c) is widened and a case (e) is added; nothing in (a), (b) or (d) changes.** (c): the name after a relationship word is dropped *even when other people are named*, so case (a) no longer applies to it (*my husband Derek and my sister Ann* becomes *my partner and my sibling*). (e), the applicant's own name (*I am Sam*) keeps `[NAME]` (FR-095). ✅ **Default for (e) CONFIRMED 2026-10-19 by the reviewer** (*"That is correct... the assumed default is the desired output. Approved."*): the writer's own name is not counted as another person, so the one other person named still becomes *They*. Input *"I am Sam and Pat helps me"*, output *"I am [NAME] and they help me"*. Previously read: *"Open default for (e), applied until answered … Confirm, or replace with …"*, due at Emily's first live review. | | |
+| OQ-055 | **What do the newly added words become?** *(Amendment A-09, FR-096.)* The reviewer added the words but gave no replacements. **Default, modelled on the key's own categories:** *grandmother* to *grandparent*; *stepson* to *stepchild*; *mummy* to *parent*; *lady* to *person*; *auntie*, *niece* and *nephew* to *relative*; *Mr*, *Mrs*, *Ms* and *Miss* removed, with the name after them handled by FR-095. **Also by default:** the other-gender counterparts (*grandfather*, *grandson*, *granddaughter*, *stepdaughter*, *stepmother*, *stepfather*, *aunt*, *uncle*, *daddy*, *gentleman*) are replaced the same way, because a list with *grandmother* and not *grandfather* leaves the same kind of word in. Confirm or replace. | Reviewer / Emily | Before development-agent's `wbs:5.6` dispatch encodes the FR-096 word list |
+| | ✅ **RESOLVED 2026-10-16 — default adopted.** Xander Lykopoulos (relayed by lead-agent): *"Approved for requirements Amendment A-09"*, having been told approval accepts the defaults unless changed; none was changed. *grandmother* to *grandparent*, *stepson* to *stepchild*, *mummy* to *parent*, *lady* to *person*, *auntie*, *niece* and *nephew* to *relative*; titles removed; the other-gender counterparts included. FR-096 stands as written. | | |
+| OQ-056 | **What do *hers*, a standalone *his*, and *himself* / *herself* become?** *(Amendment A-09, FR-094.)* The key says *their* for *hers* and *themselves* for the *-self* forms. The examples have no *hers*, and write *themself*. **Default, applying the reviewer's rule that the examples win:** *hers* and a standalone *his* (*the choice is hers*) become *theirs*, because *their* cannot stand alone; *himself* and *herself* become *themself*, as the examples write it. Confirm or replace. | Reviewer / Emily | Before development-agent's `wbs:5.6` dispatch encodes FR-094's pronoun rules |
+| | ✅ **RESOLVED 2026-10-16 — default adopted.** Xander Lykopoulos (relayed by lead-agent): *"Approved for requirements Amendment A-09"*, having been told approval accepts the defaults unless changed; none was changed. *hers* and a standalone *his* become *theirs*; *himself* and *herself* become *themself*. | | |
+| OQ-057 | **Which date starts the six-year clock: the payment's own date, or the day finance recorded it?** *(Amendment A-12, FR-107.)* The regulation says *"from final payment date"*. **Default, applied until answered:** the date the payment itself carries. A payment dated 14 November 2026 and entered on 18 November starts the clock on 14 November. If the payment carries no date, the day it is recorded is used. *(Fallback withdrawn 2026-10-20: a final payment cannot be saved without a date; see the revision under Amendment A-12.)* Confirm or replace. | Reviewer / Revitalise finance | Before development-agent's `wbs:8.6` dispatch encodes FR-107's date rule |
+| | ✅ **RESOLVED 2026-10-20 — default confirmed.** Xander Lykopoulos (relayed by lead-agent), approving Amendment A-12: *"Approved. OQ-057: Payment date."* The clock starts on the date the payment itself carries, not the day finance entered it. FR-107 stands as written. ~~The fallback to the day of recording applies only when the payment carries no date.~~ **Fallback withdrawn by the reviewer's later direction, 2026-10-20 (revision to A-12):** a payment cannot be marked final without a payment date. Previously read: *"the fallback to the day of recording applies only when the payment carries no date."* | | |
+| OQ-058 | **Which payments count as final?** *(Amendment A-12, FR-107, FR-110.)* A payment's status is Pending, Issued, Cleared or Cancelled. The reviewer's scope names only the final mark. **Default, applied until answered:** every payment marked final counts except a Cancelled one, which counts as not final (FR-110). A Pending payment marked final therefore starts the clock; a Cancelled one does not, and one cancelled later withdraws it. The alternative, counting only Issued or Cleared payments, would make the clock wait for finance to update a second field. Confirm or replace. | Reviewer / Revitalise finance | Before development-agent's `wbs:8.6` dispatch encodes which payments count |
+| | ✅ **RESOLVED 2026-10-20 — default confirmed.** Xander Lykopoulos (relayed by lead-agent), approving Amendment A-12: *"OQ-058: Correct. All payments marked final."* Any payment marked final counts whatever its status (Pending, Issued or Cleared), so a Pending payment marked final starts the clock. A Cancelled payment still counts as not final, under FR-110's existing cancellation rule, which the reviewer's answer does not change. FR-107 and FR-110 stand as written. *Revision 2026-10-20: a Pending payment marked final now also becomes Issued (FR-112).* | | |
+| OQ-059 | **When finance removes the final mark from a payment the system set to Issued, does the payment go back to Pending?** *(Amendment A-12 revision, FR-112, FR-110.)* The reviewer's answer sets Issued on marking final and says nothing about unticking. **Default, applied until answered, following the direction of the decision (the flow does one thing for finance, never a second thing behind their back):** the status stays Issued and finance corrects it by hand if the money did not move. Example: a payment of 1,500.00 is Pending and finance ticks final, so it becomes Issued and the grant carries its date. Finance unticks it, the grant's date is cleared and the application returns to "Approved", and the payment still reads Issued. The system cannot know whether the money moved, so it does not guess. Confirm or replace. | Reviewer / Revitalise finance | Before development-agent's `wbs:8.6` dispatch encodes FR-110's reversal |
+| | ✅ **RESOLVED 2026-10-20 — default confirmed.** Xander Lykopoulos, answering "should a payment the flow set to Issued go back to Pending when Final is unticked?": *"No. payment final means final."* The payment stays Issued when the final mark is removed; finance corrects it by hand if the money did not move. FR-110 and FR-112 already say this and stand as written; no requirement wording changes. The gate is not re-opened. | | |
+| OQ-060 | **What happens when a final payment is recorded before the grant's acceptance is signed?** *(Amendment A-12 second revision, FR-113, FR-111.)* The reviewer's direction moves a grant to "Paid"; the acceptance flows set "Acceptance Issued" and "Acceptance Signed", so a payment can arrive while the grant is still at 1 or 2. **Default, applied until answered, mirroring FR-108 and following the direction of the decision (the flow never skips a step the grant has not reached):** the grant's status is left alone, the case is reported under FR-111, and the final payment date and the application's status are still handled by FR-107 and FR-108. Nothing is moved later by itself when the acceptance is signed. Example: a final payment of 1,500.00 dated 14 November 2026 is saved while the grant reads "Acceptance Issued". The grant keeps that status, finance and the process owner see "grant not at Acceptance Signed", and finance fixes the cause and saves the payment again. Confirm or replace. | Reviewer / Revitalise finance | Before development-agent's `wbs:8.6` dispatch encodes FR-113's condition |
+| | ✅ **RESOLVED 2026-10-20 — default confirmed.** Xander Lykopoulos, answering OQ-060: *"OQ-60: Keep default."* A final payment recorded before the grant is at "Acceptance Signed" leaves the grant's status alone and is reported under FR-111. Signing the acceptance later does not move the grant to "Paid" by itself; the next save of any payment on that grant does (TAD A-R103). FR-113 stands as written; no requirement wording changes. The gate is not re-opened. Previously read: *"Confirm or replace."*, due before development-agent's `wbs:8.6` dispatch encodes FR-113's condition. | | |
 
 ---
 
@@ -2548,23 +3247,28 @@ Test cases are added by the test-agent; this matrix is the coverage baseline.
 | FR-011 | US-006 AC-1 |
 | FR-012 | US-006 AC-2 |
 | FR-013 | US-006 AC-3 |
-| FR-014 | US-006 AC-4 |
-| FR-015 | US-006 AC-5 |
-| FR-016 | US-006 AC-6 |
-| FR-017 | US-006 AC-7 |
+| FR-014 | US-006 AC-4 · `wbs:2.4` *(amended, Amendment A-10)* |
+| FR-015 | US-006 AC-5 · `wbs:2.4` *(amended, Amendment A-10)* |
+| FR-016 | US-006 AC-6 *(annotated, Amendment A-10)* |
+| FR-017 | US-006 AC-7, AC-20 · `wbs:2.4`, `2.7` *(amended, Amendment A-10)* |
 | FR-018 | US-006 AC-8 |
 | FR-019 | US-006 AC-9 |
 | FR-020 | US-006 AC-10 |
 | FR-021 | US-006 AC-11 |
-| FR-022 | US-006 AC-12 |
+| FR-022 | US-006 AC-12 *(annotated, Amendment A-10)* |
+| FR-102 | US-006 AC-13, AC-14 · `wbs:2.7` *(Amendment A-10)* |
+| FR-103 | US-006 AC-15, AC-20 · `wbs:2.4` *(Amendment A-10)* |
+| FR-104 | US-006 AC-16, AC-20 · `wbs:2.7` *(Amendment A-10; built under EF-34)* |
+| FR-105 | US-006 AC-17, AC-18 · `wbs:2.7` *(Amendment A-10; extends EF-45)* |
+| ~~FR-106~~ | **WITHDRAWN, Amendment A-10 revision 2** (reviewer ruling). Was ~~US-006 AC-19 · `wbs:2.7`~~ |
 | FR-023 | US-010 AC-1 |
 | FR-024 | US-010 AC-2, US-015 AC-3 |
 | FR-025 | US-010 AC-3 |
-| FR-026 | US-007 AC-1 |
+| FR-026 | US-007 AC-1, US-025 AC-4 · `wbs:5.6` *(amended, Amendment A-09)* |
 | FR-027 | US-007 AC-2, US-014 AC-2 |
 | FR-028 | US-007 AC-3 |
-| FR-029 | US-007 AC-4 |
-| FR-030 | US-007 AC-5 |
+| FR-029 | US-007 AC-4 · `wbs:5.3`, `5.4` *(amended, Amendment A-11)* |
+| FR-030 | US-007 AC-5 · `wbs:5.4` *(amended, Amendment A-11)* |
 | FR-031 | US-007 AC-6, US-012 AC-3, US-015 AC-2 |
 | FR-032 | US-014 AC-1, AC-2 |
 | FR-033 | US-007 AC-7 |
@@ -2622,6 +3326,21 @@ Test cases are added by the test-agent; this matrix is the coverage baseline.
 | FR-091 | US-024 AC-9 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
 | FR-092 | US-024 AC-10 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
 | FR-093 | US-024 AC-11 · `wbs:4.1`, `4.2`, `4.3`. `4.1` covers confirming the plugin's field behaviour with Alex (OQ-053) *(Amendment A-08)* |
+| FR-094 | US-025 AC-1, AC-2 · `wbs:5.6` *(Amendment A-09)* |
+| FR-095 | US-025 AC-3, AC-4, AC-11, AC-12 · `wbs:5.6` *(Amendment A-09; OQ-054; amended, Amendment A-11)* |
+| FR-096 | US-025 AC-5 · `wbs:5.6` *(Amendment A-09; OQ-055)* |
+| FR-097 | US-025 AC-6 · `wbs:5.6` *(Amendment A-09)* |
+| FR-098 | US-025 AC-1, AC-3, AC-7 · `wbs:5.6` *(Amendment A-09)* |
+| FR-099 | US-025 AC-8 · **no task id yet: depends on `CO-009`** *(Amendment A-09)* |
+| FR-100 | US-025 AC-9 · `wbs:5.6` *(Amendment A-09)* |
+| FR-101 | US-025 AC-10 · `wbs:5.6`; extends FR-029 and FR-030 *(Amendment A-09)* |
+| FR-107 | US-026 AC-1, AC-2, AC-5, AC-8, AC-12 · `wbs:8.6` *(Amendment A-12; `CO-010`, unbilled; OQ-057)* |
+| FR-108 | US-026 AC-1, AC-10 · `wbs:8.6` *(Amendment A-12; `CO-010`)* |
+| FR-109 | US-026 AC-3, AC-4, AC-19 · `wbs:8.6` *(Amendment A-12; `CO-010`)* |
+| FR-110 | US-026 AC-6, AC-7, AC-8, AC-15, AC-18 · `wbs:8.6` *(Amendment A-12; `CO-010`; OQ-058)* |
+| FR-111 | US-026 AC-9, AC-10, AC-17 · `wbs:8.6` *(Amendment A-12; `CO-010`)* |
+| FR-112 | US-026 AC-13, AC-14, AC-15 · `wbs:8.6` *(Amendment A-12 revision, 2026-10-20; `CO-010`; OQ-059, resolved: "No. payment final means final.")* |
+| FR-113 | US-026 AC-16, AC-17, AC-18, AC-19 · `wbs:8.6` *(Amendment A-12 second revision, 2026-10-20; `CO-010`; OQ-060, resolved: "Keep default.")* |
 
 NFR-001 to NFR-003 are additionally exercised by US-012 AC-3 and US-015 AC-1, AC-2.
 NFR-022 to NFR-025 have no acceptance criteria by design — they are recorded gaps (OQ-020 to OQ-023).
@@ -2629,6 +3348,8 @@ NFR-027 is withdrawn (Amendment A-03 Resolution, 2026-08-25) and carries no acce
 NFR-030 is evidenced by the §7.1a classification table itself, not by a test.
 NFR-031 is exercised by US-020 AC-4, which is testable in both directions — the category readable by
 a trustee role, the free text behind it not.
+NFR-009 and NFR-011, as amended by Amendment A-09, are evidenced by the recorded location of each
+component, not by a test.
 NFR-032 has no acceptance criterion: it is a sequencing constraint, evidenced by the pass having
 completed on 2026-08-17 while D-2's empty-data window was still open, not by a runtime assertion.
 
@@ -2649,3 +3370,17 @@ traceability row that did not hold was repaired and is recorded here rather than
 **Amendment A-08 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-09-25  **Response:** `APPROVED`
 (*"Approved for development"*). Relayed to plan-agent by lead-agent, quoting the reviewer's turn in its
 own session. OQ-051, OQ-052 and OQ-053 were answered in the same turn; see the A-08 Resolution.
+
+**Amendment A-09 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-16  **Response:** `APPROVED` (*"Approved for requirements Amendment A-09"*). Relayed to plan-agent by lead-agent from the reviewer's own turn. Previously read: *"PROPOSED 2026-10-16, awaiting review … Response: pending"*. Approval covers FR-026 as amended, FR-094 to FR-101, NFR-009 and NFR-011 as amended, US-025, the two §7.1c rows, and the defaults in OQ-054 to OQ-056 until they are answered. It does not itself approve `CO-009`; the reviewer approved `CO-009` separately in the same turn, unbilled (*"CO-009 Approved with unbilled tag. Features always expand a bit during development and this one is within reasonable limits."*), and commercial-agent records that.
+
+**Amendment A-11 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-19  **Response:** `APPROVED` (*"That is correct... the assumed default is the desired output. Approved."*), relayed by lead-agent. Previously read: *"pending"*. The reviewer's earlier decision *"All records should be checked by the process owner regardless. So, we don't need that setting at all."* and his approval of TAD rev 25 are recorded in the amendment; neither was approval of this text; the approval above is. It covers FR-029, FR-030, FR-095, NFR-017 and NFR-018 as amended, US-007 AC-4 and AC-5 as amended, US-025 AC-11 and AC-12, the §1 scope row and §7.1c quote annotations, and the OQ-054 default for case (e).
+
+**Amendment A-10 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-19  **Response:** `APPROVED` (*"Approved"*), revision 2. Relayed to plan-agent by lead-agent from the reviewer's own turn. Revision 1 received reviewer feedback the same day, not approval. Previously read: *"Reviewed by: pending … Response: pending (revision 2, 2026-10-19)"*. Approval covers FR-014, FR-015 and FR-017 as amended, the FR-016 and FR-022 annotations, FR-102 to FR-105, the withdrawal of FR-106, US-006 AC-4, AC-5 and AC-7 as amended, AC-13 to AC-18 and AC-20, the withdrawal of AC-19, §7.1d, the setting defaults of A-10 Finding 8, the OQ-003 narrowing and the OQ-005 widening. It is not a sign-off for reading `rev_employmentstatus`: revision 2 reads no employment answer, and revision 1's sentence making approval that sign-off was withdrawn: ~~It would also be the reviewer's sign-off for the scoring flow to read `rev_employmentstatus` as in work or not for FR-015 only (A-10 Finding 3), the authority a `gate_exception` in `constraints/domain/special-category-register.yml` must name.~~ It does not answer OQ-003's remaining value question or OQ-005; both stay open against their events. It records the reviewer's statement that this work is inside `wbs:2.4` and `2.7` and not billable; commercial-agent records the billing.
+
+**Amendment A-12 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `APPROVED` (*"Approved"*), relayed to plan-agent by lead-agent from the reviewer's own turn. Previously read: *"Reviewed by: pending … Response: pending. Proposed 2026-10-20."* Approval covers FR-107 to FR-111, US-026 and the §1 out-of-scope note. OQ-057 (*"Payment date"*) and OQ-058 (*"Correct. All payments marked final."*) were answered in the same turn, both at their defaults. It does not itself approve any billing: `CO-010` is accepted unbilled (`CE-0021`) and commercial-agent records that.
+
+**Amendment A-12, reviewer-directed revision — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `APPROVED`, relayed by lead-agent. Verbatim: *"1. Agreed. 2. For now use the same as the process owner Emily. At the moment that is a combined role. but in the future probably separated. During testing this can be set to Janine. 3. Make payment date required when final payment is set. The the flow can set the payment status to issued. APPROVED"* Previously read: FR-107 and OQ-057 *"If the payment carries no date, the day it is recorded is used"*. Approval covers FR-107 as revised and FR-112. OQ-059 is raised and open at its default.
+
+**Amendment A-12, wording alignment — 2026-10-20 (not a new decision; gate not re-opened).** FR-107 said a payment *"SHALL NOT be saved as final"* without a date. Only a server-side block could guarantee that, and none is in scope. The reviewer-approved design (TAD rev 28, `ADR-081`, `A-R102`) enforces it with a business rule on the Payment main form, and for API or non-form writes the flow ignores an undated final payment (no clock starts) and reports "final payment has no date" under FR-111. FR-107 and AC-12 are reworded to say exactly that; the reviewer's intent, *"Make payment date required when final payment is set"*, is kept and quoted. FR-112's Cancelled-reporting clause is unchanged. OQ-059 stays open at its default.
+
+**Amendment A-12, second reviewer-directed revision — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `APPROVED`, relayed by lead-agent. Verbatim: *"Obviously the final payment should change the grant status as well."* Approval covers FR-113 and AC-16 to AC-19. Previously read: the grant's own status was outside `CO-010` (architect-agent finding). OQ-059 is resolved (*"No. payment final means final."*); OQ-060 is raised and resolved at its default (*"Keep default."*, 2026-10-20). Previously read: "raised and open at its default." Gate not re-opened.

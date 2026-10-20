@@ -1,0 +1,22 @@
+<fetch>
+  <!--
+    READ-ONLY. A-R100 as widened by amendment b (wbs:8.6, ADR-081, FR-113): grants at status Paid (4) that have NO
+    payment marked final. The Capture Payment flow returns such a grant to Acceptance Signed the next time any payment
+    on it is saved. Run it against PRD before the flow is turned on there, together with the listing in the file beside
+    this one; expected result for both: no rows. Returns the grant reference only. Nothing is written.
+    How to run it: the pipeline step for wbs:8.6 in config/revitalise-grant-automation-pipeline.yml.
+  -->
+  <entity name='rev_grant'>
+    <attribute name='rev_name' />
+    <filter type='and'>
+      <condition attribute='rev_status' operator='eq' value='4' />
+      <condition entityname='finalpay' attribute='rev_paymentid' operator='null' />
+    </filter>
+    <link-entity name='rev_payment' from='rev_grantid' to='rev_grantid' link-type='outer' alias='finalpay'>
+      <attribute name='rev_paymentid' />
+      <filter type='and'>
+        <condition attribute='rev_isfinalpayment' operator='eq' value='1' />
+      </filter>
+    </link-entity>
+  </entity>
+</fetch>

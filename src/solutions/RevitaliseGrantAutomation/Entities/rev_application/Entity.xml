@@ -2141,7 +2141,7 @@
             <displayname description="Redaction Released" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The human-in-the-loop release gate (TAD section 5.5, FR-029, FR-030): every ...redacted counterpart is trustee-visible only when this is true. Set true by REV | Narrative | Scrub Free-Text only when there is no reason to review (and RedactionAutoRelease is true), otherwise by the process owner after review. DefaultValue=0: a new application must never default to released." languagecode="1033" />
+            <Description description="The human-in-the-loop release gate (TAD section 5.5, FR-029, FR-030): every ...redacted counterpart is trustee-visible only when this is true. Set true only by the process owner after review; REV | Narrative | Scrub Free-Text never writes it (TAD ADR-078). DefaultValue=0: a new application must never default to released." languagecode="1033" />
           </Descriptions>
         </attribute>
         <!--
@@ -2180,7 +2180,7 @@
             <displayname description="Redaction Review Required" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="FR-030: set by REV | Narrative | Scrub Free-Text when the record has any reason to review (rules section 7, TAD section 5.5) or when the scrub failed. Drives the Review Required view; the record stays withheld until the process owner sets Redaction Released." languagecode="1033" />
+            <Description description="FR-030, TAD ADR-078: set true by REV | Narrative | Scrub Free-Text on every application it scrubs, and when the scrub failed; its reason codes are hints. Drives the Review Required view; the record stays withheld until the process owner sets Redaction Released." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_eligibleforround">
@@ -2612,7 +2612,7 @@
             <displayname description="Auto-reject Reason" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="EF-45: the specific condition that caused this application to be auto-rejected (below threshold score, or EF-34's 12-month rule). Written by the scoring flow alongside rev_status=4; null for all other statuses." languagecode="1033" />
+            <Description description="FR-105, TAD ADR-079: every auto-reject rule that applied, one per line, in the order amount over the break-type limit, income above the ceiling, savings over 6,000 GBP, funded within 12 months, score at or below the threshold. Written by the scoring flow in the same write as rev_status=4; empty for every other status; an override leaves it." languagecode="1033" />
           </Descriptions>
         </attribute>
         <!--

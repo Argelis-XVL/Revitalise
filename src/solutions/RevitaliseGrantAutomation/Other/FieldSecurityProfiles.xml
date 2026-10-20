@@ -981,7 +981,7 @@
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
       <FieldPermission>
-        <!-- Whether this is the last payment against the grant - also the trigger this column is meant to eventually set rev_grant.rev_finalpaymentdate from, once that wiring lands (Entities/rev_payment/Entity.xml's own header). -->
+        <!-- Whether this is the last payment against the grant. REV | Finance | Capture Payment (wbs:8.6, ADR-081) reads it on every payment save and sets or clears rev_grant.rev_finalpaymentdate from it (Entities/rev_payment/Entity.xml's own header). Previously read: 'once that wiring lands'. -->
         <EntityName>rev_payment</EntityName>
         <AttributeName>rev_isfinalpayment</AttributeName>
         <CanRead>4</CanRead>

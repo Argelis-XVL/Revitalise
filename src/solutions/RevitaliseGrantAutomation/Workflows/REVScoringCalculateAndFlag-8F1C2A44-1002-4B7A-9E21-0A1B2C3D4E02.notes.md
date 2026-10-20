@@ -4,7 +4,7 @@ Power Automate enforces a hard limit (256 characters) on the `description` field
 
 ## `/properties/definition/description`
 
-REV | Scoring | Calculate & Flag. Serves FR-011 (circumstance score; maximum 60, confirmed in revision 0.3 - see Calculate_circumstance_score), FR-012 (invert the life-satisfaction answer), FR-013 (configured Likert point values), FR-014 (Auto-pass / Borderline / Auto-reject against configured thresholds), FR-015 (income flag, evaluated separately from the score), FR-016 (special-category data excluded from the calculation), FR-017 (thresholds changeable without touching this flow), FR-018 (an override is never overwritten), FR-019 (Borderline routed to a human), FR-020 (Auto-reject leaves the active list), FR-022 (no automated outcome when a scored answer is missing).
+REV | Scoring | Calculate & Flag. Serves FR-011 (circumstance score; maximum 60, confirmed in revision 0.3 - see Calculate_circumstance_score), FR-012 (invert the life-satisfaction answer), FR-013 (configured Likert point values), FR-014 with FR-102 to FR-105 (Auto-reject when any of five rules applies, whatever the score, with every reason that fired written for the process owner; otherwise Auto-pass or Borderline against the configured band), FR-015 (income flag, evaluated separately from the score), FR-016 (special-category data excluded from the calculation), FR-017 (every threshold, amount limit and rule switch changeable without touching this flow), FR-018 (an override is never overwritten), FR-019 (Borderline routed to a human), FR-020 (Auto-reject leaves the active list), FR-022 (no automated outcome when a scored answer is missing).
 
 FR-016 IS ENFORCED STRUCTURALLY, NOT BY INTENTION. The Dataverse trigger delivers the whole row, so the guarantee is that no expression anywhere in this definition references rev_narrativeraw, rev_otherconditionraw, rev_conditionprofile or rev_supportrecipientconditionprofile. That is a grep-able property, and config/revitalise-grant-automation-build.yml has a build step that fails if any of those four column names appears in this file. Special-category data therefore cannot influence an automated outcome (SDD FR-016, DUAA 2025 position).
 
@@ -166,11 +166,11 @@ THE DECIDING RULE IS RECORDED, NOT JUST APPLIED. `Compose_scoring_audit` writes 
 
 ## `/properties/definition/actions/Score_and_flag/actions/Derive_status/description`
 
-FR-014. 4 Auto-reject at or below the threshold score, 3 Borderline inside the band, 2 Auto-pass above it. Threshold score is evaluated so that a misconfigured band - lower set below the threshold score - can never let a below-threshold application through as Borderline. Every boundary is a configured value.
+FR-014, ADR-079. 4 Auto-reject when ANY of the five rules decided in `Derive_eligibility_rules` applies, whatever the circumstance score; otherwise 3 Borderline inside the band, 2 Auto-pass above it. The status is the `or()` of those five booleans and nothing else, so a rule that applies can never be outvoted by a high score (SDD A-10 rev 2: savings Yes with a score of 45 is Auto-reject, not Auto-pass). Every boundary is a configured value. The knockout is still decided before the band, so a misconfigured band - lower set below the threshold score - can never let a below-threshold application through as Borderline.
 
 EVALUATED AGAINST THE ROUNDED SCORE SINCE REVISION 0.8, AND THAT CHOICE IS LOAD-BEARING. The status must be derived from the SAME number that is written to rev_circumstancescore, or the record contradicts itself: a trustee would read a score and an outcome that cannot be reconciled, and the score breakdown could not explain the decision. It is not a cosmetic difference. With a borderline lower bound of 37, an exact total of 36.5 is NOT >= 37 and would fall through to Auto-pass, while the 37 actually stored IS in the band and is Borderline - a human review that would have been skipped. Rounding once, before this expression, removes that class of disagreement entirely.
 
-EF-34 (added 2026-09-22): A SECOND, INDEPENDENT AUTO-REJECT PATH, EVALUATED FIRST. `rev_receivedfundingbefore` is Yes AND `rev_morethan12monthsago` is No -> auto-reject (status 4), regardless of the circumstance score. This is checked BEFORE the score threshold, deliberately: it is a categorical eligibility fact about the applicant (funding received too recently), not a measurement of current need, so it takes precedence the same way `Withhold_the_outcome_when_a_scored_answer_is_missing` already gates the whole scope before any score-based rule runs. The order is the control that makes the auto-reject reason DETERMINISTIC when both this rule and the score threshold would reject the same application - see `Derive_autoreject_reason` below, which records only the rule that actually fired.
+THE FIVE RULES LIVE IN ONE PLACE (ADR-079 item 1). The amount, income, savings, prior-funding and score rules are decided once, in `Derive_eligibility_rules`, which returns five booleans. This action, `Compose_reason_lines` and through it `Derive_autoreject_reason` all read those booleans; none keeps its own copy of a condition. With five rules, two copies of five conditions is the drift EF-45 was written to prevent. The prior-funding rule is EF-34: `rev_receivedfundingbefore` Yes AND `rev_morethan12monthsago` No rejects whatever the score. It now sits behind the `PriorFundingRuleEnabled` setting, on by default, and is no longer given a precedence over the score rule: when several rules apply, all of them are written (FR-105), so no order is needed to make one reason win.
 
 WHY A MISSING `rev_morethan12monthsago` DOES NOT TRIGGER THE REJECTION. The compound condition uses `equals(..., false)`, not `not(equals(..., true))`: a null (the question genuinely never answered, or asked-but-skipped) evaluates neither branch as true, so the application falls through to the ordinary score-based rules rather than being auto-rejected on incomplete data. This mirrors FR-022's philosophy (absent data must never manufacture a decision) without reusing its withhold-the-whole-outcome mechanism, because a missing 12-month answer does not also make the CIRCUMSTANCE SCORE unusable the way a missing wellbeing answer does.
 
@@ -178,11 +178,11 @@ RESOLVES THE OPEN DPO QUESTION (BR-S10). The walkthrough previously blocked this
 
 ## `/properties/definition/actions/Score_and_flag/actions/Derive_autoreject_reason/description`
 
-EF-45 (2026-09-22). The single place that decides WHY an application was Auto-rejected, written to `rev_autorejectreason` alongside `rev_status` in the same `Write_score_and_status` call - so the two can never disagree about whether a reason exists. Returns `null` for every status other than 4, using the SAME bare `@if(...)` (no `@{}` string-template wrapper) that the intake flow already ships for a Dataverse write field that must be null rather than the string `"null"` - see e.g. `rev_email`/`rev_dateofbirth` in `REVIntakeWordPressToDataverse`'s deep-insert body. That is ground truth already proven live on this platform, not a fresh guess for this action.
+EF-45 (2026-09-22), widened by FR-105 and ADR-079 item 5. The reason is every rule that applied, one per line, in the order amount, income, savings, prior funding, score. `Compose_reason_lines` builds one segment per rule (a newline then its sentence, or nothing) from the five booleans of `Derive_eligibility_rules`; this action returns `null` unless the status is 4, and otherwise that text without its first newline. The newline is removed with `join(skip(split(text, newline), 1), newline)` and NOT with `substring()`: any `substring()` of an empty string throws (power-automate.md (l)), and the text IS empty whenever no rule applies, so a `substring` here would fail every run that scores Auto-pass or Borderline if the platform evaluates `if()` eagerly (the repository records both answers as open). It returns `null` through a bare `@if(...)` (no `@{}` wrapper), the form the intake flow already ships for a Dataverse write field that must be null rather than the string `"null"`. It is written to `rev_autorejectreason` in the same `Write_score_and_status` call as `rev_status`, so status 4 with an empty reason cannot occur and neither can a reason under any other status set by this flow.
 
-WHY THE ORDER MATTERS HERE TOO, NOT JUST IN `Derive_status`. If both EF-34's 12-month rule and the score threshold would reject the same application, `Derive_status` already picked ONE path (the 12-month rule, checked first) - this action re-runs the SAME condition rather than trying to infer which path fired from the status value alone, so the reason text always matches the rule that actually produced the 4. The alternative (branching on some stored "which rule fired" flag) would be a second encoding of the same decision and could drift from `Derive_status` under a future edit to either action.
+THE REASONS READ THE SAME DECISION AS THE STATUS. Status and reason are both functions of the five booleans, so they cannot disagree. The reason text names the values that decided each rule (the amount to the penny, the limit, the break type, the income band and the ceiling, the score and the threshold) and nothing else. It never names an employment, benefits, disability or health answer; the income reason names the band and the ceiling only.
 
-`Compose_scoring_audit` reuses this action's output for its own status-4 line, rather than duplicating the score-threshold text a second time - see that action's own description.
+AFTER AN OVERRIDE the status changes and the reason stays (FR-105, FR-018). Nothing re-scores an existing application: the flow fires on create only and its first action stops it when `rev_statusoverridden` is true.
 
 ## `/properties/definition/actions/Score_and_flag/actions/Compose_score_breakdown/description`
 
@@ -196,9 +196,9 @@ WHAT MOVED OUT, AND WHY THE "EXACT TOTAL BEFORE ROUNDING" TEXT DID NOT MOVE WITH
 
 EF-44 (2026-09-17). Admin-only companion to `Compose_score_breakdown` above - see that description for why the column was split and what stayed behind. Written to the new `rev_scoringaudit` column (`ntext`, `IsSecured=0`, deliberately absent from every Trustee Portal select list - the Trustee Portal reads `rev_scorebreakdown` only).
 
-WHAT IT RECORDS, AND WHY EACH PART IS THERE. (1) Which of `Derive_status`'s outcomes fired - for status 4, this is now `Derive_autoreject_reason`'s own text (EF-34/EF-45, 2026-09-22), covering both the 12-month rule and the score threshold, rather than a second hand-written description of the threshold case that could drift from the one written to `rev_autorejectreason`. (2) Which of `Derive_income_flag`'s four outcomes fired, including the EF-28b/M-04 benefits route - see that action's own description for why a fourth outcome exists and why it is evaluated first. (3) All four PROVISIONAL settings (`KnockoutThreshold`, `BorderlineBandLower`, `BorderlineBandUpper`, `IncomeCeiling`) as they stood at the moment of scoring, not as they read now - this is the part that makes the column an AUDIT trail rather than a duplicate of the breakdown, and the reason it has to exist before OQ-001/002/003 are settled rather than after: once the board confirms real values, every application scored under today's placeholders needs its own record of what those placeholders were.
+WHAT IT RECORDS, AND WHY EACH PART IS THERE. (1) Which of `Derive_status`'s outcomes fired - for status 4 the line reads `4 Auto-reject:` followed by `Compose_reason_lines`, the same text written to `rev_autorejectreason` (FR-105, ADR-079 item 7), rather than a second hand-written description that could drift from it. (2) Which of `Derive_income_flag`'s four outcomes fired, including the EF-28b/M-04 benefits route - see that action's own description for why a fourth outcome exists and why it is evaluated first. (3) The thresholds in force: the four settings `KnockoutThreshold`, `BorderlineBandLower`, `BorderlineBandUpper` and `IncomeCeiling`, and since ADR-079 the five `AmountLimit*` limits and both rule switches, as they stood at the moment of scoring, not as they read now - this is the part that makes the column an AUDIT trail rather than a duplicate of the breakdown, and the reason it has to exist before OQ-001/002/003 are settled rather than after: once the board confirms real values, every application scored under today's placeholders needs its own record of what those placeholders were.
 
-RUNS AFTER `Compose_score_breakdown` AND `Derive_autoreject_reason`. Ordering against `Compose_score_breakdown` has no computational effect - the two Compose actions read disjoint outputs - but keeping the trustee-facing artefact first in the definition mirrors which one a maker opening this flow in the designer should read first to understand what a trustee sees. The dependency on `Derive_autoreject_reason` is load-bearing: this action's own status-4 text is `outputs('Derive_autoreject_reason')`, so it cannot run before that output exists.
+RUNS AFTER `Compose_score_breakdown` AND `Derive_autoreject_reason`. Ordering against `Compose_score_breakdown` has no computational effect - the two Compose actions read disjoint outputs - but keeping the trustee-facing artefact first in the definition mirrors which one a maker opening this flow in the designer should read first to understand what a trustee sees. The dependency on `Derive_autoreject_reason` is load-bearing: this action's status-4 text is built from `outputs('Compose_reason_lines')`, which `Derive_autoreject_reason` waits for, so it cannot run before that output exists. At the longest values the text is about 1,100 characters, inside the 4,000 the column allows.
 
 ## `/properties/definition/actions/Score_and_flag/actions/Write_score_and_status/description`
 
@@ -216,7 +216,8 @@ FR-010. Passes the application REFERENCE, never the row. A scoring failure leave
 
 ## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Read_scoring_configuration/description`
 
-ONE List rows call reads all eight rev_setting rows the calculation needs. It replaces eight
+ONE List rows call reads all fifteen rev_setting rows the calculation needs (eight scoring rows, and since
+ADR-079 seven for the auto-reject rules). It replaces eight
 chained Get-a-row-by-id actions, each of which put an alternate-key expression
 (`rev_name='LikertPointMap'`) in the Row ID field. The Dataverse Web API accepts that form -
 `GET rev_settings(rev_name='LikertPointMap')` was verified working against DEV on 2026-08-20,
@@ -226,11 +227,11 @@ on its very first action, before any write, on all eleven runs of its first live
 symptom was eleven identical error-log rows reading only "An action failed. No dependent
 actions succeeded."
 
-Beyond correctness, this is one network round trip instead of eight sequential ones. The eight
+Beyond correctness, this is one network round trip instead of eight sequential ones (now fifteen). The eight
 reads were chained (each `runAfter` the previous), each carrying a four-attempt exponential
 retry, so a slow environment paid that latency eight times over on every single application.
 
-The eight values are extracted by eight Filter array actions named `Setting_<Key>`, running in
+The values are extracted by one Filter array action each named `Setting_<Key>`, running in
 parallel off this one read. A Filter array ACTION is used rather than an inline expression
 because the workflow definition language has no `filter()` function - `first()`, `union()` and
 `skip()` exist, filtering does not. The same construct is already used in this flow by
@@ -246,9 +247,9 @@ loudly. List rows returns a SHORT ARRAY instead: `first()` over an empty result 
 zero. A plausible wrong score is worse than no score - it is indistinguishable from a real one
 on the record, and FR-022 already establishes that this flow withholds rather than guesses.
 
-So the row count is asserted before any value is read: fewer than eight and the run terminates
+So the row count is asserted before any value is read: fewer than fifteen and the run terminates
 Failed, which is what `REV | Ops | Failure Alert` listens for, and the error names the count it
-found and points at `provisioning/dataverse/seed-settings.ps1`. Eight is the number of rows the
+found and points at `provisioning/dataverse/seed-settings.ps1`. Fifteen is the number of rows the
 `$filter` above names; if a setting is added to that filter, this number moves with it.
 
 ## `/properties/definition/triggers/When_an_application_is_created` - subscriptionRequest/runas
@@ -363,6 +364,30 @@ own description carries no example URL). Three actions in this solution now read
 worth treating as a real deployment precondition rather than an optional nicety: set the
 environment variable's CURRENT VALUE, never its default, or the next import silently discards it
 (IMP-0121).
+
+## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Fail_if_a_rule_switch_is_not_true_or_false/description`
+
+ADR-079 item 4. `SavingsRuleEnabled` and `PriorFundingRuleEnabled` are `Boolean` rows the process owner edits as text. A switch that read `yes`, `Yes please` or an empty string would otherwise be compared with `'true'`, found unequal, and silently switch the rule OFF, which lets every savings Yes or recent-funding applicant through. So each value is trimmed, lower-cased and must be `true` or `false`; anything else terminates the run Failed, which is what `REV | Ops | Failure Alert` listens for. The £6,000 and 12-month figures are the form's own questions and are not settings. The terminate message prints both values, which are not personal data. Restart route: once the row is fixed, resubmit each failed run from run history; a resubmitted run replays the row as it was created and reads the settings as they are now (A-FLOW-20, TAD 12.7). Nothing is re-scored when a setting changes.
+
+## `/properties/definition/actions/Score_and_flag/actions/Parse_amount_limits/description`
+
+ADR-079 item 2. Maps each `rev_breaktype` option value to its limit: 1 Holiday accommodation, 2 Day trips or outings, 3 Activity or Experience, 4 Respite Care Facility stay, 5 Other. ALL FIVE are parsed on every run, so a limit typed `£150` or `150.50` fails every new application's scoring with a Failure Alert naming this step, not only the applications of its own break type. A blank value fails too: the expression is `int(trim(coalesce(<value>, '')))`, because `int(null)` is 0 and a limit of 0 would silently reject every request. A-FLOW-21 (OPEN, to be shown in DEV): the platform's `int()` THROWS on an empty string and on `£150`, which the repository already relies on for the `float()` cast in `Add_the_configured_points_for_this_answer`; if `int('')` returned 0 a blank limit would reject every request with no alert. It runs after the FR-022 withhold gate, so an application with a missing scored answer still goes to Under Review with no rule applied (SDD A-10 example 12). Nothing here is a number the flow decides with: the limits are rows (FR-017).
+
+## `/properties/definition/actions/Score_and_flag/actions/Compose_reason_labels/description`
+
+ADR-079 item 5. The option sets' own names for the reason text, without the form's parenthetical: `Holiday accommodation`, not `Holiday accommodation (hotel, cottage, caravan, holiday park)`; `Over £35,000`, not `Over £35,000 per year`. This is a format specification, so it is a fixed Compose on the precedent of `Compose_frequency_response_labels`. `BreakTypeLabelMap` and `IncomeBandLabelMap` are NOT used: they map the website's wording to an option value at intake, and making the reason depend on intake parsing rows would let an intake fix change the reason (ADR-079 inventory).
+
+## `/properties/definition/actions/Score_and_flag/actions/Derive_eligibility_rules/description`
+
+ADR-079 item 1. The five rules, decided once, as five booleans.
+
+AMOUNT (FR-102): the break type is a key of `Parse_amount_limits`, the amount is present, the exceptional-funding tick is not true (blank counts as not ticked), and `rev_amountrequested` is strictly GREATER than that break type's limit, so the limit itself passes. `rev_additionalamountrequested` is never read. A blank break type or amount does not reject. INCOME (FR-015): `Derive_income_flag` is 2, Above income ceiling, and nothing else; a benefits Yes gives 4 and a missing band 3, so neither rejects, and this action never names the benefits column. SAVINGS (FR-103): the switch is `true` and `rev_savingsover6000` is Yes; blank does not reject. PRIOR FUNDING (FR-104, EF-34): the switch is `true`, `rev_receivedfundingbefore` is Yes and `rev_morethan12monthsago` is No; blank does not reject (`equals(..., false)`, not `not(equals(..., true))`, so absent data never manufactures a decision). SCORE (FR-014): the rounded score is at or below `KnockoutThreshold`.
+
+It reads no employment, benefits, disability or health column and not `rev_exceptionalfundingdetail`, which is free text about the applicant's circumstances. Every argument of every expression is evaluable when its inputs are null (`coalesce` throughout), so the design does not depend on `if()` or `and()` evaluating only one branch.
+
+## `/properties/definition/actions/Score_and_flag/actions/Compose_reason_lines/description`
+
+ADR-079 item 5, FR-105. One segment per rule, each a newline then its sentence or nothing, joined in the order amount, income, savings, prior funding, score, from the booleans of `Derive_eligibility_rules`. A switched-off rule never fires and writes nothing. Amounts use `formatNumber(..., 'N2')` and the limit and ceiling `'N0'`, after a pound sign; the culture of that rendering is measured under A-FLOW-18, and a wrong format is a wording defect only, never a status defect. At the longest values the five lines total about 440 characters, inside the 1,000 of `rev_autorejectreason`. `Derive_autoreject_reason` removes the first newline.
 
 ## Check-7 clearance, 2026-09-30
 

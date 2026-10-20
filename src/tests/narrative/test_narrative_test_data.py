@@ -9,6 +9,10 @@ in each application is the gold markup with the markup removed, every gold span 
 produce, the expected redacted text and the expected record decision are what the flow model produces with
 a perfect extractor, and the text is synthetic (Ofcom drama phone numbers, reserved email domains).
 They do not measure the AI Builder model: score_seeded_run.py does that, against a live run.
+
+REV 22 (Iteration 9, 2026-10-16): the file's expectedRedacted and expectedRecord are the rev 20 deterministic flow's
+output and are marked stale in the file itself (`_rev22`); they are regenerated after the two prompts exist (TAD 12.6.1
+R1). The tests that compared them with the retired flow model are replaced by RevTwentyTwo below.
 """
 from __future__ import annotations
 
@@ -23,7 +27,7 @@ sys.path.insert(0, str(HERE))
 
 import redaction_reference as rr  # noqa: E402
 import score_seeded_run as scorer  # noqa: E402
-from test_flow_model import extractor_for, simulated_entities  # noqa: E402
+from corpus_support import simulated_entities  # noqa: E402
 from test_redaction_reference import parse_markup  # noqa: E402
 
 REPO = HERE.parents[2]
@@ -32,20 +36,9 @@ CASES = DATA["cases"]
 SCORING_IDS = {c["caseId"] for c in json.loads(
     (REPO / "src" / "tests" / "data" / "scoring-test-data.json").read_text(encoding="utf-8"))["cases"]}
 SETTINGS = {"withoutRedactionSettings": {},
-            "withThresholdAndAutoRelease": {"RedactionConfidenceThreshold": "0.85", "RedactionAutoRelease": "true"}}
+            "withThreshold": {"RedactionConfidenceThreshold": "0.85"}}   # ADR-078: RedactionAutoRelease retired
 OFCOM_PHONE = re.compile(r"^(07700 900\d{3}|\(?0113\)? 496 0\d{3}|020 7946 0\d{3})$")
 EMAIL = re.compile(r"[\w.+-]+@([\w.-]+)")
-
-
-def run(case, settings, ents_score=0.93):
-    def extract(window):
-        for marked in case["narratives"].values():
-            plain, gold = parse_markup(marked)
-            if window in plain:
-                return extractor_for(plain, simulated_entities({}, plain, gold, ents_score))(window)
-        return []
-    row = {k: v for k, v in case["application"].items() if isinstance(v, str)}
-    return rr.flow_scrub_record(row, settings, extract)
 
 
 class FileShape(unittest.TestCase):
@@ -121,54 +114,28 @@ class Synthetic(unittest.TestCase):
         self.assertEqual(cats, set(rr.LABEL) | {"AGE"})
 
 
-class FlowModelAgrees(unittest.TestCase):
-    def test_expected_redacted_text_is_what_the_flow_model_writes(self):
+class RevTwentyTwo(unittest.TestCase):
+    def test_the_file_says_its_expectations_are_stale(self):
+        self.assertIn("STALE SINCE 2026-10-16", DATA["_rev22"])
+
+    def test_the_labelled_text_holds_no_value_the_extractor_finds(self):
+        """What the rewrite prompt would receive for each seeded column, with a perfect extractor: no gold value
+        the extractor owns is left in it (phones and postcodes are the prompt's to label, ADR-075 item 3)."""
         for c in CASES:
-            _, writes = run(c, SETTINGS["withThresholdAndAutoRelease"])
-            for red, want in c["expectedRedacted"].items():
-                if want is None:
-                    self.assertNotIn(red, writes, f"{c['caseId']} {red} must not be written")
-                elif want == c["application"].get(red):          # present already or a clean pass-through
-                    self.assertTrue(red not in writes or writes[red] == want)
-                elif want:
-                    self.assertEqual(writes.get(red), want, f"{c['caseId']} {red}")
-                else:
-                    self.assertNotIn(red, writes)
+            for col, marked in c["narratives"].items():
+                plain, gold = parse_markup(marked)
+                if rr.column_state(plain, None) != "scrub":
+                    continue
+                ents = [rr.ExtractorEntity(*e) for e in simulated_entities({}, plain, gold)]
+                _, kept, _, _ = rr.label_spans(plain, ents)
+                labelled = rr.labelled_text(plain, kept)
+                for e in ents:
+                    self.assertNotIn(e.value, labelled, f"{c['caseId']} {col}")
 
-    def test_expected_record_is_what_the_flow_model_decides(self):
-        for c in CASES:
-            for name, settings in SETTINGS.items():
-                dec, _ = run(c, settings)
-                exp = c["expectedRecord"][name]
-                self.assertEqual(dec.released, exp["released"], f"{c['caseId']} {name}")
-                self.assertEqual(dec.review_required, exp["rev_redactionreviewrequired"])
-                self.assertEqual(list(dec.reasons), exp["reasons"], f"{c['caseId']} {name}")
-
-    def test_td13_below_threshold_when_the_model_is_less_sure(self):
-        dec, _ = run(CASES[0], SETTINGS["withThresholdAndAutoRelease"], ents_score=0.80)
-        self.assertFalse(dec.released)
-        self.assertIn("below-threshold", dec.reasons)
-
-    def test_td13_to_td15_have_the_roles_the_reviewer_asked_for(self):
-        typical, edge, review = CASES
-        self.assertTrue(run(typical, SETTINGS["withThresholdAndAutoRelease"])[0].released)
-        self.assertEqual(run(edge, SETTINGS["withThresholdAndAutoRelease"])[0].reasons, ("redacted-exceeds-4000:rev_narrativeraw",))
-        reasons = run(review, SETTINGS["withThresholdAndAutoRelease"])[0].reasons
-        self.assertEqual({r.split(":")[0] for r in reasons},
-                         {"residual-street-word", "residual-practice-word", "kept-existing-counterpart"})
-
-    def test_td14_needs_three_windows_and_the_overlap_holds_the_phone_and_email(self):
-        c = CASES[1]
-        plain, gold = parse_markup(c["narratives"]["rev_narrativeraw"])
-        w = rr.windows(plain)
-        self.assertEqual([(o, len(t)) for o, t in w], [(0, 4998), (4798, 4998), (9596, 860)])
-        for s, n, cat in gold:
-            self.assertTrue(any(s >= o and s + n <= o + len(t) for o, t in w), f"{cat} at {s} is whole in no window")
-        for cat in ("PHONE", "EMAIL"):
-            s, n, _ = next(g for g in gold if g[2] == cat)
-            self.assertGreaterEqual(sum(1 for o, t in w if s >= o and s + n <= o + len(t)), 2)
-        # redacted text really is too long to write, and the raw column has no street or practice word
-        self.assertGreater(len(rr.flow_scrub_column("c", plain, None, lambda _w: []).redacted), 4000)
+    def test_td14_is_over_5000_characters_and_is_no_longer_scrubbed(self):
+        plain, _ = parse_markup(CASES[1]["narratives"]["rev_narrativeraw"])
+        self.assertGreater(len(plain), rr.EXTRACTOR_MAX_CHARS)
+        self.assertEqual(rr.column_state(plain, None), "too-long")
 
 
 class Scorer(unittest.TestCase):
@@ -179,7 +146,7 @@ class Scorer(unittest.TestCase):
 
     def test_perfect_live_rows_pass(self):
         for c in CASES:
-            exp = c["expectedRecord"]["withThresholdAndAutoRelease"]
+            exp = c["expectedRecord"]["withThreshold"]
             live = self.live_from_expected(c, exp["released"], exp["rev_redactionreviewrequired"])
             if c["caseId"] == "TD-14":
                 live.pop("rev_narrativeredacted", None)
@@ -187,11 +154,26 @@ class Scorer(unittest.TestCase):
 
     def test_a_missed_name_fails_and_a_missing_row_is_not_a_pass(self):
         c = CASES[0]
-        exp = c["expectedRecord"]["withThresholdAndAutoRelease"]
-        live = self.live_from_expected(c, True, False)
+        exp = c["expectedRecord"]["withThreshold"]
+        live = self.live_from_expected(c, False, True)
         live["rev_narrativeredacted"] = live["rev_narrativeredacted"].replace("[NAME]", "Beatrix", 1)
         self.assertEqual(scorer.score_case(c, live, "on")[0], "FAIL")
         self.assertEqual(scorer.score_case(c, None, "on")[0], "MISSING")
+
+    def test_every_expected_record_waits_for_the_process_owner(self):
+        """TAD rev 25, ADR-078: the flow never releases; review required on every scrubbed record; no auto-release hint."""
+        for c in CASES:
+            self.assertEqual(set(c["expectedRecord"]), {"withoutRedactionSettings", "withThreshold"}, c["caseId"])
+            for state, exp in c["expectedRecord"].items():
+                with self.subTest(c["caseId"], state=state):
+                    self.assertIs(exp["released"], False)
+                    self.assertIs(exp["rev_redactionreviewrequired"], True)
+                    self.assertFalse([r for r in exp["reasons"] if r.startswith("auto-release")])
+
+    def test_a_record_the_flow_released_fails(self):
+        c = CASES[0]
+        live = self.live_from_expected(c, True, False)
+        self.assertEqual(scorer.score_case(c, live, "on")[0], "FAIL")
 
     def test_writing_the_too_long_counterpart_fails_td14(self):
         c = CASES[1]

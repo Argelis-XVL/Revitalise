@@ -294,12 +294,14 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
         $types | Should -Not -Contain 'Foreach'
     }
 
-    It 'the key set of Compose_tab_values is the 57 the TAD lists; every owner|placeholder is looked up with the owner it is written for' {
+    It 'the key set of Compose_tab_values is the 55 the TAD lists; every owner|placeholder is looked up with the owner it is written for' {
         # Reviewer, 2026-10-02: "The array with tabs are all the tabs on the template. Skipping them is not ok. They should
         # all be populated by the workflow. Except the signer full name, sign date and signature for both recipients."
         $keys = @($script:Build['Compose_tab_values']['inputs'].Keys)
-        foreach ($k in 'prefill|Name', 'prefill|Amount', 'prefill|Holiday type', 'prefill|Holiday destination', 'prefill|Dates') { $keys | Should -Contain $k }
-        $keys.Count | Should -Be 57
+        foreach ($k in 'prefill|Name', 'prefill|Amount', 'prefill|Holiday destination', 'prefill|Dates') { $keys | Should -Contain $k }
+        # 2026-10-19: the customer removed the Purpose label (p_type, placeholder 'Holiday type') from the template.
+        foreach ($k in 'label|p_type', 'prefill|Holiday type') { $keys | Should -Not -Contain $k }
+        $keys.Count | Should -Be 55
         foreach ($owner in 'applicant', 'referee') {
             foreach ($ph in 'First name', 'Last name', 'Title', 'Email', 'Phone', 'Postcode', 'Address', 'Adress', 'Town/City', 'City/Town',
                             'Job title', 'type:companyTabs', 'type:checkboxTabs') {
@@ -330,7 +332,7 @@ Describe 'REV | Acceptance | Create Envelope — the rev 15 action sequence (TAD
     }
 
     It 'the read-back requires the prefill tabs and the five tabs both signers share; other tabs are held by the no-mapping check' {
-        @($script:Build['Filter_missing_tabs']['inputs']['from']) | Should -Be @('p_name', 'p_amt', 'p_type', 'p_venue', 'p_dates',
+        @($script:Build['Filter_missing_tabs']['inputs']['from']) | Should -Be @('p_name', 'p_amt', 'p_venue', 'p_dates',
             'a_first', 'a_last', 'a_title', 'a_postcode', 'a_phone', 'r_first', 'r_last', 'r_title', 'r_postcode', 'r_phone')
         $ids = @($script:Build['Compose_tab_values']['inputs'].Values | ForEach-Object { $_['id'] } | Sort-Object -Unique)
         foreach ($id in $script:Build['Filter_missing_tabs']['inputs']['from']) { $ids | Should -Contain $id }
@@ -512,11 +514,11 @@ Describe 'REV | Acceptance | Create Envelope — the guards, executed on chosen 
                 if ($rid) { $t.recipientId = $rid }
                 if ($label) { $t.tabLabel = $label }
                 return $t }
-            # The reviewer's template: 31 tabs. $A and $B are what each recipient tab carries as recipientId.
+            # The reviewer's template: 30 tabs (31 before 'Holiday type' was removed, 2026-10-19). $A and $B are what each recipient tab carries as recipientId.
             function script:New-Template { param($A, $B)
                 return @(
-                    # prefill (5)
-                    (T textTabs 'Amount' -Prefill), (T textTabs 'Name' -Prefill), (T textTabs 'Holiday type' -Prefill), (T textTabs 'Dates' -Prefill), (T textTabs 'Holiday destination' -Prefill)
+                    # prefill (4; 'Holiday type' removed from the template 2026-10-19)
+                    (T textTabs 'Amount' -Prefill), (T textTabs 'Name' -Prefill), (T textTabs 'Dates' -Prefill), (T textTabs 'Holiday destination' -Prefill)
                     # applicant: 8 text, one checkbox, one tab group (10; 9 sent)
                     (T textTabs 'Email' $A), (T textTabs 'Title' $A), (T textTabs 'City/Town' $A), (T textTabs 'First name' $A), (T textTabs 'Adress' $A)
                     (T textTabs 'Last name' $A), (T textTabs 'Phone' $A), (T textTabs 'Postcode' $A), (T checkboxTabs '' $A), (T tabGroups '' $A)
@@ -563,11 +565,11 @@ Describe 'REV | Acceptance | Create Envelope — the guards, executed on chosen 
             $script:RNumeric = Invoke-TabPipeline -Tabs $script:TemplateNumeric -Outputs $o
         }
 
-        It 'reads 31 tabs, sends 23, leaves nothing unmapped, and the read-back is clean — recipient id as <name>' -ForEach @(@{ name = 'the guid' }, @{ name = 'the numeric id' }) {
+        It 'reads 30 tabs, sends 22, leaves nothing unmapped, and the read-back is clean — recipient id as <name>' -ForEach @(@{ name = 'the guid' }, @{ name = 'the numeric id' }) {
             $tabs = if ($name -eq 'the guid') { $script:Template } else { $script:TemplateNumeric }
             $r = if ($name -eq 'the guid') { $script:R } else { $script:RNumeric }
-            $tabs.Count | Should -Be 31
-            @($r['Select_tab_array']).Count | Should -Be 23 -Because '31 tabs, minus 6 signing tabs, the applicant tab group and the referee Email Address tab'
+            $tabs.Count | Should -Be 30
+            @($r['Select_tab_array']).Count | Should -Be 22 -Because '30 tabs, minus 6 signing tabs, the applicant tab group and the referee Email Address tab'
             @($r['Select_unmapped_tab_descriptions']).Count | Should -Be 0
             Invoke-ReadBack -R $r -ReReadTabs (Get-EchoBack $r $tabs) | Should -BeExactly ''
         }
@@ -630,7 +632,7 @@ Describe 'REV | Acceptance | Create Envelope — the guards, executed on chosen 
                 @($t.Keys | Sort-Object) | Should -Be @('tabId', 'tabType', 'value')
                 $t['tabType'] | Should -BeIn @('Text', 'Checkbox', 'Company')
             }
-            @($script:R['Select_the_prefill_tabs_array']).Count | Should -Be 5
+            @($script:R['Select_the_prefill_tabs_array']).Count | Should -Be 4
             foreach ($t in $script:R['Select_the_prefill_tabs_array']) { $t['tabType'] | Should -BeExactly 'textTabs' }
             foreach ($t in $script:R['Select_the_prefill_tabs_with_enum_array']) { $t['tabType'] | Should -BeExactly 'Text' }
             @($script:R['Select_the_applicant_tabs_array']).Count | Should -Be 9

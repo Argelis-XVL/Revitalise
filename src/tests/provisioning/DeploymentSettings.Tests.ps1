@@ -265,6 +265,48 @@ Describe 'NFR-019 / FR-017 — the rev_setting rows' {
         }
     }
 
+    # ── Rev 26 (ADR-079 item 6, SDD A-10 FR-017): the eleven Automation #2 rows, create-only ──────────
+    It 'the seven Automation #2 rows carry the reviewer''s values, in every environment, create-only' -ForEach @(
+        @{ Key = 'AmountLimitHolidayAccommodation';   Value = '500';  Type = 'Whole Number' }
+        @{ Key = 'AmountLimitDayTripsOrOutings';      Value = '100';  Type = 'Whole Number' }
+        @{ Key = 'AmountLimitActivityOrExperience';   Value = '100';  Type = 'Whole Number' }
+        @{ Key = 'AmountLimitRespiteCareFacilityStay'; Value = '500'; Type = 'Whole Number' }
+        @{ Key = 'AmountLimitOther';                  Value = '500';  Type = 'Whole Number' }
+        @{ Key = 'SavingsRuleEnabled';                Value = 'true'; Type = 'Boolean' }
+        @{ Key = 'PriorFundingRuleEnabled';           Value = 'true'; Type = 'Boolean' }
+    ) {
+        foreach ($name in $script:Both.Keys) {
+            $row = Get-SettingRow -Settings $script:Both[$name] -Key $Key
+            $row | Should -Not -BeNullOrEmpty -Because "$name is missing $Key"
+            $row.value    | Should -BeExactly $Value -Because "$name / $Key"
+            $row.dataType | Should -Be $Type -Because "$name / $Key"
+            $row.createOnly | Should -BeTrue -Because "$name / $Key is the process owner's row; a deploy must not overwrite it (ADR-079 item 6)"
+        }
+    }
+
+    It 'KnockoutThreshold, BorderlineBandLower, BorderlineBandUpper and IncomeCeiling are create-only (ADR-079 item 6)' {
+        foreach ($name in $script:Both.Keys) {
+            foreach ($key in @('KnockoutThreshold', 'BorderlineBandLower', 'BorderlineBandUpper', 'IncomeCeiling')) {
+                (Get-SettingRow -Settings $script:Both[$name] -Key $key).createOnly | Should -BeTrue -Because "$name / $key"
+            }
+        }
+    }
+
+    It 'no other FR-017 row became create-only by accident: the scoring maps stay upserted from the settings file' {
+        foreach ($name in $script:Both.Keys) {
+            foreach ($key in @('LikertPointMap', 'FeelingScaleInversion', 'IncomeBandUpperBoundMap', 'MaxCircumstanceScore')) {
+                (Get-SettingRow -Settings $script:Both[$name] -Key $key).PSObject.Properties.Name | Should -Not -Contain 'createOnly' -Because "$name / $key"
+            }
+        }
+    }
+
+    It 'PRD still carries the board''s pending tokens for the four criteria, and invents no value (ADR-079 item 6, OQ-001 to OQ-003)' {
+        (Get-SettingRow -Settings $script:Prd -Key 'KnockoutThreshold').value | Should -Be '{{PENDING_OQ_001}}'
+        (Get-SettingRow -Settings $script:Prd -Key 'BorderlineBandLower').value | Should -Be '{{PENDING_OQ_002}}'
+        (Get-SettingRow -Settings $script:Prd -Key 'BorderlineBandUpper').value | Should -Be '{{PENDING_OQ_002}}'
+        (Get-SettingRow -Settings $script:Prd -Key 'IncomeCeiling').value | Should -Be '{{PENDING_OQ_003}}'
+    }
+
     It 'every row declares a dataType the seeding script can map' {
         $valid = @('Text', 'Whole Number', 'WholeNumber', 'Decimal', 'Currency', 'Boolean', 'JSON', 'Date')
         foreach ($name in $script:Both.Keys) {

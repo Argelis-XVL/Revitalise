@@ -1,0 +1,16 @@
+<environmentvariabledefinition schemaname="rev_FinanceAlertUpn">
+  <description default="The finance contact the Capture Payment flow tells when a final payment cannot be applied (FR-111). A separate variable from the process owner so the two roles can split later without a flow change.">
+    <label description="The finance contact the Capture Payment flow tells when a final payment cannot be applied (FR-111). A separate variable from the process owner so the two roles can split later without a flow change." languagecode="1033" />
+  </description>
+  <displayname default="Finance Alert UPN">
+    <label description="Finance Alert UPN" languagecode="1033" />
+  </displayname>
+  <hint default="The finance contact's user principal name. PRD: the process owner for now. TST/ACC and DEV: the test finance user, never a real applicant-facing address.">
+    <label description="The finance contact's user principal name. PRD: the process owner for now. TST/ACC and DEV: the test finance user, never a real applicant-facing address." languagecode="1033" />
+  </hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

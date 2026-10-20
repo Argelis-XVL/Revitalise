@@ -17,9 +17,9 @@ What it reports, per category, in two layers:
   MODEL ONLY   - what the prebuilt model found on its own (mapped types, before the UK rules);
                  this is the 5.2 deliverable "detection accuracy, gaps, false positives/negatives".
   MODEL+RULES  - what the v0.1 rules produce end to end (redaction_reference.redact_column).
-  MODEL+FLOW   - what the production flow produces (rules v0.2: shape detectors, in-flow refinement,
-                 residue checks; redaction_reference.flow_scrub_column). This is the layer wbs:5.7
-                 calibrates against.
+  MODEL+LABELS - what the production flow's labelling step produces (TAD rev 22, ADR-075 item 2:
+                 redaction_reference.label_spans). In rev 22 this is all the flow finds deterministically;
+                 the rewrite prompt labels the rest, and wbs:5.7 scores the prompts separately.
 A gold span counts as found when one final span of the SAME category covers it entirely.
 It also lists every distinct `type` string the model returned - the evidence that closes A-NS-1.
 
@@ -55,7 +55,7 @@ def load_entities(path: Path, plain: str, offsets: str) -> list[rr.PrebuiltEntit
 
 
 def load_flow_entities(path: Path, plain: str, offsets: str) -> list[rr.ExtractorEntity]:
-    """The same entities with their values, for the flow model (rules v0.2, ADR-071)."""
+    """The same entities with their values, for the flow's labelling step (rev 22)."""
     raw = json.loads(path.read_text(encoding="utf-8"))
     items = raw["result"]["entities"] if isinstance(raw, dict) else raw
     out = []
@@ -69,8 +69,8 @@ FLOW_CATEGORY = {"N": "NAME", "F": "FAMILY MEMBER", "G": "GP PRACTICE", "S": "AD
                  "E": "EMAIL", **{str(i): rr.AGE_CATEGORY for i in range(9)}}
 
 
-def flow_detections(merged) -> list[rr.Detection]:
-    return [rr.Detection(m["start"], m["end"] - m["start"], FLOW_CATEGORY[m["code"]], m["score"], "flow") for m in merged]
+def flow_detections(kept) -> list[rr.Detection]:
+    return [rr.Detection(k.start, k.length, FLOW_CATEGORY[k.code], k.score, "flow") for k in kept]
 
 
 def covered(gold, dets) -> bool:
@@ -103,8 +103,6 @@ def main() -> int:
     tally = {layer: defaultdict(Counter) for layer in ("model", "full", "flow")}
     types_seen: Counter = Counter()
     lines, missing = [], []
-    # Rev 20: what production runs - the seed postcode register and the floor word lists (ADR-073, ADR-074)
-    FLOW_CONTEXT = rr.run_context({})
     for s in SAMPLES:
         plain, gold = parse_markup(s["text"])
         f = a.results / f"{s['id']}.json"
@@ -116,8 +114,10 @@ def main() -> int:
         model_only = rr.merge(plain, rr.refine(plain, rr.map_prebuilt(ents).detections))
         full = rr.redact_column(plain, ents)
         flow_ents = load_flow_entities(f, plain, a.offsets)
-        flow = rr.flow_scrub_column("c", plain, None, lambda _w, fe=flow_ents: fe, FLOW_CONTEXT)
-        flow_dets = flow_detections(flow.merged)
+        _, kept, unmapped, partial = rr.label_spans(plain, flow_ents)
+        flow_dets = flow_detections(kept)
+        flow_text = rr.labelled_text(plain, kept)
+        flow_reasons = (["unmapped-entity-type"] if unmapped else []) + (["overlapping-identifiers"] if partial else [])
         for layer, dets in (("model", model_only), ("full", full.detections), ("flow", flow_dets)):
             for g in gold:
                 tally[layer][g[2]]["tp" if covered(g, dets) else "fn"] += 1
@@ -125,10 +125,10 @@ def main() -> int:
                 if not overlaps_gold(d, gold):
                     tally[layer][d.category]["fp"] += 1
         ok = full.redacted == s["expected"]
-        fok = flow.redacted == s["expected"]
+        fok = flow_text == s["expected"]
         lines.append(f"| {s['id']} | {'match' if ok else 'DIFFERS'} | {'match' if fok else 'DIFFERS'} | "
-                     f"{', '.join(r.split(':')[0] for r in flow.reasons) or '-'} | "
-                     f"{flow.redacted if not fok else ''} |")
+                     f"{', '.join(flow_reasons) or '-'} | "
+                     f"{flow_text if not fok else ''} |")
 
     out = ["# Live AI Builder run - scored against the v0.1 corpus", ""]
     if missing:
@@ -138,7 +138,7 @@ def main() -> int:
             for t, n in sorted(types_seen.items())] or ["- none"]
     worst = 1.0
     for layer, title in (("model", "Model only"), ("full", "Model + v0.1 rules"),
-                         ("flow", "Model + flow (rules v0.2, ADR-071) - what production runs")):
+                         ("flow", "Model + the flow's labels (rev 22, ADR-075 item 2) - before the rewrite prompt")):
         out += ["", f"## {title}", "", "| Category | Found | Missed | False positives | Recall |", "|---|---|---|---|---|"]
         for cat in sorted(set(tally[layer]) | {c for c in rr.LABEL} | {rr.AGE_CATEGORY}):
             c = tally[layer][cat]
@@ -149,7 +149,7 @@ def main() -> int:
             out.append(f"| {cat} | {c['tp']} | {c['fn']} | {c['fp']} | "
                        f"{'n/a' if recall is None else f'{recall:.0%}'} |")
     out += ["", "## Per sample (end to end)", "",
-            "| Sample | v0.1 rules | Flow | Flow reasons | Flow text when it differs |",
+            "| Sample | v0.1 rules | Labels | Label reasons | Labelled text when it differs |",
             "|---|---|---|---|---|"] + lines
     report = "\n".join(out) + "\n"
     if a.out:

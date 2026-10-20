@@ -31,6 +31,35 @@
     safe to re-run. A keyed GET is still issued first, purely to report CREATED
     versus EXISTS honestly (404 means the row will be created).
 
+    CREATE-ONLY ROWS (TAD rev 23, ADR-076 item 6; 2026-10-16). A row marked `createOnly: true`
+    in the settings file is the process owner's from the moment it exists: the four narrative
+    scrubbing rule rows (RedactionNeutralTerms, RedactionTitles, RedactionNameRules,
+    RedactionLabels), which Emily edits in the app. Such a row is CREATED where absent and LEFT
+    ALONE where present: an existing row reports `EXISTS — ... left unchanged (createOnly)` and is
+    never written. The create is a POST to the entity set, which can only ever create: if a row
+    with the same rev_name appears between the probe and the POST, Dataverse refuses the POST on
+    the alternate key, the probe is repeated, and the row is reported EXISTS. Every other row
+    keeps the upsert below.
+
+    AUTOMATION #2 ROWS (TAD rev 26, ADR-079 item 6; 2026-10-19). Eleven more rows are create-only
+    in all three settings files, because the process owner changes them in the app (FR-017):
+    KnockoutThreshold, BorderlineBandLower, BorderlineBandUpper and IncomeCeiling (which were
+    upserted until rev 26, so Emily's edit was overwritten by the next deploy), and the seven new
+    AmountLimitHolidayAccommodation, AmountLimitDayTripsOrOutings, AmountLimitActivityOrExperience,
+    AmountLimitRespiteCareFacilityStay, AmountLimitOther (Whole Number, pounds), SavingsRuleEnabled
+    and PriorFundingRuleEnabled (Boolean, true or false). Cost: a value changed in a settings file
+    no longer reaches an environment where the row exists; change it in the app (audited). Create-only
+    does not bypass the fail-fast below: a {{PENDING_OQ_*}} token in PRD still stops the whole seed
+    before any write. Run this BEFORE importing the solution that carries the rev 26 scoring flow,
+    which stops every new application's scoring until all fifteen rows it reads exist.
+
+    CORRECTED 2026-10-16 (narrative Dev Summary Iteration 10, addendum 10.11). The first version
+    created with a keyed PATCH carrying `If-None-Match: *` (TAD A-NS-36, E2: "upsert with update
+    prevented"). In DEV that PATCH was answered 404, code 0x80060891, "A record with the specified
+    key values does not exist in rev_setting entity", for all four rows: Dataverse does not create
+    through an alternate-key URI when If-None-Match is set. The probe's 404 handling was measured
+    and is not the cause (pwsh 7.6.7 throws HttpResponseException with Response.StatusCode 404).
+
     An update to an existing row reports EXISTS, not CREATED: the contract has only
     the three states, and the value change itself is evidenced by the audit history
     of rev_setting (auditing is on for this table — see ensure-auditing.ps1).
@@ -160,12 +189,19 @@ foreach ($rowDef in $rows) {
                    ' (rev_settingdatatype option set)')
         }
 
+        # createOnly is a boolean, read directly: Get-Setting is for text values that may carry
+        # a {{...}} placeholder. A JSON row is a pscustomobject; a test fixture row a hashtable.
+        $createOnly = $false
+        if ($rowDef -is [System.Collections.IDictionary]) { $createOnly = [bool]$rowDef['createOnly'] }
+        elseif ($rowDef.PSObject.Properties.Name -contains 'createOnly') { $createOnly = [bool]$rowDef.createOnly }
+
         $plan += [pscustomobject]@{
             Key           = $key
             DisplayName   = $displayName
             Value         = [string]$value
             DataTypeValue = $dataTypeMap[$lookup]
             Description   = $description
+            CreateOnly    = $createOnly
         }
     }
     catch {
@@ -205,6 +241,12 @@ foreach ($row in $plan) {
             if ($statusCode -eq 404) { $rowExists = $false } else { throw }
         }
 
+        if ($row.CreateOnly -and $rowExists) {
+            # ADR-076 item 6: the process owner's row. Never written again by a deploy.
+            Write-ResourceStatus -Status EXISTS -Name $label -Detail 'left unchanged (createOnly)'
+            continue
+        }
+
         $body = @{
             rev_name     = $row.Key
             rev_value    = $row.Value
@@ -220,8 +262,35 @@ foreach ($row in $plan) {
         # in the app, where the date is theirs to set.
         if (-not $rowExists) { $body.rev_effectivefrom = $runDate }
 
-        Invoke-DataverseApi -Method PATCH -EnvironmentUrl $envUrl -AccessToken $token `
-            -Path $keyPath -Body $body | Out-Null
+        if ($row.CreateOnly) {
+            # A-NS-38: Dataverse refuses this POST when a row with the same rev_name (the alternate key
+            # rev_setting_name) exists, so it cannot overwrite; the re-probe below then reports EXISTS.
+            # Create only: a POST to the entity set creates and can never update. If it fails,
+            # look again: a row that exists now was made meanwhile and is left alone; anything
+            # else is a real failure and is rethrown with the POST's own error.
+            try {
+                Invoke-DataverseApi -Method POST -EnvironmentUrl $envUrl -AccessToken $token `
+                    -Path 'rev_settings' -Body $body | Out-Null
+            }
+            catch {
+                $postError = $_
+                $existsNow = $true
+                try {
+                    Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
+                        -Path ($keyPath + '?$select=rev_name') | Out-Null
+                }
+                catch { $existsNow = $false }
+                if ($existsNow) {
+                    Write-ResourceStatus -Status EXISTS -Name $label -Detail 'left unchanged (createOnly; created meanwhile)'
+                    continue
+                }
+                throw $postError
+            }
+        }
+        else {
+            Invoke-DataverseApi -Method PATCH -EnvironmentUrl $envUrl -AccessToken $token `
+                -Path $keyPath -Body $body | Out-Null
+        }
 
         if ($rowExists) {
             Write-ResourceStatus -Status EXISTS -Name $label -Detail 'value upserted'

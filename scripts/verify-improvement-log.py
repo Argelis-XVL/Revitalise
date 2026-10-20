@@ -1652,12 +1652,26 @@ def check_triggers(rows: list[dict], repo_root: Path,
            " (lanes NOT configured: instance.yaml has no improvement.deploy_paths, so every "
            "blocker is deploy lane — the pre-lane behaviour)") + ".")
     if fixed:
-        notes.append(
-            f"verify-improvement-log: NOTE — {len(fixed)} blocker(s) {FIXED_IN_FLIGHT}, not "
-            f"halting the build and counted toward the batch: "
-            + "; ".join(f"{r.get('id')} ({states[str(r.get('id'))][1]})" for r in fixed)
-            + ". The FINDING closes only at the batch review, with `reobserved` where its "
-              "observable_at is V2 or higher.")
+        # IMP-1130: split by whether a review has processed the entry. Only the first group counts
+        # toward the batch (unreviewed_fixed, below); saying "counted toward the batch" of all of
+        # them put two reviewer-deferred V4 entries into a later batch's brief as if unread.
+        in_no_review = [r for r in fixed if not resolved_reviews(r, repo_root)[0]]
+        reviewed = [r for r in fixed if resolved_reviews(r, repo_root)[0]]
+        if in_no_review:
+            notes.append(
+                f"verify-improvement-log: NOTE — {len(in_no_review)} blocker(s) {FIXED_IN_FLIGHT} "
+                f"in no review, not halting the build and counted toward the batch: "
+                + "; ".join(f"{r.get('id')} ({states[str(r.get('id'))][1]})" for r in in_no_review)
+                + ". The FINDING closes only at the batch review, with `reobserved` where its "
+                  "observable_at is V2 or higher.")
+        if reviewed:
+            notes.append(
+                f"verify-improvement-log: NOTE — {len(reviewed)} blocker(s) {FIXED_IN_FLIGHT} "
+                f"already reviewed and reviewer-deferred, NOT counted toward the batch and not "
+                f"in a new batch's scope; each closes when its revisit_when is observed: "
+                + "; ".join(f"{r.get('id')} (revisit_when: {r.get('revisit_when') or 'NOT RECORDED'})"
+                            for r in reviewed)
+                + ".")
     if governance_open:
         notes.append(
             f"verify-improvement-log: NOTE — {len(governance_open)} governance-lane blocker(s) "

@@ -28,7 +28,6 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -429,9 +428,9 @@ def decide(columns: dict[str, tuple[str | None, ColumnResult | None]], threshold
         reasons.append("no-model-detections")
     if confidence is not None and threshold is not None and confidence < threshold:
         reasons.append("below-threshold")
-    review = bool(reasons)
-    return Decision(review_required=review, released=not review, confidence=confidence,
-                    reasons=tuple(reasons))
+    # TAD rev 25, ADR-078: no reason is not a release. Every record waits for the process owner; the reasons
+    # are hints. (v0.1 read: released when there was no reason.)
+    return Decision(review_required=True, released=False, confidence=confidence, reasons=tuple(reasons))
 
 
 # ── Re-runs never overwrite a human (rules doc section 7a) ─────────────────────────────────────
@@ -451,8 +450,8 @@ def plan_writes(released: bool, existing_counterparts: dict[str, str | None],
     every existing value as a correction. To have one column scrubbed again, the admin clears it.
 
     A released record is never touched: no counterpart, no flag, no score.
-    Any kept counterpart means the flow did not produce everything a trustee would see, so it may
-    not release the record itself: reason `kept-existing-counterpart` sends it to the admin.
+    Any kept counterpart means the flow did not produce everything a trustee would see: the hint
+    `kept-existing-counterpart` tells the process owner (who releases every record, ADR-078).
     """
     if released:
         return WritePlan(True, {}, tuple(sorted(existing_counterparts)), ())
@@ -472,28 +471,33 @@ def decide_with_plan(columns, threshold_setting, plan: WritePlan, **kw) -> Decis
     if plan.skip_record:
         return None
     d = decide(columns, threshold_setting, **kw)
-    reasons = d.reasons + plan.reasons
-    review = bool(reasons)
-    return Decision(review, not review, d.confidence, reasons)
+    return Decision(True, False, d.confidence, d.reasons + plan.reasons)     # ADR-078: never released
 
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
-# FLOW MODEL — rules v0.2, TAD rev 19 ADR-071 (direct identifiers) and ADR-072 (prompt stage, OFF)
+# FLOW MODEL — TAD rev 22, ADR-075 (approved 2026-10-16): label, rewrite, spell, check
 # ════════════════════════════════════════════════════════════════════════════════════════════════
-# Everything above this line is the v0.1 SPECIFICATION, written with regular expressions. Power
-# Automate has none (E2), so ADR-071 hosts the rules in the flow with only what its expression
-# language offers: per-character class strings, startsWith/endsWith/contains on padded strings, a
-# fixed list of shapes, and a cursor loop over spans sorted by offset. The functions below are that
-# flow, step for step, in Python. They are the ORACLE for `REV | Narrative | Scrub Free-Text`:
-#   * test_flow_model.py proves them against the 20-sample corpus (shape detectors, residue checks,
-#     refinement, merge, rebuild, decision);
-#   * test_scrub_flow_definition.py executes the SHIPPED flow JSON in a small WDL simulator
-#     (wdl_sim.py) over the same corpus and asserts it agrees with these functions exactly.
-# Where this model and the v0.1 regex rules differ, the difference is named in the rules document,
-# section 6a, and pinned by a test. Nothing in this section uses `re`.
+# Everything above this line is the v0.1 SPECIFICATION, written with regular expressions. The
+# functions below are `REV | Narrative | Scrub Free-Text` as rebuilt in Iteration 9, step for step:
+#
+#   1. the extractor labels what it finds, in one call per column (no windows: a column over 5,000
+#      characters is not scrubbed, `too-long`);
+#   2. the labelled text is rebuilt by offset, so the model never receives a value the extractor found;
+#   3. the REWRITE prompt applies the client's key, turns names into They, fixes the grammar and labels
+#      anything else identifying;
+#   4. the SPELLING prompt corrects slips, accepted word by word (accept_spelling);
+#   5. check P1 (surviving_identifiers): no extractor value survives -> otherwise not written;
+#   6. check P2 (validate_rewrite): the rewrite added no word -> otherwise not written;
+#   7. check P3 (residue_kinds): a residue writes the column and holds the record.
+#
+# They are the ORACLE for the flow. test_scrub_flow_definition.py executes the SHIPPED JSON in
+# wdl_sim.py with stand-in prompts and asserts it agrees with these functions. The two prompts are
+# the only parts the oracle cannot be: neutral_rewrite() below is what a GOOD rewrite looks like, and
+# it is the expected output wbs:5.7 scores the live model against. P1 and P2 do not trust it either.
+# Nothing in this section uses `re`, because the flow has none.
 
 # The twelve raw/redacted pairs, in rules section 2.1 order. Derived from Entity.xml (IMP-1066);
-# the flow's Compose_scrub_columns constant holds the same list and a test compares the two.
+# the flow's Compose_constants holds the same list and a test compares the two.
 SCRUB_COLUMNS = [
     ("rev_narrativeraw", "rev_narrativeredacted"),
     ("rev_otherconditionraw", "rev_otherconditionredacted"),
@@ -509,8 +513,12 @@ SCRUB_COLUMNS = [
     ("rev_carecostsexplanation", "rev_carecostsexplanationredacted"),
 ]
 
-# One-character label codes. A span variable in the flow holds offsets, a code and a score - never
-# text (ADR-071 item 5). Age codes are the rev_agerange band, 0 = not known.
+# THE LABEL SET — one place. The flow's Compose_constants `labels` object must equal this map, and the
+# closed list (P2) and the spelling rule read the label words FROM it (label_words()), so a label
+# change after Emily's test (reviewer, 2026-10-16: "Keep the family member label for now. I am
+# expecting one more itteration on the labels after Emily has tested.") is one edit here and one in
+# the flow constant; a test fails until both agree. "F" is produced by no rule since the reviewer's
+# 2026-10-16 correction ("my husband Derek" becomes "my partner"); it stays so P2 accepts it.
 LABEL_BY_CODE = {
     "N": "[NAME]", "F": "[FAMILY MEMBER]", "G": "[GP PRACTICE]", "S": "[ADDRESS]",
     "P": "[PHONE]", "E": "[EMAIL]",
@@ -518,26 +526,25 @@ LABEL_BY_CODE = {
     "4": "[AGE 35 to 44]", "5": "[AGE 45 to 54]", "6": "[AGE 55 to 64]", "7": "[AGE 65 to 74]",
     "8": "[AGE 75 and over]",
 }
-# Precedence, lowest first: a merged span takes the code that sits furthest right (rules 5.2:
-# ADDRESS, GP PRACTICE, EMAIL, PHONE, FAMILY MEMBER, NAME, AGE). The flow uses indexOf() on this
-# string, which is case-INSENSITIVE (E2) - so no two codes may differ only by case. They don't.
-CODE_RANK = "012345678NFPEGS"
-NO_SCORE = 2.0  # a shape-detector span carries no score; 2 sits above every real score (0..1)
 
-# Extractor `type` -> code. "O" (organisation) and "Y" (age) are refined; "" is retained (not
-# redacted); a type missing from this map is "U": unmapped, which forces review (rules 4.2).
+# Extractor `type` -> code. "O" (organisation) is a GP practice only with a practice suffix; "Y" (age)
+# becomes its band; "" is retained (not an identifier); a type missing from this map is "U": unmapped,
+# which sends the record to review (rules 4.2, ADR-075 item 2 "as now").
 EXTRACTOR_TYPE_CODE = {
     "PersonName": "N", "Organization": "O", "PhoneNumber": "P", "StreetAddress": "S",
     "ZipCode": "S", "Email": "E", "Age": "Y",
     **{t: "" for t, cat in PREBUILT_TYPE_HANDLING.items() if cat is None},
 }
 
+EXTRACTOR_MAX_CHARS = 5000   # ADR-075 item 1: one call per column, at most this many characters
 DIGITS = "0123456789"
 LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+LOWER = "abcdefghijklmnopqrstuvwxyz"
+NO_SCORE = 2.0               # "no score": sits above every real score (0..1)
 
 
 def class_char(c: str) -> str:
-    """ADR-071 item 3, the Select_referee_phone_digits pattern: digit -> 9, ASCII letter -> A."""
+    """digit -> 9, ASCII letter -> A, anything else itself (the residue postcode shapes)."""
     return "9" if c in DIGITS else "A" if c in LETTERS else c
 
 
@@ -545,125 +552,62 @@ def class_string(text: str) -> str:
     return "".join(class_char(c) for c in text)
 
 
-# ── Stage 2: UK phone and postcode shapes (ADR-071 item 3) ─────────────────────────────────────
-# Derived from rules section 6's UK display forms. 9 = a digit, A = a letter, anything else is
-# itself. A shape matches where the class string STARTS with it and the characters immediately
-# before and after are neither a digit nor a letter. A format missing from these lists is not
-# redacted - it is caught by the digit-run or postcode residue check instead, and goes to review.
-PHONE_SHAPES = [
-    "99999 999999", "99999999999", "99999 999 999",            # 07700 900123 · 07700900456
-    "9999 999 9999", "999 9999 9999",                          # 0113 496 0000 · 020 7946 0018
-    "(9999) 999 9999", "(999) 9999 9999", "(99999) 999999", "(99999) 999 999",
-    "99999-999999", "9999-999-9999", "999-9999-9999",
-    "+99 9999 999999", "+99 9999 999 999", "+99 99 9999 9999", "+99 999 999 9999",
-    "+99 (9)9999 999999", "+99 (9)99 9999 9999", "+99 (9)999 999 9999",
-    "+99 (9) 9999 999999", "+99 (9) 99 9999 9999", "+99 (9) 999 999 9999",
-    "+999999999999",
-]
-POSTCODE_SHAPES = ["A9 9AA", "A99 9AA", "AA9 9AA", "AA99 9AA", "A9A 9AA", "AA9A 9AA"]
-# The residue check is deliberately WIDER than the detector: it also catches a postcode written
-# without its space, which the detector leaves alone rather than redact a product code.
-POSTCODE_RESIDUE_SHAPES = POSTCODE_SHAPES + [s.replace(" ", "") for s in POSTCODE_SHAPES]
-SHAPE_SLICE = 24  # the flow slices 24 class characters per candidate; every shape is shorter
-SHAPE_TABLE = [{"shape": s, "code": "P"} for s in PHONE_SHAPES] + \
-              [{"shape": s, "code": "S"} for s in POSTCODE_SHAPES]
-CANDIDATE_PREFIXES = ("9", "(9", "+9", "A9", "AA9")  # every shape starts with one of these
+# ── Normalising, as the flow's replace() chains do ─────────────────────────────────────────────
+# NORM_PUNCT -> space, for P1 and the entity values: lower case, punctuation INCLUDING apostrophes and
+# brackets to spaces, so "Sam's" contains the word "sam" and "[NAME]" is the word "name".
+NORM_PUNCT = [",", ":", ";", ".", "(", ")", "-", "–", '"', "!", "?", "/", "[", "]", "|", "'", "’",
+              "\n", "\r", "\t"]
+# WORD_PUNCT -> space, for P2's words: the same list WITHOUT the apostrophes, so "they're" stays one word.
+WORD_PUNCT = [p for p in NORM_PUNCT if p not in ("'", "’")]
+# CORE_PUNCT -> removed, for the spelling rule's "is this a closed-list word" test.
+CORE_PUNCT = [p for p in WORD_PUNCT if p not in ("\n", "\r", "\t")]
+COLLAPSES = 4   # double spaces collapsed four times: up to 16 in a row become one
 
 
-def shape_hits(cls: str, shapes) -> list[tuple[int, int, str]]:
-    """(start, length, code) for every shape occurrence in a class string, boundaries checked."""
-    padded = " " + cls + " " * SHAPE_SLICE
-    out = []
-    for i in range(len(cls)):
-        before, s = padded[i], padded[i + 1:i + 1 + SHAPE_SLICE]
-        if before in "9A" or not s.startswith(CANDIDATE_PREFIXES):
-            continue
-        for row in shapes:
-            shape = row["shape"]
-            if s.startswith(shape) and s[len(shape)] not in "9A":
-                out.append((i, len(shape), row["code"]))
-    return out
-
-
-def shape_spans(window: str, offset: int) -> list[dict]:
-    return [{"start": offset + i, "length": n, "code": code, "score": NO_SCORE}
-            for i, n, code in shape_hits(class_string(window), SHAPE_TABLE)]
-
-
-# ── Stage 1 refinement: kinship, GP practice, age band (ADR-071 item 4) ────────────────────────
-_NORMALISE_TO_SPACE = [",", ":", ";", ".", "(", ")", "-", "–", '"', "!", "?", "/", "\n", "\r", "\t"]
+def _collapse(s: str) -> str:
+    for _ in range(COLLAPSES):
+        s = s.replace("  ", " ")
+    return s
 
 
 def normalise(s: str) -> str:
-    """The flow's word normaliser: lower case, punctuation to spaces, double spaces collapsed three
-    times (so up to 8 in a row become 1), trimmed. Mirrors a nested replace() chain exactly."""
     s = s.lower()
-    for ch in _NORMALISE_TO_SPACE:
+    for ch in NORM_PUNCT:
         s = s.replace(ch, " ")
-    for _ in range(3):
-        s = s.replace("  ", " ")
-    return s.strip()
+    return _collapse(s).strip()
 
 
-KIN_WORDS = [
-    "husband", "wife", "partner", "spouse", "fiance", "fiancee", "fiancé", "fiancée",
-    "boyfriend", "girlfriend", "son", "daughter", "child", "children", "kids", "mum", "mom",
-    "mother", "mam", "dad", "father", "parent", "parents", "brother", "sister", "sibling",
-    "siblings", "twin", "grandson", "granddaughter", "grandchild", "grandchildren", "grandmother",
-    "grandfather", "gran", "grandma", "nan", "nana", "grandad", "granddad", "grandpa", "aunt",
-    "auntie", "uncle", "niece", "nephew", "cousin", "stepson", "stepdaughter", "stepmother",
-    "stepfather", "stepmum", "stepdad", "mother in law", "father in law", "son in law",
-    "daughter in law", "sister in law", "brother in law",
-]
-KIN_TAILS = [k + suffix for k in KIN_WORDS for suffix in ("", " called", " named", " is")]
-POSSESSIVES = ["my", "our", "his", "her", "their"]
-KIN_BEFORE_CHARS = 60
-KIN_AFTER_CHARS = 40
+def remove_labels(s: str, by: str = " ") -> str:
+    """Every label text, exactly as the flow's map writes it (replace() is case-sensitive)."""
+    for label in LABEL_BY_CODE.values():
+        s = s.replace(label, by)
+    return s
 
 
-def name_context(text: str, start: int, length: int) -> dict:
-    """What the flow's Compose_name_context computes for one PersonName span (secured)."""
-    end = start + length
-    before = " " + normalise(text[max(0, start - KIN_BEFORE_CHARS):start])
-    after = text[min(end, len(text)):][:KIN_AFTER_CHARS].lower()
-    if after.startswith("'s") or after.startswith("’s"):
-        after = (after + "  ")[2:]
-    after = after.strip()
-    first_ok = after[:1] in (",", "(", "-", "–")
-    words = normalise((after + " ")[1:]).split(" ")
-    return {"before": before, "firstOk": first_ok, "w0": words[0],
-            "w1rest": " ".join(words[1:]), "w2rest": " ".join(words[2:])}
+def p2_words(s: str) -> list[str]:
+    """P2's words: labels removed, lower case, curly apostrophe made straight, punctuation to spaces."""
+    s = remove_labels(s).lower().replace("’", "'")
+    for ch in WORD_PUNCT:
+        s = s.replace(ch, " ")
+    s = _collapse(s).strip()
+    return s.split(" ") if s else []
 
 
-def kin_before_hits(ctx: dict, tails=None) -> list[str]:
-    """KIN_TAILS items the text before the name ends with, with a possessive in the 3 words before.
-    Rev 20 (ADR-074 item 3): `tails` is the effective list, the floor plus valid additions."""
-    b = ctx["before"]
-    hits = []
-    for tail in (KIN_TAILS if tails is None else tails):
-        if b.endswith(" " + tail):
-            rest = b[:max(len(b) - len(tail) - 1, 0)]
-            words = rest.split(" ")
-            if set(words[max(len(words) - 3, 0):]) & set(POSSESSIVES):
-                hits.append(tail)
-    return hits
+def core(word: str) -> str:
+    w = word.lower().replace("’", "'")
+    for ch in CORE_PUNCT:
+        w = w.replace(ch, "")
+    return w
 
 
-def kin_after_hits(ctx: dict, words=None) -> list[str]:
-    """KIN_WORDS that follow the name as ', my grandson' / '(her late husband'."""
-    if not (ctx["firstOk"] and ctx["w0"] in POSSESSIVES):
-        return []
-    return [k for k in (KIN_WORDS if words is None else words)
-            if (ctx["w1rest"] + " ").startswith(k + " ") or (ctx["w2rest"] + " ").startswith(k + " ")]
-
-
+# ── Step 1-2: labels and the labelled text (ADR-075 item 2) ───────────────────────────────────
 GP_SUFFIXES = ["surgery", "medical centre", "medical center", "health centre", "medical practice",
                "group practice", "family practice"]
 
 
-def is_gp_practice(value: str, suffixes=None) -> bool:
-    v = " " + normalise(value)
-    return any(v.endswith(" " + s) for s in (GP_SUFFIXES if suffixes is None else suffixes))
+def is_gp_practice(norm_value: str) -> bool:
+    v = " " + norm_value
+    return any(v.endswith(" " + s) for s in GP_SUFFIXES)
 
 
 NUMBER_WORDS = {str(n): n for n in range(0, 121)}
@@ -680,10 +624,9 @@ def _age_pair(a: int, b: int) -> int:
     return a + b if (a >= 20 and a % 10 == 0 and a <= 90 and 1 <= b <= 9) else a
 
 
-def age_from_value(value: str) -> int:
-    """-1 when no age can be read. Looks at the first three words only: '72 years old',
-    'ninety-one years old', 'aged 45'. Mirrors the flow's single Select expression."""
-    words = normalise(value).split(" ") + ["", "", ""]
+def age_from_value(norm_value: str) -> int:
+    """-1 when no age can be read: the first number, or a tens word plus a unit, in the first 3 words."""
+    words = (norm_value + "   ").split(" ")
     n = [NUMBER_WORDS.get(w, -1) for w in words[:3]]
     if n[0] >= 0:
         return _age_pair(n[0], n[1])
@@ -692,8 +635,7 @@ def age_from_value(value: str) -> int:
     return -1
 
 
-def age_code(value: str) -> str:
-    age = age_from_value(value)
+def age_code(age: int) -> str:
     if age < 0 or age > 120:
         return "0"
     for upper, code in AGE_BAND_UPPER:
@@ -704,7 +646,7 @@ def age_code(value: str) -> str:
 
 @dataclass
 class ExtractorEntity:
-    """One entity exactly as the extractor returns it: offsets relative to the WINDOW."""
+    """One entity exactly as the extractor returns it."""
     type: str
     value: str
     startIndex: int
@@ -712,107 +654,208 @@ class ExtractorEntity:
     score: float
 
 
-def extractor_spans(text: str, entities: list[ExtractorEntity], offset: int,
-                    lists=None) -> tuple[list[dict], bool]:
-    """Map one window's entities to spans with whole-text offsets. Returns (spans, any_unmapped).
-    `lists` (rev 20, ADR-074 item 3) carries the effective kinship and practice-suffix lists."""
-    lists = lists or FLOOR
-    spans, unmapped = [], False
-    for e in entities:
-        code = EXTRACTOR_TYPE_CODE.get(e.type, "U")
-        if code == "O":
-            code = "G" if is_gp_practice(e.value, lists.gp_suffixes) else ""
-        elif code == "Y":
-            code = age_code(e.value)
-        if code == "U":
-            unmapped = True
-            continue
-        if code == "":
-            continue
-        # Clamp to the text, as the flow's Select_extractor_spans does: an entity ending at, or
-        # overrunning, the last character must not reach a later substring() with start == length.
-        start = max(min(offset + e.startIndex, len(text)), 0)
-        length = max(min(e.length, len(text) - start), 0)
-        if code == "N":
-            ctx = name_context(text, start, length)
-            if kin_before_hits(ctx, lists.kin_tails) or kin_after_hits(ctx, lists.kin_words):
-                code = "F"
-        spans.append({"start": start, "length": length, "code": code, "score": float(e.score)})
-    return spans, unmapped
+@dataclass(frozen=True)
+class Span:
+    i: int           # position in the extractor's answer
+    start: int
+    length: int
+    code: str
+    score: float
+    value: str       # normalised value: what P1 searches for
+
+    @property
+    def end(self) -> int:
+        return self.start + self.length
 
 
-# ── Merge (cursor loop over spans sorted by start) and rebuild (ADR-071 item 5) ────────────────
-LIST_JOINS = [",", ",and", ",&", "and", "&"]
+def entity_code(e: ExtractorEntity) -> str:
+    code = EXTRACTOR_TYPE_CODE.get(e.type or "", "U")
+    norm = normalise(e.value or "")
+    if code == "O":
+        return "G" if is_gp_practice(norm) else ""
+    if code == "Y":
+        return age_code(age_from_value(norm))
+    return code
 
 
-def _higher(a: str, b: str) -> str:
-    return a if CODE_RANK.index(a) > CODE_RANK.index(b) else b
+# ── A person's name: the Dr trim and the joined-fragment extension (Iteration 11, IMP-1139) ─────
+# Measured in DEV, 2026-10-19 (TD-13): the extractor returned "Beatrix Holloway" for "Beatrix Holloway-Reed",
+# so the labelled text read "[NAME]-Reed" and "-Reed" reached the trustee text ("they-Reed"). P1 searches
+# only extractor values and P2 accepts "reed" because it is in the input. So a PersonName span is widened
+# DETERMINISTICALLY over one directly joined fragment on each side, before labelling:
+#   after:  a hyphen and one or more letters ("Holloway" + "-Reed"), or an apostrophe and TWO or more letters
+#           (so the possessive "'s", and "'d" / "'m", are never swallowed: "[NAME]'s" stays a possessive);
+#   before: one or more letters and a hyphen or apostrophe ("O'" + "Brien", "Mary-" + "Ann").
+# Letters are ASCII letters only, as everywhere else in the flow; one fragment per side. Anything still
+# joined to a label after this is caught by P3's `name-fragment` check (joined_spans, final_joint).
+# And a span that STARTS with "Dr ", "Dr. " or "Doctor " (any capitals) is shrunk past the title, so the
+# rewrite prompt sees "Dr [NAME]" and its Keep-[NAME]-after-Dr rule can apply (DEV 2026-10-19: "Dr [NAME]"
+# came back as "they", the title gone). The P1 value stays the extractor's own value.
+JOINERS = "-'’"
+APOSTROPHES = "'’"
+DR_PREFIXES = ["doctor ", "dr. ", "dr "]   # tested longest first; matched on the lower-cased text
 
 
-def flow_merge(text: str, spans: list[dict]) -> list[dict]:
-    """The flow's For_each_span loop. Each merged span carries prevEnd, the end of the span merged
-    before it, so the rebuild is one Select with no index arithmetic."""
-    merged: list[dict] = []
-    cur = None
-    last_end = 0
-    for d in sorted(spans, key=lambda s: s["start"]):
-        d_end = d["start"] + d["length"]
-        if cur is not None:
-            gap = text[min(cur["end"], len(text)):][:max(d["start"] - cur["end"], 0)]
-            code = "F" if (d["code"] == "N" and cur["code"] == "F"
-                           and gap.lower().replace(" ", "") in LIST_JOINS) else d["code"]
-            extend = d["start"] < cur["end"] or (
-                cur["code"] == "S" and d["code"] == "S" and gap.replace(",", "").strip() == "")
-        else:
-            code, extend = d["code"], False
-        if extend:
-            cur = {"start": cur["start"], "end": max(cur["end"], d_end),
-                   "code": _higher(cur["code"], code), "score": min(cur["score"], d["score"])}
-        else:
-            if cur is not None:
-                merged.append({**cur, "prevEnd": last_end})
-                last_end = cur["end"]
-            cur = {"start": d["start"], "end": d_end, "code": code, "score": d["score"]}
-    if cur is not None:
-        merged.append({**cur, "prevEnd": last_end})
-    return merged
+def _letter(text: str, i: int) -> bool:
+    return 0 <= i < len(text) and text[i] in LETTERS
 
 
-def flow_rebuild(text: str, merged: list[dict]) -> tuple[str, str]:
-    """(redacted, skeleton). The skeleton has '|' where each label goes, so the residue checks see
-    only the applicant's words and never a label ('[GP PRACTICE]' contains 'practice')."""
-    last_end = merged[-1]["end"] if merged else 0
-    red = "".join(text[m["prevEnd"]:m["start"]] + LABEL_BY_CODE[m["code"]] for m in merged) + text[last_end:]
-    skel = "".join(text[m["prevEnd"]:m["start"]] + "|" for m in merged) + text[last_end:]
-    return red, skel
+def _letter_run(text: str, i: int, step: int) -> int:
+    n = 0
+    while _letter(text, i + n * step):
+        n += 1
+    return n
 
 
-# ── Residue checks on the rebuilt text (ADR-071 item 6; rev 20 adds `district`, ADR-073) ───────
+def dr_trim(text: str, start: int, length: int) -> int:
+    low = (text + " " * 8)[start:start + 7].lower()
+    for p in DR_PREFIXES:
+        if low.startswith(p) and length > len(p):
+            return len(p)
+    return 0
+
+
+def joined_after(text: str, end: int) -> int:
+    """How many characters a fragment joined at `end` adds: the joiner plus its letters; 0 when none."""
+    j = text[end] if end < len(text) else " "
+    run = _letter_run(text, end + 1, 1)
+    if j == "-" and run > 0:
+        return 1 + run
+    if j in APOSTROPHES and run > 1:
+        return 1 + run
+    return 0
+
+
+def joined_before(text: str, start: int) -> int:
+    """How many characters a fragment joined before `start` adds: its letters plus the joiner; 0 when none."""
+    if start < 2 or text[start - 1] not in JOINERS or not _letter(text, start - 2):
+        return 0
+    return 1 + _letter_run(text, start - 2, -1)
+
+
+def all_spans(text: str, entities: list[ExtractorEntity]) -> list[Span]:
+    """Select_entities -> Select_entity_ages -> Select_spans: every entity with its code, clamped to the text;
+    a PersonName span trimmed past a leading Dr and widened over a joined fragment on each side."""
+    out = []
+    for i, e in enumerate(entities):
+        start = max(min(int(e.startIndex or 0), len(text)), 0)
+        length = max(min(int(e.length or 0), len(text) - start), 0)
+        if EXTRACTOR_TYPE_CODE.get(e.type or "", "U") == "N":
+            trim, back, fwd = dr_trim(text, start, length), joined_before(text, start), joined_after(text, start + length)
+            start, length = start + trim - back, length - trim + back + fwd
+        out.append(Span(i, start, length, entity_code(e), float(e.score or 0), normalise(e.value or "")))
+    return out
+
+
+def joined_spans(text: str, kept: list[Span]) -> list[Span]:
+    """P3 `name-fragment`, on the input side: a kept span (any label) with a fragment still joined to it in
+    the raw text, by the same rule as the extension. Such a fragment would sit next to the label in the
+    labelled text, where P1 cannot see it and P2 accepts it."""
+    return [s for s in kept if joined_after(text, s.end) or joined_before(text, s.start)]
+
+
+FINAL_JOINTS = ["|-A", "|'AA", "|’AA", "A-|", "A'|", "A’|"]
+
+
+def final_joint(final: str) -> bool:
+    """P3 `name-fragment`, on the output side: a label in the final text directly joined to letters by a
+    hyphen or apostrophe, by the same rule (after an apostrophe, two letters or more)."""
+    c = class_string(remove_labels(final, "|"))
+    return any(x in c for x in FINAL_JOINTS)
+
+
+def _contains(t: Span, s: Span) -> bool:
+    return t.start <= s.start and s.end <= t.end
+
+
+def label_spans(text: str, entities: list[ExtractorEntity]):
+    """-> (labelled spans, kept spans sorted by start, unmapped?, partial overlap?).
+    Labelled: a code that is neither retained ('') nor unmapped ('U'), and a length above 0. A span inside
+    another is dropped (the longer wins; equal extents: the earlier entity wins). Two spans that overlap
+    without either containing the other hold the column (`overlapping-identifiers`, not written)."""
+    spans = all_spans(text, entities)
+    unmapped = any(s.code == "U" for s in spans)
+    lab = [s for s in spans if s.code not in ("", "U") and s.length > 0]
+    dropped, partial = set(), False
+    for a, s in enumerate(lab):
+        for b, t in enumerate(lab):
+            if a == b:
+                continue
+            if _contains(t, s) and (t.length > s.length or (t.length == s.length and b < a)):
+                dropped.add(s.i)
+            elif t.start < s.end and s.start < t.end and not _contains(t, s) and not _contains(s, t):
+                partial = True
+    kept = sorted([s for s in lab if s.i not in dropped], key=lambda s: s.start)
+    return lab, kept, unmapped, partial
+
+
+def labelled_text(text: str, kept: list[Span]) -> str:
+    """One Select and a join: the text between spans copied, each span its label. Kept spans never
+    nest, so their ends rise with their starts; an overlap gives an empty gap, never a negative one."""
+    pieces, prev = [], 0
+    for s in kept:
+        pieces.append(text[prev:prev + max(s.start - prev, 0)] + LABEL_BY_CODE[s.code])
+        prev = s.end
+    pieces.append(text[prev:])
+    return "".join(pieces)
+
+
+# ── The fixed part of the closed list (P2) — rev 23, ADR-076 item 3 ──────────────────────────
+# Since rev 23 the NEUTRAL words, the gendered words and the titles come from four rev_setting rows (see
+# "The four rule rows" below). What stays fixed is the grammar set no rule chooses, and the words of the
+# extractor's own labels, which FR-026/FR-027 fix and the deterministic labelling writes.
+AGREED_FORMS = ["are", "were", "have", "do", "go", "aren't", "weren't", "haven't", "don't"]
+# "my" (Mum used as a name, FR-094) and the articles a replacement can need ("an uncle" -> "a relative").
+FUNCTION_WORDS = ["my", "a", "an"]
+
+
+def label_words() -> list[str]:
+    out = []
+    for label in LABEL_BY_CODE.values():
+        for w in p2_words(label.replace("[", " ").replace("]", " ")):
+            if w not in out:
+                out.append(w)
+    return out
+
+
+def closed_words() -> list[str]:
+    """The flow's Compose_constants `closedWords`: the fixed grammar set and the extractor's label words.
+    run_context() adds the targets of RedactionNeutralTerms and the words of RedactionLabels."""
+    out = []
+    for w in AGREED_FORMS + FUNCTION_WORDS + label_words():
+        if w not in out:
+            out.append(w)
+    return out
+
+
 STREET_WORDS = ["road", "street", "lane", "avenue", "close", "drive", "crescent", "terrace",
                 "gardens", "grove"]
 PRACTICE_WORDS = ["surgery", "medical centre", "health centre", "practice"]
 AGE_PHRASES = ["9 years old", "9 year old", "9years old", "9year old", "9 yrs old", "9 yr old",
                "9yrs old", "9yr old"]
+POSTCODE_SHAPES = ["A9 9AA", "A99 9AA", "AA9 9AA", "AA99 9AA", "A9A 9AA", "AA9A 9AA"]
+POSTCODE_RESIDUE_SHAPES = POSTCODE_SHAPES + [s.replace(" ", "") for s in POSTCODE_SHAPES]
+SHAPE_SLICE = 24
+CANDIDATE_PREFIXES = ("9", "(9", "+9", "A9", "AA9")
 RESIDUE_KINDS = ["digit-run", "postcode", "at-sign", "street-word", "practice-word", "age-phrase",
-                 "district"]
+                 "district", "gendered-term", "title", "name-fragment"]
 
 
-@dataclass(frozen=True)
-class Lists:
-    """The four word lists the flow uses, each the tested floor plus any valid rev_setting addition
-    (rev 20, ADR-074 item 3). FLOOR is the rev 19 constants alone: what an absent row gives."""
-    kin_words: tuple = tuple(KIN_WORDS)
-    kin_tails: tuple = tuple(KIN_TAILS)
-    gp_suffixes: tuple = tuple(GP_SUFFIXES)
-    street_words: tuple = tuple(STREET_WORDS)
-    practice_words: tuple = tuple(PRACTICE_WORDS)
-
-
-FLOOR = Lists()
+def shape_hits(cls: str, shapes) -> list[tuple[int, int]]:
+    padded = " " + cls + " " * SHAPE_SLICE
+    out = []
+    for i in range(len(cls)):
+        before, s = padded[i], padded[i + 1:i + 1 + SHAPE_SLICE]
+        if before in "9A" or not s.startswith(CANDIDATE_PREFIXES):
+            continue
+        for shape in shapes:
+            if s.startswith(shape) and s[len(shape)] not in "9A":
+                out.append((i, len(shape)))
+    return out
 
 
 def word_string(text: str) -> str:
-    """digit -> 9, ASCII letter -> lower case, anything else -> space; padded and collapsed."""
+    """digit -> 9, ASCII letter -> lower case, anything else -> space; padded and collapsed 3 times."""
     w = "".join("9" if c in DIGITS else c.lower() if c in LETTERS else " " for c in text)
     w = " " + w + " "
     for _ in range(3):
@@ -825,119 +868,53 @@ def digit_string(text: str) -> str:
     return "".join("9" if c in DIGITS else "" if c in " ()-+" else "x" for c in text)
 
 
-def residue_kinds(skeleton: str, lists=None, register=None) -> list[str]:
-    """`register` is the postcode register (a set of upper-case outward codes) or None when it is
-    unavailable, in which case the district check is skipped (ADR-073 item 2)."""
-    lists = lists or FLOOR
-    w = word_string(skeleton)
-    found = {
-        "digit-run": "999999999" in digit_string(skeleton),
-        "postcode": bool(shape_hits(class_string(skeleton),
-                                    [{"shape": s, "code": "S"} for s in POSTCODE_RESIDUE_SHAPES])),
-        "at-sign": "@" in skeleton,
-        "street-word": any(f" {x} " in w for x in lists.street_words),
-        "practice-word": any(f" {x} " in w for x in lists.practice_words),
-        "age-phrase": any(x in w for x in AGE_PHRASES),
-        "district": has_residual_district(skeleton, register),
-    }
-    return [k for k in RESIDUE_KINDS if found[k]]
-
-
-# ── Rev 20: the postcode register (ADR-073) ────────────────────────────────────────────────────
-# The flow reads rev_citysettlementregister once per run and joins its outward codes, upper-cased,
-# into one string `|AB1|AB10|...|`; a candidate is confirmed with contains(). The register only
-# ADDS detections and never removes one (ADR-073 item 3).
+# The postcode register (ADR-073): read once per run, now only for the residual-district check.
 REGISTER_SEED = (Path(__file__).resolve().parents[3] / "provisioning" / "dataverse" / "data"
                  / "city-settlement-register.csv")
-REGISTER_MIN_ROWS = 3000          # ADR-073 item 2: fewer means the seed did not run
-POSTCODE_UNSPACED_SHAPES = ["A99AA", "A999AA", "AA99AA", "AA999AA", "A9A9AA", "AA9A9AA"]
+REGISTER_MIN_ROWS = 3000
 DISTRICT_SHAPES = ["A9", "A99", "AA9", "AA99"]
-REGISTER_SHAPE_TABLE = ([{"shape": s, "kind": "F"} for s in POSTCODE_UNSPACED_SHAPES]
-                        + [{"shape": s, "kind": "D"} for s in DISTRICT_SHAPES])
-INWARD_AFTER_DISTRICT = " 9AA"    # a district followed by this is part of a full postcode
-CUE_CHARS = 12                    # characters read before and after a district for a cue word
-CUES_BEFORE = ["postcode", "post code"]
-CUES_AFTER = ["area", "district", "postcode"]
+INWARD_AFTER_DISTRICT = " 9AA"
 
 
 def load_register(path: Path = REGISTER_SEED) -> list[str]:
-    """The seed script's own source file: the codes exactly as the register holds them."""
     rows = path.read_text(encoding="utf-8").splitlines()[1:]
     return [r.split(",", 1)[0] for r in rows if r.strip()]
 
 
 def register_from_rows(codes) -> set | None:
-    """What Compose_postcode_register computes. None = unavailable (a failed read, or < 3,000)."""
     if codes is None or len(codes) < REGISTER_MIN_ROWS:
         return None
     return {(c or "").strip().upper() for c in codes}
 
 
-def district_cue(text: str, start: int, length: int) -> bool:
-    """ADR-073 item 5: `postcode` or `post code` just before, or `area`, `district` or `postcode`
-    just after. Read from the WHOLE column text, normalised as the name context is."""
-    before = " " + normalise(text[max(start - CUE_CHARS, 0):start])
-    after = normalise(text[start + length:start + length + CUE_CHARS]) + " "
-    return (any(before.endswith(" " + c) for c in CUES_BEFORE)
-            or any(after.startswith(c + " ") for c in CUES_AFTER))
-
-
-def register_spans(text: str, window: str, offset: int, register) -> list[dict]:
-    """Stage 2, rev 20: a postcode written without its space, and a district on its own with a cue,
-    each replaced only when the register confirms the outward code. Nothing when unavailable."""
-    if register is None:
-        return []
-    padded = " " + class_string(window) + " " * SHAPE_SLICE
-    out = []
-    for i in range(len(window)):
-        before, s = padded[i], padded[i + 1:i + 1 + SHAPE_SLICE]
-        if before in "9A" or not s.startswith(CANDIDATE_PREFIXES):
-            continue
-        for row in REGISTER_SHAPE_TABLE:
-            shape, kind = row["shape"], row["kind"]
-            n = len(shape)
-            if not s.startswith(shape) or s[n] in "9A":
-                continue
-            if kind == "D" and s[n:].startswith(INWARD_AFTER_DISTRICT):
-                continue
-            token = window[i:i + n].upper()
-            outward = token[:-3] if kind == "F" else token
-            if outward not in register:
-                continue
-            if kind == "D" and not district_cue(text, offset + i, n):
-                continue
-            out.append({"start": offset + i, "length": n, "code": "S", "score": NO_SCORE})
-    return out
-
-
-def has_residual_district(skeleton: str, register) -> bool:
-    """Residue, rev 20: a register-confirmed district still in the text. Read on the skeleton, so a
-    district inside a replaced span never trips it. Skipped when the register is unavailable."""
+def has_residual_district(bare: str, register) -> bool:
     if register is None:
         return False
-    padded = " " + class_string(skeleton) + " " * SHAPE_SLICE
-    for i in range(len(skeleton)):
+    padded = " " + class_string(bare) + " " * SHAPE_SLICE
+    for i in range(len(bare)):
         before, s = padded[i], padded[i + 1:i + 1 + SHAPE_SLICE]
         if before in "9A":
             continue
         for shape in DISTRICT_SHAPES:
             n = len(shape)
             if (s.startswith(shape) and s[n] not in "9A" and not s[n:].startswith(INWARD_AFTER_DISTRICT)
-                    and skeleton[i:i + n].upper() in register):
+                    and bare[i:i + n].upper() in register):
                 return True
     return False
 
 
-# ── Rev 20: the settings the flow reads (ADR-074, TAD 5.5.1) ───────────────────────────────────
-DEFAULT_MODIFIED = "2026-10-06T09:00:00Z"
-WORD_LIST_KEYS = ["RedactionKinshipWordsExtra", "RedactionPracticeSuffixesExtra",
-                  "RedactionStreetWordsExtra", "RedactionPracticeWordsExtra"]
+# ── Settings (TAD 5.5.1 rev 23, ADR-075 item 8 as amended by ADR-076) ──────────────────────────
+DEFAULT_MODIFIED = "2026-10-16T09:00:00Z"
+WORD_LIST_KEYS = ["RedactionStreetWordsExtra", "RedactionPracticeWordsExtra"]     # additive, ADR-074 item 3
+RULE_KEYS = ["RedactionNeutralTerms", "RedactionTitles", "RedactionNameRules", "RedactionLabels"]  # ADR-076
 WORD_LIST_CHARS = "abcdefghijklmnopqrstuvwxyz -'"
-PROMPT_CATEGORY_LABELS = {"redactionpromptcategory.name": "NAME",
-                          "redactionpromptcategory.familymember": "FAMILY MEMBER",
-                          "redactionpromptcategory.gppractice": "GP PRACTICE",
-                          "redactionpromptcategory.address": "ADDRESS"}
-KIN_TAIL_SUFFIXES = ["", " called", " named", " is"]
+RETIRED_KEYS = ["RedactionPromptCalibrated", "RedactionPromptCategory.Name", "RedactionPromptCategory.FamilyMember",
+                "RedactionPromptCategory.GpPractice", "RedactionPromptCategory.Address",
+                "RedactionKinshipWordsExtra", "RedactionPracticeSuffixesExtra", "RedactionNeutralTermsExtra",
+                "RedactionAutoRelease"]   # ADR-078 (rev 25): the process owner releases every record; a leftover row is ignored
+# ADR-078: the threshold is seeded create-only at FR-029's initial 85%; a review signal, never a release gate.
+THRESHOLD_SEED = "0.85"
+NONE_LINE = "none"      # ADR-076 item 5: a list meant to be empty holds the single line `none`
 
 
 @dataclass(frozen=True)
@@ -948,291 +925,130 @@ class SettingRow:
 
 
 def redaction_rows(settings: dict, modified: dict | None = None) -> list[SettingRow]:
-    """Every rev_setting row whose name starts with `Redaction` (any case), as the flow's in-flow
-    filter keeps them. `modified` maps a name to its modifiedon; absent names get one fixed time."""
     modified = modified or {}
     return [SettingRow(n, v, modified.get(n, DEFAULT_MODIFIED)) for n, v in settings.items()
             if n.lower().startswith("redaction")]
 
 
 def row(rows: list[SettingRow], name: str) -> SettingRow | None:
-    """Setting names are an alternate key and are matched without regard to case."""
     return next((r for r in rows if r.name.lower() == name.lower()), None)
 
 
-def iso_ticks(value: str | None) -> int:
-    """ticks(): 100-ns intervals since 0001-01-01. Throws on null, as the platform does (A-NS-22)."""
-    if not isinstance(value, str):
-        raise ValueError("ticks() of a non-string")
-    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return (dt - datetime(1, 1, 1, tzinfo=timezone.utc)) // timedelta(microseconds=1) * 10
+def valid_term(t: str) -> bool:
+    """2 to 40 characters of a-z, space, hyphen and apostrophe, with at least one letter."""
+    return 2 <= len(t) <= 40 and all(c in WORD_LIST_CHARS for c in t) \
+        and bool(t.replace(" ", "").replace("-", "").replace("'", ""))
 
 
-def parse_word_list(value: str | None) -> list[str] | None:
-    """ADR-074 item 4: one entry per line; every non-blank line, trimmed and lower-cased, must be 2 to
-    40 characters of a-z, space, hyphen and apostrophe, and (a refinement, fail-closed) contain a
-    letter. Returns the lines, or None when the row is invalid as a whole (incl. empty)."""
-    lines = [ln.strip().lower() for ln in (value or "").split("\n")]
-    entries = [ln for ln in lines if ln]
-    if not entries:
-        return None
-    for e in entries:
-        if not 2 <= len(e) <= 40 or any(c not in WORD_LIST_CHARS for c in e) \
-                or not e.replace(" ", "").replace("-", "").replace("'", ""):
-            return None
-    return entries
-
-
-def collapse(s: str) -> str:
+def as_word_form(entry: str) -> str:
+    """An entry as the residue word string reads text: '-' and an apostrophe to a space."""
+    s = entry.replace("-", " ").replace("'", " ")
     for _ in range(3):
         s = s.replace("  ", " ")
     return s.strip()
 
 
-def as_name_form(entry: str) -> str:
-    """An entry as the name context and organisation values are normalised: '-' to a space."""
-    return collapse(entry.replace("-", " "))
+def _has_text(value: str | None) -> bool:
+    return bool((value or "").replace("\r", "").replace("\n", "").strip())
 
 
-def as_word_form(entry: str) -> str:
-    """An entry as the residue word string reads text: '-' and an apostrophe to a space."""
-    return collapse(entry.replace("-", " ").replace("'", " "))
-
-
-def union_list(floor, extra) -> tuple:
-    """union(): the floor, then each new entry once, in order."""
-    out = list(floor)
-    for x in extra:
-        if x not in out:
-            out.append(x)
-    return tuple(out)
-
-
-@dataclass(frozen=True)
-class PromptConfig:
-    stage_on: bool = False
-    valid: bool = False
-    labels: tuple = ()
-    categories: str = ""
-    calibrated: bool = False
-
-    @property
-    def runs(self) -> bool:
-        return self.stage_on and self.valid
-
-    @property
-    def allowed(self) -> str:
-        return ", ".join(self.labels)
-
-
-@dataclass(frozen=True)
-class RunContext:
-    """Everything the flow reads once per run, before the column loop (TAD 5.5.1)."""
-    lists: Lists = FLOOR
-    register: frozenset | None = None
-    register_available: bool = False
-    invalid_lists: tuple = ()
-    threshold: float | None = None
-    auto_release: str = "off"          # "on" | "off" | "stale"
-    prompt: PromptConfig = PromptConfig()
-    prompt_call: object = None         # callable(request) -> {"text", "finishReason"}; None = not built
-
-
-def prompt_config(rows: list[SettingRow]) -> PromptConfig:
-    stage = row(rows, "RedactionPromptStage")
-    stage_on = stage is not None and (stage.value or "").strip().lower() == "on"
-    cats = [r for r in rows if r.name.lower().startswith("redactionpromptcategory.")]
-    parsed = [(PROMPT_CATEGORY_LABELS.get(r.name.lower(), ""),
-               (r.value or "").replace("\r", " ").replace("\n", " ").strip()) for r in cats]
-    valid = bool(parsed) and all(label and text for label, text in parsed)
-    ordered = sorted(parsed, key=lambda p: p[0])           # sort(..., 'label'), A-NS-15
-    labels = tuple(label for label, _ in ordered) if valid else ()
-    categories = "\n".join(f"{label}: {text}" for label, text in ordered) if valid else ""
-    cal = row(rows, "RedactionPromptCalibrated")
-    calibrated = False
-    if valid and cal is not None:
-        listed = {p.strip().upper() for p in (cal.value or "").split(",") if p.strip()}
-        newer = [r for r in rows if r.name.lower().startswith("redactionprompt") and r is not cal
-                 and iso_ticks(r.modified) > iso_ticks(cal.modified)]
-        calibrated = listed == set(labels) and not newer
-    return PromptConfig(stage_on, valid, labels, categories, calibrated)
-
-
-def auto_release_state(rows: list[SettingRow]) -> str:
-    """ADR-074 item 5: 'on' only when the row is `true` AND saved at or after every other Redaction*
-    row; 'stale' when it is `true` but an edit came later; 'off' otherwise."""
-    ar = row(rows, "RedactionAutoRelease")
-    if ar is None or (ar.value or "").strip().lower() != "true":
-        return "off"
-    mine = iso_ticks(ar.modified)
-    return "stale" if any(iso_ticks(r.modified) > mine for r in rows if r is not ar) else "on"
-
-
-_SEED = object()
-
-
-def run_context(settings: dict, modified: dict | None = None, register=_SEED,
-                prompt_call=None) -> RunContext:
-    """`register`: the codes the register read returned, None for a failed read, or the seed."""
-    rows = redaction_rows(settings, modified)
-    for r in rows:                       # Select_redaction_setting_times: ticks() of every row
-        iso_ticks(r.modified)
-    extras, invalid = {}, []
-    for key in WORD_LIST_KEYS:
-        r = row(rows, key)
-        if r is None:
-            extras[key] = []
-            continue
-        entries = parse_word_list(r.value)
-        if entries is None:
-            invalid.append(key)
-            extras[key] = []
-        else:
-            extras[key] = entries
-    kin = [as_name_form(e) for e in extras["RedactionKinshipWordsExtra"]]
-    lists = Lists(
-        kin_words=union_list(KIN_WORDS, kin),
-        kin_tails=union_list(KIN_TAILS, [k + t for k in kin for t in KIN_TAIL_SUFFIXES]),
-        gp_suffixes=union_list(GP_SUFFIXES, [as_name_form(e) for e in extras["RedactionPracticeSuffixesExtra"]]),
-        street_words=union_list(STREET_WORDS, [as_word_form(e) for e in extras["RedactionStreetWordsExtra"]]),
-        practice_words=union_list(PRACTICE_WORDS, [as_word_form(e) for e in extras["RedactionPracticeWordsExtra"]]),
-    )
-    codes = load_register() if register is _SEED else register
-    reg = register_from_rows(codes)
-    th = row(rows, "RedactionConfidenceThreshold")
-    return RunContext(lists, frozenset(reg) if reg is not None else None, reg is not None, tuple(invalid),
-                      parse_threshold_flow(th.value if th else None), auto_release_state(rows),
-                      prompt_config(rows), prompt_call)
-
-
-# ── Rev 20: the prompt stage, built to the TAD 12.6.1 boundary (ADR-072, ADR-074) ──────────────
-PROMPT_LABEL_ALLOW = {"NAME": "N", "FAMILY MEMBER": "F", "GP PRACTICE": "G", "ADDRESS": "S"}
-PROMPT_QUOTE_MIN, PROMPT_QUOTE_MAX = 2, 200
-
-
-def validate_prompt_items(window: str, offset: int, items, allowed=None) -> list[dict] | None:
-    """ADR-072 item 6. Turn a prompt's JSON answer into spans, or None when ANY item is invalid (the
-    whole answer for that column is then discarded: prompt-output-invalid). An item is valid when its
-    label is on the allow-list - rev 20: the labels of the valid category rows read in the same run -
-    its quote is 2 to 200 characters, and the quote occurs VERBATIM in the window at least once at
-    word boundaries. Occurrences are found left to right without overlap, as split() finds them
-    (A-NS-24); each one at word boundaries becomes a span with no score, and one inside a longer word
-    ('Ann' in 'annual') is skipped, not an error. The prompt never supplies text: the label comes
-    from the flow's map and every other character from the source."""
-    allowed = tuple(PROMPT_LABEL_ALLOW) if allowed is None else tuple(allowed)
-    if not isinstance(items, list):
+def parse_word_list(value: str | None) -> list[str] | None:
+    """RedactionStreetWordsExtra / RedactionPracticeWordsExtra (ADR-074 item 4): one entry per line. The
+    entries in residue form, or None when the row is invalid as a whole (incl. blank)."""
+    if not _has_text(value):
         return None
-    spans = []
-    for it in items:
-        if not isinstance(it, dict):
+    out = []
+    for line in (value or "").split("\n"):
+        e = line.strip().lower()
+        if not e:
+            continue
+        if not valid_term(e):
             return None
-        label, quote = it.get("label"), it.get("quote")
-        if not isinstance(label, str) or label not in allowed or not isinstance(quote, str) \
-                or not PROMPT_QUOTE_MIN <= len(quote) <= PROMPT_QUOTE_MAX:
-            return None
-        found, i = False, window.find(quote)
-        while i >= 0:
-            before = window[i - 1] if i > 0 else " "
-            after = window[i + len(quote)] if i + len(quote) < len(window) else " "
-            if class_char(before) not in "9A" and class_char(after) not in "9A":
-                found = True
-                spans.append({"start": offset + i, "length": len(quote),
-                              "code": PROMPT_LABEL_ALLOW[label], "score": NO_SCORE})
-            i = window.find(quote, i + len(quote))
-        if not found:
-            return None
-    return spans
-
-
-def prompt_window(window: str, offset: int, ctx: RunContext) -> tuple[str, list]:
-    """One window through the prompt stage. ('', spans) | ('error', []) | ('invalid', []).
-    With no run action in the build (ctx.prompt_call is None, TAD 12.6.1 R1) the answer is empty,
-    which is 'error': the stage fails closed exactly as ADR-072 item 8 says a failed call does."""
-    request = {"Categories": ctx.prompt.categories, "AllowedLabels": ctx.prompt.allowed, "Narrative": window}
-    try:
-        answer = ctx.prompt_call(request) if ctx.prompt_call else None
-    except Exception:  # noqa: BLE001 - any failure of the call is prompt-error, by design
-        return "error", []
-    answer = answer or {}
-    text, reason = answer.get("text"), answer.get("finishReason")
-    if not isinstance(reason, str) or reason.lower() != "stop" or not isinstance(text, str) or not text.strip():
-        return "error", []                                    # A-NS-8: only a normal stop is usable
-    try:
-        items = json.loads(text.strip())
-    except ValueError:
-        return "error", []                                    # A-NS-10: unparseable is prompt-error
-    spans = validate_prompt_items(window, offset, items, ctx.prompt.labels)
-    return ("invalid", []) if spans is None else ("", spans)
-
-
-# ── One column, one record ─────────────────────────────────────────────────────────────────────
-@dataclass
-class ColumnOutcome:
-    status: str                      # "empty" | "kept" | "error" | "scrubbed"
-    redacted: str | None = None
-    merged: list = field(default_factory=list)
-    reasons: list = field(default_factory=list)   # this column's reason codes, in flow order
-    write: bool = False
-
-
-def flow_scrub_column(key: str, text: str | None, existing: str | None, extract,
-                      ctx: RunContext | None = None) -> ColumnOutcome:
-    """`extract(window_text) -> [ExtractorEntity]` (window-relative); raising = the call failed.
-    `ctx` is what the flow read once per run; the default is the floor lists, no register and the
-    prompt stage off - the rev 19 behaviour."""
-    ctx = ctx or RunContext()
-    if text is None or not text.strip():
-        return ColumnOutcome("empty")
-    if existing is not None and existing.strip():
-        return ColumnOutcome("kept", reasons=[f"kept-existing-counterpart:{key}"])
-    spans, reasons, failed = [], [], False
-    prompt_state, prompt_spans = "", []
-    for offset, window in windows(text):
-        try:
-            ents = extract(window)
-        except Exception:  # noqa: BLE001 - any failure of the call is ai-error, by design
-            failed = True
-            ents = None
-        if ents is None:
-            failed = True
-        else:
-            more, unmapped = extractor_spans(text, ents, offset, ctx.lists)
-            if unmapped and f"unmapped-entity-type:{key}" not in reasons:
-                reasons.append(f"unmapped-entity-type:{key}")
-            spans += more
-        spans += shape_spans(window, offset)
-        spans += register_spans(text, window, offset, ctx.register)
-        if ctx.prompt.runs:
-            state, more = prompt_window(window, offset, ctx)
-            if state == "error":
-                prompt_state = "error"
-            elif state == "invalid" and prompt_state == "":
-                prompt_state = "invalid"
-            prompt_spans += more
-    if failed:
-        return ColumnOutcome("error", reasons=reasons + [f"ai-error:{key}"])
-    if prompt_state == "":
-        spans += prompt_spans
-    elif prompt_state == "error":
-        reasons.append(f"prompt-error:{key}")
-    else:
-        reasons.append(f"prompt-output-invalid:{key}")
-    merged = flow_merge(text, spans)
-    red, skel = flow_rebuild(text, merged)
-    out = ColumnOutcome("scrubbed", redacted=red, merged=merged, reasons=reasons)
-    if len(red) > REDACTED_MAX_CHARS:
-        out.reasons.append(f"redacted-exceeds-{REDACTED_MAX_CHARS}:{key}")
-    else:
-        out.reasons += [f"residual-{k}:{key}" for k in residue_kinds(skel, ctx.lists, ctx.register)]
-        out.write = True
+        out.append(as_word_form(e))
     return out
 
 
+def valid_neutral_side(t: str) -> bool:
+    """ADR-076 item 5: 1 to 40 characters of letters, spaces, hyphens and apostrophes, with a letter."""
+    return 1 <= len(t) <= 40 and all(c in WORD_LIST_CHARS for c in t) \
+        and bool(t.replace(" ", "").replace("-", "").replace("'", ""))
+
+
+def _lines(value: str | None) -> list[str]:
+    """Every non-blank line, trimmed; a `none` line is the intended-empty marker and is dropped."""
+    out = []
+    for line in (value or "").split("\n"):
+        e = line.strip()
+        if e and e.lower() != NONE_LINE:
+            out.append(e)
+    return out
+
+
+def neutral_targets(right: str) -> list[str]:
+    """`their or them` -> ['their', 'them']: the words P2 allows (hyphens to spaces, as P2 reads text)."""
+    return p2_words(right.replace(" or ", " "))
+
+
+def parse_neutral_terms(value: str | None) -> list[tuple[str, list[str]]] | None:
+    """RedactionNeutralTerms: one `word = neutral word` per line, or `word = first or second`. Returns
+    (word, [alternatives]) pairs, or None when the row is invalid as a whole: absent or blank, a line
+    without exactly one '=', a side that is not a valid term, or a right-hand word that is also a
+    left-hand word (it would let the prompt write a word P3 then flags)."""
+    if not _has_text(value):
+        return None
+    out = []
+    for line in _lines(value):
+        e = line.lower()
+        parts = e.split("=")
+        w, n = parts[0].strip(), parts[-1].strip()
+        if len(parts) != 2 or not valid_neutral_side(w) or not valid_neutral_side(n):
+            return None
+        out.append((w, [a.strip() for a in n.split(" or ")]))
+    lefts = {w for w, _ in out}
+    if any(t in lefts for _, alts in out for a in alts for t in neutral_targets(a)):
+        return None
+    return out
+
+
+def parse_titles(value: str | None) -> list[str] | None:
+    """RedactionTitles: one title per line, 1 to 10 letters with an optional full stop. Returned without
+    the stop and with the capitals as written: P3 matches them case-sensitively (*Ms Smith*, not *MS*)."""
+    if not _has_text(value):
+        return None
+    out = []
+    for line in _lines(value):
+        t = line[:-1] if line.endswith(".") else line
+        if not 1 <= len(t) <= 10 or any(c not in LETTERS for c in t):
+            return None
+        out.append(t)
+    return out
+
+
+def parse_labels(value: str | None) -> list[str] | None:
+    """RedactionLabels: `[LABEL] = what it covers` per line; the label is capitals, digits and spaces in
+    square brackets. Returns the label words (lower case, for P2), or None when the row is invalid."""
+    if not _has_text(value):
+        return None
+    words = []
+    for line in _lines(value):
+        pieces = line.split("]")
+        inner = pieces[0].replace("[", "")
+        if not line.startswith("[") or len(pieces) < 2 or not inner.strip() \
+                or any(c not in LETTERS[26:] + DIGITS + " " for c in inner):
+            return None
+        for w in p2_words(inner):
+            if w not in words:
+                words.append(w)
+    return words
+
+
+def parse_name_rules(value: str | None) -> str | None:
+    """RedactionNameRules: free text up to the column's 4,000 characters; it feeds the prompt only."""
+    return value if _has_text(value) else None
+
+
 def parse_threshold_flow(value: str | None) -> float | None:
-    """What the flow can parse without float() throwing: digits and at most one '.', '%' ignored.
-    "0.85", "85" and "85%" all give 0.85. Anything else is None (threshold-missing-or-invalid)."""
+    """'0.85', '85' and '85%' all give 0.85. Anything else is None (threshold-missing-or-invalid)."""
     t = (value or "").replace("%", "").strip()
     if not t or t == "." or t.count(".") > 1 or any(c not in DIGITS + "." for c in t):
         return None
@@ -1242,8 +1058,260 @@ def parse_threshold_flow(value: str | None) -> float | None:
     return v if 0 < v <= 1 else None
 
 
-def setting_is(value: str | None, expected: str) -> bool:
-    return (value or "").strip().lower() == expected
+@dataclass(frozen=True)
+class RunContext:
+    """Everything the flow reads once per run, before the column loop. Built by run_context() from the
+    rows; every rule-derived field comes from the SAME four rows (ADR-076 item 2)."""
+    threshold: float | None = None
+    stage_off: bool = False            # RedactionPromptStage = off: the kill switch
+    rules_ok: bool = False             # all four rule rows valid; otherwise nothing is scrubbed
+    invalid_lists: tuple = ()
+    street_words: tuple = tuple(STREET_WORDS)
+    practice_words: tuple = tuple(PRACTICE_WORDS)
+    gendered_words: tuple = ()         # left-hand words of RedactionNeutralTerms, as typed (lower case)
+    titles: tuple = ()                 # RedactionTitles, capitals as written, no full stop
+    closed: tuple = tuple(closed_words())
+    neutral_terms: str = ""            # the four rewrite prompt inputs: each row as written, \r removed
+    titles_text: str = ""
+    name_rules: str = ""
+    labels_text: str = ""
+    register: frozenset | None = None
+    register_available: bool = False
+
+
+def _union(floor, extra) -> tuple:
+    out = list(floor)
+    for x in extra:
+        if x not in out:
+            out.append(x)
+    return tuple(out)
+
+
+_SEED = object()
+
+
+def run_context(settings: dict, modified: dict | None = None, register=_SEED) -> RunContext:
+    rows = redaction_rows(settings, modified)     # ADR-078: modifiedon is no longer read
+    invalid, extra = [], {}
+    for key in WORD_LIST_KEYS:
+        r = row(rows, key)
+        if r is None:
+            extra[key] = []
+            continue
+        parsed = parse_word_list(r.value)
+        if parsed is None:
+            invalid.append(key)
+        extra[key] = parsed or []
+    value = {k: (row(rows, k).value if row(rows, k) else None) for k in RULE_KEYS}
+    parsed = {"RedactionNeutralTerms": parse_neutral_terms(value["RedactionNeutralTerms"]),
+              "RedactionTitles": parse_titles(value["RedactionTitles"]),
+              "RedactionNameRules": parse_name_rules(value["RedactionNameRules"]),
+              "RedactionLabels": parse_labels(value["RedactionLabels"])}
+    invalid += [k for k in RULE_KEYS if parsed[k] is None]
+    rules_ok = all(parsed[k] is not None for k in RULE_KEYS)
+    terms = parsed["RedactionNeutralTerms"] or []
+    targets = [t for _, alts in terms for a in alts for t in neutral_targets(a)]
+    codes = load_register() if register is _SEED else register
+    reg = register_from_rows(codes)
+    th = row(rows, "RedactionConfidenceThreshold")
+    stage = row(rows, "RedactionPromptStage")
+    text = {k: (v or "").replace("\r", "") for k, v in value.items()}
+    return RunContext(
+        threshold=parse_threshold_flow(th.value if th else None),
+        stage_off=(stage.value or "").strip().lower() == "off" if stage else False,
+        rules_ok=rules_ok,
+        invalid_lists=tuple(invalid),
+        street_words=_union(STREET_WORDS, extra["RedactionStreetWordsExtra"]),
+        practice_words=_union(PRACTICE_WORDS, extra["RedactionPracticeWordsExtra"]),
+        gendered_words=tuple(w for w, _ in terms),
+        titles=tuple(parsed["RedactionTitles"] or ()),
+        closed=_union(_union(closed_words(), targets), parsed["RedactionLabels"] or []),
+        neutral_terms=text["RedactionNeutralTerms"], titles_text=text["RedactionTitles"],
+        name_rules=text["RedactionNameRules"], labels_text=text["RedactionLabels"],
+        register=frozenset(reg) if reg is not None else None,
+        register_available=reg is not None,
+    )
+
+
+# ── Step 4: the spelling answer, accepted word by word (ADR-075 item 4) ───────────────────────
+SPELLING_MAX_LENGTH_CHANGE = 2
+
+
+def _alnum(ch: str) -> bool:
+    return ch.lower() in LOWER + DIGITS and ch != ""
+
+
+def take_correction(original: str, corrected: str, closed=None, gendered=None) -> bool:
+    """One word: the correction is taken only when the original starts with a lower-case letter, the
+    correction keeps that first letter, neither is (part of) a label, the original is not a closed-list
+    word, the correction is not a gendered word (FR-100: never bring a replaced word back), the trailing
+    punctuation is kept, and the length changes by at most two letters."""
+    closed = SEED_CONTEXT().closed if closed is None else closed
+    gendered = SEED_CONTEXT().gendered_words if gendered is None else gendered
+    o0, c0 = (original + " ")[0], (corrected + " ")[0]
+    if o0 not in LOWER or c0 != o0:
+        return False
+    if abs(len(corrected) - len(original)) > SPELLING_MAX_LENGTH_CHANGE:
+        return False
+    if any(b in original or b in corrected for b in "[]"):
+        return False
+    if core(original) in closed or core(corrected) in gendered:
+        return False
+    lo, lc = (" " + original)[-1], (" " + corrected)[-1]
+    return _alnum(lc) if _alnum(lo) else lc == lo
+
+
+def accept_spelling(rewrite: str, corrected: str | None, usable: bool = True, closed=None, gendered=None) -> str:
+    """Both texts split on single spaces. A different word count, or an unusable answer, discards the
+    correction: the rewrite stands, and no reason code is added (a spelling failure is not a safety event)."""
+    if not usable or corrected is None:
+        return rewrite
+    o, c = rewrite.split(" "), corrected.split(" ")
+    if len(o) != len(c):
+        return rewrite
+    return " ".join(cw if take_correction(ow, cw, closed, gendered) else ow for ow, cw in zip(o, c))
+
+
+# ── Step 5-7: checks P1, P2 and P3 (ADR-075 items 5-7) ─────────────────────────────────────────
+def surviving_identifiers(final: str, values) -> list[str]:
+    """P1: every normalised extractor value found at word boundaries in the final text."""
+    f = " " + normalise(final) + " "
+    return [v for v in values if v.strip() and f" {v} " in f]
+
+
+def validate_rewrite(labelled: str, rewrite: str, closed=None) -> list[str]:
+    """P2: the words of the rewrite (labels removed) that are neither a word of the labelled input, nor on
+    the closed list, nor a plural-agreement form of an input word (`rely` when `relies` is in the input).
+    Empty = valid. Anything the model writes is therefore a word it was given after labelling, or a word
+    the flow holds: it cannot add an identifier, only move or drop words already there."""
+    closed = SEED_CONTEXT().closed if closed is None else closed
+    given = set(p2_words(labelled))
+    added = []
+    for w in p2_words(rewrite):
+        if w in given or w in closed or w + "s" in given or w + "es" in given \
+                or (w.endswith("y") and w[:-1] + "ies" in given):
+            continue
+        added.append(w)
+    return added
+
+
+def dropped_text(labelled: str, rewrite: str) -> bool:
+    """A rewrite more than 10% shorter in words than its input (labels removed from both)."""
+    return 10 * len(p2_words(rewrite)) < 9 * len(p2_words(labelled))
+
+
+# Iteration 11: a fidelity check, like dropped_text. DEV 2026-10-19: the rewrite model dropped full stops and
+# commas in several columns; nothing in the flow removes punctuation (the spelling answer is taken only with
+# the same end punctuation, word by word). Write and hold when the rewrite has at least two FEWER marks than
+# its input AND more than 10% fewer: one title written "Mr." removed costs one mark and is not held.
+FIDELITY_PUNCT = ".,;:!?"
+
+
+def punct_count(s: str) -> int:
+    return sum(s.count(ch) for ch in FIDELITY_PUNCT)
+
+
+def dropped_punctuation(labelled: str, rewrite: str) -> bool:
+    a, b = punct_count(labelled), punct_count(rewrite)
+    return a - b >= 2 and 10 * b < 9 * a
+
+
+def residue_kinds(final: str, ctx: RunContext | None = None, joined: bool = False) -> list[str]:
+    """P3, on the final text with every label replaced by '|', so a label never trips a check. `joined`: the
+    input side of `name-fragment` (joined_spans found a kept span with a fragment joined to it)."""
+    ctx = ctx or SEED_CONTEXT()
+    bare = remove_labels(final, "|")
+    w = word_string(bare)
+    spaced = bare
+    for ch in NORM_PUNCT:                 # capitals kept: a title is matched as written (ADR-076)
+        spaced = spaced.replace(ch, " ")
+    spaced = " " + _collapse(spaced) + " "
+    found = {
+        "digit-run": "999999999" in digit_string(bare),
+        "postcode": bool(shape_hits(class_string(bare), POSTCODE_RESIDUE_SHAPES)),
+        "at-sign": "@" in bare,
+        "street-word": any(f" {x} " in w for x in ctx.street_words),
+        "practice-word": any(f" {x} " in w for x in ctx.practice_words),
+        "age-phrase": any(x in w for x in AGE_PHRASES),
+        "district": has_residual_district(bare, ctx.register),
+        "gendered-term": any(f" {as_word_form(x)} " in w for x in ctx.gendered_words),
+        "title": any(f" {t} " in spaced for t in ctx.titles),
+        "name-fragment": joined or final_joint(final),
+    }
+    return [k for k in RESIDUE_KINDS if found[k]]
+
+
+# ── One column, one record ─────────────────────────────────────────────────────────────────────
+@dataclass
+class ColumnOutcome:
+    status: str                      # "empty" | "kept" | "too-long" | "error" | "scrubbed"
+    labelled: str | None = None      # what the rewrite prompt received
+    final: str | None = None         # what would be written
+    score: float = NO_SCORE          # lowest score of a labelled span; NO_SCORE when none
+    reasons: list = field(default_factory=list)
+    write: bool = False
+
+
+def _answer(call, **inputs):
+    """A prompt call: (usable, text). Any failure, a non-stop finish or an empty text is unusable."""
+    try:
+        ans = call(**inputs) or {}
+    except Exception:  # noqa: BLE001 - any failure of the call is handled, by design
+        return False, ""
+    text, reason = ans.get("text"), ans.get("finishReason")
+    usable = isinstance(reason, str) and reason.lower() == "stop" and isinstance(text, str) and bool(text.strip())
+    return usable, text if isinstance(text, str) else ""
+
+
+def column_state(text: str | None, existing: str | None) -> str:
+    if text is None or not text.strip():
+        return "empty"
+    if existing is not None and existing.strip():
+        return "kept"
+    if len(text) > EXTRACTOR_MAX_CHARS:
+        return "too-long"
+    return "scrub"
+
+
+def scrub_column(key: str, text: str, extract, rewrite, spelling, ctx: RunContext) -> ColumnOutcome:
+    """A column already chosen for scrubbing. `extract(text) -> [ExtractorEntity]` (raising or None = the
+    call failed); `rewrite(Narrative=, NeutralTerms=, Titles=, NameRules=, Labels=)` and `spelling(Text=)` return {"text", "finishReason"}."""
+    try:
+        ents = extract(text)
+    except Exception:  # noqa: BLE001
+        ents = None
+    if not isinstance(ents, list):          # a failed call, or an answer at neither entity path
+        return ColumnOutcome("error", reasons=[f"ai-error:{key}"])
+    lab, kept, unmapped, partial = label_spans(text, ents)
+    labelled = labelled_text(text, kept)
+    usable, rw = _answer(rewrite, Narrative=labelled, NeutralTerms=ctx.neutral_terms, Titles=ctx.titles_text,
+                         NameRules=ctx.name_rules, Labels=ctx.labels_text)
+    sp_ok, sp = _answer(spelling, Text=rw)
+    final = accept_spelling(rw, sp, sp_ok, ctx.closed, ctx.gendered_words)
+    p1 = surviving_identifiers(final, [s.value for s in lab])
+    p2 = validate_rewrite(labelled, rw, ctx.closed)
+    write = usable and not partial and not p1 and not p2 and len(final) <= REDACTED_MAX_CHARS
+    reasons = []
+    if unmapped:
+        reasons.append(f"unmapped-entity-type:{key}")
+    if partial:
+        reasons.append(f"overlapping-identifiers:{key}")
+    if not usable:
+        reasons.append(f"prompt-error:{key}")
+    if usable and p1:
+        reasons.append(f"identifier-survived:{key}")
+    if usable and p2:
+        reasons.append(f"rewrite-invalid:{key}")
+    if usable and len(final) > REDACTED_MAX_CHARS:
+        reasons.append(f"redacted-exceeds-{REDACTED_MAX_CHARS}:{key}")
+    if write:
+        reasons += [f"residual-{k}:{key}" for k in residue_kinds(final, ctx, bool(joined_spans(text, kept)))]
+        if dropped_text(labelled, rw):
+            reasons.append(f"rewrite-dropped-text:{key}")
+        if dropped_punctuation(labelled, rw):
+            reasons.append(f"rewrite-dropped-punctuation:{key}")
+    score = min([s.score for s in lab] + [NO_SCORE])
+    return ColumnOutcome("scrubbed", labelled, final, score, reasons, write)
 
 
 @dataclass(frozen=True)
@@ -1254,55 +1322,506 @@ class FlowDecision:
     reasons: tuple[str, ...]
 
 
-def flow_decide(outcomes: list[ColumnOutcome], settings) -> FlowDecision:
-    """`settings` is a RunContext, or a dict of rev_setting name -> value (every row saved at the same
-    time, the seed register available, no prompt run action), turned into one."""
-    ctx = settings if isinstance(settings, RunContext) else run_context(settings)
-    reasons: list[str] = []
-    for o in outcomes:
-        for r in o.reasons:
-            if r not in reasons:
-                reasons.append(r)
-    scores = [m["score"] for o in outcomes if o.status == "scrubbed" for m in o.merged]
+def flow_scrub_record(row_: dict, settings, extract, rewrite, spelling, *, modified: dict | None = None,
+                      register=_SEED) -> tuple[FlowDecision | None, dict, list]:
+    """The whole flow for one application row -> (decision, writes, outcomes). A released record is
+    never touched: (None, {}, [])."""
+    if row_.get("rev_redactionreleased") is True:
+        return None, {}, []
+    ctx = settings if isinstance(settings, RunContext) else run_context(settings, modified, register)
+    loop_reasons, not_scrubbed, writes, outcomes, scores = [], [], {}, [], []
+    any_scrubbed = False
+    for raw, red in SCRUB_COLUMNS:
+        state = column_state(row_.get(raw), row_.get(red))
+        if state == "kept":
+            not_scrubbed.append(f"kept-existing-counterpart:{raw}")
+        elif state == "too-long":
+            not_scrubbed.append(f"too-long:{raw}")
+        if state != "scrub" or ctx.stage_off or not ctx.rules_ok:
+            outcomes.append(ColumnOutcome(state if state != "scrub" else "not-run"))
+            continue
+        o = scrub_column(raw, row_[raw], extract, rewrite, spelling, ctx)
+        outcomes.append(o)
+        loop_reasons += o.reasons
+        if o.status == "scrubbed":
+            any_scrubbed = True
+            scores.append(o.score)
+        if o.write:
+            writes[red] = o.final
     low = min(scores + [NO_SCORE])
     confidence = None if low >= NO_SCORE else low
-    any_scrubbed = any(o.status == "scrubbed" for o in outcomes)
     record = []
     if ctx.threshold is None:
         record.append("threshold-missing-or-invalid")
     if any_scrubbed and confidence is None:
-        record.append("no-model-detections")          # rules D-2, kept as drafted (2026-10-06)
+        record.append("no-model-detections")
     if ctx.threshold is not None and confidence is not None and confidence < ctx.threshold:
         record.append("below-threshold")
-    if ctx.auto_release != "on":
-        record.append(f"auto-release-{ctx.auto_release}")   # ADR-071 item 8, ADR-074 item 5
-    if ctx.prompt.stage_on and not ctx.prompt.valid:
-        record.append("prompt-config-invalid")         # ADR-074 item 4
-    if ctx.prompt.stage_on and not ctx.prompt.calibrated:
-        record.append("uncalibrated-stage:prompt")     # ADR-072 item 8, ADR-074 item 5
     if not ctx.register_available:
-        record.append("postcode-register-unavailable")  # ADR-073 item 2
-    record += [f"redaction-setting-invalid:{k}" for k in ctx.invalid_lists]   # ADR-074 item 4
-    reasons += [r for r in record if r not in reasons]
-    review = bool(reasons)
-    return FlowDecision(not review, review, confidence, tuple(reasons))
+        record.append("postcode-register-unavailable")
+    record += [f"redaction-setting-invalid:{k}" for k in ctx.invalid_lists]
+    if ctx.stage_off:
+        record.append("prompt-stage-off")
+    reasons = []
+    for r in loop_reasons + not_scrubbed + record:
+        if r and r not in reasons:
+            reasons.append(r)
+    # ADR-078: the flow never releases; every scrubbed record waits for the process owner, and the reasons
+    # are hints on her card. `released` is what the flow leaves behind: always False (the column's default).
+    return FlowDecision(False, True, confidence, tuple(reasons)), writes, outcomes
 
 
-def flow_scrub_record(row_: dict, settings: dict, extract, *, modified: dict | None = None,
-                      register=_SEED, prompt_call=None) -> tuple[FlowDecision | None, dict]:
-    """The whole flow for one application row. Returns (decision, writes). A released record is
-    never touched: (None, {}). `register` is the codes the register read returns (default: the
-    seed file), or None for a failed read."""
-    if row_.get("rev_redactionreleased") is True:
-        return None, {}
-    ctx = run_context(settings, modified, register, prompt_call)
-    outcomes, writes = [], {}
-    for raw, red in SCRUB_COLUMNS:
-        o = flow_scrub_column(raw, row_.get(raw), row_.get(red), extract, ctx)
-        outcomes.append(o)
-        if o.write:
-            writes[red] = o.redacted
-    return flow_decide(outcomes, ctx), writes
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# THE FOUR RULE ROWS — seed values (TAD rev 23, ADR-076 "Seed values"; SDD A-09; reviewer 2026-10-16)
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# These are what seed-settings.ps1 creates, once, in each environment (createOnly; A-NS-36). After that
+# only the process owner changes them. The three deploymentSettings files carry the same text and
+# test_scrub_flow_definition.py asserts it; test_neutral_terms.py proves the neutral-terms row says
+# exactly what NEUTRAL_TERMS (the oracle's expected map) says.
+_PRONOUN_LINES = [
+    "he = they", "she = they", "him = them", "her = their or them", "his = their or theirs", "hers = theirs",
+    "himself = themself", "herself = themself", "he's = they're or they've", "she's = they're or they've",
+    "he'd = they'd", "she'd = they'd", "he'll = they'll", "she'll = they'll",
+]
+_NOUN_GROUPS = [
+    (["mum", "mummy", "mother", "dad", "daddy", "father"], "parent",
+     ["mums", "mummies", "mothers", "dads", "daddies", "fathers"], "parents"),
+    (["brother", "sister"], "sibling", ["brothers", "sisters"], "siblings"),
+    (["son", "daughter"], "child", ["sons", "daughters"], "children"),
+    (["husband", "wife", "boyfriend", "girlfriend"], "partner",
+     ["husbands", "wives", "boyfriends", "girlfriends"], "partners"),
+    (["man", "woman", "boy", "girl", "lady", "gentleman"], "person",
+     ["men", "women", "boys", "girls", "ladies", "gentlemen"], "people"),
+    (["grandmother", "grandfather"], "grandparent", ["grandmothers", "grandfathers"], "grandparents"),
+    (["grandson", "granddaughter"], "grandchild", ["grandsons", "granddaughters"], "grandchildren"),
+    (["stepson", "stepdaughter"], "stepchild", ["stepsons", "stepdaughters"], "stepchildren"),
+    (["stepmother", "stepfather"], "stepparent", ["stepmothers", "stepfathers"], "stepparents"),
+    (["aunt", "auntie", "uncle", "niece", "nephew"], "relative",
+     ["aunts", "aunties", "uncles", "nieces", "nephews"], "relatives"),
+]
+SEED_ROWS = {
+    "RedactionNeutralTerms": "\n".join(
+        _PRONOUN_LINES
+        + [f"{w} = {n}" for ws, n, _, _ in _NOUN_GROUPS for w in ws]
+        + [f"{w} = {n}" for _, _, ws, n in _NOUN_GROUPS for w in ws]),
+    "RedactionTitles": "\n".join(["Mr", "Mrs", "Ms", "Miss"]),
+    # Iteration 11 (reviewer, 2026-10-19, "Yes please, process the suggested changes"): the writer's own name
+    # keeps [NAME] ("I am they" in DEV); the relationship word leads even when others are named ("Our child
+    # [NAME]" in DEV); worked examples, label-only. The rules are in the order they apply.
+    "RedactionNameRules": "\n".join([
+        "When [NAME] is the writer's own name, as in \"I am [NAME]\", \"I'm [NAME]\" or \"my name is [NAME]\", "
+        "keep [NAME].",
+        "Keep [NAME] after Dr: \"Dr [NAME] reviews my medication\" stays as it is.",
+        "When [NAME] comes straight after a relationship word, remove it and keep the neutral word, even when the "
+        "text names other people: \"my husband [NAME]\" becomes \"my partner\", and \"our son [NAME], who is "
+        "[AGE 35 to 44],\" becomes \"our child, who is [AGE 35 to 44],\".",
+        "Otherwise, keep [NAME] when the text names two or more different people other than the writer.",
+        "If the text is about one named person, write they, them or their in place of [NAME], as the sentence needs, "
+        "and make the verb agree: \"[NAME] visits me.\" becomes \"They visit me.\"",
+        "A name inside the name of a GP practice is part of [GP PRACTICE].",
+        "Mum or Dad used as a name, as in \"Mum helps me\", becomes \"my parent\".",
+    ]),
+    "RedactionLabels": "\n".join([
+        "[NAME] = a person's name",
+        "[ADDRESS] = a street, a house name or number, a town in an address, or a postcode",
+        "[PHONE] = a phone number",
+        "[EMAIL] = an email address",
+        "[GP PRACTICE] = the name of a GP practice or surgery",
+    ]),
+}
+SEED_DESCRIPTIONS = {
+    "RedactionNeutralTerms": "Narrative scrubbing (TAD ADR-076): the client's Anonymisation Key. One 'word = neutral word' per line ('word = first or second' where the sentence decides). Feeds the rewrite prompt, check P2 (right side) and the gendered residue check (left side). Synthetic examples only: never paste text from an application into this row.",
+    "RedactionTitles": "Narrative scrubbing (TAD ADR-076): titles the rewrite prompt removes, one per line, 1 to 10 letters with an optional full stop. Also the title residue check, matched with the capitals as written. Write 'none' for no titles. Synthetic examples only: never paste text from an application into this row.",
+    "RedactionNameRules": "Narrative scrubbing (TAD ADR-076): how the rewrite prompt handles [NAME], one rule per line in plain words. Feeds the prompt only. Synthetic examples only: never paste text from an application into this row.",
+    "RedactionLabels": "Narrative scrubbing (TAD ADR-076): the labels the rewrite prompt may write, '[LABEL] = what it covers', one per line, the label in capitals in square brackets. Feeds the prompt and check P2. Synthetic examples only: never paste text from an application into this row.",
+}
+
+
+def SEED_CONTEXT() -> RunContext:  # noqa: N802 - reads like the constant it stands for
+    """The run context the seed rows give, with no other row and the seed register."""
+    global _SEED_CONTEXT
+    if _SEED_CONTEXT is None:
+        _SEED_CONTEXT = run_context(dict(SEED_ROWS))
+    return _SEED_CONTEXT
+
+
+_SEED_CONTEXT = None
+
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# NEUTRAL TERMS — rules v0.5 section 10.1 (client Anonymisation Key; SDD Amendment A-09; wbs:5.6)
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# Reviewer decisions, Xander Lykopoulos, verbatim (relayed by lead-agent):
+#   2026-10-14 "1. follow the key file"; "2. Yes also add spell checking and auto correct that for readability"
+#   2026-10-16 him/hers: "Use the clients own examples"; first names: "Change to the clients key and examples";
+#              "Yes, add words for these: grandmother, stepson, auntie, niece, nephew, mummy, lady, and the
+#              titles Mr, Mrs, Ms and Miss."; and: "if the second word that belongs to end is identifyable
+#              information than it also needs to change."
+#   2026-10-16 (correcting the OQ-054 default, after A-09's approval): "My husband Derek becoms partner. not
+#              family member. the word husband is leading in this pattern."
+#   SDD A-09 approved 2026-10-16 with OQ-054 to OQ-056 at their defaults, OQ-054 (c) since corrected as above.
+#
+# THIS IS WHAT A GOOD REWRITE LOOKS LIKE, NOT WHAT THE FLOW DOES. In rev 22 the rewrite prompt does this
+# work and the flow only checks it (P1, P2, P3). neutral_rewrite() is the expected output `wbs:5.7` scores
+# the live model against, and the specification the tests pin. It works on LABELLED text - the text the
+# prompt receives - so a name is the token "[NAME]".
+
+# The client's key, rows 2-27, as written (column A -> column B), so a test can show every departure.
+KEY_ROWS = [
+    ("He", "they"), ("She", "they"), ("Him/ him.", "their"), ("Her/ her.", "Them/ their"),
+    ("His", "their"), ("Hers", "their"), ("Mother.", "parent"), ("Father.", "parent"),
+    ("Mum", "parent"), ("Dad", "parent"), ("Brother", "sibling"), ("Sister", "sibling"),
+    ("Daughter", "child"), ("Son", "child"), ("Wife", "partner"), ("Husband", "partner"),
+    ("Girlfriend", "partner"), ("Boyfrind", "partner"), ("Himself", "themselves"),
+    ("herself", "themselves"), ("Man", "person"), ("Woman", "person"), ("Girl ", "person"),
+    ("Boy", "person"), ("He's", "they're"), ("She's", "they're"),
+]
+
+# Where the map departs from KEY_ROWS, and why. Where the key and the client's examples differ, the
+# examples win (A-09 Finding 1); OQ-056 settles the three forms neither shows.
+KEY_DEVIATIONS = {
+    "him": ("them", "object pronoun; the key's 'their' is a possessive, and the client's own examples write 'them'"),
+    "hers": ("theirs", "OQ-056: an independent possessive, 'the choice is hers' -> 'theirs'; 'their' cannot stand alone"),
+    "her": ("them|their", "the key gives both; the examples choose by the word after it (see _her_form)"),
+    "boyfriend": ("partner", "key row 19 is spelt 'Boyfrind'"),
+    "himself": ("themself", "OQ-056: the client's examples write 'themself' where the key says 'themselves'"),
+    "herself": ("themself", "OQ-056: as 'himself', the client's own examples write 'themself'"),
+}
+
+# word (lower case) -> neutral word.
+NEUTRAL_TERMS = {
+    "he": "they", "she": "they", "him": "them", "his": "their", "hers": "theirs",
+    "mother": "parent", "father": "parent", "mum": "parent", "dad": "parent",
+    "brother": "sibling", "sister": "sibling", "daughter": "child", "son": "child",
+    "wife": "partner", "husband": "partner", "girlfriend": "partner", "boyfriend": "partner",
+    "himself": "themself", "herself": "themself",
+    "man": "person", "woman": "person", "girl": "person", "boy": "person",
+    "he's": "they're", "she's": "they're",
+    # forced by "he"/"she": the contraction is one word, so "he" alone would leave "he'd"
+    "he'd": "they'd", "she'd": "they'd", "he'll": "they'll", "she'll": "they'll",
+    # plurals of the key's nouns
+    "mothers": "parents", "fathers": "parents", "mums": "parents", "dads": "parents",
+    "brothers": "siblings", "sisters": "siblings", "daughters": "children", "sons": "children",
+    "wives": "partners", "husbands": "partners", "girlfriends": "partners",
+    "boyfriends": "partners", "men": "people", "women": "people", "girls": "people",
+    "boys": "people",
+    # A-09 FR-096 / OQ-055 (defaults adopted): the reviewer's added words and their counterparts
+    "grandmother": "grandparent", "grandfather": "grandparent", "grandmothers": "grandparents",
+    "grandfathers": "grandparents", "grandson": "grandchild", "granddaughter": "grandchild",
+    "grandsons": "grandchildren", "granddaughters": "grandchildren",
+    "stepson": "stepchild", "stepdaughter": "stepchild", "stepsons": "stepchildren",
+    "stepdaughters": "stepchildren", "stepmother": "stepparent", "stepfather": "stepparent",
+    "stepmothers": "stepparents", "stepfathers": "stepparents",
+    "auntie": "relative", "aunt": "relative", "uncle": "relative", "niece": "relative", "nephew": "relative",
+    "aunties": "relatives", "aunts": "relatives", "uncles": "relatives", "nieces": "relatives",
+    "nephews": "relatives",
+    "mummy": "parent", "daddy": "parent", "mummies": "parents", "daddies": "parents",
+    "lady": "person", "gentleman": "person",
+    "ladies": "people", "gentlemen": "people",
+}
+ADDED_WORDS = ["grandmother", "stepson", "auntie", "niece", "nephew", "mummy", "lady"]   # FR-096, verbatim
+TITLES = ["mr", "mrs", "ms", "miss"]          # FR-096: removed; the name after is handled under FR-095
+KEEP_NAME_AFTER = ["dr", "doctor"]            # OQ-054 (b): "Dr [NAME]"
+SUBJECT_PRONOUNS = {"he", "she"}
+PARENT_NAMES = {"mum", "dad", "mother", "father", "mummy", "daddy"}   # "Mum helps me" uses the word as a name
+# A relationship word directly before a name: the relationship leads and the name goes (reviewer, 2026-10-16:
+# "My husband Derek becoms partner ... the word husband is leading in this pattern").
+RELATIONSHIP_WORDS = {w for w, n in NEUTRAL_TERMS.items()
+                      if n in ("parent", "parents", "sibling", "siblings", "child", "children", "partner",
+                               "partners", "grandparent", "grandparents", "grandchild", "grandchildren",
+                               "stepchild", "stepchildren", "stepparent", "stepparents", "relative",
+                               "relatives")} | {"partner", "parent", "child", "carer", "friend", "neighbour",
+                                                "cousin", "sibling", "relative", "spouse"}
+_DETERMINERS = {"my", "our", "your", "his", "her", "their", "the", "a", "an", "this", "that",
+                "whose", "every", "each", "no", "one's"}
+_HAVE_PARTICIPLES = {"got", "been", "gone", "had", "done", "taken", "given", "seen", "made",
+                     "become", "lost", "left", "started", "stopped", "always", "never", "just",
+                     "already", "recently"}
+_OBJECT_FOLLOWERS = {
+    "to", "with", "for", "at", "in", "on", "up", "out", "off", "from", "into", "onto", "about",
+    "and", "but", "or", "nor", "so", "when", "while", "whilst", "because", "if", "as", "than",
+    "that", "this", "these", "those", "the", "a", "an", "every", "each", "some", "any", "all",
+    "back", "down", "over", "around", "through", "again", "too", "very", "home", "there",
+    "here", "now", "then", "until", "before", "after", "by", "like", "since", "during",
+    "regularly", "daily", "often", "always", "safe", "calm", "settled", "feel",
+    "know", "get", "go", "be", "is", "was", "are", "were", "can", "will", "would", "could",
+    "should", "may", "might", "must", "do", "does", "did", "has", "have", "had", "i", "we",
+    "you", "they", "he", "she", "it", "me", "us", "them", "him", "her", "my", "our", "your",
+}
+_CAUSATIVE = {"help", "helps", "helped", "helping", "let", "lets", "letting", "make", "makes",
+              "made", "making", "watch", "watches", "watched", "watching", "see", "sees", "saw",
+              "seeing", "hear", "hears", "heard", "hearing"}
+_ADVERBS = {"also", "always", "never", "often", "really", "still", "just", "usually",
+            "sometimes", "regularly", "only", "even", "already", "then", "now", "constantly",
+            "frequently", "rarely", "generally", "normally", "actually", "simply", "mostly",
+            "completely", "totally", "hardly", "barely", "gradually", "quickly", "easily",
+            "occasionally", "currently", "increasingly", "particularly", "especially"}
+_IRREGULAR_3SG = {"is": "are", "was": "were", "has": "have", "does": "do", "goes": "go",
+                  "isn't": "aren't", "wasn't": "weren't", "hasn't": "haven't",
+                  "doesn't": "don't", "isn’t": "aren’t", "wasn’t": "weren’t",
+                  "hasn’t": "haven’t", "doesn’t": "don’t"}
+_NOT_VERBS_ENDING_S = {"this", "its", "his", "hers", "us", "yes", "less", "unless", "always",
+                       "perhaps", "sometimes", "towards", "afterwards", "besides", "thus"}
+NAME_TOKEN = "[NAME]"
+_WORD = re.compile(r"\[NAME\]|[A-Za-z]+(?:['’][A-Za-z]+)?")
+_CLAUSE_END = ".!?;:\n"
+AND_LOOKAHEAD = 8   # FR-098: a second verb after "and" is agreed within this many words of the first
+
+
+def _with_case(src: str, word: str, at_start: bool) -> str:
+    """ALL CAPS stays all caps. Otherwise capitalised only where the replaced word was capitalised AND
+    starts a sentence: "I told Mum" -> "I told my parent", "My Mum" -> "My parent"."""
+    if src.isupper() and len(src) > 1 and src != NAME_TOKEN:
+        return word.upper()
+    if at_start and (src[:1].isupper() or src == NAME_TOKEN):
+        return word[:1].upper() + word[1:]
+    return word
+
+
+def _sentence_start(text: str, start: int) -> bool:
+    before = text[:start].rstrip(" \t\"'“‘(")
+    return before == "" or before[-1] in ".!?\n:"
+
+
+def _her_form(words: list, i: int, text: str) -> str:
+    """'her' is 'them' (object) or 'their' (possessive), read from the words around it."""
+    nxt = words[i + 1] if i + 1 < len(words) else None
+    gap = "" if nxt is None else text[words[i][1]:nxt[0]]
+    if nxt is None or gap.strip(" ") != "":
+        return "them"
+    nw = nxt[2].lower()
+    if nw in NEUTRAL_TERMS and nw not in SUBJECT_PRONOUNS | {"him", "his", "hers"}:
+        return "their"
+    prev = words[i - 1][2].lower() if i > 0 else ""
+    if prev in _CAUSATIVE:
+        return "them"
+    return "them" if nw in _OBJECT_FOLLOWERS else "their"
+
+
+def _agree(verb: str) -> str | None:
+    """Third person singular -> plural, or None when the word is not a 3sg verb form."""
+    low = verb.lower()
+    if low in _IRREGULAR_3SG:
+        return _with_case(verb, _IRREGULAR_3SG[low], verb[:1].isupper())
+    if low in _NOT_VERBS_ENDING_S or not low.endswith("s") or low.endswith(("ss", "us", "is")) \
+            or "'" in low or "’" in low or len(low) < 3 or verb == NAME_TOKEN:
+        return None
+    if low.endswith("ies") and len(low) > 4 and low[-4] not in "aeiou":
+        return verb[:-3] + "y"
+    if low.endswith(("sses", "shes", "ches", "xes", "zes", "oes")):
+        return verb[:-2]
+    return verb[:-1]
+
+
+def _same_clause(text: str, a: int, b: int) -> bool:
+    return not any(c in _CLAUSE_END for c in text[a:b])
+
+
+def _adjacent(text, words, j) -> bool:
+    return text[words[j - 1][1]:words[j][0]].strip() == ""
+
+
+def _agreements(text: str, words: list, i: int, agreed: set) -> list[tuple[int, str]]:
+    """The verb after subject word i, and (FR-098) a second verb after 'and' in the same clause."""
+    out = []
+    j = i + 1
+    while j < len(words) and words[j][2].lower() in _ADVERBS and _adjacent(text, words, j):
+        j += 1
+    if j >= len(words) or j in agreed or not _adjacent(text, words, j):
+        return out
+    base = _agree(words[j][2])
+    if base is None or base == words[j][2]:
+        return out
+    out.append((j, base))
+    for k in range(j + 1, min(j + 1 + AND_LOOKAHEAD, len(words) - 1)):
+        if not _same_clause(text, words[j][1], words[k][0]):
+            break
+        if words[k][2].lower() in ("he", "she", "they", "i", "we", "you", "it", NAME_TOKEN.lower()):
+            break
+        if words[k][2].lower() == "and":
+            m = k + 1
+            while m < len(words) and words[m][2].lower() in _ADVERBS and _adjacent(text, words, m):
+                m += 1
+            # the word must be followed by more of the same clause: "and requires care", not "and dogs."
+            if m + 1 < len(words) and _adjacent(text, words, m) and _same_clause(text, words[m][1], words[m + 1][0]):
+                b2 = _agree(words[m][2])
+                if b2 is not None and b2 != words[m][2] and m not in agreed:
+                    out.append((m, b2))
+            break
+    return out
+
+
+def _self_name(words: list, i: int, text: str) -> bool:
+    """The writer's own name (Iteration 11): "I am [NAME]", "I'm [NAME]", "my name is [NAME]"."""
+    def w(k):
+        return words[i - k][2].lower().replace("’", "'") if i - k >= 0 else ""
+
+    def tight(k):     # word i-k and the next one are separated by spaces only
+        return text[words[i - k][1]:words[i - k + 1][0]].strip(" ") == ""
+    if w(1) == "i'm" and tight(1):
+        return True
+    if (w(2), w(1)) == ("i", "am") and tight(1) and tight(2):
+        return True
+    return (w(3), w(2), w(1)) == ("my", "name", "is") and tight(1) and tight(2) and tight(3)
+
+
+def _name_pass(text: str, people: int, titles=None) -> str:
+    """FR-095 as corrected on 2026-10-16, and the RedactionNameRules seed row of Iteration 11, in its order:
+    the writer's own name keeps [NAME]; after Dr it keeps [NAME] (OQ-054 b); after a relationship word it
+    goes and the relationship word leads, even when others are named (reviewer's correction of c); otherwise
+    with two or more different people named it keeps [NAME] (OQ-054 a); a title before it goes (FR-096);
+    "[NAME]'s" becomes "their"; as a subject it becomes "They" with its verb agreed; anywhere else "them"."""
+    titles = TITLES if titles is None else titles
+    if NAME_TOKEN not in text:
+        return text
+    words = [(m.start(), m.end(), m.group(0)) for m in _WORD.finditer(text)]
+    # SDD A-11, OQ-054 (e), reviewer 2026-10-19: the writer's own name does not count toward "two or more
+    # different people" ("I am Sam and Pat helps me" -> "I am [NAME] and they help me").
+    if any(w == NAME_TOKEN and _self_name(words, i, text) for i, (_, _, w) in enumerate(words)):
+        people -= 1
+    edits, agreed = [], set()
+    for i, (s, e, w) in enumerate(words):
+        if w != NAME_TOKEN:
+            continue
+        prev = words[i - 1] if i > 0 else None
+        gap = text[prev[1]:s] if prev else ""
+        pw = prev[2].lower() if prev else ""
+        if prev and pw in KEEP_NAME_AFTER and gap.strip(" .") == "":
+            continue
+        if _self_name(words, i, text):
+            continue
+        cut = s
+        if prev and pw in titles and gap.strip(" .") == "":
+            cut = prev[0]
+            prev2 = words[i - 2] if i > 1 else None
+            pw, prev = (prev2[2].lower(), prev2) if prev2 else ("", None)
+            gap = text[prev[1]:cut] if prev else ""
+        tail = text[e:e + 2]
+        if prev and pw in RELATIONSHIP_WORDS and gap.strip(" ") == "":
+            edits.append((prev[1], e, ""))                        # "my husband [NAME]" -> "my husband"
+            continue
+        if people >= 2:
+            continue
+        if tail in ("'s", "’s"):
+            edits.append((cut, e + 2, _with_case("[NAME]", "their", _sentence_start(text, cut))))
+            continue
+        nxt = i + 1
+        while nxt < len(words) and words[nxt][2].lower() in _ADVERBS and _adjacent(text, words, nxt):
+            nxt += 1
+        subject = _sentence_start(text, cut) or (
+            nxt < len(words) and _adjacent(text, words, nxt) and _agree(words[nxt][2]) is not None)
+        if subject:
+            edits.append((cut, e, _with_case(NAME_TOKEN, "they", _sentence_start(text, cut))))
+            for j, base in _agreements(text, words, i, agreed):
+                agreed.add(j)
+                edits.append((words[j][0], words[j][1], base))
+        else:
+            edits.append((cut, e, "them"))
+    out = text
+    for a, b, new in sorted(edits, key=lambda x: x[0], reverse=True):
+        out = out[:a] + new + out[b:]
+    return out
+
+
+def _term_pass(text: str, terms: dict, titles) -> str:
+    """FR-094, FR-096, FR-097 and the agreement FR-098 needs after a replaced 'he' or 'she'. `terms` maps a
+    word to its first neutral word; 'her', 'his' and "he's" keep their reading rules when they are in it."""
+    words = [(m.start(), m.end(), m.group(0)) for m in _WORD.finditer(text)]
+    edits, agreed = [], set()
+    for i, (s, e, w) in enumerate(words):
+        low = w.lower().replace("’", "'")
+        if w == NAME_TOKEN:
+            continue
+        if low in titles:
+            nxt = text[e:e + 2]
+            cut_end = e + (1 if nxt[:1] == "." else 0)
+            cut_end += 1 if text[cut_end:cut_end + 1] == " " else 0
+            edits.append((s, cut_end, ""))                        # "Mrs Patel" -> "Patel" (the name goes to FR-095)
+            continue
+        poss = ""
+        if low not in terms and low.endswith("'s") and low[:-2] in terms and low[:-2] not in SUBJECT_PRONOUNS:
+            poss, low, w = w[-2:], low[:-2], w[:-2]                # "my wife's car" -> "my partner's car"
+        if low == "her" and "her" in terms:
+            new = _her_form(words, i, text)
+        elif low not in terms:
+            continue
+        elif low in ("he's", "she's"):
+            nxt = words[i + 1][2].lower() if i + 1 < len(words) else ""
+            new = "they've" if nxt in _HAVE_PARTICIPLES else "they're"
+            if "’" in w:
+                new = new.replace("'", "’")
+        elif low == "his" and (i + 1 >= len(words) or text[e:words[i + 1][0]].strip(" ") != ""):
+            new = "theirs"                                         # OQ-056: "the car is his."
+        elif low in PARENT_NAMES and w[:1].isupper() and \
+                (i == 0 or words[i - 1][2].lower() not in _DETERMINERS):
+            new = "my parent"
+        else:
+            new = terms[low]
+            if "’" in w:
+                new = new.replace("'", "’")
+        edits.append((s, e, _with_case(w, new, _sentence_start(text, s)) + poss))
+        if low in SUBJECT_PRONOUNS:
+            for j, base in _agreements(text, words, i, agreed):
+                agreed.add(j)
+                edits.append((words[j][0], words[j][1], base))
+    out = text
+    for a, b, new in sorted(edits, key=lambda x: x[0], reverse=True):
+        out = out[:a] + new + out[b:]
+    return out
+
+
+def neutral_rewrite(labelled: str, people: int = 1, terms=None, titles=None) -> str:
+    """What a good rewrite of a labelled text looks like (A-09). `people` is how many different people the
+    extractor named in the column. `terms` is a parsed RedactionNeutralTerms row and `titles` a parsed
+    RedactionTitles row (default: the seed rows, which test_neutral_terms.py proves equal NEUTRAL_TERMS)."""
+    if terms is None:
+        terms = parse_neutral_terms(SEED_ROWS["RedactionNeutralTerms"])
+    tmap = {w: alts[0] for w, alts in terms}
+    tset = {t.lower() for t in (parse_titles(SEED_ROWS["RedactionTitles"]) if titles is None else titles)}
+    return _term_pass(_name_pass(labelled, people, tset), tmap, tset)
+
+
+def people_named(entities: list[ExtractorEntity]) -> int:
+    return len({normalise(e.value) for e in entities if EXTRACTOR_TYPE_CODE.get(e.type) == "N"})
+
+
+def expected_scrub(text: str, entities: list[ExtractorEntity], terms=None, titles=None) -> str:
+    """Labels (step 2) then the good rewrite: the expected trustee text for one column."""
+    _, kept, _, _ = label_spans(text, entities)
+    return neutral_rewrite(labelled_text(text, kept), people_named(entities), terms, titles)
+
+
+def gendered_residue(text: str) -> list[str]:
+    """Seeded key words and titles still present: what P3's gendered and title checks see."""
+    ctx = SEED_CONTEXT()
+    w = word_string(remove_labels(text, "|"))
+    spaced = remove_labels(text, "|")
+    for ch in NORM_PUNCT:
+        spaced = spaced.replace(ch, " ")
+    spaced = " " + _collapse(spaced) + " "
+    return [g for g in ctx.gendered_words if f" {as_word_form(g)} " in w] + [t for t in ctx.titles if f" {t} " in spaced]
+
+
+# Rows 30-44 of the key ("Free text questions") -> the raw column the intake writes (TAD Appendix C
+# intake map). Three have no counterpart and get none (reviewer, 2026-10-16: "All fields in the trustee
+# portal right now is what the trustees use to make their decisions on.").
+FREE_TEXT_QUESTIONS = [
+    ("Other conditions or illnesses affect you", "rev_otherconditionraw"),
+    ("Brief confirmation", "rev_disabilityimpactdescription"),
+    ("Brief description", "rev_caresupportdescription"),
+    ("Other conditions or illnesses", "rev_supportrecipientotherconditionraw"),
+    ("Brief confirmation13", "rev_supportrecipientdisabilityimpactdescription"),  # A-NS-28, E3 (TAD rev 22)
+    ("Other types of care and support personally provided", "rev_othercareprovidedtype"),
+    ("Please provide one brief example of the level of care required", "rev_careprovidedexample"),
+    ("Benefit provider", "rev_benefitprovider"),
+    ("Please briefly explain the significant care costs or medical expenses", "rev_carecostsexplanation"),
+    ("Please briefly explain why you're unable to fund this break yourself", "rev_unabletofundexplanation"),
+    ("Please specify source of additional funding", "rev_otherfundingsource"),
+    ("Awaiting decision from", "rev_awaitingdecisionfrom"),
+    ("Other exceptional circumstance", "rev_otherexceptionalcircumstance"),
+    ("Briefly explain exceptional circumstance", "rev_exceptionalfundingdetail"),
+    ("Please briefly explain how this break would benefit you", "rev_narrativeraw"),
+]
 
 
 # ── EXTENSION POINT: indirect identifiers (OUT of v0.1) ────────────────────────────────────────

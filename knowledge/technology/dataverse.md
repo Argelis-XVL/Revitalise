@@ -213,6 +213,15 @@ Two things follow, and the second one bites:
    that field reads `Active`. "The create succeeded" is the platform's opinion about its own
    call, not a statement that the constraint is in force (`C-TECH-053`).
 
+3. **A create-only write is a `POST` to the entity set, not a keyed `PATCH` with `If-None-Match: *`.**
+   Measured in DEV on 2026-10-16: a `PATCH` to `rev_settings(rev_name='X')` with `If-None-Match: *`
+   for a row that did not exist returned 404, code `0x80060891`, *"A record with the specified key
+   values does not exist"*, for all four new rows. The documented "upsert with update prevented"
+   pattern did not hold through an alternate-key URI here, and why is not established. A `POST` to
+   the entity set can only create, and the alternate key refuses a duplicate; that replacement
+   created the four rows and left them unchanged on a second run (`IMP-1131`). The Pester suite
+   mocked the Web API, so it proved the script's branching and never the server's answer.
+
 ## Column-level WRITE control EXISTS, and is already used here
 
 *Recorded 2026-08-28 (`IMP-0403`). A dispatch brief asserted the opposite as the basis for a TAD

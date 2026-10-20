@@ -72,6 +72,30 @@
       "expires": "2026-12-31",
       "expiry_rationale": "Same horizon as EX-008 and EX-009: covers Phase 3 and the closing invoice, so the decision is re-confirmed before the final invoice is prepared.",
       "_risk_acceptance_note": "Commercial-agent is not blocked by code: verify-worklog would accept hours against wbs:5.3. This entry and commercial-events CE-0018 are the record commercial-agent reads; the control is that record, not a gate."
+    },
+    {
+      "id": "EX-011",
+      "gate": "none - not a gate violation. Standing record of a reviewer decision that CO-009's spell-check work is UNBILLED; see _gate_scope_note. No gate observes it.",
+      "matches": "UNBILLED by reviewer decision - CO-009 separate LLM spell-check step on the redacted narrative, feature revitalise-grant-automation, proposed wbs:5.8",
+      "reason": "Reviewer verbatim (relayed by lead-agent, 2026-10-16): \"CO-009 Approved with unbilled tag. Features always expand a bit during development and this one is within reasonable limits.\" Scope accepted at the proposed 3-5h ROM; hours are not billed.",
+      "finding": "none",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "Commercial-agent proposes no billable hours and logs no worklog session for CO-009 or proposed task 5.8. Revisit only if the reviewer decides to bill it (then APPROVE CHANGE ORDER CO-009 is required first, per C-COM-002).",
+      "expires": "2026-12-31",
+      "expiry_rationale": "Same horizon as EX-008 to EX-010: covers Phase 3 and the closing invoice.",
+      "_risk_acceptance_note": "Commercial-agent is not blocked by code. This entry and commercial-events CE-0019 are the record commercial-agent reads; the control is that record, not a gate."
+    },
+    {
+      "id": "EX-012",
+      "gate": "none - not a gate violation. Standing record of a reviewer decision that CO-010's Capture Payment flow is UNBILLED; see _gate_scope_note. No gate observes it.",
+      "matches": "UNBILLED by reviewer decision - CO-010 REV | Finance | Capture Payment flow (final payment sets rev_finalpaymentdate and application status 11), feature revitalise-grant-automation, wbs:8.6",
+      "reason": "Reviewer verbatim (relayed by lead-agent, 2026-10-20): \"Yes, this flow needs to be build. 2- 4 hours of work on a new WBS 8.6. Non-billable. Because I thought this was already inlcuded.\" Scope accepted at 2-4h; hours are not billed.",
+      "finding": "none",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "Commercial-agent proposes no billable hours and logs no worklog session for CO-010 or task 8.6. Revisit only if the reviewer decides to bill it (then APPROVE CHANGE ORDER CO-010 is required first, per C-COM-002).",
+      "expires": "2026-12-31",
+      "expiry_rationale": "Same horizon as EX-008 to EX-011: covers Phase 3 and the closing invoice.",
+      "_risk_acceptance_note": "Commercial-agent is not blocked by code. This entry and commercial-events CE-0019 are the record commercial-agent reads; the control is that record, not a gate."
     }
   ],
   "_closed_exceptions": [

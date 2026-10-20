@@ -114,6 +114,20 @@
       "imp_ids": ["IMP-0153", "IMP-0769"],
       "not_covered": "THE PER-FILE STRENGTH OF THE PASS. The gate resolves trustee-facing teams per settings file and reports one OK line for the run, so a file resolving ZERO such teams passes by having nothing to assert and is indistinguishable in the output from one that was checked and found clean. Measured 2026-09-18: test-settings.json 1 trustee-facing team, prd-settings.json 1, dev-settings.json 0. Dev's pass is therefore vacuous. This is a coverage gap and NOT a defect to fix by inventing a dev trustee team — no live DEV Dataverse team name for that persona has ever been resolved (IMP-0734 confirmed only Admins, Service Accounts and Finance), and inventing a plausible one is IMP-0011's shape. It closes when a credentialled session lists dev's live teams and either records the trustee team's real name or records that dev has none. ALSO NOT COVERED: nothing warns an author that narrowing a settings file's scope will make a directory-globbing gate unevaluable — dev-settings.json's own _readme warned against running 'any other provisioning script' against it, a HARD BUILD GATE is not a provisioning script, and prose in a _readme is unreadable to every gate anyway.",
       "recorded_by": "docs/improvements/2026-09-18-improvement-review-4.md"
+    },
+    {
+      "class": "hand-maintained-count-drifts-from-source",
+      "property": "a count stated in prose that is registered in scripts/derived-counts-registry.json — among them 'the N rev_setting rows' in config/revitalise-grant-automation-pipeline.yml, re-derived as len(dataverse.settingRows) of dev-scoring-settings.json, test-settings.json and prd-settings.json (claim pipeline-rev-setting-row-count). Replayed 2026-10-16 with the pipeline text at HEAD ('36') against settings files holding 40: 2 DRIFT findings, the 2 lines IMP-1127 named",
+      "defended_by": "scripts/verify-derived-counts.py — SOFT (--warn-only): it reports drift and never blocks a build. A registry entry per claim, never another script (IMP-1127)",
+      "proves_green": "python3 scripts/verify-derived-counts.py",
+      "wired_at": "config/revitalise-grant-automation-build.yml (derived-counts)",
+      "since": "docs/improvements/2026-10-16-improvement-review-2.md",
+      "imp_ids": [
+        "IMP-0150",
+        "IMP-1127"
+      ],
+      "not_covered": "ALMOST ALL OF THIS CLASS — do not read this row as 'the class is defended'. Only the claims listed in the registry are checked, 11 of them on 2026-10-16. Unregistered counts in the same pipeline file ('the 3,394-row rev_citysettlementregister', 'the three FR-062 threshold rows') and every count in a document, test or comment outside the registry are unchecked. And the gate is SOFT, so a drift it reports lands in a build's warnings and nothing stops on it",
+      "recorded_by": "docs/improvements/2026-10-16-improvement-review-2.md"
     }
   ]
 }

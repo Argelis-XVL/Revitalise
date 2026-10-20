@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Workflow metadata for REV | Narrative | Scrub Free-Text (Automation #5, wbs:5.3/5.4; TAD rev 20
-  sections 5.5 and 5.5.1, ADR-071 to ADR-074). Dataverse row trigger on rev_application, the same shape as
+  Workflow metadata for REV | Narrative | Scrub Free-Text (Automation #5, wbs:5.3/5.6; TAD rev 22
+  section 5.5, ADR-075; rebuilt 2026-10-16, narrative Dev Summary Iteration 9). Dataverse row trigger on rev_application, the same shape as
   REV | Safeguarding | Action Completion (message 3 Modified, scope 4, runas 3), filtered to
   rev_status. The flow acts only when the status is Eligible for Panel (6).
 

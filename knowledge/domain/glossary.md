@@ -18,7 +18,7 @@
 | **Group reference** | Links applications made together as a group. Field group on **Application** |
 | **Helper** | Someone completing the application on the applicant's behalf. Name, email, phone, organisation, relationship. Field group on **Application** |
 | **Impact report** | The applicant's report after the break. Due one month after the holiday end date. Field group on **Grant** |
-| **Income ceiling** | The means-test income limit, above which an application is rejected regardless of score. Held in **Settings**, adjustable by the process owner |
+| **Income ceiling** | The means-test income limit. An applicant not on means-tested benefits whose income band is above it is auto-rejected (BR-S07). Held in **Settings**, adjustable by the process owner |
 | **Knockout threshold** | The minimum circumstance score. Held in **Settings**, adjustable by the process owner. **The board has not yet set its value** |
 | **Panel / board round** | The monthly trustee meeting at which applications are decided. An application may be reviewed across up to three attempts; the third rejection closes it |
 | **Payee** | The single Bank Account a Payment is made to — either a provider's account or an applicant reimbursement |

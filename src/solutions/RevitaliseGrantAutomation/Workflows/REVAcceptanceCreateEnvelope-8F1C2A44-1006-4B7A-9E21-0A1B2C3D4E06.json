@@ -153,7 +153,7 @@
                 "parameters": {
                   "entityName": "rev_applications",
                   "$filter": "@{concat('rev_applicationid eq ', triggerOutputs()?['body/_rev_applicationid_value'])}",
-                  "$select": "rev_name,_rev_applicantid_value,rev_refereename,rev_refereeemail,rev_refereephone,rev_breaktype,rev_breaklocation,rev_refereetitle,rev_refereejobtitle,rev_refereecompany,rev_refereeaddress,rev_refereetowncity,rev_refereepostcode,rev_refereefirstname,rev_refereelastname"
+                  "$select": "rev_name,_rev_applicantid_value,rev_refereename,rev_refereeemail,rev_refereephone,rev_breaklocation,rev_refereetitle,rev_refereejobtitle,rev_refereecompany,rev_refereeaddress,rev_refereetowncity,rev_refereepostcode,rev_refereefirstname,rev_refereelastname"
                 },
                 "authentication": "@parameters('$authentication')",
                 "retryPolicy": {
@@ -546,14 +546,6 @@
                 "prefill|Amount": {
                   "id": "p_amt",
                   "value": "@{formatNumber(triggerOutputs()?['body/rev_amountawarded'], 'N2')}"
-                },
-                "label|p_type": {
-                  "id": "p_type",
-                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_breaktype@OData.Community.Display.V1.FormattedValue'], string(first(outputs('Get_the_application')?['body/value'])?['rev_breaktype']), '')"
-                },
-                "prefill|Holiday type": {
-                  "id": "p_type",
-                  "value": "@coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_breaktype@OData.Community.Display.V1.FormattedValue'], string(first(outputs('Get_the_application')?['body/value'])?['rev_breaktype']), '')"
                 },
                 "label|p_venue": {
                   "id": "p_venue",
@@ -1379,12 +1371,11 @@
                   "Succeeded"
                 ]
               },
-              "description": "Tabs that must exist: 5 prefill, and first/last name, title, postcode, phone for each signer. Every other tab is covered by the no-mapping check.",
+              "description": "Tabs that must exist: 4 prefill (name, amount, destination, dates), and first/last name, title, postcode, phone for each signer. Every other tab is covered by the no-mapping check.",
               "inputs": {
                 "from": [
                   "p_name",
                   "p_amt",
-                  "p_type",
                   "p_venue",
                   "p_dates",
                   "a_first",

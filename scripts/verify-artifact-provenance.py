@@ -29,8 +29,15 @@ WHAT IT CHECKS (HARD — exit 1, deploy does not begin)
     build proves that sibling ran, not this one
   * the manifest's `status` begins with `SUCCESS` or `DEPLOYED` — never `FAILED`, `BLOCKED`,
     empty or absent
-  * some file under `docs/tests/` names this directory — test-agent's approval names the
-    specific build it approved, and a build nobody tested is not a deploy candidate
+  * BEYOND THE FIRST ENVIRONMENT of `instance.yaml` → `environment_chain` (or with no `--env`):
+    some file under `docs/tests/` names this directory AND at least one such report's first
+    `**Status:**` word is PASS or PARTIAL. A report that merely mentions the build is not approval
+    of it (IMP-1134): a FAIL report naming the build used to pass this check. Any other word, an
+    unparseable status included, is not approval (fail closed). For the FIRST environment no test
+    report is required: reviewer decision D-1, 2026-10-17, verbatim: "tests happen in DEV. Customer
+    tests happen in ACC. Solutions move from DEV to ACC via Power Platform Pipelines." A DEV deploy
+    is what test-agent tests, so requiring its report first was circular (IMP-1132: two DEV deploys
+    halted on it on 2026-10-16).
 
   * a CHANGE-SCOPED artifact (`scoped: true` in `manifest.json` or `run-build-result.json`) is
     deployed only to the FIRST environment of `instance.yaml` → `environment_chain`, and only
@@ -125,10 +132,9 @@ def _norm(path: str) -> str:
 
 def evaluate(name: str,
              manifest_raw: str | None,
-             build_log: str,
-             test_doc_hits: int) -> tuple[list[Finding], list[str]]:
-    """Pure core. `manifest_raw` is None when the file is absent; `test_doc_hits` is the number
-    of files under docs/ that name this artifact directory."""
+             build_log: str) -> tuple[list[Finding], list[str]]:
+    """Pure core of the build-record checks. `manifest_raw` is None when the file is absent.
+    The test-report rule is evaluate_test_reports(), because it depends on the target."""
     errors: list[Finding] = []
     warnings: list[str] = []
 
@@ -190,16 +196,6 @@ def evaluate(name: str,
                     "this script in the same change that introduces it.",
                 ))
 
-    if test_doc_hits == 0:
-        errors.append(Finding(
-            "no-test-report-names-this-build",
-            f"no file under {TEST_DOCS}/ names '{name}'. test-agent's report names the "
-            f"specific build it approved (C-TECH-030's build → test → deploy chain), so a "
-            f"build no report names has not been approved for deploy.",
-            f"route the artifact to test-agent first, or — if a report does cover it — make "
-            f"that report name '{name}' explicitly rather than by implication.",
-        ))
-
     if not build_log_records_success(name, build_log):
         warnings.append(
             f"no line in {BUILD_LOG} whose status word is SUCCESS and which names "
@@ -228,6 +224,45 @@ def environment_chain(repo_root: Path) -> list[str]:
         pass
     m = re.search(r"^environment_chain:\s*\[([^\]]*)\]", text, re.MULTILINE)
     return [e.strip().strip("'\"") for e in m.group(1).split(",") if e.strip()] if m else []
+
+
+# The first `**Status:**` word of a test report. Enumerated over the 49 reports under docs/tests/
+# on 2026-10-16: every one parses, to PASS 17, FAIL 16, PARTIAL 15, BLOCKED 1 (IMP-1134).
+STATUS_WORD = re.compile(r"^\*\*Status:?\s*(?:\*\*)?:?\s*\**\s*([A-Z]+)", re.MULTILINE)
+APPROVING_STATUSES = ("PASS", "PARTIAL")
+
+
+def report_status(text: str) -> str | None:
+    """The first Status word of a test report, or None when it has none."""
+    m = STATUS_WORD.search(text)
+    return m.group(1) if m else None
+
+
+def evaluate_test_reports(name: str, statuses: list[str | None], env: str | None,
+                          chain: list[str]) -> list[Finding]:
+    """Pure core of the test-report rule. `statuses` holds one entry per docs/tests/ file that
+    names the artifact. No report is needed for the first environment (D-1, 2026-10-17); beyond
+    it, or with no --env, one naming report must say PASS or PARTIAL (IMP-1134)."""
+    if env and chain and env == chain[0]:
+        return []
+    if not statuses:
+        return [Finding(
+            "no-test-report-names-this-build",
+            f"no file under {TEST_DOCS}/ names '{name}'. Beyond the first environment a deploy "
+            f"needs test-agent's report on this specific build (C-TECH-030).",
+            f"route the artifact to test-agent first, or — if a report does cover it — make "
+            f"that report name '{name}' explicitly rather than by implication.",
+        )]
+    if not any(s in APPROVING_STATUSES for s in statuses):
+        found = ", ".join(sorted({s or "no Status line" for s in statuses}))
+        return [Finding(
+            "no-passing-test-report-names-this-build",
+            f"{len(statuses)} report(s) under {TEST_DOCS}/ name '{name}', and none has a Status "
+            f"of {' or '.join(APPROVING_STATUSES)} (found: {found}). A report that names a build "
+            f"is not approval of it (IMP-1134).",
+            "fix what the report failed on, rebuild, and have test-agent report on the new build.",
+        )]
+    return []
 
 
 def evaluate_scope(scoped: bool, env: str | None, chain: list[str]) -> list[Finding]:
@@ -294,18 +329,21 @@ def check_dir(artifact_dir: Path, repo_root: Path,
     build_log = build_log_path.read_text(encoding="utf-8") if build_log_path.is_file() else ""
 
     test_dir = repo_root / TEST_DOCS
-    hits = 0
+    statuses: list[str | None] = []
     if test_dir.is_dir():
         for f in test_dir.rglob("*"):
             if f.is_file():
                 try:
-                    if name in f.read_text(encoding="utf-8", errors="ignore"):
-                        hits += 1
+                    text = f.read_text(encoding="utf-8", errors="ignore")
                 except OSError:
                     continue
+                if name in text:
+                    statuses.append(report_status(text))
 
-    errors, warnings = evaluate(name, manifest_raw, build_log, hits)
-    errors += evaluate_scope(_scoped_flag(artifact_dir), env, environment_chain(repo_root))
+    chain = environment_chain(repo_root)
+    errors, warnings = evaluate(name, manifest_raw, build_log)
+    errors += evaluate_test_reports(name, statuses, env, chain)
+    errors += evaluate_scope(_scoped_flag(artifact_dir), env, chain)
     return errors, warnings
 
 
@@ -318,47 +356,48 @@ def selftest() -> int:
     log = "[2026-09-02 13:32] [BUILD] [feat] SUCCESS — build/artifacts/feat-20260902-2/\n"
 
     # 1. The complete case passes with no finding at all.
-    e, w = evaluate("feat-20260902-2", good_manifest, log, 1)
+    e, w = evaluate("feat-20260902-2", good_manifest, log)
     if e or w:
         failures.append(f"a complete artifact must pass clean, got {e} / {w}")
 
     # 2. IMP-0582 itself: zips on disk, no manifest, no build.log line, no test report.
-    e, w = evaluate("feat-20260902-3", None, log, 0)
-    kinds = {f.kind for f in e}
+    e, w = evaluate("feat-20260902-3", None, log)
+    kinds = {f.kind for f in e} | {f.kind for f in evaluate_test_reports(
+        "feat-20260902-3", [], "tst", ["dev", "tst", "prd"])}
     if kinds != {"no-manifest", "no-test-report-names-this-build"}:
         failures.append(f"the IMP-0582 shape must fail on manifest and test report, got {kinds}")
     if len(w) != 1:
         failures.append(f"the IMP-0582 shape must also warn on build.log, got {w}")
 
     # 3. A manifest copied from a sibling build.
-    e, _ = evaluate("feat-20260902-3", good_manifest, log, 1)
+    e, _ = evaluate("feat-20260902-3", good_manifest, log)
     if [f.kind for f in e] != ["manifest-names-another-artifact"]:
         failures.append(f"a copied manifest must be caught, got {[f.kind for f in e]}")
 
     # 4. A failed build is never a deploy target.
     bad = json.dumps({"artifact_path": "build/artifacts/feat-20260902-2/",
                       "status": "FAILED - halted at unit-tests"})
-    e, _ = evaluate("feat-20260902-2", bad, log, 1)
+    e, _ = evaluate("feat-20260902-2", bad, log)
     if [f.kind for f in e] != ["build-not-successful"]:
         failures.append(f"a FAILED build must be rejected, got {[f.kind for f in e]}")
 
     # 5. BLOCKED likewise — this is what build-agent wrote for -20260902-4.
     blocked = json.dumps({"artifact_path": "build/artifacts/feat-20260902-2/",
                           "status": "BLOCKED"})
-    e, _ = evaluate("feat-20260902-2", blocked, log, 1)
+    e, _ = evaluate("feat-20260902-2", blocked, log)
     if [f.kind for f in e] != ["build-not-successful"]:
         failures.append(f"a BLOCKED build must be rejected, got {[f.kind for f in e]}")
 
     # 6. A null status is not a pass. revitalise-grant-automation-20260831-2 is the real one.
     e, _ = evaluate("feat-20260902-2",
-                    json.dumps({"artifact_path": "build/artifacts/feat-20260902-2/"}), log, 1)
+                    json.dumps({"artifact_path": "build/artifacts/feat-20260902-2/"}), log)
     if [f.kind for f in e] != ["build-status-absent"]:
         failures.append(f"a missing status must be rejected, got {[f.kind for f in e]}")
 
     # 7. The FALSE POSITIVE this gate is designed not to produce: a real, tested, deployed
     #    artifact whose build.log line was never appended (revitalise-grant-automation-20260823-2)
     #    warns, and does not fail.
-    e, w = evaluate("feat-20260902-2", good_manifest, "", 1)
+    e, w = evaluate("feat-20260902-2", good_manifest, "")
     if e:
         failures.append(f"a missing build.log line must NOT fail the gate, got {e}")
     if len(w) != 1 or "appended by hand" not in w[0]:
@@ -369,12 +408,12 @@ def selftest() -> int:
         "artifact_path": "build/artifacts/feat-20260902-2",   # no trailing slash: also real
         "status": "DEPLOYED TO DEV, NOT RUNNABLE — flows off, environment variables blank",
     })
-    e, _ = evaluate("feat-20260902-2", deployed, log, 1)
+    e, _ = evaluate("feat-20260902-2", deployed, log)
     if e:
         failures.append(f"a DEPLOYED status and slashless artifact_path must pass, got {e}")
 
     # 9. A truncated manifest is not a silent pass.
-    e, _ = evaluate("feat-20260902-2", '{"artifact_path": "build/art', log, 1)
+    e, _ = evaluate("feat-20260902-2", '{"artifact_path": "build/art', log)
     if not any(f.kind == "manifest-unparseable" for f in e):
         failures.append(f"a truncated manifest must be caught, got {[f.kind for f in e]}")
 
@@ -412,30 +451,49 @@ def selftest() -> int:
     blocked_line = ("[2026-09-30 09:40] [BUILD] [feat] BLOCKED — lint red after a SUCCESS pack of "
                     "build/artifacts/feat-20260902-2/\n")
     for label, text in (("the 20261007-3 line", real), ("the hyphen line", hyphen)):
-        _, w = evaluate("feat-20260902-2", good_manifest, text, 1)
+        _, w = evaluate("feat-20260902-2", good_manifest, text)
         if w:
             failures.append(f"{label} records a success and must not warn, got {w}")
-    _, w = evaluate("feat-20260902-2", good_manifest, blocked_line, 1)
+    _, w = evaluate("feat-20260902-2", good_manifest, blocked_line)
     if len(w) != 1:
         failures.append(f"a BLOCKED line naming the artifact must still warn, got {w}")
     _, w = evaluate("feat-20260902-2", good_manifest,
-                    "[2026-09-02 13:32] [BUILD] [feat] SUCCESS — build/artifacts/feat-20260902-21/\n",
-                    1)
+                    "[2026-09-02 13:32] [BUILD] [feat] SUCCESS — build/artifacts/feat-20260902-21/\n")
     if len(w) != 1:
         failures.append(f"a SUCCESS line naming a LONGER artifact name must still warn, got {w}")
+
+    # 19-23. IMP-1134 and reviewer decision D-1 (2026-10-17): the report's VERDICT, and only
+    #        beyond the first environment.
+    ch = ["dev", "tst", "prd"]
+    if [f.kind for f in evaluate_test_reports("b", ["FAIL"], "tst", ch)] != [
+            "no-passing-test-report-names-this-build"]:
+        failures.append("a FAIL-only report must not approve a deploy beyond the first environment")
+    if evaluate_test_reports("b", ["FAIL"], "dev", ch) or evaluate_test_reports("b", [], "dev", ch):
+        failures.append("the first environment needs no test report, whatever exists (D-1)")
+    if evaluate_test_reports("b", ["FAIL", "PASS"], "prd", ch) or \
+            evaluate_test_reports("b", ["PARTIAL"], "tst", ch):
+        failures.append("a PASS or PARTIAL report naming the build must approve it")
+    if [f.kind for f in evaluate_test_reports("b", [None], None, ch)] != [
+            "no-passing-test-report-names-this-build"]:
+        failures.append("no --env is strict, and a report with no Status line is not approval")
+    if (report_status("x\n**Status:** PASS (scoped)\n") != "PASS"
+            or report_status("**Status: FAIL** — reason\n") != "FAIL"
+            or report_status("**Status:** **FAIL — gate BLOCKED.**\n") != "FAIL"):
+        failures.append("the three Status line shapes in docs/tests/ must all parse")
 
     if failures:
         print("verify-artifact-provenance --selftest: FAILED")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("verify-artifact-provenance --selftest: PASS — 18 fixtures (complete artifact; the "
+    print("verify-artifact-provenance --selftest: PASS — 23 fixtures (complete artifact; the "
           "IMP-0582 shape; manifest copied from a sibling; FAILED build; BLOCKED build; null "
           "status; missing build.log line WARNS and does not fail; DEPLOYED status with a "
           "slashless artifact_path; truncated manifest; scoped artifact to the first, a later "
           "and no environment; unscoped unaffected; scoped flag and chain read from disk; "
           "build.log status word anchored: wbs-tagged and hyphen SUCCESS lines pass, a BLOCKED "
-          "line and a longer artifact name still warn)")
+          "line and a longer artifact name still warn; test-report VERDICT beyond the first "
+          "environment, none needed for the first, three Status shapes parse)")
     return 0
 
 
@@ -450,7 +508,8 @@ def report(artifact_dir: Path, errors: list[Finding], warnings: list[str]) -> in
             print(f.render())
         return 1
     print(f"verify-artifact-provenance: PASS — {artifact_dir} has a build record "
-          f"(manifest.json, a successful status, and a test report naming it)"
+          f"(manifest.json, a successful status, and — beyond the first environment — a "
+          f"PASS or PARTIAL test report naming it)"
           f"{' with 1 warning' if warnings else ''}.")
     return 0
 

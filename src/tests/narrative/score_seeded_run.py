@@ -7,7 +7,7 @@ Run:
 This is NOT score_live_run.py. That script scores the raw AI Builder extractor output over the 20
 corpus samples. This one scores what the whole flow wrote to Dataverse for the three seeded
 applications in src/tests/data/narrative-test-data.json: the twelve redacted counterparts, and the
-release flags.
+two flags (TAD ADR-078: the flow never releases, so rev_redactionreleased must still be false).
 
 <file.json> is a read of the seeded rows AFTER the flow has run, one object per submission id:
   {"TESTDATA-TD-13": {"rev_narrativeredacted": "...", "rev_disabilityimpactdescriptionredacted": "...",
@@ -19,7 +19,7 @@ columns are secured on purpose and this script has no use for them.
 
 --settings says which rev_setting state the run happened under:
   none  no Redaction* rows at all (every record must go to review)
-  on    RedactionConfidenceThreshold 0.85 and RedactionAutoRelease true, auto-release saved last
+  on    the seeded rows, RedactionConfidenceThreshold 0.85 included (ADR-078: no RedactionAutoRelease)
 
 Exit 0 when every selected case matches, 1 otherwise, 2 for a usage problem. A case with no live row is
 MISSING, which is neither a pass nor a fail of the flow: the flow has not run, or the row was not read.
@@ -41,7 +41,7 @@ sys.path.insert(0, str(HERE))
 import redaction_reference as rr  # noqa: E402
 
 DATA = HERE.parents[1] / "tests" / "data" / "narrative-test-data.json"
-SETTINGS_KEY = {"none": "withoutRedactionSettings", "on": "withThresholdAndAutoRelease"}
+SETTINGS_KEY = {"none": "withoutRedactionSettings", "on": "withThreshold"}
 COUNTERPARTS = [red for _, red in rr.SCRUB_COLUMNS]
 
 
@@ -79,7 +79,7 @@ def score_case(case: dict, live: dict | None, settings: str) -> tuple[str, list[
         if not ok:
             problems.append(flag)
     if exp["reasons"]:
-        lines.append("  reasons the process owner's card should list (not stored on the row; read the Teams card): "
+        lines.append("  hints the process owner's card should list (not stored on the row; read the Teams card): "
                      + ", ".join(exp["reasons"]))
     return ("FAIL" if problems else "PASS"), lines
 

@@ -3,7 +3,7 @@
 **Feature Slug:** revitalise-grant-automation
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **Date:** 2026-08-10
-**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.** **Rev 18 (2026-10-05: design-document corrections, middle name and suffix dropped from the helper name) is presented for review and not yet approved.** **Rev 19 (2026-10-05: Automation #5 detector re-designed, `ADR-071`/`ADR-072`, `ADR-012` amended) was approved 2026-10-06** (Xander Lykopoulos, verbatim *"Approve architecture"*, logged in `logs/routing.log`). **Rev 20 (2026-10-06: Automation #5 uses the postcode register, `ADR-073`, and reads its tunable redaction rules and prompt categories from `rev_setting`, `ADR-074`) was approved 2026-10-06** (Xander Lykopoulos). His words were not the keyword `APPROVED` but an instruction to build *"as currently designed"*; lead-agent read that as approval of rev 20, and the verbatim text is in the Approval section so a reader can disagree. Residency (`IMP-1063`) is parked at the customer and does not block building; it is still not decided (§12, `A-R82`). **Rev 16 (2026-10-05: §5.8 rewritten to the Create Envelope design the 3–4 October DEV hotfixes settled, `ADR-069`; the referee's name and address columns, `ADR-070`, superseding `ADR-043`) was **approved 2026-10-05** (Xander Lykopoulos, verbatim *"Approved for development"*, logged in `logs/routing.log`); the approval amendment below records his answers.**
+**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.** **Rev 18 (2026-10-05: design-document corrections, middle name and suffix dropped from the helper name) is presented for review and not yet approved.** **Rev 19 (2026-10-05: Automation #5 detector re-designed, `ADR-071`/`ADR-072`, `ADR-012` amended) was approved 2026-10-06** (Xander Lykopoulos, verbatim *"Approve architecture"*, logged in `logs/routing.log`). **Rev 20 (2026-10-06: Automation #5 uses the postcode register, `ADR-073`, and reads its tunable redaction rules and prompt categories from `rev_setting`, `ADR-074`) was approved 2026-10-06** (Xander Lykopoulos). His words were not the keyword `APPROVED` but an instruction to build *"as currently designed"*; lead-agent read that as approval of rev 20, and the verbatim text is in the Approval section so a reader can disagree. Residency (`IMP-1063`) is parked at the customer and does not block building; it is still not decided (§12, `A-R82`). **Rev 21 (2026-10-14, a deterministic neutral-term stage) was returned for revision on 2026-10-16 and is superseded by rev 22.** **Rev 22 (2026-10-16: Automation #5 simplified to about 80 actions — the extractor labels, one prompt rewrites, a second corrects spelling, three fixed checks decide the write, `ADR-075`; `ADR-071` to `ADR-074` superseded in part) was **approved 2026-10-16** (Xander Lykopoulos, verbatim *"Approved Design revision 22"*, relayed by lead-agent).** **Rev 23 (2026-10-16: the rewrite rules Emily may change move into four `rev_setting` rows, the single source of the prompt's rules and of checks P2 and P3, `ADR-076`; `ADR-075` items 3 and 8 amended) was **approved 2026-10-16** (Xander Lykopoulos, verbatim *"Approved for revision 23"*, relayed by lead-agent).** Hosting in Switzerland is settled by the client's legal office (2026-10-16); where a prompt is processed is stated separately in `ADR-075`. **Rev 16 (2026-10-05: §5.8 rewritten to the Create Envelope design the 3–4 October DEV hotfixes settled, `ADR-069`; the referee's name and address columns, `ADR-070`, superseding `ADR-043`) was **approved 2026-10-05** (Xander Lykopoulos, verbatim *"Approved for development"*, logged in `logs/routing.log`); the approval amendment below records his answers.** **Rev 24 (2026-10-19: applicant-then-referee signing order restored, `ADR-077`; `p_type` removal applied to §5.8) **approved 2026-10-19 (the reviewer), with the flow-side order check dropped and `ADR-077` Accepted.** **Rev 25 (2026-10-19: Automation #5 — every scrubbed application is released by the process owner and `RedactionAutoRelease` is retired, `ADR-078`; Dev Summary Iteration 11 recorded in `ADR-075` items 2 and 7 and in `ADR-076`'s `RedactionNameRules` seed) was **approved 2026-10-19** (Xander Lykopoulos, verbatim *"1. Approved"*, relayed by lead-agent).** **Rev 26 (2026-10-19: Automation #2 — five auto-reject rules, every one tunable in `rev_setting`, every reason that fired written for Emily, `ADR-079`; SDD Amendment A-10 rev 2) was **approved 2026-10-19** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent), including `ADR-079` item 6 (the four existing FR-017 rows become create-only) and the carried SOFT warning C-DOM-005.** Independent of rev 25 (Automation #5). **Rev 27 (2026-10-20: Automation #6 — Finalise Decisions is started by the process owner from the review list in the Grant Administration app, one run per selected review, `ADR-080`; flow #8's trigger wording corrected; the reviewer's answers on three business rules recorded) was **approved 2026-10-20** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent, including the carried SOFT warning C-DOM-005).** **Rev 28 (2026-10-20: `REV | Finance | Capture Payment` authorised as `wbs:8.6` and designed against FR-107 to FR-111, `ADR-081`; SDD Amendment A-12, change order `CO-010`) was **approved 2026-10-20** (Xander Lykopoulos, verbatim *"APPROVED"* after three numbered answers, relayed by lead-agent); the approval folds in his answers: `A-R100` accepted, `rev_FinanceAlertUpn` is the process owner (Janine in test), and a final payment must carry a date and is marked Issued by the flow. It is independent of the rev 27 entry above, which belongs to a separate dispatch (Automation #6).** **Rev 28, amendment b (2026-10-20: the same flow also moves the grant's own status, `rev_grant.rev_status`, from Acceptance Signed (3) to Paid (4), and back on reversal; `ADR-081` items 3 and 9 amended, FR-113) is recorded as approved by the reviewer** (verbatim *"Obviously the final payment should change the grant status as well."*, relayed by lead-agent); it adds no component and no revision number, so it does not collide with other revisions.
 **Revision:** rev 1 — 2026-08-10. Reviewer decisions applied to ADR-003 (Code App confirmed), ADR-006
 (three environments: DEV, TST/ACC, PRD), §6.1 (group-team pattern confirmed), §6.5 (audit retention
 confirmed at 6 years), role-membership review cadence (confirmed at 6 months), and §4.2 (SAR mechanism
@@ -381,7 +381,7 @@ tests asserted it. No new connector or connection reference. **One column set is
   replaced the column with eight typed financial columns, Dev Summary rev of 2026-08; nothing reads it.)
 - **`TD-007`:** *"TD007: agreed, create a change order with commercial agent"*. The five duplicate-check columns
   **stay in §3.1**, unbuilt, pending `commercial-agent`'s change order (raised 2026-10-05). Built if approved; removed
-  from §3.1 if declined. `TD-007` is re-dated to 2026-10-19 (two weeks). This document does not edit `contract/`.
+  from §3.1 if declined. `TD-007` is re-dated to 2026-10-19 (two weeks); **re-dated again 2026-10-20 to 2026-11-17 (four weeks, reviewer: *"Re-date for 4 weeks. I am in discussion now about Quickbooks"*; `CO-008` still proposed)**. This document does not edit `contract/`.
 - **`TD-008`:** *"TD008: these columns will be made with the narrative scrubbing flows"*. Confirms the existing
   reason (automation #5, `wbs:5.3`/`5.4`). Unchanged in §3.1; expiry 2026-11-27 stands.
 - **`TD-011`:** *"TD011: there are no middle name and suffix fields on the form"*. **`ADR-011` remaining question 8 is
@@ -463,6 +463,203 @@ across regions* stays unticked. Sections
 changed: status line, this entry, §3.1 (`rev_setting` and `rev_citysettlementregister` blocks), §5.5 (ownership row,
 new §5.5.1), §6.6 (one row), §7 (NFR-019), §10 (`ADR-071` and `ADR-072` status and amendment notes; `ADR-073`,
 `ADR-074` added), §11 (`A-R84` amended; `A-R85`–`A-R87` added), §12.6 (`A-NS-20`–`A-NS-22`), Appendix A, Approval.
+
+**Revision:** rev 21 — 2026-10-14. **Returned for revision 2026-10-16 and superseded by rev 22** (reviewer: *"Simplify the workflow, 340 actions is absurd for the goal of this workflow."*). **Automation #5: gendered and relationship words become the neutral words of the
+client's Anonymisation Key, and the output reads correctly** (`wbs:5.6`; the flow `wbs:5.3`). Resolves
+development-agent's `CASCADE: ARCH_GAP` of Iteration 8. Reviewer decisions, verbatim (Xander Lykopoulos, 2026-10-14):
+*"1. follow the key file"* and *"2. Yes also add spell checking and auto correct that for readability"*.
+
+1. **`ADR-075` (new): a deterministic stage in the flow.** After the merge, it finds the key's words in the source and
+   writes neutral words, the verb agreement a replaced *he* or *she* needs, and *my* before a *Mum* used as a name. The
+   rebuild contract is restated: every character is copied from the source or taken from a closed list the flow holds,
+   and a run-time check enforces it. The prompt still supplies no text.
+2. **`ADR-071` item 5 and `ADR-072` item 7 are amended** by notes under their status lines.
+3. **One setting row** (`RedactionNeutralTermsExtra`), additive over the built-in key list, and **four reason codes**:
+   `residual-gendered-term:<column>`, `neutral-output-invalid:<column>`, `neutral-terms-skipped:<column>` and
+   `redaction-setting-invalid:RedactionNeutralTermsExtra`.
+4. **Rejected:** the prompt rewriting the text (it reverses `ADR-072` item 7 and cannot run while residency is
+   undecided), and a C# plug-in (outside the language palette).
+
+Not decided here: Dev Summary §8.6 items 4 (names: `[NAME]` or *They*) and 6 (the second verb after *and*); `ADR-075`
+states what each answer changes. General spell-checking is `CO-009`, not approved; `ADR-075` states its architecture as
+contingent. No schema change and no privilege change. Sections changed: status line, this entry, §3.1 (`rev_setting`
+block), §5.5 (diagram, one paragraph), §5.5.1 (one settings row), §10 (`ADR-071` and `ADR-072` notes; `ADR-075`
+added), §11 (`A-R88`–`A-R90`), §12.6 (`A-NS-29`, `A-NS-30`), Appendix A, Approval.
+
+**Revision:** rev 22 — 2026-10-16. **Automation #5 simplified** (`wbs:5.3`, `5.6`), on the reviewer's 2026-10-16
+feedback and answers, relayed by lead-agent (`logs/routing.log`, 2026-10-16 11:45).
+
+1. **`ADR-075` rewritten:** one extractor call per column labels what it finds; one prompt rewrites the labelled text
+   (the client's key, names to *They*, grammar, anything else identifying to a label); a second prompt corrects spelling,
+   accepted word by word; checks P1 (no found identifier survives) and P2 (the rewrite added no word) decide whether the
+   column is written, and the residue checks decide whether the record is held. **The flow goes from 313 actions to about
+   80.**
+2. **`ADR-071` to `ADR-074` superseded in part**, by notes under each status line.
+3. **Hosting settled** (client legal office, `IMP-1063`); prompt processing measured as EU Data Boundary, with flex
+   routing to be checked (`A-NS-32`, `A-R92`). *Move data across regions* is on in DEV and TST/ACC by the reviewer's
+   statement of 2026-10-16, and **in PRD** by the reviewer's further statement, verbatim: *"the move accross regions is on in prd as well."* (`A-NS-32a` resolved;
+   *previously read: "PRD not stated"*). plan-agent's NFR-009 amendment to permit EU Data Boundary
+   processing is pending. **Prompt processing in the EU is decided** (reviewer, 2026-10-16, verbatim: *"Yes, the AI prompt processed in EU is agreed."*). **Flex
+   routing is disabled at tenant level** (reviewer, 2026-10-16, verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"*; stated, not agent-measured). *Previously
+   read: "flex routing is not [decided]".* `A-R82` updated.
+4. **Settings:** five kept, `RedactionNeutralTermsExtra` added, six retired; `RedactionPromptStage` is a kill switch.
+5. **Decided by the reviewer and recorded:** names become *They*; *him* and *hers* follow the client's examples; seven
+   words and four titles are added; a second identifying word after *and* changes; the three uncovered questions get no
+   counterpart. `A-NS-28` (*Brief confirmation13*): lead-agent read intake flow `…-1001`, where
+   `support_recipient_disability_impact_description` is built from `brief_confirmation_2` and maps to
+   `rev_supportrecipientdisabilityimpactdescription` (Appendix C); recorded at **E3, source read, not live**, for
+   development-agent's register.
+
+**Approved 2026-10-16** (Xander Lykopoulos, verbatim: *"Approved Design revision 22"*). The FR trace is no longer provisional: SDD Amendment A-09
+was approved in the same turn (*"Approved for requirements Amendment A-09"*, OQ-054 to OQ-056 at their defaults). Spelling
+(FR-099) is `CO-009`, **approved, unbilled** (reviewer, verbatim: *"CO-009 Approved with unbilled tag. Features always expand a bit during development and this one is within reasonable limits."*). *Previously read: "Provisional: the FR trace
+waits for plan-agent's FR-026 and NFR-009 amendment. Spelling's commercial status is `CO-009`, re-assessed by
+commercial-agent in parallel."* No schema change, no privilege change. Sections changed:
+status line, rev 21 entry, this entry, §3.1 (`rev_setting` block), §5.5 (rev 22 block), §5.5.1 (settings rows), §10
+(`ADR-071` to `ADR-074` notes; `ADR-075` rewritten), §11 (`A-R82` note; `A-R88`, `A-R89` revised; `A-R90` withdrawn;
+`A-R91`, `A-R92` added), §12.6 (`A-NS-29` kept, `A-NS-30` withdrawn, `A-NS-31`–`A-NS-33` added), Appendix A, Approval.
+
+**Revision:** rev 23 — 2026-10-16. **The rewrite rules Emily may change move into `rev_setting`** (`wbs:5.6`, `5.3`).
+Reviewer correction of approved rev 22, verbatim (Xander Lykopoulos, 2026-10-16): *"Ok, I added the two prompts in DEV."*
+and *"I noticed in the rewrite prompt there are quite some rules in there."* *"We agreed that those rules would be set as settings on the settings table. So that Emily can change these without me changing the prompts or workflows."*
+
+1. **`ADR-076` (new):** four rows (`RedactionNeutralTerms`, `RedactionTitles`, `RedactionNameRules`, `RedactionLabels`)
+   become the rewrite prompt's inputs and the single source of P2's closed list and P3's gendered and title lists. The
+   template keeps only the fixed contract (injection guard, output format, change nothing else). Absent, blank or
+   malformed rows fail closed. Seeded once per environment by a new create-only mode of `seed-settings.ps1`.
+2. **`ADR-075` items 3 and 8 amended** by a note under its status line.
+3. **Flow:** about 95 actions (90 in Iteration 9). The rewrite prompt in DEV is re-edited (R1b); the spelling prompt is
+   unchanged.
+
+New risk `A-R93`; new verification rows `A-NS-36`, `A-NS-37`. No schema or privilege change. Sections changed: status
+line, this entry, §5.5.1 (settings rows), §10 (`ADR-075` note; `ADR-076` added), §11, §12.6, §12.6.1, Approval.
+**Approved 2026-10-16** (Xander Lykopoulos, verbatim: *"Approved for revision 23"*).
+
+**Revision:** rev 24 — 2026-10-19. **Applicant signs first, referee second, and the referee sees what the applicant
+entered** (`wbs:3.2`; the customer's requirement, relayed by the reviewer 2026-10-19). **Approved 2026-10-19** (the reviewer; decisions in item 6). No new column, connector or connection reference, **no new flow action**.
+
+1. **`ADR-077` (new).** **Reverses the rev 16 approval decision *"There is no signing order. The agreement gets send to
+   both."*** (reviewer, 2026-10-05) because the customer now requires applicant-then-referee, which is also FR-042 as
+   baselined. The order is set **on the DocuSign template** (the flow cannot send it: `RECIPIENT_UPDATE_FAILED`,
+   measured 2026-10-04) and **no flow check verifies it** (dropped 2026-10-19, item 6). `A-DS-19` and `A-R80` stay closed
+   and retired; they are **replaced by `A-DS-20`, `A-DS-22`, `A-DS-23` and `A-R94`–`A-R96`**, not reused; `A-DS-21` is retired (item 6).
+2. **The access code is unchanged and not found defective** (`ADR-068` item 4 stands). The reviewer's 2026-10-19 report
+   that the referee's document opened without the code is explained by DocuSign staff-stated behaviour for a
+   sender-or-same-email session (E3), not by anything in the flow's source; it was **never measured** (`A-DS-17`'s second
+   half was open). §12.5 gains retest **R10**, which discriminates the explanation from a defect. Risk `A-R96` records it.
+3. **`p_type` removal applied** (the 2026-10-19 DEV push; Dev Summary 2026-10-19). §5.8: 57 keys become 55, 15 required
+   ids become 14, five prefill tabs become four, 31 tabs read and 23 sent become 30 and 22, `Holiday type` leaves the
+   key lists, the value list and ADR-067's expected set. `rev_breaktype` is not named in a `Get_the_application`
+   `$select` anywhere in this document (grepped; its two other hits are the intake field map and `BreakTypeLabelMap`,
+   which are unaffected), so nothing there changes.
+4. **Update, same day, after the DEV observation (rev 24 stays presented, not approved).** **Reviewer-observed live in DEV, 2026-10-19, after build `revitalise-grant-automation-20261019-1`** (reported by the reviewer; no artefact captured, so this is an observation, not E1): (a) the reviewer turned on the DEV
+   template's signing order, Grant Acceptor 1 and Grant Referee 2; ~~the ACC template is not yet confirmed~~ (**corrected 2026-10-19: there is one shared DocuSign template, so ACC and PRD are the same template**); (b) the signing order
+   is correct, the applicant first and the referee after; (c) the referee is asked for the access code and it works. So **`R7` and
+   `R10` pass in DEV** (below), `A-DS-17`'s second half is closed at that level, and `A-R96` is reduced. The earlier "opened without a
+   code" was a signed-in browser session: **the explained test-setup case, not a defect.** The order is held by the template and works
+   **with no flow change**; the flow-side order check was **dropped at approval** (item 6). *(Superseded by item 6: the "ACC template is a pre-promotion check" and "`A-R95` stays open" statements above no longer hold.)* The email bodies are **pending with Emily** (asked separately by the reviewer).
+5. Sections changed (original list): status line, this entry, §4 (DocuSign row), §5.8 (introduction, steps 8 and 9, tab-fill structure,
+   read-back, test contract), §10 (`ADR-067` requirement 1 and `ADR-069` item 3 notes; `ADR-077` added), §11
+   (`A-R94`–`A-R96`), §12.5 (R7 rewritten, R9, R10, `A-DS-19` row, `A-DS-20`–`A-DS-23`). **Update:** also the §5.8 step 9 and test-contract rows, `ADR-077` status, items 2 and 3, Consequences, flow size and gate interactions, `A-R94`, `A-R96`, `R7`, `R10`, `M4`, `A-DS-17`, `A-DS-20`, `A-DS-21`. **Approval edit (2026-10-19), also:** §5.8 step 8, step 9 and test-contract rows, the §5 Create Envelope paragraph, `ADR-077` heading, items 1, 2, 4, 5, Rejected, Consequences, Update, flow size, gate interactions and the retired-words list, `ADR-069` Consequence 5, `A-R75`, `A-R94`, `A-R95`, `A-R96`, §12 DocuSign rows, `R7`, `R7-result`, `M4`, `A-DS-17`, `A-DS-20`, `A-DS-21`.
+6. **Reviewer decisions on rev 24, 2026-10-19.** (a) **Approved.** (b) **`ADR-077` item 2 (the flow-side signing-order check) is DROPPED** and moved to rejected options (the template holds the order, verified in DEV; the reviewer chose not to add a flow guard). `ADR-077` is **Accepted**. `A-DS-21` (`int()`) is **retired as not applicable**, id not reused. **No flow guard exists: the template setting is the only control** (`A-R94`). (c) **`A-R95` is closed by the reviewer: the referee sees ALL applicant details.** Reviewer's rationale, near-verbatim: *"Referees already know the applicant and perform the role of a GP, doctor or other official role and know how to treat personal data."* Residual dependency: the referee's identity rests on the access code (`A-R96`). (d) **There is ONE DocuSign environment** (a single account and template serving every Power Platform environment); promotion to PRD goes via Power Platform Pipelines. The "set the ACC template's signing order" pre-promotion checks added to `M4` and `A-R94`, the "ACC unconfirmed" wording of `A-DS-20`, and the per-environment-template wording are **removed or corrected**; the template change already made applies everywhere. The template-id setting is described as it is and no config is changed.
+
+**Revision:** rev 25 — 2026-10-19. **Automation #5: the process owner releases every scrubbed application, and what
+Iteration 11 built is recorded** (`wbs:5.3`, `5.4`, `5.6`). Independent of rev 24 (Automation #3); either can be
+approved without the other. **Approved 2026-10-19** (Xander Lykopoulos, verbatim: *"1. Approved"*). No new column, connector, privilege or prompt input.
+
+1. **`ADR-078` (new), on the reviewer's decision of 2026-10-19,** verbatim (Xander Lykopoulos, relayed by lead-agent):
+   *"All records should be checked by the process owner regardless. So, we don't need that setting at all."* The flow
+   never writes `rev_redactionreleased`; it sets `rev_redactionreviewrequired` on every application it scrubs and sends
+   the Teams card for every one. `RedactionAutoRelease`, `auto-release-off`, `auto-release-stale` and the
+   "saved after every other `Redaction*` row" guard are retired. `RedactionConfidenceThreshold` and `below-threshold`
+   are **kept as a review signal** and the threshold is now seeded create-only at 0.85. About 97 actions (100 today).
+   **Reverses** the approved intent of `ADR-071` item 8 and `ADR-074` item 5 that a record with no reason would be
+   released automatically once `RedactionAutoRelease` was set after `wbs:5.7`.
+2. **`ADR-075` items 2 and 7 amended by note** to record Dev Summary Iteration 11, approved by the reviewer on
+   2026-10-19 (verbatim, relayed by lead-agent: *"Yes please, process the suggested changes"*): a name span is trimmed of a
+   leading *Dr*, *Dr.* or *Doctor* and widened over one joined hyphen or apostrophe fragment on each side before
+   labelling; two new reasons, `residual-name-fragment:<column>` and `rewrite-dropped-punctuation:<column>`.
+3. **`ADR-076`'s `RedactionNameRules` seed value replaced** by the seven-line text Iteration 11 put in the three settings
+   files (DEV row already holds it, lead-agent 2026-10-19). FR-095 does not cover the writer's own name: plan-agent.
+4. Sections changed: status line, this entry, §3.1 (`rev_redactionconfidence` and release rows; `rev_setting` block),
+   §5.5 (rev 25 block; `[NAME]` owner row; record decision; writes; what a person sees), §5.5.1 (settings rows, what a
+   person sees), §7 (NFR-017, NFR-018), §10 (`ADR-071`, `ADR-074`, `ADR-075`, `ADR-076` notes; `ADR-076` seed value;
+   `ADR-078` added), §11 (`A-R83`, `A-R85`, `A-R88`, `A-R93` revised; `A-R97` added), §12.6 (`A-NS-22` withdrawn),
+   Appendix A, Approval.
+
+**Revision:** rev 26 — 2026-10-19. **Automation #2: the scoring flow rejects on five rules, each one tunable by the
+process owner, and writes every reason that fired** (`wbs:2.4`, `2.7`; SDD Amendment A-10 rev 2, approved 2026-10-19,
+not billable by reviewer statement). Independent of rev 25 (Automation #5); either can be approved without the other.
+**Approved 2026-10-19** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent), item 3 below included. No new column, connector, privilege or option set.
+
+1. **`ADR-079` (new).** One action, `Derive_eligibility_rules`, decides the five rules once (amount, income, savings,
+   prior funding, score); `Derive_status` and `Derive_autoreject_reason` both read it, so the status and the reasons
+   cannot disagree. The income rule reads the income flag, never the benefits answer again. All reasons that fired are
+   written, one per line, in the SDD's order. About 74 actions (61 today).
+2. **Seven new `rev_setting` rows,** seeded create-only in DEV, TST/ACC and PRD with the reviewer's values: five amount
+   limits by break type and two on/off switches. The flow's row-count guard goes from 8 to 15.
+3. **The four existing FR-017 rows (`KnockoutThreshold`, `BorderlineBandLower`, `BorderlineBandUpper`, `IncomeCeiling`)
+   become create-only too.** Today every deploy overwrites them, so Emily's change would be undone at the next deploy.
+   This is a change to approved seeding behaviour and is a separate reviewer decision (`ADR-079` item 6), **approved
+   2026-10-19 with the revision**: the lead-agent told the reviewer that approving as written included it.
+4. `rev_autorejectreason` keeps its 1,000 characters: five reasons at their longest come to about 440.
+5. Sections changed: status line, this entry, §3.1 (`rev_autorejectreason` row; `rev_setting` block), §5.2 (diagram;
+   §5.2.1 added), §10 (`ADR-079` added), §11 (`R3` note; `A-R98` added), §12.7 (added), Appendix A, Approval.
+
+**Revision:** rev 27 — 2026-10-20. **Automation #6: the process owner starts Finalise Decisions from the review list, and
+each approved review she selects becomes a Grant** (`wbs:6.6`, work item `WI-0129` reopened; `IMP-1162`, `IMP-1161`).
+The reviewer corrected the built flow on 2026-10-20, verbatim: *"the finalise decisions workflow is meant for Emily to
+create grants after the reviews are done. So the button should be on the review table. This is a step after the verdicts
+of the trustees. She can then create grants for them, which in turn creates the docusign agreements."* Presented for
+review; **approved 2026-10-20** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent, carried SOFT warning
+C-DOM-005 accepted). No new column, option set, privilege or connector.
+
+1. **`ADR-080` (new).** Flow #7's trigger changes from a Power Automate button to the Dataverse *When a row is selected*
+   trigger on `rev_review`. Emily opens **Reviews → Awaiting Finalisation** in `REV Grant Administration`, selects the
+   decided reviews and chooses **Flow → REV | Portal | Finalise Decisions**. The platform starts one run per selected row.
+   The button acts on the **selected** reviews, not on every decided review; the reason is in `ADR-080`.
+2. **Flow #8's trigger is a `rev_grant` row being created, not "status becomes Approved".** Read from source; the flow
+   table now says so. Flow #7 has no DocuSign action: creating the Grant is the hand-off.
+3. **Three business rules, answered by the reviewer on 2026-10-20 and recorded in §5.7.** A split between the two
+   verdicts is not finalised by the flow: it waits for the quarterly panel, and the outcome Emily then records wins
+   (`A-FD-1`, which **changes** the built flow). A deferral writes no snapshot and adds no option value, and each
+   application is counted once, at its final outcome (`A-FD-3`, confirmed). The Grant carries the amount requested
+   (`A-FD-8`, confirmed); the reviewer will bring new requirements if that ever changes.
+4. Sections changed: status line, this entry, §2 sequence diagram, §5 flow table rows 7 and 8, §5.7 (rewritten), §5.13
+   items 1 and 3, §10 (`ADR-080` added), §11 (`A-R99` added), §12.8 (added), Appendix A (FR-037/040/047 row), Approval.
+   Revised in place on 2026-10-20 with the reviewer's DEV observations and answers (not an approval).
+
+**Revision:** rev 28 — 2026-10-20. **`REV | Finance | Capture Payment` is authorised and designed** (`wbs:8.6`; SDD
+Amendment A-12, FR-107 to FR-111, US-026, approved 2026-10-20; change order `CO-010`, scope accepted unbilled; OQ-057 and
+OQ-058 answered at their defaults). Independent of rev 27 (Automation #6), which another dispatch was editing in this
+file while this one was written; ids here were allocated after reading its entries. **Approved 2026-10-20 with three answers folded in (item 7 below).**
+
+1. **§5.11, §3.5 conflict 2 row 2 and risk `A-R56` move from "deferred, unauthorised" to authorised.** `A-R56` is rewritten, not
+   deleted: it stays on the register as the standing risk until the flow is built, deployed and V4-tested.
+2. **`ADR-081` (new).** One flow, triggered when a Payment is added or changed. It does not react to *what changed*; it
+   re-reads the payments that exist on the grant and makes the grant's final payment date and the application's status
+   match them. A repeat save, a corrected date, an unticked mark and a cancelled payment are therefore one code path, which
+   is how FR-109 and FR-110 are met without a second mechanism. About 25 actions.
+3. **The pre-issue duplicate re-check is NOT part of this flow.** It stays with `wbs:8.5` and FR-023, as `CO-010` says.
+   §5.4's second call site is not built by `wbs:8.6`.
+4. **The paid-grants retention job stays out of `wbs:8.6`, and is flagged, not added** (`ADR-081` item 10). The flow makes its
+   precondition true; the job is not in `CO-010`.
+5. **No new column, option set, connector, connection reference or privilege. One new environment variable,
+   `rev_FinanceAlertUpn`** (the person in finance who is told when a final payment cannot be applied, FR-111). §12.9
+   holds the verification plan; `A-CP-1` to `A-CP-9` are the new open assumptions (`A-CP-7` to `A-CP-9` added at the approval, item 7).
+6. Sections changed: status line, this entry, §3.5 (conflict 2 row 2), §5 (intro; table rows 4 and 11), §5.4 (one
+   sentence), §5.11 (rewritten), §5.13 (item 2 annotated), §10 (`ADR-081` added), §11 (`A-R56` rewritten; `A-R100` and
+   `A-R101` added), §12 (one row), §12.9 (added), Appendix A, Approval.
+7. **The reviewer's three answers, folded in at the approval (2026-10-20).** (1) *"Agreed"*: `A-R100` stands as written, with its pre-PRD
+   listing. (2) The finance recipient is the process owner for now, a combined role, likely split later; in the test environments it is
+   Janine. The separate variable `rev_FinanceAlertUpn` is **kept** so the split needs no flow change (`ADR-081` item 5). (3) *"Make payment
+   date required when final payment is set. Then the flow can set the payment status to issued."* This **withdraws `ADR-081` item 2's
+   creation-day rule** (kept below as *previously read*), and adds one read of the saved payment and one write to it, `rev_paymentstatus`
+   from Pending to Issued. The flow is now about 28 actions. Sections changed: status line, this entry, §5.11 (flow, decision table,
+   identity, idempotency, visibility, size), §10 `ADR-081` items 2, 5, 6 and 7, §11 (`A-R100` accepted; `A-R102` added), §12 (variable row),
+   §12.9 (`A-CP-7` to `A-CP-9`), Appendix A, Approval.
+8. **Amendment b, 2026-10-20: the grant's own status.** The reviewer, verbatim: *"Obviously the final payment should change the grant status as well."* Recorded as approved; his answer to OQ-059, *"No. payment final means final."*, is the design as written (the payment stays Issued on untick). **Retires** the rev 28 note that the grant's "Paid" status was *flagged, not added* (§5.11 "does not" item 3, `ADR-081` item 9, Consequences 7). The grant's status goes in the **same single grant write** as `rev_finalpaymentdate`: Acceptance Signed (3) to Paid (4) when a dated final payment exists, Paid back to Acceptance Signed when none does, every other status left alone and reported. About 30 actions. **No new column, option value, connector, privilege, profile permission, environment variable or `A-CP` row**: `rev_status` is unsecured and value 4 is already in source. One new risk, `A-R103`; `A-R100` widened. Sections changed: status line, this entry, §3.5 (conflict 2 row 2), §5 (row 11), §5.11 (what it does, flow diagram, decision table, new "The grant's own status" subsection, size, serves), §10 `ADR-081` (context, items 2 to 4 and 9, Consequences 4 and 7, gate interactions, words retired), §11 (`A-R100` widened, `A-R103` added), §12.9 (`A-CP-6` evidence, pre-PRD listing), Appendix A, Approval.
+9. **Amendment b, clarification, 2026-10-20 (Dev Summary "Revision — Flow #11").** `ADR-081` item 3 and §5.11 said both "sends the current status back" and "never writes 1 or 2". Intended meaning: the flow never **changes** a grant to 1 or 2; in the single write it may **echo** the current status, which is `A-R103`'s race. Reworded in both places and in the unit-test row; old words kept once as *previously read*. Three as-built differences recorded and accepted in a new §5.11 subsection (reasons as one `Compose`; reads with an all-zero id and no no-grant branch; Warning alert before Teams), and the size line corrected to the shipped file's count. No design change, no new component, no reviewer decision.
 
 ---
 
@@ -667,6 +864,7 @@ sequenceDiagram
   participant AI as AI Builder
   participant T as Trustee portal
   participant P as REV Finalise Decisions
+  participant X as REV Create Envelope
   participant DS as DocuSign
   participant SP as SharePoint
 
@@ -685,9 +883,11 @@ sequenceDiagram
   E->>D: Reviews and releases flagged redactions (FR-030)
   T->>D: Trustee reads redacted case, column security filters identity (FR-034..FR-038)
   T->>D: Records Approve / Defer / Reject (FR-037)
-  E->>P: "Finalise decisions"
-  P->>D: Apply verdicts, create Grant rows, write anonymised snapshot (FR-040, FR-055)
-  P->>DS: Create envelope, dual signature, both signers sent it at once, no order (FR-041)
+  E->>D: Admin app, Reviews - Awaiting Finalisation: selects decided reviews, Flow menu (rev 27, ADR-080)
+  D-->>P: When a row is selected - one run per selected review
+  P->>D: Apply the verdict, create the Grant if approved, write snapshot, stamp finalised (FR-040, FR-055)
+  D-->>X: Grant row created trigger
+  X->>DS: Create envelope, applicant signs first, referee second, order set in the template (FR-041, ADR-077)
   DS->>DS: Reminders day 3 and 7; escalate day 14 (FR-043, FR-044)
   DS-->>SP: Signed PDF stored, URL written to Grant (FR-045)
 ```
@@ -750,13 +950,14 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_status` | Choice | Tier 2 | Submitted · Auto-pass · Borderline · Auto-reject · Under Review · Eligible for Panel · Approved · Rejected · Withdrawn · Incomplete · Grant Paid. Drives every retention clock (FR-048) |
 | `rev_circumstancescore` | Whole number 0–60 | Tier 3 | Written by the scoring flow only; trustee-visible (FR-011) |
 | `rev_scorebreakdown` | Multiline text | Tier 3 | Trustee-visible; evidences the score (FR-035) |
-| `rev_incomeflag` | Choice | Tier 3 | Separate from the circumstance score (FR-015) |
+| `rev_incomeflag` | Choice | Tier 3 | Separate from the circumstance score (FR-015). **Rev 26 (`ADR-079`):** its value 2 *Above income ceiling* is the income auto-reject rule's only input, so the benefits answer is not read again |
+| `rev_autorejectreason` | Multiline text, 1,000 | Tier 3 (personal, financial; SDD §7.1d) | **Rev 26 (`ADR-079`):** every auto-reject rule that fired, one per line, in the order amount, income, savings, prior funding, score (FR-105). Written by the scoring flow only, in the same write as `rev_status`; empty for every other status; an override leaves it. Never names employment, benefits, disability or health. `IsSecured=0`; shown on the admin app's main form only, which the trustee role is not given (reviewer ruling 2026-10-19). Longest five-reason text is about 440 characters |
 | `rev_statusoverridden`, `rev_overriddenby`, `rev_overriddenon`, `rev_overridereason` | Bool / Lookup / DateTime / Text | Tier 2 | Named human accountability for every outcome (FR-018) |
 | `rev_wellbeinganswer1..n`, `rev_incomeband` | Choice / Text | Tier 3 | Trustee-visible; the only inputs to the score (FR-013, FR-016) |
 | `rev_narrativeraw`, `rev_otherconditionraw` | Multiline text | **Tier 4 (Art. 9)** | Column security — **Admin + Service only. Never reaches a trustee** (FR-031, NFR-001) |
 | `rev_narrativeredacted` | Multiline text | Tier 3 | Written by the narrative flow; trustee-visible (FR-026) |
-| `rev_redactionconfidence` | Decimal | Tier 2 | Compared against the `Setting` threshold, initially 85% (FR-029, NFR-017) |
-| `rev_redactionreviewrequired`, `rev_redactionreleased` | Bool | Tier 2 | Human-in-the-loop gate; trustee visibility requires `released = true` (FR-029, FR-030) |
+| `rev_redactionconfidence` | Decimal | Tier 2 | Compared against the `Setting` threshold, initially 85% (FR-029, NFR-017). **Rev 25 (`ADR-078`):** the comparison flags a record for the process owner's attention; it no longer decides release |
+| `rev_redactionreviewrequired`, `rev_redactionreleased` | Bool | Tier 2 | Human-in-the-loop gate; trustee visibility requires `released = true` (FR-029, FR-030). **Rev 25 (`ADR-078`):** `rev_redactionreleased` is written only by the process owner, never by a flow; the scrub flow sets `rev_redactionreviewrequired` to true on every application it scrubs |
 | `rev_conditionprofile` | Multi-select choice | Tier 4 (Art. 9) | **Trustee-visible by design** — condition is relevant, identity is not (Security Model §5) |
 | `rev_supportrecipientname`, `rev_helpername/email/phone`, `rev_refereename/email/phone`, `rev_emergencycontactname/phone` | Text | Tier 4 | Column security — Admin + Service only. Referee and emergency contact are **DERIVED** into the profile; the source names only helper and support-recipient identity. **Rev 12:** `rev_helpername` retypes String→Memo, `MaxLength` 1,048,576 — it joins five name parts and the join, not any one part, overflowed (`ADR-053`, Appendix C §C.10) |
 | `rev_refereefirstname`, `rev_refereelastname`, `rev_refereetitle`, `rev_refereejobtitle`, `rev_refereecompany`, `rev_refereeaddress`, `rev_refereetowncity`, `rev_refereepostcode` | Text (`nvarchar` 100, 100, 50, 100, 100, 250, 100, 10) | Tier 4 | **Rev 16, `ADR-070` (supersedes `ADR-043`).** Column security — Admin + Service only, in `REV_TrusteeRestricted`. Entered by the process owner on the Application form; read only by Create Envelope to pre-fill the referee's DocuSign tabs. `wbs:3.2` |
@@ -875,7 +1076,7 @@ Framework §3; SDD §7.1).
 **`rev_setting` — Tier 2:** `rev_name` (setting key), `rev_value`, `rev_datatype`, `rev_description`,
 `rev_effectivefrom`. Seeded keys: `KnockoutThreshold`, `BorderlineBandLower`, `BorderlineBandUpper`,
 `IncomeCeiling`, `RedactionConfidenceThreshold`, `LikertPointMap`, `FeelingScaleInversion`,
-`ReminderDays`, `EscalationDays`, `PackScheduleDay`. **Rev 19 adds three Automation #5 keys** (`ADR-071`, `ADR-072`): `RedactionAutoRelease`, `RedactionPromptStage` and `RedactionPromptCalibrated`. **None is seeded at first deploy, and an absent row is the safe value:** no record is released without the process owner, and the prompt stage does not run. **Rev 20 adds eight keys** (`ADR-074`): `RedactionPromptCategory.Name`, `RedactionPromptCategory.FamilyMember`, `RedactionPromptCategory.GpPractice`, `RedactionPromptCategory.Address`, `RedactionKinshipWordsExtra`, `RedactionPracticeSuffixesExtra`, `RedactionStreetWordsExtra` and `RedactionPracticeWordsExtra`. None is seeded, and an absent row leaves the rev 19 behaviour. `RedactionPromptCalibrated` now holds the confirmed category labels, not `true`. **No `Redaction*` row is added to the pipeline's `settingRows`**: `seed-settings.ps1` upserts every listed row on every deploy, which would overwrite the process owner's edit. Auditing is enabled on this table because a
+`ReminderDays`, `EscalationDays`, `PackScheduleDay`. **Rev 19 adds three Automation #5 keys** (`ADR-071`, `ADR-072`): `RedactionAutoRelease`, `RedactionPromptStage` and `RedactionPromptCalibrated`. **None is seeded at first deploy, and an absent row is the safe value:** no record is released without the process owner, and the prompt stage does not run. **Rev 20 adds eight keys** (`ADR-074`): `RedactionPromptCategory.Name`, `RedactionPromptCategory.FamilyMember`, `RedactionPromptCategory.GpPractice`, `RedactionPromptCategory.Address`, `RedactionKinshipWordsExtra`, `RedactionPracticeSuffixesExtra`, `RedactionStreetWordsExtra` and `RedactionPracticeWordsExtra`. None is seeded, and an absent row leaves the rev 19 behaviour. **Rev 22 (`ADR-075`)** adds `RedactionNeutralTermsExtra` (not seeded; absent leaves the template's built-in key list), makes `RedactionPromptStage` a kill switch (absent means the prompts run), and retires `RedactionPromptCalibrated`, the four `RedactionPromptCategory.*` rows, `RedactionKinshipWordsExtra` and `RedactionPracticeSuffixesExtra`. `RedactionPromptCalibrated` now holds the confirmed category labels, not `true`. **No `Redaction*` row is added to the pipeline's `settingRows`**: `seed-settings.ps1` upserts every listed row on every deploy, which would overwrite the process owner's edit. **Rev 23 (`ADR-076`)** adds `RedactionNeutralTerms`, `RedactionTitles`, `RedactionNameRules` and `RedactionLabels`, seeded **create-only** (created where absent, never overwritten). **Rev 25 (`ADR-078`)** retires `RedactionAutoRelease` (never seeded; a leftover row is not read) and seeds `RedactionConfidenceThreshold` create-only at `0.85`. *Previously read, this block's "Seeded keys" list:* it named `RedactionConfidenceThreshold`, but no deploy seeded it (rules §7 item 1), because a seed would have made auto-release stale. **Rev 26 (`ADR-079`)** adds seven Automation #2 keys, seeded **create-only** in all three environments: `AmountLimitHolidayAccommodation` (500), `AmountLimitDayTripsOrOutings` (100), `AmountLimitActivityOrExperience` (100), `AmountLimitRespiteCareFacilityStay` (500), `AmountLimitOther` (500), all `Whole Number`, pounds; and `SavingsRuleEnabled` (`true`), `PriorFundingRuleEnabled` (`true`), both `Boolean`. It also makes `KnockoutThreshold`, `BorderlineBandLower`, `BorderlineBandUpper` and `IncomeCeiling` create-only (`ADR-079` item 6). An absent or malformed row of the fifteen the scoring flow reads stops the run with no outcome and an alert. Auditing is enabled on this table because a
 threshold change is decision-relevant evidence (FR-017, NFR-019).
 
 **`rev_roundfinance` — Tier 2 (Trustee Portal Visual Refresh, delta TAD, ADR-028, WBS 6.9):**
@@ -980,7 +1181,7 @@ to Payment is chosen specifically so that this option stays open without a schem
 | # | SDD (approved, upstream) | Architecture source | Recommendation |
 |---|---|---|---|
 | 1 | FR-008: reference format `REV-YYYY-NNN` | §4: Application autonumber `GA-2026-00001`; Applicant `REV-A-00001` | **Adopt the SDD** — `rev_application.rev_name` = `REV-2026-001`. Keep `REV-A-00001` for the Applicant pseudonymised ID; the two serve different purposes and both are needed. Reviewer to confirm. |
-| 2 | §3 Out of scope: "Payment process automation"; seven automations only | Component map and §4 include **automation #8 Finance** — `REV | Finance | Capture Payment` flow and a payment capture form | ✅ **RESOLVED 2026-09-09 (rev 5) — SPLIT, and the two halves went opposite ways.** **The payment capture FORM is AUTHORISED** by reviewer approval of `docs/plans/revitalise-payment-capture-plan.md`, which supplies the FR layer this row said was missing: **FR-150** (one finance surface over Provider, Bank Account and Payment), **FR-151** (Grant, payee account and amount required), **FR-152** (QuickBooks reference), **FR-153**/**FR-154** (the two data-entry rules the unsecurable values force), **NFR-150** and **US-030**. It is `wbs:8.3`, inside the customer-accepted WBS — `docs/Import/baseline-lock.yml` records the reviewer's D-2 answer that Automation #8 needs no change order — and its design is §6.1, §6.2.1, §9, §12 and `ADR-045`–`ADR-048` (`ADR-044` was proposed and **rejected** — rev 6). **The `REV \| Finance \| Capture Payment` FLOW is OPEN — DEFERRED BY REVIEWER DECISION 2026-09-09 (rev 6).** The reviewer answered *"decide later"*: the flow is **not** authorised, **not** descoped and **not** resolved. It still has no FR, it is not an accepted WBS task in its own right, no task id is opened for it, and nothing is built toward it. Its cost while deferred is a **compliance gap, not merely an automation gap** — `rev_grant.rev_finalpaymentdate` stays unwritten and the six-year retention clock never starts (§5.11, risk **A-R56**). *Previously read (rev 5): reviewer decision still required on the flow alone — authorise as a scope addition or descope. Before that (rev 4): the tables, role and a minimal surface are required by US-015 AC-1 and NFR-002 and are retained, the flow has no FR, reviewer to authorise or descope — undivided.* |
+| 2 | §3 Out of scope: "Payment process automation"; seven automations only | Component map and §4 include **automation #8 Finance** — `REV | Finance | Capture Payment` flow and a payment capture form | ✅ **RESOLVED 2026-09-09 (rev 5) — SPLIT, and the two halves went opposite ways.** **The payment capture FORM is AUTHORISED** by reviewer approval of `docs/plans/revitalise-payment-capture-plan.md`, which supplies the FR layer this row said was missing: **FR-150** (one finance surface over Provider, Bank Account and Payment), **FR-151** (Grant, payee account and amount required), **FR-152** (QuickBooks reference), **FR-153**/**FR-154** (the two data-entry rules the unsecurable values force), **NFR-150** and **US-030**. It is `wbs:8.3`, inside the customer-accepted WBS — `docs/Import/baseline-lock.yml` records the reviewer's D-2 answer that Automation #8 needs no change order — and its design is §6.1, §6.2.1, §9, §12 and `ADR-045`–`ADR-048` (`ADR-044` was proposed and **rejected** — rev 6). **The `REV \| Finance \| Capture Payment` FLOW is AUTHORISED 2026-10-20 (rev 28) as `wbs:8.6`**, minimum behaviour only: a final payment sets `rev_grant.rev_finalpaymentdate`, moves the application to "Grant Paid" and (amendment b) moves the grant's own status to "Paid", and withdrawing the final mark reverses all three. Requirements FR-107 to FR-111 (SDD Amendment A-12); change order `CO-010`, accepted unbilled; design §5.11 and `ADR-081`. **The pre-issue duplicate re-check is not part of it** (stays with `wbs:8.5` / FR-023). The compliance gap it closes is risk **A-R56**. *Previously read (rev 6): OPEN — DEFERRED BY REVIEWER DECISION 2026-09-09; the reviewer answered "decide later", so the flow was not authorised, not descoped, had no FR and no task id, and nothing was built toward it. Before that (rev 5): reviewer decision still required on the flow alone — authorise as a scope addition or descope. Before that (rev 4): the tables, role and a minimal surface are required by US-015 AC-1 and NFR-002 and are retained, the flow has no FR, reviewer to authorise or descope — undivided.* |
 | 3 | FR-023: duplicate check runs "WHEN the application record is created" | §4: `REV | Duplicate | QBO Check` triggered by "Payment row created (child flow)" | **Adopt the SDD trigger** (check at intake, so the flag is available before assessment) **and** retain a second invocation before payment issue, which is what the source's end-to-end flow describes. One child flow, two call sites. |
 | 4 | §3 Out of scope: "Full QuickBooks API integration… the fallback cross-reference approach is in scope" | §6: QBO connector query is primary; quarterly export to a Grant History table is the fallback | A single read-only query is not "full API integration". **Adopt the source's primary** (connector query) with the Grant History table as the documented fallback (ADR-017). `rev_granthistory` is built only if the fallback is adopted — SDD OQ-015/OQ-016. |
 
@@ -1015,7 +1216,7 @@ every one has a documented fallback so no single external dependency can stop th
 | Integration | Direction | Protocol / Connector | Tier | Trigger / method | Auth method | Fallback |
 |---|---|---|---|---|---|---|
 | **WordPress / Gravity Forms → Dataverse** | Inbound | Request (HTTP) trigger; or Gravity Forms REST API v2; or parsed structured email. **Rev 9: the body is the website's native entry, keys and label values as the site sends them** (`ADR-051`, Appendix C) | **Premium** | Webhook POST on form submit | ~~Bearer token / shared secret held in a Key Vault-backed secret environment variable — see §6.3.~~ **Rev 14 (`ADR-011`): signed callback URL (*Anyone*) + `x-rev-client-id` header check.** Caller restricted to the charity website (NFR-008) | Scheduled REST pull (service-account-initiated, reverses the trust direction) or structured-email trigger — no downstream component changes |
-| **DocuSign** | Bi-directional | DocuSign connector | Premium | Outbound: create envelope on approval — **rev 15: draft, fill, send (`ADR-067`); rev 16: as the hotfixes settled it (`ADR-069`)**. Inbound: envelope-completed event | OAuth 2.0, service account owns the connection. **Rev 15: signer controls are DocuSign-side — required fields and no reassignment on the template/account; an access code, the last six digits of the referee's phone, on the referee (`ADR-068` item 4)** | Manual print-sign-scan route recorded on the Grant record (FR-046) |
+| **DocuSign** | Bi-directional | DocuSign connector | Premium | Outbound: create envelope on approval — **rev 15: draft, fill, send (`ADR-067`); rev 16: as the hotfixes settled it (`ADR-069`)**. Inbound: envelope-completed event | OAuth 2.0, service account owns the connection. **Rev 15: signer controls are DocuSign-side — required fields and no reassignment on the template/account; an access code, the last six digits of the referee's phone, on the referee (`ADR-068` item 4)**. **Rev 24: applicant signs first, referee second; the order is template-held and flow-verified (`ADR-077`)** | Manual print-sign-scan route recorded on the Grant record (FR-046) |
 | **QuickBooks Online** | Inbound (read only) | QuickBooks Online connector | Premium | Query by applicant name / email at intake, re-checked before payment issue | OAuth 2.0, **read-only scope** | Quarterly export into `rev_granthistory` + Power Automate cross-reference (ADR-017) |
 | **AI Builder — prebuilt entity extraction model** (rev 19; was "prebuilt PII detection model", which does not exist, `IMP-1064`) | Internal | AI Builder connector, action *Extract entities from text with the standard model*, invoked from `REV \| Narrative \| Scrub Free-Text` (`ADR-071`) | Premium | Synchronous, one call per window of at most 5,000 characters. Inputs `text`, `language` (`en`). Output per entity: `type`, `value`, `startIndex`, `length`, `score` (E1, `msdyn_aitemplate`, DEV 2026-10-05). 25 documented types; phone, street address and ZIP code are documented as US format (E2) | Environment AI Builder credits; runs as the service account | Human-only redaction: every narrative routes to the process owner for manual review (degraded, not broken) |
 | **AI Builder — generative prompt** (rev 19, `ADR-072`) — **designed, OFF** | Internal | AI Builder connector, run a prompt built on template `GptPromptEngineering` (E1 in DEV) | Premium | Synchronous, same windows. Input: the prompt plus one window. Output: `text` and `finishReason` only, **no confidence score** (E1). Runs only when `rev_setting` `RedactionPromptStage` = `on` | Prompt builder credits, then Copilot Credits (E2) | Stage skipped; the record goes to review if its own checks need it. **In the Switzerland geography every prompt model is cross-geo (E2): it runs only if *Move data across regions* is allowed (§12)** |
@@ -1098,6 +1299,9 @@ Every flow: runs as the service account; validates its input before processing; 
 `REV | Ops | Failure Alert` from its configured error path; retries transient external failures with
 exponential back-off to a capped retry count; and writes no personal data to any log (NFR-012).
 
+*Rev 28:* flow 11 is now designed (§5.11). It follows the same rules, with one stated exception to "validates its input
+before processing": its trigger carries no external input, only a Dataverse row the service account may read.
+
 **Design rule — Dataverse write shape (rev 14, `IMP-1010`).** Every Dataverse `CreateRecord`, `UpdateRecord`
 or `UpdateOnlyRecord` action in a solution flow writes its columns as **flat `item/<column>` parameters**,
 alongside `entityName` (and `recordId` for an update). It never writes them as a nested `item: { … }` object.
@@ -1145,14 +1349,14 @@ alongside `entityName` (and `recordId` for an update). It never writes them as a
 | 1 | `REV \| Intake \| WordPress to Dataverse` | #4 | HTTP webhook (fallback: scheduled REST pull / email) | FR-007, FR-008, FR-009, FR-010 |
 | 2 | `REV \| Scoring \| Calculate & Flag` | #2 | Dataverse row created — Application | FR-011–FR-016, FR-019, FR-020, FR-022 |
 | 3 | `REV \| Scoring \| Daily Summary` | #2 | Scheduled, daily | FR-021 |
-| 4 | `REV \| Duplicate \| QBO Check` | #7 | Child flow — called from #1 and from #11 | FR-023, FR-024, FR-025 |
+| 4 | `REV \| Duplicate \| QBO Check` | #7 | Child flow — called from #1. **Rev 28:** the second call site (before payment issue) is not built by flow 11 and not by `wbs:8.6`; it stays with `wbs:8.5` / FR-023 | FR-023, FR-024, FR-025 |
 | 5 | `REV \| Narrative \| Scrub Free-Text` | #5 | Dataverse row updated — status becomes Eligible for Panel | FR-026–FR-031 |
 | 6 | `REV \| Narrative \| Trustee Pack` **(DERIVED)** | #5 | Scheduled ahead of the board meeting **+** manual | FR-032, FR-033 |
-| 7 | `REV \| Portal \| Finalise Decisions` | #6 | Manual, process owner, after the board meeting | FR-037, FR-040, FR-047, FR-055 |
-| 8 | `REV \| Acceptance \| Create Envelope` | #3 | Application/Grant status becomes Approved | FR-041, FR-042 |
+| 7 | `REV \| Portal \| Finalise Decisions` | #6 | Dataverse *When a row is selected* — `rev_review`. The process owner selects decided reviews in `REV Grant Administration` (Reviews → Awaiting Finalisation) and starts it from the **Flow** menu after the trustees' verdicts; one run per selected review (rev 27, `ADR-080`) | FR-037, FR-040, FR-047, FR-055 |
+| 8 | `REV \| Acceptance \| Create Envelope` | #3 | Dataverse row created — `rev_grant`, organisation scope (rev 27: corrected from "status becomes Approved"; source trigger `When_a_grant_is_created`, message 1). Grant rows are created only by flow #7, for approved reviews | FR-041, FR-042 |
 | 9 | `REV \| Acceptance \| Reminders & Escalation` | #3 | Scheduled daily + DocuSign event | FR-043, FR-044 |
 | 10 | `REV \| Acceptance \| Completion` | #3 | DocuSign envelope completed | FR-045 |
-| 11 | `REV \| Finance \| Capture Payment` | #8 ⚠️ | Manual, finance role | **UNBUILT — open, deferred by reviewer decision (rev 6).** Still no FR. The *form* half of #8 was authorised as `wbs:8.3` in rev 5 (FR-150–FR-154); this **flow** was not, and the reviewer deferred the authorise-or-descope decision on 2026-09-09. See §3.5 conflict 2 and §5.11 |
+| 11 | `REV \| Finance \| Capture Payment` | #8 | Dataverse row added or modified — `rev_payment` (message 4), flow owner | **AUTHORISED rev 28, `wbs:8.6`, `ADR-081`:** FR-107, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113. *Previously read (rev 6): UNBUILT — open, deferred by reviewer decision, no FR. The form half of #8 is `wbs:8.3` (FR-150–FR-154)* |
 | 12 | `REV \| Retention \| Retention & Erasure Helper` | cross-cutting | Scheduled monthly (after the bulk-delete jobs) + manual on demand | FR-049–FR-055 |
 | 13 | `REV \| Ops \| Failure Alert` | cross-cutting | Child flow — called from the error path of flows 1–12 | FR-010, NFR-012, NFR-016 |
 
@@ -1197,10 +1401,11 @@ flowchart TD
   D --> E["Map Likert answers to points<br/>from Setting.LikertPointMap (FR-013)"]
   E --> F["Sum to circumstance score 0-60<br/>write score breakdown (FR-011)"]
   F --> G["Evaluate income against<br/>Setting.IncomeCeiling → income flag (FR-015)"]
-  G --> H{Score vs Setting thresholds}
+  G --> R{"Any of the five rules applies?<br/>amount · income · savings ·<br/>prior funding · score (rev 26, ADR-079)"}
+  R -- "Yes" --> K["Status = Auto-reject<br/>every reason that fired written (FR-105)<br/>move out of active view (FR-020)"]
+  R -- "No" --> H{Score vs Setting borderline band}
   H -- "above band" --> I["Status = Auto-pass"]
   H -- "within band" --> J["Status = Borderline<br/>route to process owner (FR-019)"]
-  H -- "below knockout" --> K["Status = Auto-reject<br/>move out of active view (FR-020)"]
   I --> L([Await process-owner action])
   J --> L
   K --> L
@@ -1213,6 +1418,48 @@ from `rev_setting`, never from flow logic (FR-017, NFR-019). Idempotent: re-runn
 score from the same answers and does not overwrite a status the process owner has overridden
 (`rev_statusoverridden = true` short-circuits the write, FR-018).
 
+### 5.2.1 Rev 26 — the five auto-reject rules and their reasons (`ADR-079`, `wbs:2.4`, `2.7`)
+
+The rules are evaluated only on the path that has a full set of scored answers. A missing scored answer still
+gives Under Review with no rule applied and no reason (FR-022, SDD A-10 example 12); that branch stops the run
+before any rule is reached and is unchanged.
+
+| # | Rule (SDD) | Fires when | Reason line (the SDD's wording) |
+|---|---|---|---|
+| 1 | Amount (FR-102) | break type and amount both present, exceptional funding not ticked (blank counts as not ticked), and `rev_amountrequested` is strictly greater than that break type's `AmountLimit*` row. `rev_additionalamountrequested` is never read | *Amount requested £650.00 is over the £500 limit for Holiday accommodation, and no exceptional funding was requested.* |
+| 2 | Income (FR-015) | `rev_incomeflag` = 2 *Above income ceiling*. A benefits Yes gives flag 4 and a missing band flag 3, so neither rejects | *The household income band (£25,000 to £34,999) is above the income ceiling of £25,000.* |
+| 3 | Savings (FR-103) | `SavingsRuleEnabled` is `true` and `rev_savingsover6000` is Yes. Blank does not reject | *The applicant has savings over £6,000.* |
+| 4 | Prior funding (FR-104) | `PriorFundingRuleEnabled` is `true`, `rev_receivedfundingbefore` is Yes and `rev_morethan12monthsago` is No. Blank does not reject (EF-34, as built) | *Received funding from Revitalise before, and that previous funding was within the last 12 months.* (as built) |
+| 5 | Score (FR-014) | rounded score at or below `KnockoutThreshold` (as built) | *Circumstance score 18 is at or below the auto-reject threshold (20).* (as built) |
+
+**What Emily sees.** Any rule applies: status Auto-reject, the application leaves the active view (FR-020), and the
+Casework tab's reason field lists every rule that fired, one per line, in the order above (example 11 shows four
+lines). No rule applies: Borderline or Auto-pass by the band, as today, and the reason field is empty. A
+switched-off rule never fires and writes nothing (examples 18, 19). Emily overrides as today (FR-018): the reason
+stays, so the record shows both why the system rejected and that she overrode it (example 13). The daily summary
+counts status 4 as it does today, so the new rejections are in its *Auto-rejected* count and link; its wording and
+query do not change. No view changes: the *Auto-Rejected Applications* view already filters on status 4, and a
+multi-line reason in a grid column would show only its first line.
+
+**What the process owner can change, and what happens if a row is wrong.** Every limit, the income ceiling, the
+knockout threshold and both switches are `rev_setting` rows she edits in the admin app (FR-017). A changed value
+applies to the next application created; nothing already scored is re-scored. If any of the fifteen rows the flow
+reads is missing, or a limit is not a whole number, or a switch is not `true` or `false`, **no new application is
+scored at all**: each stays unscored, and REV | Ops | Failure Alert records the run and names the cause. That is the
+SDD's stated behaviour (*"A missing setting stops the run with no outcome and alerts"*), extended to a malformed
+value so that a typo never silently switches a rule off. **Restart route:** once the row is fixed, each failed run is
+resubmitted from the flow's run history; a resubmitted run replays the row as it was created and reads the settings as
+they are now (`A-FLOW-20`, §12.7). The seven new rows are harmless to the flow version before rev 26, which reads
+rows by name, so the seed runs **before** the solution import that carries the new flow; otherwise every application
+created between the import and the seed fails this way.
+
+**Re-scoring and override (SDD A-10 architect item 5).** The flow fires only when an application is created, and its
+first action stops it when `rev_statusoverridden` is true. Nothing re-scores an existing application. So the reason is
+written once, by the run that set the status, in the same write; it is non-empty exactly when that run set status 4.
+After an override the status changes and the reason stays, which is what FR-105 asks for; the override columns
+explain the difference. Any future re-score must keep both properties: write status and reason in one call, and skip
+an overridden record.
+
 ### 5.3 `REV | Scoring | Daily Summary`
 
 Scheduled daily. Counts applications scored, auto-rejected and Borderline-awaiting-review in the period and
@@ -1222,14 +1469,47 @@ Safe to run twice: it reads and reports, it does not write.
 
 ### 5.4 `REV | Duplicate | QBO Check`
 
-Child flow, two call sites: at intake (FR-023, per the SDD) and before payment issue (per the source's
-end-to-end flow). Queries QuickBooks Online read-only by applicant name and email. On a match, writes
+Child flow, designed for two call sites: at intake (FR-023, per the SDD) and before payment issue (per the source's
+end-to-end flow). **Rev 28: only the intake call site has an owner today.** `REV | Finance | Capture Payment` (§5.11) does not make the second call, and `wbs:8.6` does not add it; it stays with `wbs:8.5` / FR-023. Queries QuickBooks Online read-only by applicant name and email. On a match, writes
 `rev_duplicateflag`, `rev_priorgrantref`, `rev_priorgrantdate`, `rev_priorgrantamount` (FR-024); on no
 match, records "no prior grants found" with `rev_duplicatecheckedon` so the check is evidenced as having run
 (FR-025). If QuickBooks is unreachable, the flow records the failure and flags the application as
 *check pending* — it never reports a false "no prior grants found".
 
 ### 5.5 `REV | Narrative | Scrub Free-Text` — the human-in-the-loop control
+
+**Rev 22 (`ADR-075`, not yet approved) replaces the stage chain below.** What follows this block is the rev 19–20 design,
+kept as history until rev 22 is approved and built.
+
+```mermaid
+flowchart TD
+  A([Status → Eligible for Panel, or manual re-run]) --> R{"released?"}
+  R -- Yes --> Z([Do nothing])
+  R -- No --> S["Read settings, constants, postcode register (once)"]
+  S --> L["For each of the 12 columns: scrub only if raw text, empty counterpart, ≤ 5,000 characters"]
+  L --> E["Extractor (one call) → labels → labelled text<br/>(the model never sees what was found)"]
+  E --> P1["Rewrite prompt: key words, names → They, grammar,<br/>anything else identifying → a label"]
+  P1 --> P2["Spelling prompt, accepted word by word"]
+  P2 --> C{"P1: no found identifier left?<br/>P2: no word added by the rewrite?"}
+  C -- No --> N["Not written; reason code → review"]
+  C -- Yes --> W["Write the counterpart; residue checks may hold the record"]
+  W --> D{"Decide once per record"}
+  N --> D
+  D --> H["Every record (rev 25): review required; Teams card to the process owner (codes, or none)"]
+  H --> J(["The process owner reviews and releases → visible to trustees (FR-030)"])
+```
+
+About 80 actions in total (`ADR-075`, *The flow a maker reads*). Every action carrying text has `secureData` on inputs
+and outputs; no variable holds text. *Previously read, the diagram's last two edges (rev 22):* "no reason, auto-release
+confirmed → Released → visible to trustees" and "any reason → Held; Teams card".
+
+**Rev 25 (`ADR-078`, not yet approved): the flow never releases.** It writes the counterparts as before, then sets
+`rev_redactionreviewrequired` to true and `rev_redactionconfidence` on **every** application it scrubs, and sends the
+process owner the Teams card for every one. It writes no value to `rev_redactionreleased`, whose default is false, so
+only the process owner's release on the Narrative Scrubbing tab makes a narrative visible to trustees. The reason codes
+still decide, per column, whether a counterpart is written (P1, P2, too long, and the rest, unchanged); at record level
+they are now hints on the card telling her where to look first. `RedactionAutoRelease`, `auto-release-off` and
+`auto-release-stale` are retired. About 97 actions after Iteration 11's 100.
 
 **Rev 19: rewritten** (`ADR-071`, `ADR-072`). The rev 1 diagram called a *"prebuilt PII model"* that does not exist
 (`IMP-1064`). The detector is the AI Builder **prebuilt entity extraction model**. The flow is a fixed chain of stages.
@@ -1267,7 +1547,7 @@ residue check that sends the record to review. Nothing depends on the prompt sta
 
 | Label | Detector that owns it | Second detector | If both miss it |
 |---|---|---|---|
-| `[NAME]` | Extractor, `Person name` | Prompt (when on) | No pattern can find a name. A missed name has no score, so it is caught only by review: `RedactionAutoRelease` (every record, until calibrated), `no-model-detections` (rules D-2, not decided), and Emily's check in `wbs:5.5`/`5.7`. **This is the one residual leak path, `A-R83`** |
+| `[NAME]` | Extractor, `Person name` | Prompt (when on) | No pattern can find a name. A missed name has no score, so it is caught only by review. **Rev 25 (`ADR-078`):** the process owner reviews every record, and `no-model-detections` (rules D-2, kept) points her at a text where the extractor found nothing. Rev 25 adds `residual-name-fragment` for a name the extractor found only part of (`ADR-075` item 7). **This is the one residual leak path, `A-R83`**. *Previously read:* "caught only by review: `RedactionAutoRelease` (every record, until calibrated), `no-model-detections` (rules D-2, not decided), and Emily's check in `wbs:5.5`/`5.7`" |
 | `[FAMILY MEMBER]` | Extractor name + in-flow kinship refinement (rules §5.1 rules 1–2) | Prompt (when on) | Labelled `[NAME]` instead. Less precise, nothing disclosed |
 | `[GP PRACTICE]` | Extractor `Organization` + in-flow practice-suffix check (rules §6). `Organization` as the owner is a hypothesis until the live run (`A-NS-1`) | Prompt (when on) | Residue check: a practice word left in the text (`residual-practice-word`) |
 | `[ADDRESS]` — postcode | In-flow shape detector (`ADR-071` item 3). **Rev 20 (`ADR-073`):** also a postcode without its space, and a district with a cue word, when the register confirms the outward code | Extractor `Zip code` (US format, opportunistic) | Residue check: postcode shape, with or without the space (`residual-postcode`). **Rev 20:** a register-confirmed district on its own (`residual-district`) |
@@ -1279,11 +1559,14 @@ residue check that sends the record to review. Nothing depends on the prompt sta
 **The record decision** is rules §7 and §7a, unchanged, with five reason codes added (`ADR-071` item 7, `ADR-072`
 item 8): `residual-<kind>:<column>`, `auto-release-off`, `prompt-error:<column>`, `prompt-output-invalid:<column>` and
 `uncalibrated-stage:prompt`. The record confidence is still the lowest **extractor** score of any redacted span. A
-prompt span and a shape-detector span carry no score, so they neither raise nor lower it.
+prompt span and a shape-detector span carry no score, so they neither raise nor lower it. **Rev 25 (`ADR-078`):** the
+record decision no longer releases anything; its codes go on the card and `auto-release-off` is retired.
 
 **Writes.** Only into an empty counterpart, and only when the record is not released (§7a). Columns are written as flat
-`item/<column>` parameters (§5 write-shape rule). The flow writes `rev_redactionreleased` and the two `TD-008` columns
-(`rev_redactionconfidence`, `rev_redactionreviewrequired`), which are built in the same change.
+`item/<column>` parameters (§5 write-shape rule). The flow writes the two `TD-008` columns
+(`rev_redactionconfidence`, `rev_redactionreviewrequired`), which are built in the same change. **Rev 25 (`ADR-078`):**
+it no longer writes `rev_redactionreleased`, and it writes `rev_redactionreviewrequired` as true on every record.
+*Previously read:* "The flow writes `rev_redactionreleased` and the two `TD-008` columns".
 
 **What is never in run history, a log or a notification** (`C-DOM-004`, NFR-012, FR-031). Every action whose
 inputs or outputs carry raw text, an entity `value`, a prompt's output or a rebuilt counterpart has
@@ -1295,10 +1578,12 @@ is read by this flow and by the Admin role only, and it never reaches a trustee 
 Trustee visibility is still the conjunction `rev_eligibleforround = true` **and** `rev_redactionreleased = true`. The
 default state of a new narrative is *withheld*, and any failure of any stage fails closed (NFR-018).
 
-**What a person sees** (`IMP-0511`). With no `RedactionAutoRelease` row, **every** scrubbed application shows in the
-process owner's review list with `auto-release-off` among its reasons, and none reaches a trustee until she releases it.
-That is the intended state until `wbs:5.7` calibrates the threshold. It is not a blackout: the review tab works, and
-releasing by hand is the approved FR-030 path.
+**What a person sees** (`IMP-0511`). **Rev 25 (`ADR-078`):** **every** scrubbed application shows in the process
+owner's review list and reaches her as a Teams card, with any reason codes as hints, and none reaches a trustee until she
+releases it. That is the permanent design, not a state that ends at `wbs:5.7`. It is not a blackout: the review tab
+works, and releasing by hand is the approved FR-030 path. *Previously read:* "With no `RedactionAutoRelease` row, every
+scrubbed application shows … with `auto-release-off` among its reasons … That is the intended state until `wbs:5.7`
+calibrates the threshold."
 
 ### 5.5.1 Rev 20 — the postcode register and the settings the flow reads (`ADR-073`, `ADR-074`)
 
@@ -1332,23 +1617,30 @@ district already inside a replaced span never trips it.
 
 | `rev_setting` row | Value | Absent | Malformed or empty |
 |---|---|---|---|
-| `RedactionConfidenceThreshold` | As rules §7 | `threshold-missing-or-invalid` | `threshold-missing-or-invalid` |
-| `RedactionAutoRelease` | `true`, **and saved after every other `Redaction*` row** | `auto-release-off` | `auto-release-off`. Saved before a later rule edit: `auto-release-stale` |
+| `RedactionConfidenceThreshold` | As rules §7. **Rev 25 (`ADR-078`):** a review signal only (`below-threshold` on the card); seeded create-only at `0.85` | `threshold-missing-or-invalid` on the card | `threshold-missing-or-invalid` on the card |
+| ~~`RedactionAutoRelease`~~ **Retired, rev 25 (`ADR-078`).** Not read; a leftover row is ignored. *Previously read:* "`true`, and saved after every other `Redaction*` row; absent or malformed: `auto-release-off`; saved before a later rule edit: `auto-release-stale`" | — | — | — |
 | `RedactionPromptStage` | `on` | Stage off | Stage off |
 | `RedactionPromptCalibrated` | The confirmed labels, for example `NAME, FAMILY MEMBER, GP PRACTICE, ADDRESS`, **saved after every other `RedactionPrompt*` row** | Stage on: `uncalibrated-stage:prompt` | The same. Rev 19's value `true` now reads as not calibrated |
 | `RedactionPromptCategory.Name`, `.FamilyMember`, `.GpPractice`, `.Address` | Plain text: what the prompt looks for under that label | That label is not asked for. Stage on and no valid category row: `prompt-config-invalid` | Stage on: `prompt-config-invalid`, and the stage does not run for the record |
 | `RedactionKinshipWordsExtra`, `RedactionPracticeSuffixesExtra`, `RedactionStreetWordsExtra`, `RedactionPracticeWordsExtra` | One entry per line, **added to** the built-in list | The built-in list only (rev 19) | `redaction-setting-invalid:<key>`. The built-in list still applies |
+| ~~`RedactionNeutralTermsExtra` (rev 22, `ADR-075`)~~ **Replaced, rev 23 (`ADR-076`)** by `RedactionNeutralTerms`. *Previously read:* "one `word = neutral word` per line, added to the template's key list and the gendered residue list; absent: the built-in key list only; malformed: `redaction-setting-invalid`" | — | — | — |
+| **Rev 23:** `RedactionNeutralTerms`, `RedactionTitles`, `RedactionNameRules`, `RedactionLabels` (`ADR-076`) | The rewrite prompt's rules, one entry per line (`none` for an intended empty list); the source of P2 and P3 | `redaction-setting-invalid:<key>`; both prompts stop for the record and nothing is written | The same |
+| **Rev 22:** `RedactionPromptStage` | `off` stops both prompts | The prompts run | The prompts run |
+| **Rev 22, retired:** `RedactionPromptCalibrated`, `RedactionPromptCategory.*`, `RedactionKinshipWordsExtra`, `RedactionPracticeSuffixesExtra`. **Rev 23, retired:** `RedactionNeutralTermsExtra`. **Rev 25, retired:** `RedactionAutoRelease` | Ignored: no retired row is read | — | — |
 
 **What a person sees** (`IMP-0511`), traced to the record decision:
 
-- **Nothing seeded (today).** Exactly rev 19: every scrubbed record is in the review list with `auto-release-off`.
-- **A word added to a list after auto-release is on.** The next scrubbed record shows `auto-release-stale` and waits
-  for the process owner. To confirm again she opens `RedactionAutoRelease`, sets **Effective From** to today and saves.
-  That is a real change, so the row's Modified On moves past the edit. An unchanged save would not move it.
+- **Every case below (rev 25, `ADR-078`).** Every scrubbed record is in the review list with a Teams card, and only the
+  process owner releases it. The codes below are what the card shows her. *Previously read:* "Nothing seeded (today).
+  Exactly rev 19: every scrubbed record is in the review list with `auto-release-off`."
+- **A word added to a list.** The next scrubbed record uses it; there is nothing to confirm (rev 25). *Previously read:*
+  "after auto-release is on, the next scrubbed record shows `auto-release-stale` … to confirm again she opens
+  `RedactionAutoRelease`, sets Effective From to today and saves."
 - **A typo in a word list** (a digit, or a one-letter line). Each scrubbed record shows
   `redaction-setting-invalid:RedactionStreetWordsExtra`. The built-in list still redacts and flags as before.
-- **The register not seeded in an environment.** Every scrubbed record shows `postcode-register-unavailable`, so
-  nothing is auto-released there. This blocks auto-release only; the review tab and manual release work. The register
+- **The register not seeded in an environment.** Every scrubbed record shows `postcode-register-unavailable`; the three
+  register checks are skipped and the review tab and manual release work. *Previously read:* "so nothing is
+  auto-released there. This blocks auto-release only". The register
   is seeded by `seed-city-settlement-register.ps1`, already a `post_deploy` step for DEV, TST/ACC and PRD in
   `config/revitalise-grant-automation-pipeline.yml`.
 - **Released records are never touched** (rules §7a rule 1). An edit neither hides nor re-exposes anything a trustee
@@ -1373,18 +1665,86 @@ contain more than the portal does.
 
 ### 5.7 `REV | Portal | Finalise Decisions`
 
-Manual, process owner, after the board meeting — one controlled, auditable step (FR-040). Reads the verdicts
+**Rev 27 (`ADR-080`) replaces the rev 1 paragraph,** which said only *"Manual, process owner, after the board meeting"*
+and named no screen. The rev 1 text is kept at the end of this section as history.
+
+**Where Emily starts it.** After the trustees have recorded their verdicts, the process owner opens `REV Grant
+Administration` → **Reviews → Awaiting Finalisation** (view `{e3000000-0000-4000-8000-0000000000a2}`, sitemap SubArea
+`rev_sub_awaitingfinalisation`; the view lists every review with `rev_finalisedon` empty and shows both verdicts). She
+selects the reviews to finalise and chooses **Flow → REV | Portal | Finalise Decisions** on the command bar. The same
+menu is on a single review's form, for one review.
+
+**Trigger.** Microsoft Dataverse **When a row is selected**, table `rev_review`. The platform starts **one run per
+selected row** (*Split on* is mandatory for this trigger) and passes that row; a run touches only its own review.
+Selecting more than 40 rows may fail to start (E2). The flow reads only the review's id from the trigger and reads the
+row again itself, as every Dataverse-triggered flow here does.
+
+**What one run does, in order.**
+
+1. Read the review by id. If `rev_finalisedon` is set, end: nothing changes (the double-run guard, per review).
+2. If the review is not decided — no `rev_outcome` and fewer than two verdicts — end: nothing changes, and the review
+   stays on Awaiting Finalisation with its empty verdict visible in the view (`A-FD-2`, unchanged).
+3. Resolve the outcome (reviewer answer to `Q-FD-1`, below). A `rev_outcome` already set by staff wins. Otherwise the
+   two verdicts decide only when they agree: Approve + Approve = Approved, Reject + Reject = Rejected, Defer + Defer =
+   Deferred. **A split (the two verdicts differ) is not finalised:** end, nothing changes, and the review stays on
+   Awaiting Finalisation until the quarterly panel has discussed it and Emily records the panel's decision in
+   `rev_outcome` on the review form; the next press then finalises it on that outcome. Non-Qualifying (4) is left
+   open, as built (`A-FD-1`).
+4. **Approved:** find an existing Grant for the application (entity key `rev_grant_applicationid`); create one if none
+   exists; set the application to Approved; write the snapshot. **Creating the Grant is the hand-off to acceptance:**
+   flow #8 triggers on a `rev_grant` row being created, so each approved review starts its own envelope (applicant
+   first, referee second, order set in the template, `ADR-077`). This flow has no DocuSign action.
+5. **Rejected:** set the application to Rejected; write the snapshot.
+6. **Deferred:** change nothing on the application and **write no snapshot** (reviewer answer to `Q-FD-3`, below).
+7. Stamp `rev_finalisedon` **last**. A run that fails before this step leaves the review on the view for another try.
+
+**What Emily sees.** The platform tells her only that the flow started, and a run-only user cannot open run history (E2).
+So the result is read on screen: a finalised review leaves Awaiting Finalisation, and an approved one has a Grant in
+**Grants**. A failure raises `REV | Ops | Failure Alert` (§5.14), which names the review reference and the step, never a
+value. No new notification is added.
+
+**Who can press it.** The flow is shared **run-only** with the process owner's Entra group
+`REV-PP-GrantApplications-Admins-<env>` (§6.1), using the flow's own Dataverse connection (*Use this connection*, the
+service account), never *Provided by run-only user*. Only owners and run-only users see a flow in the Flow menu (E2).
+Run-only sharing is per-environment state, not solution content (§12.8).
+
+*Two controls, and which one this design relies on.* Trustees cannot open `REV Grant Administration` at all: they do not
+hold the app's role (reviewer, observed in DEV 2026-10-20; §6.1). That is the **app-access** control, and it keeps
+trustees out of every list in the app, this one included. **The control this design relies on for the flow is the
+run-only share**, because the app is not opened by the process owner alone: Finance works in an area of the same app
+(`ADR-048`) and would otherwise see the flow. The app role is a second, independent layer for trustees only; it is not
+counted on to restrict who can run the flow.
+
+**FR-047 reading.** FR-047's *"all fifteen are issued in the same run"* is met as **one action by Emily**: one selection
+of fifteen reviews starts fifteen runs of this flow and fifteen envelope runs. Its purpose, *"without per-application
+handling"*, holds; the literal *single run* does not. Risk `A-R76` (DocuSign's call limit) is unchanged.
+
+**The three business rules (`IMP-1161`), answered by the reviewer 2026-10-20.** Put to the reviewer once; his words are
+quoted verbatim, followed by how this TAD reads them.
+
+| Q | Question | Reviewer, verbatim (2026-10-20) | How the TAD reads it | Change to the built flow |
+|---|---|---|---|---|
+| `Q-FD-1` | How do the two trustee verdicts become one outcome? | *"The splits will get dicussed in the quarterly panel with the trustees."* | A split is not decided by this flow. It is left open on Awaiting Finalisation; the panel decides; Emily records that decision in `rev_outcome`; a set outcome wins. Agreeing verdicts decide on their own, Defer + Defer included. Step 3 above | **Yes** (`A-FD-1`): the built rule made every split Deferred; a split now ends the run unchanged |
+| `Q-FD-3` | What does a deferral record in the anonymised statistics? | *"No, deferred means that it has not been granted and could be granted in the future."* | No third option value. A Deferred review writes **no** snapshot, because a deferral is not a final outcome. Each application is counted **once**, at its final outcome: Granted when a later round approves it, Not Granted when a later round rejects it. An application deferred and never decided again is counted Not Granted at end of life by the retention safety net (§5.13 item 3) | None (`A-FD-3` confirmed) |
+| `Q-FD-8` | What amount does the Grant carry? | *"That is correct. I haven't heard otherwise. If so, I will come back with additional requirements."* | **Confirmed:** the Grant carries the amount requested (`rev_amountawarded` = `rev_amountrequested`). If an awarded amount ever has to differ, the reviewer will bring new requirements; until then no awarded-amount column is designed | None (`A-FD-8` confirmed) |
+
+**Retired by the reviewer's correction:** `A-FD-6` (*"a manual button flow shared run-only is the right way … no button
+on the review view"*) is answered and replaced by this section. development-agent closes it in the Dev Summary §10.
+
+*Rev 1 text, superseded:* "Manual, process owner, after the board meeting — one controlled, auditable step (FR-040). Reads the verdicts
 from `rev_review`, applies them to the Application and Grant records, creates Grant rows for approvals, and
-triggers flow #8 for the whole approved batch in a single run (FR-047). **Also writes the Anonymised
-Statistic snapshot** (FR-055 — see §5.13). Guarded against double-execution by a `rev_finalisedon` stamp on
-the Review row: a second run over an already-finalised round is a no-op.
+triggers flow #8 for the whole approved batch in a single run (FR-047). Also writes the Anonymised
+Statistic snapshot (FR-055 — see §5.13). Guarded against double-execution by a `rev_finalisedon` stamp on
+the Review row: a second run over an already-finalised round is a no-op."
 
 ### 5.8–5.10 Acceptance flows (#3)
 
-**Create Envelope** — on status Approved, builds the DocuSign envelope from the template, pre-populated with
-applicant name, grant amount, provider, dates and conditions, and sends it for **two signatures to
-both signers at the same time**, applicant and referee or GP, with no signing order (FR-041; FR-042's *in sequence*
-is overridden by the reviewer, rev 16 approval amendment). Writes `rev_docusignenvelopeid` and
+**Create Envelope** — when a Grant row is created (rev 27: the source trigger is `rev_grant` create, not a status change; flow #7 creates Grant rows only for approved reviews), builds the DocuSign envelope from the template, pre-populated with
+applicant name, grant amount, provider, dates and conditions, and sends it for **two signatures in
+sequence, the applicant first and the referee or GP second** (FR-041, FR-042; **rev 24, `ADR-077`: the customer
+requires the order again, so the rev 16 "no signing order" decision is reversed**; rev 16 had overridden FR-042's *in
+sequence*). The order is carried by the DocuSign template alone; the flow neither sends nor checks it (the check was dropped at approval, `ADR-077` item 2). The
+referee's email arrives when the applicant has signed, and the referee then sees the details the applicant entered. Writes `rev_docusignenvelopeid` and
 `rev_acceptanceissuedon`. **Rev 16: the Grant Referee (Signer 2)'s Title, Job title, Company, Address,
 Town/City and Postcode tabs are now pre-populated from `rev_application` (`ADR-070`, which supersedes `ADR-043`,
 under which they were left for the referee to complete).**
@@ -1409,12 +1769,12 @@ previous one's success) except the two fallbacks in step 12.
 | 5 | `Compose_access_code`, `Compose_connector_tab_types`, `Compose_tab_values` | Compose ×3 | The access code is the last six digits of the digits-only phone, left-padded with zeros. The other two are the **tab-fill tables** below |
 | 6 | `Create_the_draft_envelope`, `Set_draft_envelope_id` | `CompositeTemplates` (`status: Created`, one server template, subject = `applicantSubject`), `SetVariable` | Unchanged from rev 15 C1. `draftEnvelopeId` is set from the response and is the only DocuSign value later alerts name |
 | 7 | `List_the_envelope_recipients`, `Filter_the_applicant_signer`, `Filter_the_referee_signer`, `Find_the_document`, `Set_draft_shape_problem`, `Check_the_draft_matches_the_template` (If) → `Alert_draft_does_not_match_template`, `Stop_draft_does_not_match_template` | `GetRecipientStatus`, two `Query` on `roleName` (`Grant Acceptor`, `Grant Referee`), `ListTemplateDocuments`, `SetVariable`, If | Passes when each role appears **exactly once** and the template has **at least one** document (rev 15 said exactly one; the real template has two: the acceptance form and the general T&Cs). Failure code `DraftDoesNotMatchTemplate`; the alert names the draft |
-| 8 | `Bind_the_applicant` → `Require_referee_access_code` → `Bind_the_referee` | `UpdateEnvelopeRecipient`, `AddVerificationToRecipient` (`Access Code`), `UpdateEnvelopeRecipient` | **In this order**: the access code is added **before** the referee is bound, because adding it after blanked the referee's name and email (pipeline 3 Oct 21:24). Each bind sets `recipientId` (from the role filter), `recipientType: signers`, `emailNotificationLanguage: English UK (en_GB)`, its own subject and body, `additionalRecipientParams/name` and `/email`. **No `routingOrder` and no `phoneNumber`** (measured, §12.5 A-DS-16 record). Applicant name = `rev_fullname`, else first + last. Referee name = `rev_refereefirstname` + `rev_refereelastname` when either is set, else `rev_refereename` |
-| 9 | `Read_the_signers_after_binding`, `Filter_the_bound_applicant`, `Filter_the_bound_referee`, `Set_signer_binding_problem`, `Check_both_signers_are_bound` (If) → `Alert_signer_not_bound`, `Stop_signer_not_bound` | `GetRecipientStatus`, two `Query`, `SetVariable`, If | **New.** Reads the signers back and requires each one's email, lower-cased and trimmed, to equal the email that was sent. This exists because DocuSign answers `200` with `RECIPIENT_UPDATE_FAILED` and leaves the signer blank (measured, §12.5 A-DS-16 record). Failure code `SignerNotBound` |
+| 8 | `Bind_the_applicant` → `Require_referee_access_code` → `Bind_the_referee` | `UpdateEnvelopeRecipient`, `AddVerificationToRecipient` (`Access Code`), `UpdateEnvelopeRecipient` | **In this order**: the access code is added **before** the referee is bound, because adding it after blanked the referee's name and email (pipeline 3 Oct 21:24). Each bind sets `recipientId` (from the role filter), `recipientType: signers`, `emailNotificationLanguage: English UK (en_GB)`, its own subject and body, `additionalRecipientParams/name` and `/email`. **No `routingOrder` and no `phoneNumber`** (measured, §12.5 A-DS-16 record). **Rev 24: the order is the template's alone (`ADR-077` item 1); no step checks it.** Applicant name = `rev_fullname`, else first + last. Referee name = `rev_refereefirstname` + `rev_refereelastname` when either is set, else `rev_refereename` |
+| 9 | `Read_the_signers_after_binding`, `Filter_the_bound_applicant`, `Filter_the_bound_referee`, `Set_signer_binding_problem`, `Check_both_signers_are_bound` (If) → `Alert_signer_not_bound`, `Stop_signer_not_bound` | `GetRecipientStatus`, two `Query`, `SetVariable`, If | **New.** Reads the signers back and requires each one's email, lower-cased and trimmed, to equal the email that was sent. This exists because DocuSign answers `200` with `RECIPIENT_UPDATE_FAILED` and leaves the signer blank (measured, §12.5 A-DS-16 record). **Rev 24: no order check is made (`ADR-077` item 2 rejected, 2026-10-19); the read-back compares emails only.** Failure code `SignerNotBound` |
 | 10 | `Read_the_tabs` | `GetEnvelopeDocumentTabs` | Reads the **first** template document's tabs only (`first(Find_the_document.templateDocuments).documentId`) |
 | 11 | `Filter_tabs_in_scope`, `Select_tab_matches`, `Filter_tabs_to_fill`, `Filter_unmapped_tabs`, `Select_unmapped_tab_descriptions`, `Select_tab_array`, `Filter_prefill_tabs`, `Filter_applicant_tabs`, `Filter_referee_tabs`, `Set_tabs_to_fill_problem`, `Check_there_are_tabs_to_fill` (If) → `Alert_no_tabs_to_fill`, `Stop_no_tabs_to_fill` | `Query` / `Select` / `SetVariable` / If | **Replaces `Build_the_tab_array`.** Section "The tab-fill structure". Stops with code `NoTabsToFill` when nothing matched, or when any of the three owner groups (prefill, applicant, referee) is empty |
 | 12 | Prefill: `Select_the_prefill_tabs_array` → `Fill_the_prefill_tabs`; on **Failed** → `Select_the_prefill_tabs_with_enum_array` → `Fill_the_prefill_tabs_with_enum`. Applicant: `Select_the_applicant_tabs_array` → `Fill_the_applicant_tabs`; on Failed → `Select_the_applicant_tabs_as_read_array` → `Fill_the_applicant_tabs_as_read`. Referee: `Select_the_referee_tabs_array` → `Fill_the_referee_tabs`; on Failed → `Select_the_referee_tabs_as_read_array` → `Fill_the_referee_tabs_as_read`. Then `Filter_referee_company_tabs` → `Fill_the_referee_company_tabs_if_any` (If non-empty) holding `Select_referee_company_tab_array` → `Fill_the_referee_company_tabs` | `UpdateEnvelopePrefillTabs` (prefill group, `documentId`), `UpdateRecipientTabsValues` (one call per signer, `recipientId`) | **Replaces rev 15's single `Fill_the_tabs`.** Three fill calls on the happy path (prefill, applicant, referee), three fallbacks and one conditional company call. Each group is its own array of `{tabType, tabId, value}`. The next group runs after the previous succeeded **or was skipped** |
-| 13 | `Re_read_the_tabs`, `Select_re_read_values`, `Select_found_tab_ids`, `Filter_missing_tabs`, `Filter_unfilled_tabs`, `Select_unfilled_tab_ids`, `Set_tab_fill_problem`, `Check_every_tab_was_filled` (If) → `Alert_tabs_not_filled`, `Stop_tabs_not_filled` | `GetEnvelopeDocumentTabs`, `Select` / `Query`, `SetVariable`, If | Three conditions fail the run (code `TabsNotFilled`): one of the **15 required tab ids** was not found on the draft; a sent tab does not hold the value sent; a template tab has no mapping. Section "The read-back check" |
+| 13 | `Re_read_the_tabs`, `Select_re_read_values`, `Select_found_tab_ids`, `Filter_missing_tabs`, `Filter_unfilled_tabs`, `Select_unfilled_tab_ids`, `Set_tab_fill_problem`, `Check_every_tab_was_filled` (If) → `Alert_tabs_not_filled`, `Stop_tabs_not_filled` | `GetEnvelopeDocumentTabs`, `Select` / `Query`, `SetVariable`, If | Three conditions fail the run (code `TabsNotFilled`): one of the **14 required tab ids** was not found on the draft; a sent tab does not hold the value sent; a template tab has no mapping. Section "The read-back check" |
 | 14 | `Read_reminder_days`, `Parse_reminder_days`, `Compose_reminder_cadence`, `Set_reminder_cadence`, `Send_the_envelope`, `Write_the_envelope_id_and_issue_date` | `ListRecords`, Compose ×2, `AddReminders`, `SendDraftEnvelope`, `UpdateRecord` | Unchanged from rev 15 C9, C10 and step 13. The status moves from 1 to 2 only after the send succeeded |
 | 15 | After the scope: `Find_the_failed_action` → `Describe_the_failure` (Switch) → `Alert_on_failure` | `Query` on `result('Build_the_envelope')`, Switch, child-flow call | The failure lookup. See "The failure lookup" below |
 
@@ -1438,14 +1798,14 @@ Rev 15 said "about 12 under option A".
 `EmailAddress` is new in `neverSend` (pipeline 3 Oct 20:59): DocuSign fills the email tab from the signer, so a
 value sent to it is wrong or ignored.
 
-**`Compose_tab_values`** is one object of **57 keys**. Each key maps to `{id, value}`; `id` is the logical tab id
+**`Compose_tab_values`** is one object of **55 keys** (rev 24: 57 before `p_type` and its `Holiday type` placeholder were removed, 2026-10-19). Each key maps to `{id, value}`; `id` is the logical tab id
 and `value` is the expression for it. A tab is looked up **by three keys, in this order, first non-empty wins**:
 
-1. `label|<tabLabel>`: the template's Data Label. Present for `p_name`, `p_amt`, `p_type`, `p_venue`, `p_dates`
+1. `label|<tabLabel>`: the template's Data Label. Present for `p_name`, `p_amt`, `p_venue`, `p_dates`
    and the referee's `f2`, `l2`, `t2`, `e2`, `ph2`, `pc2`, `a2`, `c2`, `j2`, `o2`, plus `Organisation`,
    `organisation`, `Organization`, `Company` and `company`.
 2. `<owner>|<placeholder value>`: the text typed into the tab on the template. Prefill: `Name`, `Amount`,
-   `Holiday type`, `Holiday destination`, `Dates`. Applicant and referee: `First name`, `Last name`, `Title`,
+   `Holiday destination`, `Dates`. Applicant and referee: `First name`, `Last name`, `Title`,
    `Email`, `Phone`, `Postcode`, `Address`, `Adress` (the template's own misspelling, kept), `Town/City`,
    `City/Town`, `Job title`. Referee only: `Company`, `Organisation`, `Organization`, `organisation`,
    `company` and `Organisation ` (trailing space).
@@ -1464,7 +1824,7 @@ as `referee textTabs "Job title"`, used only in the unmapped-tab message). `Filt
 the read-back check** (step 13), so a new tab on the template cannot go out blank unnoticed.
 
 **Values.** Prefill: name (applicant `rev_fullname`, else first + last), amount (`rev_grant.rev_amountawarded`,
-`N2`), holiday type (formatted choice label), destination, dates (`d MMMM yyyy to d MMMM yyyy`). Applicant:
+`N2`), destination, dates (`d MMMM yyyy to d MMMM yyyy`). Applicant:
 first, last, title (formatted label), email, phone, postcode, address (line 1, then `, ` and line 2 when set),
 town. Referee: from `rev_application`: `rev_refereefirstname` else the first word of `rev_refereename`;
 `rev_refereelastname` else the remaining words (so a one-word or empty name no longer throws, pipeline 3 Oct 18:51);
@@ -1483,8 +1843,8 @@ template no longer has one** (the reviewer replaced it with a Text tab, §12.5).
 
 `Select_re_read_values` builds `tabId|value` for every tab in the second read; a checkbox contributes its
 `selected` flag lower-cased. `Filter_unfilled_tabs` keeps a to-fill tab whose `tabId|value` is absent.
-`Filter_missing_tabs` takes the **15 required ids** and keeps those not among the to-fill tabs' ids: `p_name`,
-`p_amt`, `p_type`, `p_venue`, `p_dates`, `a_first`, `a_last`, `a_title`, `a_postcode`, `a_phone`, `r_first`,
+`Filter_missing_tabs` takes the **14 required ids** (rev 24: 15 before `p_type`) and keeps those not among the to-fill tabs' ids: `p_name`,
+`p_amt`, `p_venue`, `p_dates`, `a_first`, `a_last`, `a_title`, `a_postcode`, `a_phone`, `r_first`,
 `r_last`, `r_title`, `r_postcode`, `r_phone`. Other mapped ids (address, town, job title, company, email, the
 checkbox) are checked for the value but their absence is not by itself a failure. `Set_tab_fill_problem` is empty
 only when all three lists are empty; otherwise it reads `tabs not found on the draft: […]; tabs not holding the
@@ -1562,11 +1922,11 @@ last-name expression (`join(skip(split(…)))`). Extend the harness; the error s
 | Signers | `Filter_the_applicant_signer` = `@(@{ recipientId = '1'; recipientIdGuid = '<guid-a>'; roleName = 'Grant Acceptor' })`; the referee likewise (`'2'`, `<guid-b>`, `Grant Referee`) |
 | Template document | `Find_the_document` = `@{ templateDocuments = @(@{ documentId = '1'; name = 'Acceptance form' }, @{ documentId = '2'; name = 'General T&Cs' }) }` |
 | Read tabs | `Read_the_tabs` = `@{ tabs = @(…) }`. **Each recipient tab's `recipientId` is the signer's `recipientIdGuid`**, as DocuSign returns it. Add one case with the numeric id |
-| Prefill (5) | `textTabs`, `prefill = $true`, placeholders `Amount`, `Name`, `Holiday type`, `Dates`, `Holiday destination` |
+| Prefill (4) | `textTabs`, `prefill = $true`, placeholders `Amount`, `Name`, `Dates`, `Holiday destination` (rev 24: `Holiday type` removed) |
 | Applicant (10 tabs, 9 sent) | `textTabs` `Email`, `Title`, `City/Town`, `First name`, `Adress`, `Last name`, `Phone`, `Postcode`; one `checkboxTabs`; one `tabGroups` (never sent) |
 | Referee (10 tabs, 9 sent) | `textTabs` `First name`, `Title`, `Last name`, `Postcode`, `Job title`, `Address`, `Town/City`, `Phone`; **one `textTabs` with `tabLabel = 'o2'` and placeholder `organisation`** (replaces the `companyTabs` tab); one `emailAddressTabs` (never sent) |
 | Signing tabs (6) | `signHereTabs`, `fullNameTabs`, `dateSignedTabs` for each signer (never sent) |
-| Total | 31 tabs read, **23 sent** (rev 15's 24 included the referee Email Address tab), nothing unmapped |
+| Total | 30 tabs read, **22 sent** (rev 24: 31 and 23 before `p_type`; rev 15's 24 included the referee Email Address tab), nothing unmapped |
 | Echo | `Re_read_the_tabs` returns every sent `tabId` with its value; a checkbox returns `selected = $false` and `value = ''` |
 | Negative fixtures | (a) a tab with no label and an unknown placeholder → listed in the unmapped message; (b) one required id missing → in the "not found" list; (c) a tab echoed with another value → in the "not holding" list; (d) a `companyTabs` referee tab → `Filter_referee_company_tabs` non-empty, filled with `rawType`; (e) a referee last name of one word, three words and blank, none throwing |
 
@@ -1576,18 +1936,18 @@ last-name expression (`join(skip(split(…)))`). Extend the harness; the error s
 |---|---|
 | the single SendEnvelope and every superseded operation are gone | Remove `UpdateRecipientTabsValues` from the "gone" list; it is built. Keep `SendEnvelope`, `SendEnvelopeWithRecipientFields`, `CreateEnvelopeFromTemplateNoRecipients`, `AddRecipientToEnvelopeV2` |
 | the DocuSign operations run in the C1..C10 order | The top-level chain is linear (70 actions). Connector operations in order: `ListRecords` ×3, `CompositeTemplates`, `GetRecipientStatus`, `ListTemplateDocuments`, `UpdateEnvelopeRecipient`, `AddVerificationToRecipient`, `UpdateEnvelopeRecipient`, `GetRecipientStatus`, `GetEnvelopeDocumentTabs`, `UpdateEnvelopePrefillTabs` ×2, `UpdateRecipientTabsValues` ×4, `GetEnvelopeDocumentTabs`, `ListRecords`, `AddReminders`, `SendDraftEnvelope`, `UpdateRecord`. The send is the last DocuSign operation. (`Get_the_provider` is inside an If, so it is not in the top-level chain.) The access code sits between the two binds |
-| the applicant signs first and the referee second | **Retired (rev 16 approval: no signing order).** Replace with: neither bind carries `routingOrder`, neither carries `phoneNumber` (template-locked, §12.5) |
+| the applicant signs first and the referee second | **Reinstated at rev 24 (`ADR-077`), in a different form.** Neither bind carries `routingOrder`, neither carries `phoneNumber` (template-locked, §12.5). **Nothing to build (2026-10-19, `ADR-077` item 2 rejected):** the test asserts only that no `routingOrder` is sent; the order is the template's and is observed by `R7`. |
 | each signer is bound to their own Dataverse record | Match `outputs('Get_the_applicant')?['body/value']` and `rev_fullname`; the referee name is first + last when set, else `rev_refereename` |
 | the document is the template's only document | `Set_draft_shape_problem` names `the template has no documents, expected at least 1`; two documents pass |
 | option A: ONE UpdateEnvelopePrefillTabs call | Exactly **two** `UpdateEnvelopePrefillTabs` actions (primary on `rawType`, fallback on `tabType`); the fallback `runAfter` is `Failed`; no variable array, no loop |
-| BOTH roles accept the union of placeholders | The key set of `Compose_tab_values` is the 57 above; every `<owner>\|<placeholder>` is looked up with the owner it is written for, and `applicant\|type:emailAddressTabs` does **not** exist |
+| BOTH roles accept the union of placeholders | The key set of `Compose_tab_values` is the 55 above; every `<owner>\|<placeholder>` is looked up with the owner it is written for, and `applicant\|type:emailAddressTabs` does **not** exist |
 | the role decides only the source | Needs `skip`; the referee last name, and first name, for blank, one-word and three-word names |
 | signature, full name, sign date and the tab group are never sent | `neverSend` holds the 19 spellings of five kinds, `EmailAddress` included; the tab-type enum still lives in one action, `Compose_connector_tab_types` |
 | each check alerts … then stops (three titles) | The five checks, expression `equals(not(empty(variables('checkProblem'))), true)`; the list gains `Check_there_are_tabs_to_fill` and `Check_both_signers_are_bound`. The envelope-id assertion (A-R74) covers every check after the draft exists: draft shape, signer binding, tabs-to-fill, every-tab-filled |
 | the access code is the last six DIGITS …; fewer than six digits …; a missing referee name or email …; settings row …; {grantReference}; seeded DEV wording; draft shape | Re-run unchanged against the corrected fixture (Cause 1). The `{grantReference}` test's "nothing personal is substituted" line is **wrong now**: `{applicantName}` and `{refereeName}` are substituted by design, which is why `Compose_acceptance_email_texts` is secured. Assert that the four tokens are replaced and that the action is inputs-secured |
 | the tab context (10 tests) | Re-run against the fixture above, **one assignment**, not two. The old A/B assignment ambiguity is gone: the owner is the signer whose `recipientId` or `recipientIdGuid` equals the tab's |
 
-**New assertions the rewrite should add:** `Check_both_signers_are_bound` passes for matching emails and names the
+**New assertions the rewrite should add (rev 24 adds no signing-order assertion):** `Check_both_signers_are_bound` passes for matching emails and names the
 applicant/referee when they differ; the primary fills send `textTabs` for prefill and `Text` for recipients, and the
 fallbacks the reverse; `Describe_the_failure` has the seven cases; the secure-data tests stay as `development-agent` left them (they pass).
 
@@ -1602,34 +1962,239 @@ flow, by design, because it is a human-attested exception.
 
 ### 5.11 `REV | Finance | Capture Payment`
 
-⚠️ **OPEN — DEFERRED BY REVIEWER DECISION, 2026-09-09 (rev 6). Unauthorised and unbuilt.** The
-reviewer was asked to authorise this flow as a scope addition or descope it, and answered
-**"decide later"**. That is a deliberate deferral, not a resolution and not a descope: the flow has
-no FR behind it, no WBS task id of its own, **no task is opened for it and nothing is built toward
-it**. It stays on this page in exactly this state until the reviewer decides.
+**AUTHORISED 2026-10-20 (rev 28) as `wbs:8.6`.** Requirements FR-107 to FR-111 and US-026 (SDD Amendment A-12); change
+order `CO-010`, scope accepted unbilled; OQ-057 and OQ-058 answered at their defaults. Design: `ADR-081`.
+*Previously read (rev 6): OPEN — DEFERRED BY REVIEWER DECISION, 2026-09-09. Unauthorised and unbuilt, no FR, no task id.*
 
-What changed on 2026-09-09 is only that the **form** beside it was authorised as `wbs:8.3`
-(FR-150–FR-154), so the two are no longer one undivided question. *Previously read (rev 5): still
-unauthorised and unbuilt, reviewer decision on the flow still open.*
+**What it does.** One hop the `wbs:8.3` form cannot make. When finance records a payment as the final one, the grant gets its
+final payment date, which starts the six-year retention clock (FR-048, §3.4, ADR-004), the application moves from
+"Approved" to "Grant Paid", the grant's own status moves from "Acceptance Signed" to "Paid" (amendment b, FR-113), and the payment itself is marked Issued. **A final payment must carry a date** (reviewer, 2026-10-20):
+the form will not save one without it, and the date is the payment's own. When the final mark is withdrawn or the payment is
+cancelled, the grant (date and status) and the application go back; the payment's status does not (below). The old description of this flow had
+three jobs; they are now split. Recording Provider, Bank Account and Payment rows is the `wbs:8.3` form. The date, the status
+and the Issued mark are this flow. The duplicate re-check is neither (below).
 
-Manual, finance role. It would have recorded the Provider, Bank Account and Payment rows,
-re-invoked the duplicate check before issue, and set `rev_grant.rev_finalpaymentdate` on the final
-payment.
+**What it does not do.** Stated so nobody reads it into the flow's name.
 
-**The first of those three is now delivered without it** — the WBS 8.3 form records all three row
-types by hand. The other two are not, and the second one matters:
+1. **The pre-issue duplicate re-check is NOT part of this flow.** It stays with `wbs:8.5` and FR-023 (`CO-010` says so). The
+   flow does not call `REV | Duplicate | QBO Check`; §5.4's second call site is not built by `wbs:8.6`.
+2. It writes **one column on the Payment row**, `rev_paymentstatus`, and only from Pending to Issued (below). It reads no amount, method, bank account, provider or QuickBooks reference.
+3. ~~It does not set the Grant's own status to "Paid".~~ **Retired by amendment b (2026-10-20):** it does, from "Acceptance Signed" only, in the same grant write as the date (below). *Previously read (rev 28 as approved): not done, flagged for the reviewer; FR-107 to FR-111 did not ask for it.*
+4. It does not update the Anonymised Statistic amount (§5.13 item 2).
+5. **It does not build the paid-grants retention job.** See below.
 
-- **The duplicate-payment re-check before issue is not performed.** That is Automation #7 / FR-023's
-  second call site, and verifying it is `wbs:8.5`.
-- **`rev_grant.rev_finalpaymentdate` is never written, so the six-year retention clock never
-  starts for any grant.** The form captures `rev_payment.rev_isfinalpayment` on the Payment row and
-  nothing propagates it to the Grant. This flow was the only thing designed to make that hop, so
-  descoping it leaves a **compliance gap, not merely an automation gap** — the retention design in
-  §3.4 and ADR-004 keys off that date. Carried as risk **A-R56** and named in §3.5 conflict 2's
-  **deferred** reviewer decision, because it is the fact that should decide it. **The deferral does
-  not close this gap and does not reduce it** — it leaves it open with no owner and no date. The
-  only interim mitigation is that a process owner can set `rev_finalpaymentdate` by hand on the
-  Grant; nothing prompts anyone to, and no gate detects that nobody did.
+#### Flow
+
+```mermaid
+flowchart TD
+  A(["A Payment is added, or one of: final mark, date, status, grant changes"]) --> P["Read the saved payment as it is now"]
+  P --> B{"Linked to a grant?"}
+  B -- No --> C{"Marked final and not cancelled?"}
+  C -- Yes --> R["Reason: no grant is linked"]
+  C -- No --> Z(["Nothing to apply"])
+  B -- Yes --> D["Read the grant, its application, and the latest dated final payment on the grant"]
+  D --> E["Target date: that payment's date, or none.<br/>Target grant status: Signed to Paid if a final exists, Paid to Signed if none, otherwise as is"]
+  E --> F{"Date or grant status different?"}
+  F -- Yes --> G["One grant write: final payment date (or clear) and grant status"]
+  F -- No --> H
+  G --> H["Target status: Approved to Grant Paid if a final payment exists,<br/>Grant Paid to Approved if none, otherwise leave"]
+  H --> I{"Status to change?"}
+  I -- Yes --> J["Write the application's status"]
+  I -- No --> K
+  J --> K{"Saved payment final, not cancelled, dated and Pending?"}
+  K -- Yes --> L["Write the saved payment's status: Issued"]
+  K -- No --> N
+  L --> N{"A reason to report?<br/>(date written but application at another status,<br/>or saved payment final and undated,<br/>or saved payment final and Cancelled)"}
+  N -- Yes --> M["Tell finance (Teams) and the process owner (Failure Alert)"]
+  N -- No --> Z2(["Done"])
+  R --> M
+```
+
+#### What is true after each save (the decision table)
+
+"Finals" are payments on the grant with the final mark set, a status other than Cancelled (OQ-058) **and a date**. "Target date" is
+the latest of their dates (FR-107). A final payment with no date is not a final: it starts no clock (`ADR-081` item 2). The form
+does not let one be saved; only a write that bypasses the form can create one (`A-R102`). The flow always lands on the target,
+whatever was saved.
+
+| Finals on the grant | Grant's date | Application | Grant's date becomes | Application becomes | Reported (FR-111) |
+|---|---|---|---|---|---|
+| 1 or more | empty or different | Approved | target date | Grant Paid | No |
+| 1 or more | the target date | Approved | unchanged | Grant Paid (finishes a half-applied run) | No |
+| 1 or more | empty or different | Grant Paid | target date | unchanged | No |
+| 1 or more | the target date | Grant Paid | unchanged | unchanged — **a repeat save, FR-109** | No |
+| 1 or more | empty or different | any other status | target date | unchanged | **Yes — the status is named** |
+| 1 or more | the target date | any other status | unchanged | unchanged | No (reported when the date was written) |
+| none | set | Grant Paid | cleared | Approved | No |
+| none | set | Approved | cleared | unchanged | No |
+| none | set | any other status | cleared | unchanged | **Yes — the status is named** |
+| none | empty | Grant Paid | unchanged | Approved (finishes a half-applied reversal) | No |
+| none | empty | any other status | unchanged | unchanged — **a non-final instalment, FR-109** | No |
+| any, **no grant linked** | — | — | none | none | **Yes, only if marked final and not cancelled** |
+| any; **the saved payment is final, not cancelled and has no date** | as above, from the other payments | as above | as above, from the other payments | as above | **Yes — "final payment has no date"** |
+| any; **the saved payment is final and Cancelled** (FR-112) | as above, from the other payments | as above | as above (it does not count, OQ-058) | as above | **Yes — "cancelled payment is marked final"**, informational |
+
+**The grant's own status, `rev_status` (amendment b, FR-113).** It is decided from the grant's status and from whether a final exists, never from the application's status, so the two rows above and the rows below are independent (a Withdrawn application can sit beside a grant that becomes Paid). It travels in the grant's one write (below).
+
+| Finals on the grant | Grant status | Grant status becomes | Reported (FR-111) |
+|---|---|---|---|
+| 1 or more | 3 Acceptance Signed | **4 Paid** (also finishes a half-applied run, where the date already matches) | No |
+| 1 or more | 4 Paid | unchanged — **a repeat save, FR-109** | No |
+| 1 or more | 1 Awarded or 2 Acceptance Issued | unchanged — never skips a step it has not reached (OQ-060) | **Yes, when the date is written in this run — the status is named** |
+| none | 4 Paid | **3 Acceptance Signed** (also finishes a half-applied reversal) | No |
+| none | 3 | unchanged — **a non-final instalment, FR-109** | No |
+| none | 1 or 2 | unchanged | **Yes, when the date is cleared in this run — the status is named** |
+
+The report on 1 or 2 is tied to the date being written, as the application's is (row 6 of the table above), so a later save of an unrelated instalment does not repeat it. **Wording difference with FR-113 (plan-agent):** the plan lists "Paid already" among the statuses that are reported. Read literally that reports every repeat save of a paid grant, which contradicts FR-109 in the same sentence; the design treats Paid with a final as a silent repeat (second row).
+
+What happens to the **saved payment's own status**, written last, after the writes above:
+
+| The saved payment | Its status becomes |
+|---|---|
+| Final, not Cancelled, dated, **Pending** | **Issued** |
+| Final, dated, already Issued or Cleared | unchanged |
+| Cancelled, whatever else is set | unchanged — a Cancelled payment is never written; if it is also marked final it is reported (FR-112) |
+| Not final | unchanged — an instalment is not touched |
+| Final, not Cancelled, undated | unchanged, and reported |
+| Final mark **removed** from a payment that is Issued | **unchanged — never reverted to Pending** (below) |
+
+A final payment that cannot be written at all (the platform refuses the date or the status) is not a table row. It is the
+flow failing, and it takes the failure path: `REV | Ops | Failure Alert` tells the process owner and the run shows Failed.
+
+#### The grant's own status (amendment b, FR-113)
+
+Ground truth read 2026-10-20, each against source and not against this document.
+
+1. **The column is `rev_grant.rev_status`.** `rev_grantstatus` is the name of the *global option set* (`OptionSets/rev_grantstatus.xml`: 1 Awarded, 2 Acceptance Issued, 3 Acceptance Signed, 4 Paid), not a column; the flow writes `item/rev_status`. Value 4 is already in source, so no option-set change and no import prerequisite (`C-TECH-050`).
+2. **Field security: none.** `rev_status` has `IsSecured=0` (`Entities/rev_grant/Entity.xml`, its description says why) and appears in no profile in `Other/FieldSecurityProfiles.xml`. The earlier note was right. The write is a plain write through `REV Service Automation`'s Write on Grant (§6.2); no profile permission or member is added, and `A-CP-7` is not extended.
+3. **Triggers on Grant: none can fire from this write.** The only flow with a trigger on `rev_grant` is `REV | Acceptance | Create Envelope`, `message: 1` (Create), so an update starts nothing. This flow's own trigger is on `rev_payment`, so writing the grant starts no further run of it either.
+4. **The two acceptance flows that write grant status cannot be overwritten by it, and cannot overwrite it.** `REV | Acceptance | Completion` writes 3 only behind a guard that the grant's status is still 2, so it cannot pull a Paid grant back to 3; `Create Envelope` writes 2 only on the grant's creation; `Reminders & Escalation` selects `rev_status eq 2`, so a Paid grant is never reminded or escalated. Nothing else in `Workflows/`, the saved queries or the code apps writes or filters on grant status (grepped).
+5. **Where the status travels.** One `UpdateOnlyRecord` on `rev_grant` carries `item/rev_finalpaymentdate` (the target date or null) and `item/rev_status` (the target status). It runs when **either** differs from what the grant read returned (the read's `$select` gains `rev_status`). The write always carries a status, and when the target is no move (`newGrantStatus` 0) it carries **the value the read returned, whatever it is** (1, 2, 3 or 4), so a date-only change **echoes the current status unchanged**. That is the cost of one write, and it is `A-R103`'s narrow race. Target status: with a dated final, 3 becomes 4 and any other status stays; with none, 4 becomes 3 and any other status stays. **The flow never changes a grant to 1 or 2:** a grant read at 1 or 2 is written back at 1 or 2, an echo and not a transition, and no write ever carries 1 or 2 for a grant that was not already there. *Previously read (rev 28, amendment b as first recorded): "The flow never writes 1 or 2." That contradicted the echo in the previous sentences; the intended meaning was the one above.*
+6. **Order.** Grant write (date and status together), then the application's status, then the saved payment's Issued mark. Date and grant status can no longer be half-applied against each other; the half-applied states left are the ones the table already names, and the next save of any payment on the grant finishes them.
+7. **Hand-set values.** The same shape as `A-R100`: a grant hand-set to Paid with no payment marked final returns to Acceptance Signed on the next save of any payment on it.
+
+#### As built: three differences from this design, each decided (amendment b, 2026-10-20)
+
+Read from the shipped flow (`Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json`), not from the Dev Summary. The Dev Summary lists a fourth (status in the same write as the date); that is this design, not a difference.
+
+1. **Reasons are one `Compose` of `if()` fragments, not a variable and its setters. ACCEPTED.** The design said "a reason variable and its setters" (`ADR-081` item 5 and the size line); the outcome is identical (one string, empty when nothing is to report), with fewer actions and no `SetVariable`. The wording above is rewritten; the rule that the reason carries references and never an amount, bank detail, date or name is unchanged and applies to every fragment.
+2. **The reads run with an all-zero id when no grant is linked, so there is no no-grant branch. ACCEPTED, on one condition that holds.** The reads are `ListRecords` with a `$filter`, and a filter on an id that matches no row returns an empty list; it does not fail, which a single-row `GetItem` would. The date write is gated by `linked` (`dateDiffers` is false for an unlinked payment), so nothing is written to a grant that is not there, and the reason for an unlinked final payment is a fragment of the same `Compose`. The flow diagram's "no grant is linked" branch is therefore a decision inside the reason, not a path. Test `ac9` covers it.
+3. **The Warning alert is called before the Teams message. ACCEPTED.** The design fixed no order. Alert first means the process owner learns the reason when the Teams post fails. Cost, stated: the Teams post runs only if the alert succeeded, so a failed alert call also silences Teams; the run then takes the failure path (FR-111) and shows Failed, and the writes have already been made.
+
+#### Trigger, identity and connections
+
+- **Trigger:** `When_a_payment_is_recorded_or_changed` — `SubscribeWebhookTrigger` on `rev_payment`, `message: 4` (Added or
+  Modified, read live from `stringmap` 2026-08-28, `knowledge/technology/power-automate.md`), `scope: 4`, `runas: 3`,
+  `filteringattributes: rev_isfinalpayment,rev_paymentdate,rev_paymentstatus,rev_grantid`, outputs secured, concurrency 1.
+  Delete is not a trigger (`ADR-081` item 1). `A-CP-1`, `A-CP-2`, `A-CP-4`.
+- **Run as the flow owner (`svc-grantautomation`), not the person who saved.** The Finance role holds Read and AppendTo on
+  Grant and nothing at all on Application (§6.2), so a run as the modifying user could not make either write. The service
+  account's `REV Service Automation` role already holds Read and Write on Grant, Application and Payment.
+- **Writing a column-secured finance column (checked 2026-10-20, answer 3).** Writing `rev_paymentstatus` is the first write this
+  flow makes to a `REV_FinanceOnly` column, so the earlier statement that nothing changes was re-read against the source rather
+  than repeated. It holds. `REV_FinanceOnly`'s permission on `rev_paymentstatus` is Read, Update and Create all *Allowed*
+  (`Other/FieldSecurityProfiles.xml`), and `REV Service Accounts`, the service account's team, is a member of the profile in all
+  three settings files (`memberTeams` next to the finance team; in DEV under its DEV names). The Grant's `rev_finalpaymentdate` is in `REV_TrusteeRestricted`,
+  with the same Allowed flags, and the same team is a member of that profile too. **No privilege, profile permission or profile
+  member is added.** What is new is the *act*, a secured-column write by the flow owner through team membership, which no
+  shipped flow performs on `rev_payment`: `A-CP-7`.
+- **Connections:** the two connection references the solution already has, `rev_SharedDataverse` and `rev_SharedTeams`. No new
+  connector, no new reference.
+- **Audit.** The grant's date, the application's status and the payment's status are audited columns; those writes are attributed
+  to the service account. For a final payment the Payment row's `modifiedby` will read the service account after the Issued write,
+  not the person who ticked the box. **Who ticked it stays in the Payment table's audit history** (`rev_payment` is audit-enabled,
+  `Entity.xml` and `dev-auditing-settings.json`).
+
+#### Idempotency, ordering and the loop (FR-109)
+
+The flow computes the target from the payments that exist, and writes only what differs. A second save of the same payment,
+a save of a different payment on the same grant, and a run replayed from run history all find current equals target and write
+nothing. Concurrency is 1, so two saves on one grant are processed one after the other and the later run reads everything the
+earlier one wrote. The writes are separate calls and run in a fixed order: grant date, application status, then the saved
+payment's own status. A run that stops between them leaves the date set and the application at Approved, or the grant and
+application done and the payment still Pending, and the next save of any payment on that grant finishes the job (table rows 2
+and 10). **A payment still reading Pending is therefore the visible sign that the flow did not finish for it.**
+
+**The Issued write fires the flow once more, and that run ends.** `rev_paymentstatus` is in the trigger's filter on purpose:
+cancelling a payment, or un-cancelling one, must recompute the grant (FR-110, OQ-058). The flow's own write to it therefore
+starts a second run. That run reads the payment as Issued, finds the grant and the application already at target, finds the
+saved payment not Pending, and writes nothing. It cannot start a third. The argument is a fixed point, not a count: **the Issued
+write is guarded by the status being Pending, and the write itself makes that false; no path in the flow ever writes Pending.**
+The cost is one extra no-op run per final payment, queued behind the first by concurrency 1. A trigger condition that skipped
+Issued was rejected: finance un-cancelling a payment straight to Issued needs the recompute. `A-CP-8` is the observation that it
+stops after one extra run.
+
+#### The payment's status, and what undoes it (FR-110)
+
+The flow moves a payment **Pending to Issued** and nothing else. It never writes Cleared (the bank's act), never writes Cancelled,
+and **never writes Pending**. So:
+
+- **Unticking Final** on an Issued payment reverses the grant and the application (FR-110) and leaves the payment Issued. Whether
+  the money went out is a fact the flow cannot see; guessing Pending would be wrong the day a payment was issued and merely
+  mis-marked. If it was not sent, finance sets the status by hand. The status is the payment's own record; the grant's date and
+  the application's status are what the flow keeps in line.
+- **Cancelling** a final payment is a status finance sets. It stops counting (OQ-058), the grant and the application revert, the
+  flow does not write the payment, and it reports the case as FR-112 words it (an informational message; one more finance message per cancellation of a final payment, which the
+  plan's text asks for and the design would otherwise have left silent).
+- **Un-cancelling** a final, dated payment back to Pending makes it final and Pending, so the flow marks it Issued. A finance user
+  who wants a final payment to stay Pending unticks Final: under answer 3, a final payment is an issued one.
+- **Correcting the date** of an Issued final payment re-records the grant's date and does not touch the payment's status.
+
+#### Payment date required when Final is set (reviewer answer 3)
+
+The reviewer's rule is conditional: no date is needed until the payment is marked final, because a Pending payment may exist
+before its date is known (`rev_paymentdate`'s own description, `Entity.xml`, and the `wbs:8.3` form). Where it is enforced:
+
+1. **Form, by a business rule (no code).** On the `rev_payment` main form: *when `rev_isfinalpayment` is Yes, `rev_paymentdate` is
+   business required.* Finance records payments through that form (`wbs:8.3`), so this is where the rule is met. It is authored in
+   the DEV maker designer and **exported into source, not written as workflow XAML by hand**, so the file is what the platform
+   produced (`A-CP-9`). It adds one workflow component to the solution; no web resource and no plug-in.
+2. **Table level was rejected.** Making `rev_paymentdate` `ApplicationRequired` on the column is unconditional: it would stop a
+   Pending payment being saved without a date, which the approved `wbs:8.3` design allows, and `ApplicationRequired` is a
+   form-level requirement that an API write does not meet anyway.
+3. **API and import writes are not stopped by the form, and no plug-in is added.** Nothing in this solution contains a plug-in; a
+   server-side block would be a new component class (an assembly, its signing and deployment) outside `CO-010`. The flow is the
+   backstop instead, and it fails **visibly rather than wrongly**: an undated final payment is not counted as final, starts no
+   clock, and finance and the process owner are told "final payment has no date" (decision table, last row). The clock never starts
+   on a guessed day. The residual case is `A-R102`.
+
+#### Visibility when a final payment cannot be applied (FR-111)
+
+One message, built once, sent to **finance** (Teams, to `rev_FinanceAlertUpn`) and to the **process owner** (the existing
+`REV | Ops | Failure Alert` child flow: an Error Log row at severity Warning and the process owner's Teams card). It carries the
+payment reference (`PAY-…`), the grant reference (`REV-…`), the reason in plain words, and what to do. **It carries no amount,
+bank detail, date, name or note** (NFR-012, NFR-150). The report is the last step, after the writes, so a failure to send it
+never undoes them. If `rev_FinanceAlertUpn` is blank the Teams post fails, the run takes the failure path and the process
+owner is alerted; **finance is told nothing**. The variable is therefore `isrequired=1` with no default (§12). **Today finance
+and the process owner are one person, so that person receives two messages for one cause**, one from each route. That is accepted
+for now and is the cost of keeping the variable separate for when the roles split.
+
+**Restart route (not retry).** FR-111 forbids a background retry and the flow has none; the platform's own transient-error
+retry on each action is unchanged. Finance corrects the cause and saves the payment again. **A save that changes none of the
+four trigger columns sends no update and so does not start the flow.** The message therefore says: untick Final payment, save,
+tick it again, save. Both saves are safe (FR-109, FR-110). For a payment with no date the message instead says: add the date and
+save. Where the cause is the application's status, nothing finance can do changes it and the message is informational.
+
+#### Paid-grants retention job — stays out of this task, flagged
+
+Dev Summary §3.2 records the six-year paid-grants job as *"not implementable in this release"*, because it needs
+`rev_finalpaymentdate`. **It is not in `CO-010` and this revision does not add it.** What `wbs:8.6` changes: the date will
+exist, and the Dev Summary's sentence *"No Phase 1 application can reach Grant Paid"* stops being true in each environment on
+the day this flow is activated there. What it does not change: no record can be six years from its final payment before six
+years after the first final payment is recorded, so the job's absence over-retains nothing for years. The exposure is a date
+in the diary, not a live breach. The job targets `rev_grant`, needs a join to its application and is applied by a
+tenant administrator (§6, §12); `ensure-bulk-delete-jobs.ps1` is the evidence for `wbs:0.7`. **Whether it belongs to
+`wbs:0.7` or needs its own change order is for `pm-agent` and `commercial-agent`**, and the Dev Summary row is
+`development-agent`'s to update when the flow ships.
+
+#### Size
+
+About **30 actions** in one scope, nested no more than four levels (amendment b adds one Compose for the target grant status and one widened condition; no new read and no new write). Four reads (the saved payment, the grant, the application, the latest dated
+final payment), three writes (grant date and status in one, application status, the payment's Issued mark), the reasons as one `Compose` of conditional fragments, one report block, the failure path.
+The undated-payment read of the earlier design is gone. **Judgement:** proportionate for three writes and their reversal. The set-and-clear, the grant's Signed/Paid-and-back and
+the application's Approved/Grant Paid-and-back paths are each one computed target, not two branches.
+
+**Serves** `wbs:8.6` (`CO-010`), after `wbs:8.1`, `8.3` and `8.4`: FR-107, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113; US-026 (AC-1 to AC-19).
 
 ### 5.12 `REV | Retention | Retention & Erasure Helper`
 
@@ -1667,10 +2232,17 @@ The source's access matrix says the service account "Writes" the Anonymised Stat
 the source's inventory writes it**, and FR-055 requires the statistics to survive deletion of the underlying
 personal data. Derived assignment:
 1. `REV | Portal | Finalise Decisions` writes the snapshot at decision (outcome = Approved / Deferred /
-   Rejected), so reporting is current rather than end-of-life.
-2. `REV | Finance | Capture Payment` updates the amount on final payment.
+   Rejected), so reporting is current rather than end-of-life. **Rev 27:** `rev_statisticoutcome` holds only Granted
+   and Not Granted. **Reviewer, 2026-10-20 (`Q-FD-3`, §5.7):** no third value; *"deferred means that it has not been
+   granted and could be granted in the future."* So a Deferred review writes **no** snapshot, and each application is
+   counted once, at its final outcome in a later round: Granted or Not Granted. A deferral never produces a second row
+   for the same application.
+2. `REV | Finance | Capture Payment` updates the amount on final payment. **Rev 28: not done by the flow as authorised.** FR-107 to FR-111 write a date and a status and the flow reads no amount (§5.11); the snapshot's amount stays as `Finalise Decisions` wrote it. Flagged for the reviewer, not added (`ADR-081` item 9).
 3. `REV | Retention | Retention & Erasure Helper` **verifies a snapshot exists before any record is
-   deleted** — the safety net that makes FR-055 true even if step 1 failed.
+   deleted** — the safety net that makes FR-055 true even if step 1 failed. **Rev 27:** this is also where an
+   application whose last review was Deferred, and which was never decided again, is counted: it has no snapshot, so
+   the helper writes one **Not Granted** snapshot before deletion. Specified here for the helper's design (still
+   unbuilt); flow #7 does not do it.
 The snapshot carries no lookup and no reference number (§3.1), so it is genuinely anonymised and is not
 touched by erasure.
 
@@ -1979,8 +2551,8 @@ and what input is still needed.
 | NFR-014 | Native Dataverse field-change auditing at environment and table level on all ten tables — timestamp (UTC), actor, action, record ID, before/after | Platform-native, not bolt-on; satisfies C-DOM-010/011 without custom code |
 | NFR-015 | App-access logging enabled; trustee portal opens are recorded with user and timestamp | Security Model §8 |
 | NFR-016 | Retention/erasure evidence log holds record reference, data type, date and rule only; bulk-delete runs additionally recorded as Dataverse system jobs | Durable evidence with no second copy of personal data (FR-054) |
-| NFR-017 | Redaction confidence threshold is a `rev_setting` row (`RedactionConfidenceThreshold`, initial 85%), read at run time. **Rev 19:** it is compared with **extractor** scores only. A generative prompt returns no score (E1), so a prompt stage is released only through `RedactionPromptCalibrated` (`ADR-072` item 8), and no record is released at all until `RedactionAutoRelease` = `true` (`ADR-071` item 8) | Adjustable after launch with no redesign and no solution import (NFR-019) |
-| NFR-018 | Trustee visibility requires `rev_eligibleforround = true` **and** `rev_redactionreleased = true`; both default false, so the flow **fails closed**. **Rev 19:** every stage failure, every residue-check hit, and every absent Automation #5 setting also leaves `released = false` (§5.5) | 100% of low-confidence redactions and Borderline outcomes reach a human because the default state is *withheld*, not *shown* |
+| NFR-017 | Redaction confidence threshold is a `rev_setting` row (`RedactionConfidenceThreshold`, initial 85%), read at run time. **Rev 19:** it is compared with **extractor** scores only. A generative prompt returns no score (E1), so a prompt stage is released only through `RedactionPromptCalibrated` (`ADR-072` item 8), and no record is released at all until `RedactionAutoRelease` = `true` (`ADR-071` item 8). **Rev 25 (`ADR-078`):** `RedactionAutoRelease` is retired; no flow releases a record; the threshold now only flags records for the process owner's attention, and is seeded create-only at `0.85` | Adjustable after launch with no redesign and no solution import (NFR-019) |
+| NFR-018 | Trustee visibility requires `rev_eligibleforround = true` **and** `rev_redactionreleased = true`; both default false, so the flow **fails closed**. **Rev 19:** every stage failure, every residue-check hit, and every absent Automation #5 setting also leaves `released = false` (§5.5). **Rev 25 (`ADR-078`):** the scrub flow never writes `rev_redactionreleased`, so every narrative stays withheld until the process owner releases it | 100% of scrubbed narratives (rev 25) and of Borderline outcomes reach a human because the default state is *withheld*, not *shown*. *Previously read:* "100% of low-confidence redactions and Borderline outcomes" |
 | NFR-019 | All tunables in the `rev_setting` table (process-owner editable through the MDA); only per-environment values in environment variables (`rev_SignedDocLibrary`, `rev_ServiceMailbox`, `rev_DefaultThreshold`). **Rev 20:** Automation #5's word lists and prompt categories are tunables too (`ADR-074`). A setting can add to a word list, never remove from the tested built-in list; the phone and postcode shapes stay in the flow because they are the specification | Environment variables need maker-portal access and a solution context; a Dataverse table row does not. ADR-010 |
 | NFR-020 | Reading-age ~12 applies to the WordPress form (built by Alex to the supplied specification) and to every applicant-facing message a flow sends. The specification handed to Alex must carry it as an acceptance criterion | The applicant-facing surface is out-of-palette, so the requirement travels as a specification obligation, not a build task (§8) |
 | NFR-021 | ~200 applications/year with headroom to 250 and 300+ cumulative grants is **far** inside Dataverse limits; the constraint is licence seats and AI Builder credits, not platform capacity | Scale risk here is commercial, not technical (SDD OQ-017) |
@@ -3860,7 +4432,7 @@ connector's actions exposes either. It stays a template or account setting (`ADR
 they bind the solution flow.
 
 1. **~~The referee's `routingOrder` is `2`.~~ Superseded by `ADR-069` item 3: the flow sets none.** v2c sets `1` on both roles, which would make them sign in
-   parallel. FR-042 requires applicant first, then referee.
+   parallel. FR-042 requires applicant first, then referee. **(Rev 24: that is right again; see `ADR-077`. The flow still sets none.)**
 2. **Values come from the grant, as in rev 14**: amount = `rev_grant.rev_amountawarded` formatted `N2`, not
    the application's amount requested. Dates = the grant's holiday start and end formatted `d MMMM yyyy`. The
    name is as rev 14 composes it.
@@ -3869,9 +4441,9 @@ they bind the solution flow.
    notification, not a contact field (E2). It is not needed for the access code. It would send the link by text,
    possibly as a charged add-on, and re-open the UK-delivery question (`NFR-009`) that the access code closed.
 4. **Identify tabs by `tabLabel` where the template sets a Data Label, else by the placeholder value.** v2c keys
-   the five prefill tabs on their placeholder `value` (*Name*, *Amount*, *Holiday type*, *Holiday destination*,
+   the prefill tabs on their placeholder `value` (*Name*, *Amount*, *Holiday destination*,
    *Dates*). That works, but any edit to a placeholder text in DocuSign silently stops the match. C8's
-   completeness check is what catches it. Expected set: five prefill tabs, plus the referee's `n2`, `e2`,
+   completeness check is what catches it. Expected set (**rev 24: four prefill tabs, `Holiday type` removed**; v2c's five is history): the prefill tabs, plus the referee's `n2`, `e2`,
    `ph2`.
 5. **Settings rows, not literals**, for both subjects and bodies (`ADR-068` item 3).
 6. **`secureData`** on C2–C4, C6–C8 and any `Select` that builds the tab array: they carry names, emails and the
@@ -4063,7 +4635,7 @@ DocuSign run output was read by this agent.
 3. **Signers are bound without `routingOrder`.** The template locks it, and DocuSign answers `200` with
    `RECIPIENT_UPDATE_FAILED` and leaves the signer blank. **Rev 16 approval: there is no signing
    order** (reviewer: *"The agreement gets send to both"*), so the missing `routingOrder` is the intended behaviour and
-   nothing needs observing (`A-DS-19` closed, §12.5 R7).
+   nothing needs observing (`A-DS-19` closed, §12.5 R7). **Rev 24: the first half is reversed by `ADR-077` (the customer requires applicant-then-referee); the second half stands: the flow still sends no `routingOrder`, and the order is now observed (R7, `A-DS-20`).**
 4. **A signer read-back stops the run if a bind did not take** (`Check_both_signers_are_bound`), because item 3's failure
    mode is silent.
 5. **The access code is set before the referee is bound.** Added after it, DocuSign blanked the referee's name and
@@ -4077,7 +4649,7 @@ DocuSign run output was read by this agent.
    `DraftDoesNotMatchTemplate`, `SignerNotBound`, `NoTabsToFill` and `TabsNotFilled`. Every container in the scope
    has its own failure-lookup case.
 9. **Supersedes in `ADR-067`:** the C3 `routingOrder` and design requirement 1; the C7-A/C7-B choice and the "build A"
-   paragraph; design requirement 4's expected set (now the 15 required ids); design requirement 7's *"exactly one
+   paragraph; design requirement 4's expected set (now the 15 required ids; **14 from rev 24**); design requirement 7's *"exactly one
    document"* (now at least one); the C8 text *"every expected tab"* (now the three conditions of step 13).
    **The ground-truth tables in `ADR-067` are history and are kept.**
 
@@ -4086,11 +4658,10 @@ DocuSign run output was read by this agent.
 1. *Positive:* a failure names the group that failed. *Negative:* 14 DocuSign calls per envelope, up to 17 (risk `A-R76`).
 2. *Positive:* a spelling difference between the read and the update no longer stops a run. *Negative:* the
    fallback can mask which spelling is correct; the primaries are measured, the checkbox literal is not.
-3. *Neutral (rev 16 approval):* both signers are emailed at the same time, which is what the reviewer wants.
-   Risk `A-R80` is retired. The reviewer controls the template.
+3. *Neutral (rev 16 approval), reversed at rev 24 by `ADR-077`:* both signers were emailed at the same time. Now the referee is emailed after the applicant signs. `A-R80` stays retired and is replaced by `A-R94`, not reused.
 4. *Positive:* a blank signer cannot reach the send. The compared value is the email, not the name.
-5. *Neutral:* there is no order to assert; the test asserts that no `routingOrder` is sent.
-6. *Positive:* the referee sees the organisation. *Negative:* the template change is hand-made per environment
+5. *Neutral:* the test asserts that no `routingOrder` is sent. **Rev 24: no order assertion is added; the order check was dropped (`ADR-077` item 2, 2026-10-19).**
+6. *Positive:* the referee sees the organisation. *Negative:* the template change is hand-made, once, on the one shared DocuSign template
    (risk `A-R75`).
 7. *Positive:* a template with a second document no longer fails. *Negative:* a tab on the second document is not
    filled or checked.
@@ -4156,6 +4727,15 @@ today (grepped 2026-10-05); the eight new columns are **not in either**, and `de
 > additive `rev_setting` row (`ADR-074`), and a sixth residue kind is added, `district`. Item 8: `RedactionAutoRelease`
 > releases only when it was saved after every other `Redaction*` row; otherwise `auto-release-stale` (`ADR-074`
 > item 5). The body below is the rev 19 text.
+
+> **Superseded in part, rev 22 (2026-10-16), `ADR-075`, not yet approved.** Items 1 (windows), 3 (shape detectors),
+> 4 (kinship and practice-suffix refinement), 5 (the offsets-only merge and rebuild) and 9 (the stage seam) are replaced:
+> one extractor call per column, labels, then the rewrite prompt behind checks P1 and P2. Items 2 (as owners change), 6
+> (residue checks), 7 and 8 stand. Rev 21's amendment of item 5 is withdrawn.
+
+> **Superseded in part, rev 25 (2026-10-19), `ADR-078`, not yet approved.** Item 8 and its Consequence 8 are reversed:
+> there is no calibration after which a record is released without the process owner. She releases every record, and
+> `RedactionAutoRelease` is retired. Item 7's reason codes stay, as hints on her card.
 
 **Context.** Measured on 2026-10-05:
 
@@ -4260,6 +4840,13 @@ API-key secret; not what the reviewer meant (2026-10-05).
 > and *Move data across regions* stays unticked. TST/ACC and PRD are unchanged. What building the prompt component
 > and any DEV run need that no dispatched agent can do is listed in §12.6.1, as reviewer actions.
 
+> **Superseded in part, rev 22 (2026-10-16), `ADR-075`, not yet approved.** Item 1 stands. Items 2 to 8 are replaced:
+> the prompt is the rewriter, not a detector; it runs unless `RedactionPromptStage` = `off`; its output is plain text;
+> item 6's quote validation and item 7's "no text" guarantee are replaced by checks P1 and P2, under which the model can
+> write only words it was given after labelling or words on the flow's closed list. Item 3's residency hold is lifted for
+> hosting by the client's legal office; prompt processing is in the EU Data Boundary (`ADR-075` context). Rev 21's note is
+> withdrawn.
+
 **Context.** The reviewer: *"use generative prompt for the indirect links"* (2026-10-05). Measured:
 
 | Fact | Level |
@@ -4321,6 +4908,10 @@ it is committed, per `skills/how-to-verify-a-platform-contract.md` §3.
 
 ### ADR-073: The postcode register confirms postcodes without their space and districts on their own — it adds detections and never removes one
 **Status:** `Accepted` (rev 20, approved 2026-10-06) · **Date:** 2026-10-06 · **WBS:** `wbs:5.3` (tuning `5.6`) · **Amends `ADR-071` item 3.**
+
+> **Superseded in part, rev 22 (2026-10-16), `ADR-075`, not yet approved.** The register no longer creates `[ADDRESS]`
+> spans; it is read once per run for the `residual-district` check only. A postcode without its space is caught by
+> `residual-postcode` when the prompt does not label it.
 
 **Context.** Reviewer, 2026-10-06: *"Why not against the postcode list we already have?"* Measured on 2026-10-06:
 
@@ -4400,6 +4991,15 @@ after Emily's input, one `rev_setting` row can hold that map, again with no sche
 
 ### ADR-074: Redaction rules the process owner may tune live in `rev_setting` — additive over a tested floor, with guard rails that fail closed
 **Status:** `Accepted` (rev 20, approved 2026-10-06) · **Date:** 2026-10-06 · **WBS:** `wbs:5.3` (designed), `5.6` (tuning, after Emily) · **Amends `ADR-071` items 6 and 8, `ADR-072` items 3, 4, 6 and 8.**
+
+> **Superseded in part, rev 22 (2026-10-16), `ADR-075`, not yet approved.** Items 1 and 2 (category rows) and 3's
+> kinship and practice-suffix lists are retired; the template is fixed in the solution and one additive row,
+> `RedactionNeutralTermsExtra`, feeds it. Item 4 (malformed fails closed) and item 5's auto-release rule stand; its prompt
+> calibration half is retired. `RedactionPromptStage` becomes a kill switch.
+
+> **Superseded in part, rev 25 (2026-10-19), `ADR-078`, not yet approved.** Item 5's auto-release half is retired with
+> `RedactionAutoRelease`, so an edit to a `Redaction*` row needs no confirmation (`auto-release-stale` goes) and
+> Consequence 5 no longer applies. Items 3 and 4 and the guard rails' audit and Admin-only editing stand.
 
 **Context.** Reviewer, 2026-10-06: *"for the prompts maybe create a setting rows for the prompt with the rules? Make it
 data driven"*. Measured on 2026-10-06:
@@ -4506,6 +5106,1056 @@ a condition on `wbs:5.6`, not decided here.
 
 ---
 
+### ADR-075: Automation #5 simplified — the extractor labels, one prompt rewrites, a second prompt corrects spelling, and three fixed checks decide what may be written
+**Status:** `Accepted` (rev 22, approved 2026-10-16) · **Date:** 2026-10-16 · **WBS:** `wbs:5.3` (the flow), `5.6` (the client's rules, the
+grammar, spelling) · **Supersedes** `ADR-071` items 1, 3, 4, 5 and 9, `ADR-072` items 2 to 8, `ADR-073`'s detection half and
+`ADR-074` items 1, 2, 3 (two of the four lists) and 5 (the prompt half); see the note under each. Resolves
+development-agent's Iteration 8 `CASCADE: ARCH_GAP`.
+
+> **Amended rev 23 (2026-10-16), `ADR-076`, approved 2026-10-16.** Item 3: the key, the titles, the name rules and the
+> label list leave the template and reach it as four inputs from `rev_setting`; the template keeps only the fixed
+> contract. Item 8: `RedactionNeutralTermsExtra` is replaced by `RedactionNeutralTerms`, `RedactionTitles`,
+> `RedactionNameRules` and `RedactionLabels`; P2's closed list and P3's gendered list are derived from them.
+
+> **Amended rev 25 (2026-10-19), not yet approved: Dev Summary Iteration 11 recorded, and `ADR-078`.** Iteration 11 was
+> approved by the reviewer on 2026-10-19 (verbatim, relayed by lead-agent: *"Yes please, process the suggested
+> changes"*) after a DEV run on synthetic case TD-13 wrote *"My name is they-Reed"*: the extractor had labelled only
+> *Holloway* of *Holloway-Reed*, and the rewrite turned `[NAME]` into *they* (a privacy defect, a surname fragment in a
+> trustee-facing column).
+>
+> **Item 2, added.** *The property:* no letter that is joined to a name the extractor found reaches the rewrite prompt
+> or a written counterpart outside the `[NAME]` label. *The current mechanism, one way of meeting it:* before labelling,
+> a person-name span is (a) **trimmed** past a leading *Dr*, *Dr.* or *Doctor*, so the prompt sees *Dr [NAME]* and the
+> *keep `[NAME]` after Dr* rule can apply whether or not the extractor included the title; and (b) **widened over one
+> joined fragment on each side**: a hyphen and the letters after it (*Holloway-Reed*), an apostrophe and two or more
+> letters after it, or letters followed by a hyphen or apostrophe before it (*O'Brien*, *Mary-Ann*). The possessive
+> *'s* is never taken in, so *[NAME]'s* stays a possessive. Fields `trim`, `fwd`, `back` on `Select_entity_ages`; the
+> offset clamp moves to `Select_entities`.
+>
+> **Item 7, added: two reasons.** `residual-name-fragment:<column>` (P3): any label still joined to letters by a hyphen
+> or apostrophe, looked for in the column before labelling (so a second fragment, *Smith-Jones-Brown*, is caught) and in
+> the final text (so a model that writes *[NAME]-Reed* is caught). `rewrite-dropped-punctuation:<column>` (fidelity, like
+> `rewrite-dropped-text`): the rewrite has at least two fewer of `. , ; : ! ?` than its input **and** more than 10% fewer.
+> Both write the column and flag the record. One `Filter` (`Filter_spans_with_a_joined_fragment`) and two
+> `Compose_check_texts` fields. Platform assumption `A-NS-40` (`first()`/`last()` of a string) is in the narrative Dev
+> Summary §11.6, OPEN; if it fails, the widening is zero and `residual-name-fragment` still flags the record.
+>
+> **Rev 25, `ADR-078`.** Item 8's `RedactionAutoRelease` clause and the *What a person sees by default* sentence about
+> `auto-release-off` are superseded: no record is released by the flow. Throughout this ADR, a residue or fidelity code
+> that "holds the record" now **flags it for the process owner's attention**; every record is held for her anyway.
+>
+> **Flow size:** 97 actions after Iteration 10, **100** after Iteration 11 (the three actions above), **about 97**
+> after `ADR-078` removes three. Nesting stays at 5. For a flow whose job is to label, rewrite and check twelve columns,
+> 100 is the ceiling the definition test holds and should be treated as one: the next addition should remove something.
+
+> **Rev 21's text of this ADR is withdrawn.** It proposed a deterministic neutral-word stage that would have taken the
+> flow from 313 to about 340 actions. Reviewer, Xander Lykopoulos, 2026-10-16, verbatim: *"I noticed that the flow is
+> very complicated, for a seemingly easy task. Simplify the workflow, 340 actions is absurd for the goal of this
+> workflow."* Rev 21 was not approved; its text is in git history (`IMP-1111`, `IMP-1113`).
+>
+> **Erratum, 2026-10-16 (`IMP-1118`), wording only.** Item 3 and one line of the Rejected list are brought in line with
+> approved SDD Amendment A-09: FR-095 and the OQ-054 defaults. This changes no mechanism, no action, no check and no
+> setting: `[NAME]` and `[FAMILY MEMBER]` were already on the closed list, so the rewrite prompt could always write them
+> and P2 is unchanged. **No new approval is needed.** *Previously read, item 3:* "turn `[NAME]` into *they*, *them* or
+> *their* as the sentence needs, with the verbs agreeing, so a name becomes *They* (§8.6 item 4, FR-026 being amended)".
+> *Previously read, Rejected list:* "Kinship refinement has no output once a name becomes *They*."
+>
+> **Second erratum, 2026-10-16, wording only.** Reviewer, Xander Lykopoulos, verbatim: *"My husband Derek becoms partner. not family member. the word husband is leading in this pattern."* A name next to its
+> relationship word is dropped and the relationship word neutralised; it no longer becomes `[FAMILY MEMBER]`. This
+> departs from the approved OQ-054 default (c); plan-agent is amending FR-095 and FR-026 in parallel (**pending**). No
+> mechanism, action, check or setting changes, so **no new approval is needed**. **`[FAMILY MEMBER]` after this
+> erratum:** no rule in this ADR produces it any more. It stays on P2's closed list only so that an output using it is not
+> rejected, since an extra label never discloses anything; whether the label is retired altogether is for plan-agent's
+> FR-026 amendment. *Previously read, item 3 (first erratum):* "write `[FAMILY MEMBER]` for a name next to its
+> relationship word (*my partner [FAMILY MEMBER]*)". *Previously read, Rejected list (first erratum):* "the rewrite prompt
+> writes `[FAMILY MEMBER]` for a name next to its relationship word (FR-095, OQ-054 (c)), and that label is on the closed
+> list, so P2 still holds."
+
+**Context.** Four things changed on 2026-10-16, all relayed by lead-agent (`logs/routing.log`, 2026-10-16 11:45):
+
+1. **Hosting location is settled.** The client's legal office, verbatim: *"Under UK GDPR, personal data does not
+   necessarily have to be stored in the UK. Switzerland is recognised under the UK's adequacy regulations as providing an
+   adequate level of protection for personal data, as confirmed in the ICO's guidance. So, from an international data
+   transfer perspective, there is no issue with the Grant Application Solution being hosted in Switzerland simply because
+   of its location."* That answers where the environments sit. **It does not say where a prompt is processed**, which is
+   a separate fact, measured below. **Decided the same day for prompt inference**, reviewer Xander Lykopoulos, 2026-10-16,
+   verbatim: *"Yes, the AI prompt processed in EU is agreed."* This is the residency decision for AI prompt processing in the EU Data Boundary. **Flex routing is disabled at
+   tenant level**, so inference stays inside that boundary: reviewer, 2026-10-16, verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"* (stated, not
+   agent-measured; `A-NS-32`, `A-R92` closed). *Previously read: "Flex routing ... is not covered and stays undecided".*
+2. **Spelling correction is in the design**, as a separate LLM call: *"It is possible to do a second call that does spell
+   checks ... But I think it's better to keep it separated. This feature should be added to the design, because its a
+   requirement that came up during the meeting with Emily."* Its commercial status: `CO-009` **approved, unbilled** (reviewer,
+   2026-10-16, verbatim: *"CO-009 Approved with unbilled tag. Features always expand a bit during development and this one is within reasonable limits."*). *Previously read: "with commercial-agent (`CO-009`, re-assessed in parallel)".*
+3. **Answers to Dev Summary §8.6.** Names follow the client's key and examples, so **a name becomes *They***. *him* and
+   *hers* follow the client's own examples. Add *grandmother, stepson, auntie, niece, nephew, mummy, lady* and the titles
+   *Mr, Mrs, Ms, Miss*. A second word after *and* changes too when it identifies someone. The three questions with no
+   redacted counterpart get none: *"All fields in the trustee portal right now is what the trustees use to make their
+   decisions on."* SDD Amendment A-09 (FR-026 amended; FR-094 to FR-099 added; OQ-054 to OQ-056 at their defaults) was approved on 2026-10-16. *Previously read: "plan-agent is amending FR-026 in parallel, so the FR trace below is provisional until that lands."*
+4. **The flow must be simple enough for a maker to read and maintain.**
+
+Measured:
+
+| Fact | Level |
+|---|---|
+| The scrub flow has 313 actions: about 70 are failure handling (16 catch triplets plus the failure descent), 49 the prompt detector and its validation, 26 the word-list settings, 21 extraction and refinement, 19 variable set-up, 17 the merge loop, 13 the per-column write, 12 the residue checks, 11 the shape detectors and 10 the postcode register | E1 (counted from source, 2026-10-16) |
+| A Switzerland environment's prompts are processed by Azure OpenAI **in the EU Data Boundary** when *Move data across regions* is allowed. With it not allowed, "no data is sent outside of the region", and AI Builder *AI Prompts* is listed as depending on the setting. **Flex routing** lets LLM inferencing "occur outside the EU Data Boundary during periods of peak demand"; clearing its checkbox keeps all inferencing inside the boundary. It "is on by default for eligible tenants that were created after March 25, 2026". Microsoft states it does not log, store or retain the input or output during cross-region movement | E2 (Microsoft Learn, *Move data across regions for Copilots, AI agents, and generative AI features*, ms.date 2026-10-14, read 2026-10-16) |
+| *Move data across regions* is **on in DEV**; the prompt component exists in DEV and in source (`Other/Customizations.xml`), model `gpt-41-mini`, temperature 0, moderation Low, output format `text` | E1 (DEV export, `docs/development/revitalise-redaction-prompt.md` §6, 2026-10-07) |
+| *Move data across regions* is **on in DEV and TST/ACC**. Reviewer, Xander Lykopoulos, 2026-10-16, verbatim: *"the move data accross regions options is on in both dev and acc. This is standard."* | E4-style: a reviewer statement, not measured by an agent (DEV also E1, 2026-10-06) |
+| Flex routing is **disabled at tenant level**. Reviewer, 2026-10-16, verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"* | E4-style: a reviewer statement, not measured by an agent (`A-NS-32`) |
+| *Move data across regions* is **on in PRD** too. Reviewer, 2026-10-16, verbatim: *"the move accross regions is on in prd as well."* *Previously read: not stated and not measured* | E4-style: a reviewer statement, not measured by an agent (`A-NS-32a`) |
+| The prompt has never been run in any environment | E1 (`docs/development/revitalise-redaction-prompt.md` status) |
+| A counterpart holds at most 4,000 characters; the extractor takes at most 5,000 per call | E1 (flow source); E2 (`ADR-071` context) |
+
+**Options weighed.** (a) A smaller deterministic stage (rev 21, cut down). (b) The prompt rewrites, behind fixed checks.
+(c) A C# plug-in. With hosting settled and the prompt already a component in source, (b) is now the simpler design **and**
+the stronger one: grammar, names and the client's examples are what an LLM does well, and the deterministic work left is
+to check its output, not to do the rewriting.
+
+**Decision.** Option (b). Nine interventions, traced in the same order under Consequences.
+
+1. **One extractor call per column, no windows.** A column is scrubbed when its raw text is non-empty, its counterpart
+   is empty (rules §7a), and the raw text is at most 5,000 characters. A longer column is not written and gets
+   `too-long:<column>`, which is what already happens to anything over the 4,000-character counterpart. The 200-character
+   overlap, the window loop and its variables go.
+2. **Deterministic labels first, so the model never sees what the extractor found.** Extractor entities are mapped to
+   labels as now (rules §4.2; an age to its `rev_agerange` band, FR-027; an unknown type gives `unmapped-entity-type`).
+   Spans contained in another span are dropped, and a partial overlap holds the column (`overlapping-identifiers:<column>`,
+   not written). One `Select` and `join` rebuild the **labelled text**. A person's name is labelled `[NAME]` at this step.
+3. **The rewrite prompt.** One call per column, input the labelled text (plus the valid `RedactionNeutralTermsExtra`
+   lines). Its fixed template, a solution component and not a setting, tells it to: replace the client's key words with
+   neutral words; handle a person's name as approved FR-095 and the OQ-054 defaults say (erratum, below): keep `[NAME]`
+   when two or more different people are named in the text, after a title such as *Dr* (*Dr [NAME]*), and inside a
+   practice name (which stays `[GP PRACTICE]`); **drop a name next to its relationship word and neutralise the word**
+   (*my husband Derek* becomes *my partner*; second erratum, below); otherwise turn `[NAME]` into *they*, *them* or *their* as the sentence needs, with the verbs
+   agreeing (FR-098); follow the client's examples for *him* and *hers*; neutralise the
+   added words and titles; change a second word after *and* when it identifies someone; replace anything else that
+   identifies a person (a name, a street, a postcode, a phone number, a GP practice the extractor missed) with the label
+   from a fixed list; and change nothing else. Output is plain text. Model `gpt-41-mini`, temperature 0, moderation Low,
+   as the existing component.
+4. **The spelling prompt, a separate call** (the reviewer's wording). Input: the rewrite's output. It corrects spelling
+   and typing slips only, word for word, never a label, a name or punctuation. **Its answer is accepted word by word, not
+   as a whole:** both texts are split on single spaces; if the word counts differ the correction is discarded and the
+   rewrite stands; otherwise, at each position, the corrected word is taken only when the original starts with a lower-case
+   letter, is not a label or closed-list word, keeps the same first letter and the same leading and trailing punctuation,
+   and differs in length by at most two letters. Otherwise the original word stays. A failed or rejected spelling call is
+   not a safety event: the rewrite is written uncorrected and **no reason code** is added.
+5. **Check P1: no identifier the extractor found survives.** Every extractor value, normalised (lower case, punctuation
+   to spaces), is searched for at word boundaries in the final text. A hit gives `identifier-survived:<column>`, and the
+   column **is not written**.
+6. **Check P2: the rewrite introduced no word.** Every word of the rewrite's output, labels removed first, must be a word
+   of the labelled input, a word of the **closed list** (neutral words and pronouns, *my*, the agreed forms *are, were,
+   have, do, go* and their *-n't* forms, the words of the label texts, and the valid neutral-row targets), or a plural
+   form of an input word with its ending removed (*rely* when *relies* is in the input). A miss gives
+   `rewrite-invalid:<column>` and the column **is not written**. This is the proof the model cannot add an identifier:
+   anything it writes was already in text it was given after labelling, or is on a list the flow holds. P2 runs on the
+   rewrite; item 4's acceptance rule is the equivalent proof for the spelling call.
+7. **Check P3: the residue checks**, on the final text, as `ADR-071` item 6: a 9-digit run, a postcode shape with or
+   without its space, `@`, a street word, a practice word, an age phrase, a district confirmed by the postcode register
+   (`ADR-073` now only feeds this check), and **a gendered key word** (`residual-gendered-term:<column>`). *Ms* and *Miss*
+   are left out of the residue list: *MS* is a condition and *miss* a verb, so they would hold most records; the prompt
+   handles them. A residue hit **writes** the column and holds the record, as now. A rewrite more than 10% shorter in
+   words than the labelled input (labels removed from both) also writes and holds: `rewrite-dropped-text:<column>`. That
+   is a fidelity check, not a privacy one.
+8. **Settings, fewer.** Kept: `RedactionConfidenceThreshold`, `RedactionAutoRelease` (with `ADR-074` item 5's
+   saved-after-every-other-row rule, which now covers the whole chain), `RedactionStreetWordsExtra`,
+   `RedactionPracticeWordsExtra`, and the new `RedactionNeutralTermsExtra` (one `word = neutral word` per line; it feeds
+   the rewrite prompt and the residue list; malformed gives `redaction-setting-invalid:<key>`, `ADR-074` item 4).
+   `RedactionPromptStage` becomes a **kill switch**: the prompts run unless it is `off`, and with it `off` no column is
+   written (`prompt-stage-off`). Retired: `RedactionPromptCalibrated`, the four `RedactionPromptCategory.*` rows,
+   `RedactionKinshipWordsExtra` and `RedactionPracticeSuffixesExtra`, whose jobs move into the fixed template. None was
+   ever seeded; a leftover row is ignored.
+9. **One failure handler.** The 16 catch triplets and the failure descent are replaced by one handler after the main
+   scope, run on Failed or TimedOut: hold the record for review, compose the run link, alert, and end the run as Failed.
+   A failed prompt call **inside** a column does not reach it: the action after the call runs on Succeeded, Failed or
+   TimedOut and turns a failure into `prompt-error:<column>`, column not written; a failed extractor call gives
+   `ai-error:<column>` the same way.
+
+**The flow a maker reads — about 80 actions, down from 313.**
+
+| Part | Actions | What it does |
+|---|---|---|
+| Start | 6 | Eligibility stop, read the application, stop if released, initialise three variables (reason codes, scores, any-scrubbed; none holds text) |
+| Settings and constants | 15 | Read `Redaction*` rows; find the five kept keys; validate the three word-list rows in one `Select`; the column list, label map, closed list and residue lists; the postcode register, read once |
+| Per column, ×12 by loop | about 45 | Read raw and counterpart; decide to scrub; extract; label and rebuild; rewrite prompt; spelling prompt and word-by-word acceptance; checks P1, P2, P3; record reasons and scores; **write (a 12-case `Switch`, 13 actions)** |
+| Decide and tell | 5 | Record confidence and decision, one write, Teams card when review is needed |
+| Failure handler | 4 | Item 9 |
+| **Total** | **about 75–80** | Nesting at most 5 levels (the loop, the scrub decision, the write decision, the `Switch`, the case) |
+
+The `Switch` is a sixth of the flow and is kept on purpose: the Dataverse write needs each column as its own named
+parameter (§5 write-shape rule), and twelve plain cases are easier to read than any trick that avoids them.
+
+**Rejected.**
+
+- **(a) A deterministic stage.** Even cut down, it rebuilds by hand what the prompt does, and it cannot handle a name as
+  *They*, the verb after *and*, or spelling at all. Rev 21's version was the reviewer's "absurd".
+- **(c) A C# plug-in.** Outside the language palette, as in `ADR-071`; and it would still need a model for spelling.
+- **The prompt reading the raw text** (no labelling first). Two actions fewer, but it sends every name, phone number
+  and address to the model. Labelling first keeps the data the model sees to the minimum (UK GDPR Art. 5(1)(c)), and it
+  is what makes P2 a proof rather than a hope.
+- **One prompt for rewrite and spelling.** The reviewer prefers two. Two calls also keep the rewrite's P2 proof
+  intact: a spelling correction always introduces a word P2 would reject.
+- **Keeping the shape detectors and the kinship refinement.** With the prompt always running, they only reduce how many
+  records reach review; the residue checks still stop any UK phone number or postcode the extractor and the prompt both
+  miss. The deterministic kinship refinement is not needed either: a name next to its relationship word is dropped and
+  the word neutralised (*my husband Derek* becomes *my partner*), and dropping a word never fails P2.
+
+**Consequences**, in the order of the Decision:
+
+1. *User sees:* a free-text answer over 5,000 characters is in review with `too-long`, as one over 4,000 already is.
+2. *Positive:* the model never receives a value the extractor found. *Negative:* the extractor's offsets are used again
+   for the rebuild, so `A-NS-2` (UTF-16 offsets) still matters.
+3. *User sees:* "Ahmad relies on her mum" becomes "They rely on their parent". *Negative:* the trustee can no longer
+   see where a name was, because *They* carries no bracket; that is the client's key. Two people in one sentence both
+   become *they*.
+4. *User sees:* corrected spelling where the correction is a near-spelling of a lower-case word; anything else is left
+   as the applicant wrote it. *Negative:* a near-spelling can still change a medical word (*dyspraxia* to *dyslexia*
+   passes the rule) (`A-R91`).
+5. *User sees:* `identifier-survived` means the same name, number or address appears elsewhere in the text, undetected;
+   the process owner writes that counterpart by hand (FR-030).
+6. *User sees:* `rewrite-invalid` means the model added something; nothing is written, and the process owner writes it.
+   *Positive:* a prompt injection inside a narrative can at most move words already there, or drop them.
+7. *User sees:* the rev 20 residue codes, plus `residual-gendered-term` and `rewrite-dropped-text`.
+8. *User sees:* nothing to set up. An added neutral word works from the next scrub and makes auto-release stale until she
+   confirms again.
+9. *User sees:* one alert per failed run, with the run link. *Negative:* the alert no longer names the failed step;
+   the maker finds it in the run history (secured).
+
+**What a person sees by default** (`IMP-0511`). With no settings rows at all, the prompts run, every scrubbed column is
+written when P1 and P2 pass, and every record is in the review list with `auto-release-off` until the process owner sets
+`RedactionAutoRelease` after `wbs:5.7`. *Move data across regions* is on in DEV, TST/ACC and PRD (reviewer statements,
+2026-10-16; PRD verbatim: *"the move accross regions is on in prd as well."*), so the prompts can run in all three, and there is no blackout. *Previously read: (rev 22
+draft) a blackout in TST/ACC and PRD; then "PRD's state is not stated: if it is off there, every prompt call fails ... a
+blackout of the automation in PRD only, checked before the first PRD deploy (§12.6.1, R0)".*
+
+**Lists, inventoried** (`IMP-1076`).
+
+| List | Kind | Where |
+|---|---|---|
+| The client's key, the added words and titles | Tunable vocabulary | The fixed template plus `RedactionNeutralTermsExtra`; the same words feed P3's gendered list |
+| The closed list (P2) and the spelling acceptance rule | Specification of the checks | Constants, changed with tests |
+| Street and practice words | Tunable vocabulary (P3) | Built-in list plus their `Extra` rows, unchanged |
+| Kinship words, practice suffixes, prompt categories | Retired: the template now does their job | — |
+| Label texts, age bands | Specification (FR-026, FR-027) | Constants, unchanged |
+
+**Functions and contracts it adds.** No new expression function: `split`, `join`, `replace`, `toLower`, `contains`,
+`sort`, `first`, `skip` and `range` are all in this flow already. New platform contracts: two prompt components with
+new inputs (`A-NS-31`) and a full
+5,000-character rewrite in one call (`A-NS-33`). `A-NS-29` applies only if the overlap filter reads an array by integer
+index.
+
+**What the tests must prove** (development-agent; the narrative suite, run by the `unit-tests` gate). With a stand-in
+for each prompt: a rewrite that adds a name, a phone number or a new sentence is held by P2 and not written; a value
+the extractor found, repeated elsewhere in the text, is held by P1; a spelling answer with a different word count is
+discarded; a spelling answer that changes a label, a capitalised word or punctuation is refused at that word. The
+oracle gains `validate_rewrite` and `accept_spelling` as the specification of P2 and item 4. `neutral_rewrites` stays
+as the expected output that `wbs:5.7` scores the live model against.
+
+**Gate interactions** (`config/revitalise-grant-automation-build.yml`, steps over `Workflows/`):
+
+| Gate | Trips? |
+|---|---|
+| `flow-definition-language` checks 1, 3, 8 | No, if actions are `Select`/`Filter`, writes stay flat and names are unique |
+| `flow-definition-language` self-test fixtures that name `Scan_the_column_in_windows` and `Follow_the_failure_inward` (`scripts/verify-flow-definition-language.py`) | Check them: if a check, and not only its fixture, reads those names in the live flow, it is a CHECK to correct (`IMP-0692`), not a reason to keep the actions |
+| `unit-tests` (the narrative suite) | **Yes, by design.** Most of the 269 tests cover stages that go; they are replaced, not kept green against a flow that no longer exists |
+| `source-validate`, `component-shape`, `root-components-resolve` | Yes: a second prompt component, copied from a DEV export (`A-NS-31`) |
+| `no-hardcoded-thresholds`, `domain-invariants`, `superseded-column-writers`, `no-special-category-data-in-scoring`, `tad-coverage` | No. No new column and no new writer; the retired settings rows are data |
+
+**What development-agent rewrites** (retired identifiers, `git grep` with a positive control, `IMP-1015`):
+
+| Hit | Action |
+|---|---|
+| The flow JSON and its notes file | rewrite to this ADR |
+| `src/tests/narrative/test_scrub_flow_definition.py`, `test_flow_model.py`, `failure_catches.py`, `test_prompt_component.py`, `redaction_reference.py` (kinship, practice-suffix and category settings, calibration, the merge, the quote validation) | rewrite; the specification moves to `validate_rewrite` and `accept_spelling` |
+| `docs/development/revitalise-redaction-rules.md` (§5–§7 stage text, §10.1.5) and `docs/development/revitalise-redaction-prompt.md` (the template) | rewrite |
+| `scripts/verify-flow-definition-language.py` self-test fixtures | check, as in the gate table |
+| The narrative Dev Summary's earlier iterations | history, kept |
+| This document: `ADR-071` to `ADR-074` | history, kept; superseded by note under each |
+
+---
+
+### ADR-076: The rewrite rules Emily may change live in four `rev_setting` rows, reach the prompt as inputs, and are the single source of checks P2 and P3
+**Status:** `Accepted` (rev 23, approved 2026-10-16) · **Date:** 2026-10-16 · **WBS:** `wbs:5.6` (rules the process owner tunes), `5.3` (the
+flow) · **Amends `ADR-075` items 3 and 8.** Resolves the reviewer's `ARCH_GAP` correction of approved rev 22.
+
+> **Amended rev 25 (2026-10-19), not yet approved.** (1) The `RedactionNameRules` seed value below is replaced by the
+> seven-line text of Dev Summary Iteration 11 (reviewer-approved 2026-10-19): the rules are listed in the order they
+> apply, the writer's own name keeps `[NAME]`, and the relationship-word rule wins even when other people are named
+> (the old order let "two or more people" win, so *Our child [NAME]* kept the name). The row is create-only, so the
+> new text reaches an environment only where the row is absent; the DEV row already holds it (lead-agent, 2026-10-19).
+> (2) Item 5's last sentence and Consequence 5's "blackout" are unchanged, but *"An edit to any of them makes
+> auto-release stale"* is retired with `RedactionAutoRelease` (`ADR-078`).
+
+**Context.** Reviewer, Xander Lykopoulos, 2026-10-16, verbatim (relayed by lead-agent): *"Ok, I added the two prompts in
+DEV."* and *"I noticed in the rewrite prompt there are quite some rules in there. We agreed that those rules would be set
+as settings on the settings table. So that Emily can change these without me changing the prompts or workflows."*
+The disagreeing artefact is a reviewer decision, so it supersedes the approved text (`IMP-0692`). It restores what
+`ADR-074` (rev 20, approved) already said, *"what the prompt looks for lives in `rev_setting`"*, which rev 22 reversed by
+writing the key, the titles, the name rules and the label list into the template (`IMP-1125`). Measured on 2026-10-16:
+
+| Fact | Level |
+|---|---|
+| Both prompts exist in DEV, made from `docs/development/revitalise-redaction-prompt.md` §1 and §2 (rewrite inputs `Narrative`, `ExtraTerms`; spelling input `Text`) | Reviewer statement, 2026-10-16; not yet exported (`A-NS-31` open) |
+| The Iteration 9 flow has **90 actions**. Its key, title, name and label rules are in the rewrite template; its P2 closed list and P3 gendered list are constants in `Compose_constants` (`closedWords`, `genderedWords`), extended by `RedactionNeutralTermsExtra` | E1 (flow source, counted 2026-10-16) |
+| `rev_setting.rev_value` holds up to 4,000 characters; only `REV Admin` writes it; the table and every column are audited | E1 (`ADR-074` context) |
+| `seed-settings.ps1` sends a keyed `PATCH` for every row it lists, on every deploy, so a seeded row overwrites the process owner's edit | E1 (script, line 223) |
+
+**Decision.** Seven interventions, traced in the same order under Consequences.
+
+1. **Four rows hold the rules Emily may change.** Each is plain text, one entry per line:
+
+   | Row | One line is | Feeds |
+   |---|---|---|
+   | `RedactionNeutralTerms` | `word = neutral word`, or `word = first or second` where the sentence decides (*her = their or them*) | The prompt's `NeutralTerms` input; P2 (the right-hand words); P3's gendered list (the left-hand words) |
+   | `RedactionTitles` | One title to remove (*Mrs*) | The prompt's `Titles` input; P3, matched with the capitals as written |
+   | `RedactionNameRules` | One rule, in plain words, for how a `[NAME]` is handled | The prompt's `NameRules` input only |
+   | `RedactionLabels` | `[LABEL] = what it covers` | The prompt's `Labels` input; P2 (the words of each label) |
+
+   `RedactionNeutralTerms` replaces `RedactionNeutralTermsExtra` and the built-in key. It is the whole key, so Emily
+   can change or remove a line as well as add one: a change to these rows can weaken only gender neutralisation or what
+   the prompt labels, never check P1, which reads the extractor and no setting.
+2. **One source for the prompt and the checks.** One `Compose` derives, in the same run, the four prompt inputs, P2's
+   closed list and P3's gendered and title lists from the same valid rows. The prompt cannot be told a neutral word the
+   checks do not allow, and the checks cannot look for a word the prompt was not told to replace.
+3. **What stays fixed in the flow, and why.** P2 also allows a small **grammar set** that no rule chooses: the agreed
+   forms *are, were, have, do, go* and their *-n't* forms, and *my, a, an*. It also allows the words of the extractor's
+   labels (`[NAME]`, `[GP PRACTICE]`, `[ADDRESS]`, `[PHONE]`, `[EMAIL]`, the `[AGE …]` bands), which stay constants
+   because FR-026 and FR-027 fix them and the deterministic labelling writes them. The phone and postcode shapes, the
+   street and practice words with their `Extra` rows, and the spelling acceptance rule are unchanged (`ADR-074` item 3,
+   `ADR-075` item 4).
+4. **What stays fixed in the rewrite template, and why.** The role; the instruction that the narrative is data and that
+   instructions inside it are ignored; *use only words from the text or the lists you are given*; *correct only the
+   grammar your replacements break*; *change nothing else, do not correct spelling, do not add punctuation, do not alter
+   a label except as the name rules say*; and *reply with the text only*. These are the contract P1 and P2 depend on and
+   the output the flow reads. An edit to them could not weaken the checks, but it could send every record to review, and
+   none of it is a rule Emily tunes. The four rule inputs fill four marked slots.
+5. **Guard rails, failing closed** (`ADR-074` item 4). Each of the four rows must be present and non-blank. A list that
+   is meant to be empty holds the single line `none`. A `RedactionNeutralTerms` line is valid when both sides are 1 to 40
+   characters of letters, spaces, hyphens and apostrophes, and no right-hand word is also a left-hand word. A
+   `RedactionTitles` line is 1 to 10 letters with an optional full stop. A `RedactionLabels` line starts with a label of
+   capital letters, digits and spaces in square brackets. `RedactionNameRules` is free text up to the column's 4,000
+   characters. **One absent, blank or malformed row stops both prompts for the record**: no column is written, and the
+   reason is `redaction-setting-invalid:<key>`. A partly wrong rule set is not partly trusted. An edit to any of them
+   makes auto-release stale until the process owner confirms again (`ADR-074` item 5, unchanged).
+6. **Seeded once, never overwritten.** `seed-settings.ps1` gains a create-only mode: a row marked `createOnly` that does
+   not exist is created by a `POST` to `rev_settings`, and one that exists is left alone (`A-NS-38`, closed by a live DEV
+   run on 2026-10-16: run 1 created the four rows, run 2 left them unchanged; Dev Summary addendum 10.11).
+   *Previously read (approved rev 23):* "a row marked `createOnly` is sent with `If-None-Match: *`, so it is created
+   where it is absent and left alone where it exists (`A-NS-36`)". That mechanism was disproved in DEV (`A-NS-36`).
+   pipeline-agent seeds the four rows in DEV, TST/ACC and PRD on the next deploy of each; from then on only Emily changes
+   them. The seed values are below, and each row's description says *synthetic examples only* (`A-R87`).
+7. **The spelling prompt is unchanged.** It holds no rule Emily asked to tune, and its acceptance rule is in the flow.
+
+**Seed values** (the approved rev 22 rules, SDD A-09 with OQ-054 to OQ-056 at their defaults, and the reviewer's
+*"My husband Derek becoms partner"* of 2026-10-16):
+
+- `RedactionNeutralTerms`: *he = they; she = they; him = them; her = their or them; his = their or theirs; hers =
+  theirs; himself = themself; herself = themself; he's = they're or they've; she's = they're or they've; he'd = they'd;
+  she'd = they'd; he'll = they'll; she'll = they'll*; then *mum, mummy, mother, dad, daddy, father = parent; brother,
+  sister = sibling; son, daughter = child; husband, wife, boyfriend, girlfriend = partner; man, woman, boy, girl, lady,
+  gentleman = person; grandmother, grandfather = grandparent; grandson, granddaughter = grandchild; stepson, stepdaughter
+  = stepchild; stepmother, stepfather = stepparent; aunt, auntie, uncle, niece, nephew = relative*, one line per word,
+  and the plural of each noun on its own line (*sons = children*, *women = people*). About 75 lines, under 1,500
+  characters.
+- `RedactionTitles`: *Mr, Mrs, Ms, Miss*, one per line. *Dr* is kept, through a name rule.
+- `RedactionNameRules` (**rev 25**, seven lines, in the order they apply; the text in the three settings files):
+  ```text
+  When [NAME] is the writer's own name, as in "I am [NAME]", "I'm [NAME]" or "my name is [NAME]", keep [NAME].
+  Keep [NAME] after Dr: "Dr [NAME] reviews my medication" stays as it is.
+  When [NAME] comes straight after a relationship word, remove it and keep the neutral word, even when the text names other people: "my husband [NAME]" becomes "my partner", and "our son [NAME], who is [AGE 35 to 44]," becomes "our child, who is [AGE 35 to 44],".
+  Otherwise, keep [NAME] when the text names two or more different people other than the writer.
+  If the text is about one named person, write they, them or their in place of [NAME], as the sentence needs, and make the verb agree: "[NAME] visits me." becomes "They visit me."
+  A name inside the name of a GP practice is part of [GP PRACTICE].
+  Mum or Dad used as a name, as in "Mum helps me", becomes "my parent".
+  ```
+  **Erratum, 2026-10-19, wording only (after the rev 25 approval).** Line 4 now excludes the writer from the count, following
+  the reviewer's approved SDD Amendment A-11 and OQ-054 case (e), verbatim (relayed by lead-agent): *"That is correct... the
+  assumed default is the desired output."* So "I am Sam and Pat helps me" becomes "I am [NAME] and they help me".
+  No mechanism, action, check or setting key changes: it is the text of one seeded row, which the prompt alone reads (P2
+  and P3 do not read `RedactionNameRules`), so **no new approval is needed**. *Previously read, line 4 (rev 25 as
+  approved):* "Otherwise, keep [NAME] when the text names two or more different people."
+  *Previously read (rev 23, six rules):* "(1) If the text is about one named person, write *they*, *them* or *their* in
+  place of `[NAME]`, as the sentence needs. (2) Keep `[NAME]` when the text names two or more different people. (3) Keep
+  `[NAME]` after *Dr*. (4) When `[NAME]` comes straight after a relationship word, remove it and keep the neutral word:
+  "my husband [NAME]" becomes "my partner". (5) A name inside the name of a GP practice is part of `[GP PRACTICE]`. (6)
+  *Mum* or *Dad* used as a name, as in "Mum helps me", becomes "my parent"."
+- `RedactionLabels`: `[NAME]` = a person's name; `[ADDRESS]` = a street, a house name or number, a town in an address,
+  or a postcode; `[PHONE]` = a phone number; `[EMAIL]` = an email address; `[GP PRACTICE]` = the name of a GP practice
+  or surgery.
+
+**Rejected.** (a) **Keep the rules in the template and let Emily ask for changes.** That is what the reviewer said was not
+agreed. (b) **One free-text row for every rule.** Then P2 and P3 could not be derived from it, because a list cannot be
+read reliably out of prose. (c) **Additive rows over a built-in floor**, as `ADR-074` item 3 does for word lists. The
+reviewer wants Emily able to change the key, not only to extend it; a removal can only weaken gender neutralisation, which
+P1 does not depend on. (d) **Seeding through the existing upsert.** It would overwrite Emily's edits on every deploy.
+
+**Consequences**, in the order of the Decision:
+
+1. *User sees:* Emily changes a neutral word, a title, a name rule or a label in the settings screen, and the next
+   scrubbed record uses it, with no change to a prompt or the flow. *Negative:* deleting a key line lets that gendered
+   word through without review, because the residue list loses it too (`A-R93`).
+2. *Positive:* the prompt and the checks cannot drift apart.
+3. *Positive:* what FR-026 and FR-027 fix stays fixed.
+4. *Positive:* an edited rule can make the prompt worse but cannot make it write a word P2 refuses into a column.
+5. *User sees:* a typo in one of the four rows holds every record scrubbed after it with
+   `redaction-setting-invalid:<key>`, which names the row to fix, and nothing is written until she fixes it. That is a
+   blackout of the automation until the row is fixed, and it is written down as one.
+6. *User sees:* the four rows appear in each environment after its next deploy, already filled. Before that deploy the
+   flow holds every record with `redaction-setting-invalid` (absent row), which is the same blackout.
+7. *User sees:* nothing changes in spelling.
+
+**Flow size.** About **95 actions** (90 today): three more `Find_setting` actions (four rows replace one), two more
+validation `Select`s, and one `Filter` for the title residue. The rewrite call gains three inputs and no action.
+
+**What the reviewer re-edits in DEV (R1b, §12.6.1).** In **REV Narrative Rewrite Prompt** only: remove the `ExtraTerms`
+input; add four text inputs named exactly `NeutralTerms`, `Titles`, `NameRules` and `Labels`; replace the body with the
+rev 23 template development-agent writes into `docs/development/revitalise-redaction-prompt.md` §1; keep GPT-4.1 mini,
+temperature 0, moderation Low, output text; save. **REV Narrative Spelling Prompt needs no change.**
+
+**What development-agent changes** (Iteration 9's code is approved and not yet built):
+
+| Where | Change |
+|---|---|
+| The flow | `Find_setting_RedactionNeutralTermsExtra` → four `Find_setting_*` actions; validation `Select`s per row; `Compose_settings` derives the four inputs, `closedPipe`, `genderedPipe` and the title list; `Compose_constants` keeps only the grammar set and the extractor labels; `Run_the_rewrite_prompt` passes four new inputs; `Filter_columns_to_scrub` holds every column on an invalid row; a title residue `Filter` |
+| `docs/development/revitalise-redaction-prompt.md` | §1: the rev 23 template with four slots and the fixed parts of item 4; R1b steps |
+| `config/revitalise-grant-automation-pipeline.yml` and `provisioning/dataverse/seed-settings.ps1` | Four `createOnly` rows with the seed values; the create-only mode and its test |
+| `src/tests/narrative/` | Settings-parsing tests for each guard rail; a one-source test (prompt inputs and P2/P3 lists from one `Compose_settings`); the stand-in prompt tests read the seeded rows |
+| `docs/development/revitalise-redaction-rules.md` §10.1 | Points to the four rows as the source of the key |
+
+**Gate interactions** (`config/revitalise-grant-automation-build.yml`): `flow-definition-language` checks 1, 3 and 8, as
+`ADR-075`; `unit-tests`, **yes, by design**; `no-hardcoded-thresholds`, `tad-coverage`, no (rows are data);
+`component-shape`, `root-components-resolve`, yes when the edited rewrite component is re-exported (`A-NS-31`).
+
+### ADR-077: The applicant signs first and the referee second — the template holds the order and the referee sees what the applicant entered
+**Status:** `Accepted` (rev 24 approved 2026-10-19; item 2 dropped and moved to Rejected) · **Date:** 2026-10-19 · **WBS:** `wbs:3.2` · **Raised by:** the customer, relayed by the
+reviewer, 2026-10-19 (*the referee must be able to see the applicant's details, which needs the applicant to sign first*).
+**Reverses** the rev 16 approval decision on signing order; **supersedes in part** `ADR-069` item 3 and its Consequences 3
+and 5; `ADR-068` is unchanged.
+
+**Context.** Rev 16 recorded the reviewer's words *"There is no signing order. The agreement gets send to both."*,
+retired `A-R80`, closed `A-DS-19` and rewrote check `R7` to "both emailed together". The customer now wants the referee to see
+the applicant's details, and the way DocuSign shows one signer's entries to another is the order they sign in. The SDD
+never changed: FR-042 still reads *"two signatures in sequence — the applicant first, then the referee or GP"*.
+
+**Reviewer decisions quoted in the text this ADR supersedes** (`IMP-0692`), each marked:
+
+| Decision, verbatim | Where | Now |
+|---|---|---|
+| *"There is no signing order. The agreement gets send to both."* | rev 16 approval; `ADR-069` item 3 | **Reversed** (customer requirement) |
+| `A-DS-19` closed as not applicable; `A-R80` retired; `R7` rewritten to "same time" | rev 16 approval | **Reversed**; replaced by `A-DS-20` and `A-R94`, `R7` rewritten again. Ids not reused |
+| FR-042's *in sequence* "overridden by the reviewer" | §5.8 introduction | **Reversed**: FR-042 is built as written |
+| The flow sends no `routingOrder` (template-locked, `200` with `RECIPIENT_UPDATE_FAILED`) | `ADR-069` item 3; pipeline log L311 | **Kept** |
+| The access code, last six digits of the referee's phone, free | `ADR-068` item 4 | **Kept** |
+| The referee's wording is supplied by Emily, not the flow | `ADR-068` item 3 | **Kept** |
+
+**Ground truth.**
+
+| Fact | Level |
+|---|---|
+| `UpdateEnvelopeRecipient` with a `routingOrder` returned `200` with `RECIPIENT_UPDATE_FAILED` and left the referee blank: the order is template-locked | **E1** (DEV run, [pipeline L311](logs/pipeline.log#L311)) |
+| What order the template holds today | **Never measured** (`A-DS-19` was closed without a reading). The flow's earlier v2c sent `1` for both roles, which says nothing about the template |
+| A draft created from a template keeps the template's recipient order when the binds send none | Assumed from the lock (E4) → `A-DS-20` |
+| With sequential routing a later recipient is notified after the earlier one completes, and sees the tabs and values earlier recipients completed; the exception is *Document Visibility* | **E3** (DocuSign community answer, read 2026-10-19; not official documentation) |
+| With parallel routing, other signers do **not** see a tab's initial value by default; DocuSign support can enable a setting that shows it | **E3** (DocuSign staff answer, same search). This is why the referee could not see the applicant's details while there was no order |
+| The `shared` flag on a tab is for a tab two recipients both fill; a user reported it only changed the tab's appearance | **E3**; not used |
+| `GetRecipientStatus` returns `routingOrder` for each signer | E2 (REST spec, not re-read this session); **not relied on: the order check was dropped, `A-DS-21` retired** |
+| The referee's own email text is the one DocuSign sends at the referee's turn | Assumed (E4) → `A-DS-23` |
+
+**Decision**, four items in force (item 2 dropped at approval; numbering kept so nothing is renumbered):
+
+1. **The template holds the order.** *Reviewer or Revitalise admin, once (there is one DocuSign template for every environment):* in the DocuSign template, turn on the
+   signing order with **Grant Acceptor 1 and Grant Referee 2**, leave *Document Visibility* unrestricted, save and publish.
+   This is a template change (`wbs:3.1`), checked by `M4`. **It is made before the flow change is deployed.** A sequenced template under
+   today's flow is harmless: the flow sends no order, so the template's passes through. **Update 2026-10-19: done (reviewer-observed live). The template is the single shared one, so it applies to ACC and PRD and there is no pre-promotion check.**
+2. **DROPPED (reviewer, 2026-10-19).** The flow-side signing-order check is not part of this decision; it is under Rejected. Nothing is built or pending from it, the flow is unchanged and still sends no `routingOrder`.
+3. **Wording, from the settings rows, not the flow.** `AcceptanceEmailApplicant` tells the applicant that their referee
+   or GP signs next and will **see the details they enter**. `AcceptanceEmailReferee` is the email the referee now receives
+   *after* the applicant has signed: it says the applicant has signed and that the details they entered are in the agreement,
+   and still states only the access-code rule, never the digits. Provisional test wording only; Emily supplies the real text
+   (`ADR-068` item 3). `development-agent` updates the three settings files and `settings-rows.notes.md`. **Update: the wording is pending with Emily (the reviewer asked her separately); nothing is decided here.**
+4. **What the referee sees is the applicant's tabs, once the applicant completes.** Signing order alone makes them visible.
+   No tab is marked shared, no document is hidden, and no flow action is added. The set shown is exactly the applicant's
+   tabs on the template's first document: first and last name, title, email, phone, address, town, postcode and the
+   agreement checkbox. The T&Cs document carries none. **Decided 2026-10-19 (reviewer): the referee sees ALL applicant details**, so no tab is removed (`A-R95` closed).
+5. **The access code is unchanged** and applies at the referee's turn. It now guards more (`A-R95`, closed as accepted), and its enforcement was
+   observed in DEV (`A-DS-17`, `R10` passed; `A-R96` residual).
+
+**Rejected.**
+- *Send `routingOrder` from the flow.* Measured failing (E1).
+- *Set the order through the composite template's inline recipients.* Only the undocumented dynamic `body` of
+  `CompositeTemplates` could carry it. Unmeasured. **Held as the fallback** if the template cannot be made to hold the order.
+- *Two envelopes: the referee's created by a second flow when the applicant's completes.* Two drafts, a new trigger, a second
+  tab-fill chain and reconciliation of two envelope ids on one grant, to avoid one template setting.
+- *Mark the applicant's tabs shared.* Not what the flag is for (E3), and not measured.
+- *Make the applicant's details prefill tabs.* The referee would see them from the start with no order, but the applicant could
+  no longer correct them, and the customer asked for an order.
+- *Let a non-sequenced template through with a warning.* The customer's requirement would silently stop holding.
+- *Item 2, dropped 2026-10-19: a flow-side signing-order check.* `Set_signer_binding_problem` would gain one `if` arm requiring the Grant Acceptor's `routingOrder` to be lower than the Grant Referee's, compared with `int()`, failing closed with `SignerNotBound`. Reason: the template holds the order, verified in DEV; the reviewer chose not to add a flow guard. Consequence accepted: nothing in the flow stops a template that has lost its order (`A-R94`).
+
+**Consequences**, in the Decision's order:
+
+1. *Positive:* the order is the template's own, so no flow change can break it. *Negative:* a manual template setting that nothing in the flow checks, and it is the only control (`A-R94`).
+2. *(Dropped with item 2.)* No flow check exists; see Consequence 1 and `A-R94`.
+3. *What people see:* the applicant is emailed at the send; the referee is emailed later, when the applicant has signed. A
+   referee who reads *"A referee or GP signature follows yours"* in the applicant's text is correct again. Reminders at 3 and 7
+   days run from the send; whether the waiting referee is touched early is `A-DS-23`.
+4. *Positive:* the customer's requirement with no flow action. *Negative:* a new disclosure of the applicant's contact
+   details to the referee (`A-R95`, accepted by the reviewer 2026-10-19: referees already know the applicant and know how to treat personal data); a referee who is not the person named still sees them after passing the code (`A-R77`, `A-R78`).
+5. *Neutral:* the retest for item 1 changes: the referee's link only exists after the applicant has signed.
+
+**Update 2026-10-19, what DEV shows.** **Reviewer-observed live in DEV, 2026-10-19, after build `revitalise-grant-automation-20261019-1`** (reported by the reviewer; no artefact captured, so this is an observation, not E1). Template signing order on (Grant Acceptor 1, Grant Referee 2): the applicant signs first and the referee after. The referee is asked for the access code and it works (`R7`, `R10` pass in DEV; `A-DS-17` second half closed at that level). The earlier opening without a code was a signed-in browser session, the explained test-setup case (E3 behaviour), not a defect. **Decided at approval, 2026-10-19:** no flow-side order check (item 2 dropped); the referee sees all applicant details (`A-R95` closed). **Still pending:** the email bodies (with Emily).
+
+**Flow size and fit.** Actions added: **0**. The flow is unchanged at 106 actions in total, 70 on the top-level chain. Right for a flow that already reads both signers back; nothing is added for the order.
+
+**Gate interactions** (the gates `config/revitalise-grant-automation-build.yml` names for this flow). The flow is not changed, so **no gate is newly tripped and no build step is pending from this ADR.**
+
+| Gate | Tripped by this design? |
+|---|---|
+| `flow-definition-language`, `source-parses`, `tad-coverage`, `design-doc-claims` | No: no flow, schema or expression change. `design-doc-claims` re-run on this file |
+| `assumption-register`, `assumption-markers`, `assumption-id-collisions` | `A-DS-20`, `A-DS-22`, `A-DS-23` are template-and-platform observations with no flow marker (nothing in flow source carries one); `A-DS-21` is retired. Register rows are a Dev Summary matter (listed in the gate output), not a flow change |
+| `unit-tests` (`AcceptanceEnvelopeContract.Tests.ps1`) | No behaviour change. The stale "no signing order" wording is a comment-level correction, below |
+
+**The retired decision's words, searched across the repository (`IMP-1015`; positive control `ADR-076` returned hits).**
+Searched: *no signing order, gets send to both, at the same time, A-DS-19, A-R80*.
+*Rewrite, wording only (stale text, not a build item; no behaviour changes and no order check is built):* [TAD §5.8 introduction and test-contract row](docs/architecture/revitalise-grant-automation-architecture.md) (done here);
+`config/revitalise-grant-automation-pipeline.yml` L1421 (*"there is no signing order, both are emailed on the send, R7"*);
+`src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1` L18 and L214–215 (the assertion that no `routingOrder` is sent stays; only the title and comment words change); the flow's E06 `.notes.md` L444; and the two action
+descriptions in the E06 flow source that say *"there is no signing order"* (`Bind_the_applicant`, `Bind_the_referee`). These are `development-agent`'s, at the next touch of those files. *History, kept:* TAD rev 16 entry and approval amendment, `ADR-069` item 3's first half (marked), Dev Summary
+L12628–L12658, test report 20261005-5 L107.
+
+**Scope.** `wbs:3.2`: FR-042 as baselined says *in sequence*, so the order restores the contracted wording and needs no change order
+on that ground. *"The referee sees the applicant's details"* has no FR; a requirement is for `plan-agent`. Hours are
+`commercial-agent`'s; this ADR decides neither (`C-COM-002`).
+
+### ADR-078: The process owner releases every scrubbed application — the flow never writes the release gate, and its reason codes become review hints
+**Status:** `Accepted` (rev 25, approved 2026-10-19) · **Date:** 2026-10-19 · **WBS:** `wbs:5.3` (the flow), `5.4` (the flag and Emily's
+review step), `5.6` (rules) · **Supersedes** `ADR-071` item 8, `ADR-074` item 5's auto-release half, `ADR-075` item 8's
+`RedactionAutoRelease` clause and the auto-release sentence of its *What a person sees by default*, and `ADR-076` item
+5's *"makes auto-release stale"*; see the note under each.
+
+**Context.** Reviewer, Xander Lykopoulos, 2026-10-19, verbatim (relayed by lead-agent): *"All records should be checked by
+the process owner regardless. So, we don't need that setting at all."* The disagreeing artefact is a reviewer decision,
+so it supersedes the approved sections (`IMP-0692`). Measured on 2026-10-19:
+
+| Fact | Level |
+|---|---|
+| The flow decides release in `Compose_decision` (`released` = no reason) and writes it in `Write_the_decision` (`item/rev_redactionreleased`, and `rev_redactionreviewrequired` as its negation); the failure handler `Hold_the_record_for_review` writes `rev_redactionreleased` = false | E1 (flow source) |
+| `rev_redactionreleased` has `DefaultValue` 0; the trustee portal shows a narrative only when it is strictly `true` | E1 (`Entity.xml`; the cards app's `types.ts` and `domain/visibility.ts`) |
+| The **Review Required** view lists `rev_redactionreviewrequired = true` and not released | E1 (`SavedQueries/RedactionReviewRequired.xml`) |
+| No settings file and no pipeline row seeds `RedactionAutoRelease` or `RedactionConfidenceThreshold`. The threshold was left unseeded only because a seed would have made auto-release stale (rules §7 item 1) | E1 (grep of `provisioning/`, `config/`) |
+| The `RedactionAutoRelease` row does not exist in DEV | Lead-agent statement, 2026-10-19; not measured in this dispatch |
+| `modifiedon` is read only by `Filter_settings_saved_after_auto_release` | E1 (grep of the flow) |
+| `wbs:5.4` is *"If AI confidence < 85%, flag for manual review in a 'Review Required' view; build Emily's review step"*; `5.7` includes *"final threshold calibration"*; FR-029 flags and withholds below the threshold, initially 85% | E1 (`contract/wbs.json`; SDD) |
+
+**The property this ADR guarantees** (`IMP-1111`). **No redacted counterpart reaches a trustee unless a person has
+set `rev_redactionreleased` to true on that application.** The current mechanism, one way of meeting it: no flow writes
+the column, its default is false, and the portal requires strictly true.
+
+**Decision.** Seven interventions, traced in the same order under Consequences.
+
+1. **The flow never writes `rev_redactionreleased`.** It leaves `Write_the_decision` and `Hold_the_record_for_review`.
+   `Stop_if_already_released` and rules §7a (a released record is never touched; an existing counterpart is never
+   overwritten) are unchanged.
+2. **`rev_redactionreviewrequired` is set to true on every application the flow scrubs**, in `Write_the_decision` and in
+   the failure handler alike. Its meaning becomes *the scrub has run and awaits the process owner*. It stays because it is
+   what separates a scrubbed application from one not yet scrubbed in the Review Required view.
+3. **`RedactionAutoRelease` is retired, with everything that served it:** `Find_setting_RedactionAutoRelease`,
+   `Filter_settings_saved_after_auto_release`, `Compose_settings`' `autoRelease`, the reasons `auto-release-off` and
+   `auto-release-stale`, and the *saved after every other `Redaction*` row* guard. `modifiedon` leaves
+   `Read_redaction_settings`' `$select`. The row joins the retired list (§5.5.1): not read, a leftover row ignored.
+4. **Every other reason code is kept, as a hint.** Each is still computed and still decides, per column, whether a
+   counterpart is written (P1, P2, `too-long`, `prompt-error` and the rest, unchanged). At record level a code no longer
+   decides anything; it goes on the card to tell the process owner where to look first. Wording elsewhere that a code
+   "holds the record" now means it *flags* it.
+5. **`RedactionConfidenceThreshold` and `below-threshold` are kept as a review signal, and the threshold is seeded.**
+   It marks the applications where the extractor was least sure. It is kept because it is the contracted `wbs:5.4`
+   deliverable and FR-029's flag, it costs no action, and `wbs:5.7` still has something to calibrate. It is seeded
+   **create-only at `0.85`** (FR-029's initial 85%) in DEV, TST/ACC and PRD, now that a seed stales nothing.
+   `threshold-missing-or-invalid` stays, telling her the signal is off. Exactly at the threshold: no flag (unchanged).
+6. **The Teams card goes for every scrubbed application.** The `If` `Tell_the_process_owner_if_review_is_needed` is
+   removed; `Tell_the_process_owner_card` runs after `Write_the_decision`, and the HTML fallback keeps its run-after. The
+   card's heading becomes *"Narrative ready for your review"*; its Reasons fact shows the codes, or *"None found by the
+   checks"* when there are none; *"Nothing reaches a trustee until you release it."* stays. Codes and the reference only,
+   never text (`C-DOM-004`).
+7. **`rev_redactionconfidence` is still written** (the lowest extractor score) and shown in the Review Required view.
+
+**Flow size.** Three actions fewer: **about 97** (100 after Iteration 11). Nesting at most 5. Judgement: smaller, and a
+maker no longer has to understand a timestamp-ordering guard across settings rows.
+
+**Rejected.** (a) **Retire the threshold too.** Fewer concepts, but it removes the `wbs:5.4` deliverable and FR-029's
+flag, which is a scope and SDD question for no saving in actions. (b) **Keep writing `rev_redactionreleased` = false.**
+It changes nothing a person sees, and it lets a run that started before her release overwrite it. (c) **Card only when
+there is a reason.** She must release every application, so an application with no reason still needs her; the card is
+how she learns it is ready. (d) **Retire `rev_redactionreviewrequired`.** A schema change, and the view would then also
+list applications not yet scrubbed.
+
+**Consequences**, in the order of the Decision:
+
+1. *User sees:* no narrative reaches a trustee until the process owner releases it. In DEV that is what already
+   happens, because the `RedactionAutoRelease` row was never there. What disappears is the path by which `wbs:5.7` would
+   have switched auto-release on. *Positive:* a run can no longer undo a release made while it ran.
+2. *User sees:* every scrubbed application in the Review Required view until she releases it.
+3. *User sees:* `auto-release-off` and `auto-release-stale` no longer appear. An edit to a rule row needs no
+   re-confirmation; the re-save in Dev Summary Iteration 11 decision 1 is no longer needed.
+4. *User sees:* the same codes as before, read as hints. Columns are written or not written exactly as before.
+5. *User sees:* `below-threshold` on the least certain applications. After the next deploy of each environment the
+   threshold row exists, and `threshold-missing-or-invalid` stops appearing there.
+6. *User sees:* one card per scrubbed application, including those with no hint. *Negative:* more Teams messages, one
+   per application per run (`A-R97`).
+7. *User sees:* nothing changes.
+
+**What a person sees by default** (`IMP-0511`), traced to the write. With no `Redaction*` row at all: the four rule rows
+are absent, so `redaction-setting-invalid:<key>` stops both prompts, no counterpart is written, the record is flagged
+and carded, and `rev_redactionreleased` stays false. With every row seeded: counterparts are written where the checks
+pass, the record is flagged and carded with zero or more hints, and `rev_redactionreleased` stays false. **No setting
+value reaches a state in which the flow releases.** It is not a blackout: the review tab and manual release work in
+every state.
+
+**Reviewer decisions in the superseded ADRs** (`IMP-1125`). Kept: `ADR-071`'s *"It's called the entity extractor
+prebuilt model in Europe. use generative prompt for the indirect links"*; `ADR-074`'s *"Make it data driven"* (the
+`Redaction*` rows stay); `ADR-075`'s and `ADR-076`'s quotes (unaffected); rules decision D-2, *"Agreed"*
+(`no-model-detections` stays, as a hint). **Reversed:** the approved intent of `ADR-071` item 8 and `ADR-074` item 5
+that an application with no reason would be released automatically after `wbs:5.7`. That was an architecture default,
+not a reviewer quote, and the reviewer reverses it himself.
+
+**What this needs from other agents.**
+
+- **plan-agent:** an SDD amendment. FR-030 says the process owner reviews *a flagged redaction*; it should say she
+  reviews and releases **every** redacted narrative, and FR-029's threshold becomes a flag for her attention, not the
+  only route to review (US-007 AC-4 and AC-5 follow). FR-095 does not cover the writer's own name (Iteration 11).
+- **commercial-agent, information only:** `wbs:5.4`'s flag and review view are still delivered; nothing here is new
+  work outside the WBS. Whether anything follows from the review step now covering every application is theirs.
+
+**What development-agent changes** (retired words searched with `git grep --recurse-submodules`, positive control
+`ADR-075` in this document first, `IMP-1015`):
+
+| Hit | Action |
+|---|---|
+| The flow: `Find_setting_RedactionAutoRelease`, `Filter_settings_saved_after_auto_release`, `Compose_settings`' `autoRelease` and its description, `Filter_record_reasons`' `auto-release-` term, `Read_redaction_settings`' `$select` and description, `Compose_decision`'s `released`, `Write_the_decision` (drop `item/rev_redactionreleased`; `item/rev_redactionreviewrequired` = `true`), `Hold_the_record_for_review` (drop `item/rev_redactionreleased`), the `If` and the card and fallback text (item 6) | rewrite |
+| The flow notes file (settings table row, *Read once* list, `A-NS-22` row) | rewrite |
+| `src/tests/narrative/redaction_reference.py` (`auto_release_state`, `auto_release`, the decision's `released`), `test_scrub_flow_definition.py` (the auto-release and stale tests become: no flow writes `rev_redactionreleased`; review required on every record; one card per scrubbed record, including one with no reason), `test_redaction_reference.py` (the `released` assertions), `corpus_support.py`, `score_seeded_run.py`, `test_narrative_test_data.py` | rewrite |
+| `src/tests/data/narrative-test-data.json` and its `README.md`: `withThresholdAndAutoRelease` becomes `withThreshold`; `released` is false in every expected record; `auto-release-off` leaves the expected reasons. A shape change, not a regeneration of the expected text (`wbs:5.7` owns that) | rewrite |
+| `docs/development/revitalise-redaction-rules.md`: §4.4 `[NAME]` rows, §7 items 1 and 3, the reason table (`auto-release-off`, `auto-release-stale` retired; *"Exactly at the threshold releases"* becomes *flags*), the §7 settings table, §7c's stale sentence; the v0.2/v0.3 change notes and §11.3's mutation record | rewrite; change notes and §11.3, *history, kept* |
+| `docs/development/revitalise-redaction-prompt.md` §6 (*"released with lost punctuation"*) | rewrite |
+| `provisioning/deploymentSettings/dev-scoring-settings.json`, `test-settings.json`, `prd-settings.json` and the `createOnly` comment in `config/revitalise-grant-automation-pipeline.yml`: add `RedactionConfidenceThreshold` = `0.85`, `createOnly` | add |
+| `Entities/rev_application/Entity.xml` (`rev_redactionreleased` description) and `SavedQueries/RedactionReviewRequired.xml` (description): description text only, no schema change | rewrite |
+| The narrative Dev Summary's earlier iterations; Iteration 11 decision 1's auto-release sentences (superseded, said so in the next iteration's record) | *history, kept* |
+| `docs/tests/revitalise-grant-automation-test-report-20261007-3.md`, `logs/routing.log` | *history, kept* |
+| This document: rev 19, 20 and 22 entries, `ADR-071`, `ADR-074`, `ADR-075` bodies, `A-NS-22` | *history, kept*; amended by note or row in rev 25 |
+| `constraints/domain/special-category-register.yml`'s comment naming *"the RedactionConfidenceThreshold gate (rev_redactionreleased, FR-029/030)"* | not a retired word; wording now understates the control. Owner's choice, not development-agent's |
+
+**Gate interactions** (`config/revitalise-grant-automation-build.yml`, steps over the flow, its tests, the settings files
+and `rev_application`):
+
+| Gate | Trips? |
+|---|---|
+| `flow-definition-language` checks 1, 3, 8 | No: actions are removed, writes stay flat, names stay unique. The card's new run-after must name `Write_the_decision` |
+| `unit-tests` (narrative suite) | **Yes, by design**: the auto-release tests are replaced as listed above |
+| `field-length-limits` | Possible: rewritten action and column descriptions must stay within 256 characters (it fired in Iteration 11) |
+| `no-hardcoded-thresholds` | No: its regex lists the scoring keys only, and the threshold value is in settings files, not `Workflows/` |
+| `domain-invariants`, `no-special-category-data-in-scoring`, `flow-reads-no-trigger-body`, `no-hardcoded-environment-values` | No: no new column read, no scoring flow touched |
+| `tad-coverage`, `attribute-type-stability`, `field-security-coverage` | No: no column added, removed or retyped |
+| `forms-and-views-reachable` | No: the view keeps its id and filter |
+| `source-validate`, `component-shape`, `root-components-resolve` | No: same flow file, no new component |
+
+**Functions and contracts it adds.** None. It removes `ticks()` over `modifiedon`, so `A-NS-22` is withdrawn.
+
+### ADR-079: The scoring flow decides five auto-reject rules in one place, reads every parameter from `rev_setting`, and writes every reason that fired
+
+**Status:** `Accepted` (rev 26, approved 2026-10-19 by Xander Lykopoulos, verbatim *"Approved"*, item 6 included) · **Date:** 2026-10-19 · **WBS:** `wbs:2.4` (status, income ceiling, savings),
+`2.7` (amount limits, prior funding, reasons, settings, per Emily's feedback) · **Raised by:** SDD Amendment A-10 rev 2,
+approved 2026-10-19, items 2, 4 and 5 of its "Flagged for architect-agent" list (items 1 and 3 withdrawn by the SDD).
+
+**Context.** `REV | Scoring | Calculate & Flag` rejects today on two rules, the score and the 12-month prior-funding
+rule (EF-34), and writes one reason (EF-45): the first rule in a fixed order. The amount, break type, exceptional-funding
+tick and savings answer are not read. A-10 adds three financial rules, requires every rule's parameter to be a
+setting the process owner changes, and requires every reason that fired to be written. The reviewer's words, verbatim:
+*"When several rules fire, ALL reasons are listed, not just the first."* and *"These thresholds should be in the
+settings table, so that the process owner can change them."* Ground truth read 2026-10-19: the flow has 61 actions,
+fires on **create only**, stops first when `rev_statusoverridden` is true, and reads its settings through one List rows
+call guarded by a row count of 8. `rev_autorejectreason` is `ntext`, 1,000 characters, `IsSecured=0`.
+`seed-settings.ps1` **upserts** every row that is not marked `createOnly` on every deploy.
+
+**Decision.**
+
+1. **One action decides the rules.** A new Compose, `Derive_eligibility_rules`, returns five booleans: `amount`,
+   `income`, `savings`, `priorFunding`, `score`, defined as in §5.2.1. `Derive_status` returns 4 when any is true and
+   otherwise applies the borderline band as today. `Derive_autoreject_reason` reads the same five booleans. The
+   EF-45 design, where the reason action re-ran the status conditions, is replaced: with five rules, two copies of
+   five conditions is the drift EF-45 was written to prevent.
+2. **The amount rule** compares `rev_amountrequested` with the limit for `rev_breaktype`, read from five
+   `AmountLimit*` rows (`Whole Number`, pounds) through a Compose, `Parse_amount_limits`, that maps option value to
+   limit. All five limits are parsed on every run, so a malformed limit fails every run, not only the runs of its own
+   break type. A blank break type, a blank amount or a ticked exceptional request does not reject. Strictly greater
+   than: the limit itself passes. The additional amount is never read.
+3. **The income rule reads `rev_incomeflag`'s value 2 and nothing else.** The benefits answer stays inside
+   `Derive_income_flag`, under its 2026-09-18 gate exception, and the employment status is not read (SDD A-10 rev 2).
+4. **The savings and prior-funding rules each have an on/off row,** `SavingsRuleEnabled` and
+   `PriorFundingRuleEnabled` (`Boolean`, `true` or `false`, trimmed, any case). Any other value stops the run through
+   a new guard, `Fail_if_a_rule_switch_is_not_true_or_false`, inside `Read_configuration`. The £6,000 and 12-month
+   figures stay in the form's questions (SDD BR-S11); the reason text names £6,000 because that is the question asked.
+5. **Every reason that fired is written, one per line, in the order amount, income, savings, prior funding, score.**
+   A new Compose, `Compose_reason_lines`, joins one segment per rule, each a newline then its sentence, or nothing;
+   `Derive_autoreject_reason` returns null unless the status is 4, and otherwise that text without its first newline.
+   Break-type and income-band names come from a fixed Compose, `Compose_reason_labels` (the option sets' own names,
+   without the form's parenthetical), on the precedent of `Compose_frequency_response_labels`. Amounts use
+   `formatNumber(…, 'N2')`, limits and the ceiling `'N0'`, after a `£`. Every argument of these expressions is
+   evaluable when its inputs are null (`coalesce` throughout), so the design does not depend on `if()` evaluating
+   only one branch. Status and reason are written in the one existing `Write_score_and_status` call.
+6. **Seeding.** The seven new rows are seeded **create-only** in DEV, TST/ACC and PRD with the reviewer's values
+   (`ADR-076`'s existing mode of `seed-settings.ps1`). **The four existing FR-017 rows, `KnockoutThreshold`,
+   `BorderlineBandLower`, `BorderlineBandUpper` and `IncomeCeiling`, become create-only as well.** Without this,
+   Emily's change to the income ceiling or the knockout threshold is overwritten by the next deploy, which defeats
+   FR-017 as amended. PRD's `{{PENDING_OQ_*}}` placeholders still stop the PRD seed before any write, create-only or
+   not. `Read_scoring_configuration` names fifteen rows and the guard requires fifteen.
+7. **The audit trail follows.** `Compose_scoring_audit`'s status-4 line becomes *"4 Auto-reject:"* followed by the
+   reason lines, and its *Thresholds in force* block adds the five limits and both switches, so a later reader sees
+   the parameters that decided each case.
+
+**Inventory before fixing anything as a constant (`IMP-1076`).**
+
+| What holds a value in this domain | Used? | Why |
+|---|---|---|
+| `IncomeCeiling`, `IncomeBandUpperBoundMap`, `KnockoutThreshold` (settings) | Yes | Already the income and score rules' parameters |
+| `BreakTypeLabelMap`, `IncomeBandLabelMap` (settings) | No | Intake vocabulary: the website's wording mapped to an option value. The form's long wording (*"Holiday accommodation (hotel, cottage, caravan, holiday park)"*, *"… per year"*) is not the reason's wording, and making the reason depend on intake parsing rows would let an intake fix change the reason |
+| `rev_roundfinance.rev_suggestedmaximumspend` (table) | No | A round-level spending figure for trustees (FR-063), not a per-application limit by break type |
+| `rev_breaktype`, `rev_incomeband` option sets | Names only | Their values are the keys; their display names are the reason's names |
+
+Classification: the five limits and two switches are **tunable vocabulary** (settings). The reason sentences, the
+break-type and band names, *£6,000* and *12 months* are **format specification** (constants), because each changes only
+with the form or the option set.
+
+**Consequences, in the order of the Decision.**
+
+1. Emily sees status and reasons that cannot disagree: both come from the same five booleans in one run. Status 4
+   with an empty reason, or a reason under another status set by the flow, cannot be produced.
+2. A £650 Holiday accommodation request without the tick is rejected and its line names £650.00, £500 and Holiday
+   accommodation; the same with the tick is not (examples 2, 3). Emily setting the Day trips limit to 150 lets a
+   £120 day trip through with no flow edit (example 19). A limit typed as *£150* stops every new application from
+   being scored, with an alert naming the step, until she corrects it.
+3. An applicant on benefits is never rejected on income, whatever band is on the record (example 17). An applicant
+   not on benefits with no band is not rejected (example 16).
+4. Emily switching savings off makes example 10 Auto-pass with no reason (example 18). Typing *Yes* instead of
+   `true` stops scoring with an alert rather than silently switching the rule off.
+5. Example 11 shows four lines in the order amount, savings, prior funding, score. At the longest values the five
+   lines total about 440 characters, inside the 1,000 the column allows (SDD A-10 architect item 4), so no schema
+   change. An override leaves the lines in place (example 13).
+6. Emily's edits to any of the eleven Automation #2 rows survive every later deploy. The cost: a value changed in
+   a settings file no longer reaches an environment where the row exists. A board decision on OQ-001 or OQ-003 is
+   applied in TST/ACC by editing the row in the app (audited), and reaches PRD by its first seed.
+7. `rev_scoringaudit` stays well inside its 4,000 characters (about 1,100 at the longest).
+
+**What it reverses, and what it keeps (`IMP-1125`).** No reviewer decision is reversed by this ADR. EF-31's
+*"flag"* and EF-32's *"Other takes no automatic threshold"* were Emily's positions; the reviewer reversed them in SDD
+A-10 (Finding 1, verbatim *"That is correct. This overrides that decision."*), and this ADR implements that.
+Kept: EF-34 (prior funding rejects, a blank 12-month answer does not), EF-45 (a reason on the main form, written in
+the same call as the status), FR-022 (no rule fires on a missing scored answer), and the knockout being decided before
+the band. Changed from the EF-45 *design*, not from a decision: one reason chosen by precedence becomes all reasons.
+
+**Rejected options.** *One JSON row holding all five limits:* one row to edit, but a missing comma stops all
+scoring and the audit history no longer shows which limit changed. *Leaving the four FR-017 rows upserted:* keeps the
+settings files authoritative, but undoes Emily's edits at each deploy. *Inferring the reason from the status:* status 4
+cannot say which of five rules fired.
+
+**Flow size.** About **74 actions** (61 today): seven `Setting_*` queries, one guard and its terminate, and four Composes
+(`Parse_amount_limits`, `Compose_reason_labels`, `Derive_eligibility_rules`, `Compose_reason_lines`). **Judgement:**
+proportionate. Seven of the thirteen are the same one-line query shape the flow already uses for each setting, the rule
+logic is in one Compose a maker can read top to bottom, and nothing is nested deeper than today.
+
+**Gate interactions** (from `config/revitalise-grant-automation-build.yml` `steps:`).
+
+| Gate | Tripped? |
+|---|---|
+| `no-special-category-data-in-scoring` | No: the four new reads (`rev_amountrequested`, `rev_breaktype`, `rev_exceptionalfundingrequested`, `rev_savingsover6000`) are not on its bar. Its list holds `rev_exceptionalfundingdetail`, which must not be read |
+| `receivesbenefits-scoped-to-income-flag` | No: the income rule reads the flag. `Derive_eligibility_rules` and `Compose_reason_lines` must not name `rev_receivesbenefits` |
+| `no-hardcoded-thresholds` | No. **Proposed for its owner:** add the five `AmountLimit*` keys to its key list |
+| `flow-definition-language` | No: no `select(`/`filter(` expressions, no alternate-key Row ID, new action names unique |
+| `field-length-limits` | Possible: new and rewritten descriptions stay within 256 characters; the reasoning goes in `notes.md` |
+| `unit-tests` (`ScoringInvariants.Tests.ps1`) | **Yes, by design.** These are checks of the old design and are corrected, not designed around: the eight `ConfigKeys` become fifteen; the expected column tokens gain the four new columns; the EF-34 and knockout-precedence tests read `Derive_eligibility_rules` and the `or()` in `Derive_status` instead of the old nested `if`; *"names the 12-month rule and the score threshold as the only two possible reasons"* becomes a five-reasons-in-order test; the benefits-confinement test adds `Derive_eligibility_rules` and `Compose_reason_lines` to its checked list. Seed-settings tests gain the seven rows and the four create-only changes |
+| `provisioning-step-convergence` | No new step: the existing create-only mode is reused |
+| `domain-invariants`, `tad-coverage`, `attribute-type-stability`, `field-security-coverage` | No: no register, column, type or security change |
+| `source-validate`, `component-shape`, `root-components-resolve`, `forms-and-views-reachable` | No: same flow file, no new component, no form or view change |
+| `design-doc-claims` | Run on this revision before the gate |
+
+**Words this retires** (`git grep`, positive control `Derive_autoreject_reason`: 5 hits in the flow).
+
+| Hit | Mark |
+|---|---|
+| Scoring flow: `Read_scoring_configuration` description *"all 8 rev_setting rows"*; guard description *"All 8 rows are required"*; message *"Expected 8 rev_setting rows"*; `Derive_status` *"checked FIRST (deterministic reason when both fire)"*; `Derive_autoreject_reason` *"EF-34's 12-month rule wins if both…"* | *rewrite* |
+| Scoring flow `notes.md`: the EF-34 order paragraphs, the EF-45 *"WHY THE ORDER MATTERS"* paragraph, *"all eight rev_setting rows"* | *rewrite* |
+| `Entity.xml` `rev_autorejectreason` description *"the specific condition … (below threshold score, or EF-34's 12-month rule)"* | *rewrite* (description only; type and length unchanged) |
+| `ScoringInvariants.Tests.ps1`: *"The eight rev_setting rows"*, the *"only two possible reasons"* test | *rewrite* |
+| `config/revitalise-grant-automation-pipeline.yml`: *"Seed the 40 rev_setting rows"* (DEV and TST/ACC steps) | *rewrite* (count), pipeline config owner |
+| `docs/deployments/revitalise-grant-automation-deployment-summary.md` *"all 8 rows"* | *history, kept* |
+
+**Functions and contracts it adds.** `formatNumber(…, 'N0')`: no hit in any flow of this solution (`'N2'` has two, in
+Create Envelope) — `A-FLOW-18`. A Dataverse money column compared with `greater()` straight from the create trigger:
+no flow does this today — `A-FLOW-19`. The restart route for a failed run (resubmit from run history) is not written
+down or measured anywhere in this solution — `A-FLOW-20`. `min()`, `substring()`, `coalesce()`, `and()`, `or()`,
+`toLower()`, `trim()` and `greater()` are all already shipped. Verification in §12.7.
+
+**Work-item clauses this overrides** (for pm-agent).
+
+| Item | Clause | TAD row |
+|---|---|---|
+| `WI-0033` | *"Automatic flag when the amount requested exceeds £500 (holidays/respite) or £100 (day trips/activities) and no exceptional funding request was made"* | `ADR-079` items 2 and 6: it **rejects** (status 4), each limit is a setting, Other and Respite stay are £500 |
+| `WI-0034` (deferred) | *"Unsure how "other" should be treated"* | `ADR-079` item 2: Other has its own limit, £500 (SDD A-10 Finding 1) |
+| `WI-0047` | *"An auto-reject reason shown per application"* | `ADR-079` item 5: every reason that fired, one per line (widened, not contradicted) |
+| `WI-0036` | *"A No to previous funding more than 12 months ago should be auto-rejected"* | `ADR-079` item 4: still rejects, now behind `PriorFundingRuleEnabled` (default on) |
+
+### ADR-080: Finalise Decisions is started from the review list in the admin app, one run per selected review
+
+**Status:** `Accepted` (rev 27, approved 2026-10-20 by Xander Lykopoulos, verbatim *"Approved"*) · **Date:** 2026-10-20 · **WBS:** `wbs:6.6` · **Work item:** `WI-0129` (reopened) ·
+**Raised by:** reviewer correction of the built flow, 2026-10-20 (`IMP-1162`); the three open rules from `IMP-1161`.
+
+**Context.** Development built flow #7 with a Power Automate button trigger, shared run-only, acting on every review not
+yet finalised, because §5.7 named no screen. The reviewer, verbatim: *"the finalise decisions workflow is meant for Emily
+to create grants after the reviews are done. So the button should be on the review table. This is a step after the
+verdicts of the trustees. She can then create grants for them, which in turn creates the docusign agreements."* He did
+not say whether the button acts on the reviews she selects or on every decided review. Ground truth read 2026-10-20:
+
+- The admin app already lists the reviews to act on: view `AwaitingFinalisation.xml` (`rev_finalisedon` null, shows
+  `rev_verdict1` and `rev_verdict2`), reached from sitemap SubArea `rev_sub_awaitingfinalisation`. E1 (source).
+- Flow #8's trigger is `When_a_grant_is_created`: `SubscribeWebhookTrigger`, message 1 (Create), entity `rev_grant`,
+  scope 4 (organisation). E1 (source). The flow table's *"status becomes Approved"* was wrong.
+- A flow appears in a model-driven view's **Flow** menu when it uses the Dataverse **When a row is selected** trigger on
+  that table and the user is an owner or run-only user. The trigger runs once per selected row (*Split on* cannot be
+  turned off); more than 40 selected rows may fail; the user sees only that the flow started; run-only users cannot see
+  run history; run-only sharing takes users or groups and lets the owner keep the flow's own connection. **E2**
+  (Microsoft Learn, *Trigger flows for selected rows* and *Share a cloud flow*, read 2026-10-20).
+- **Observed in DEV by the reviewer, 2026-10-20** (verbatim: *"The flow menu is available in the grant admin app, which
+  the trustees can't open by the way. The don't have the right role assigned. when I click create flow from that menu,
+  the trigger is called dataverse Manual and in the code view the operationId is "RecordSelected"."*): the Flow menu
+  exists in `REV Grant Administration`; trustees cannot open the app; the designer's trigger is *Microsoft Dataverse —
+  Manual*, operation id `RecordSelected`, in a DEV flow named *"Run a flow for selected rows"*. E1 by a human
+  observer, not by export. What remains unmeasured is in `A-FD-9` and `A-FD-10` (§12.8).
+- No flow, web resource, command definition or custom API in this solution today uses a row-selected trigger or a
+  custom command button (searched `src/solutions/RevitaliseGrantAutomation`: no `WebResources`, no `RibbonDiffXml`).
+
+**Decision.**
+
+1. **The surface is the review list in `REV Grant Administration`.** Emily opens Reviews → Awaiting Finalisation,
+   selects the reviews and chooses Flow → `REV | Portal | Finalise Decisions`. No custom command button is built.
+2. **The trigger is Dataverse *When a row is selected* on `rev_review`,** replacing the button trigger. The flow reads
+   only the review id from the trigger and re-reads the row.
+3. **The button acts on the selected reviews, not on every decided review.** Three reasons. (a) It is what the platform's
+   view surface does: the trigger is per selected row, so "every decided review" would mean either ignoring the row
+   Emily picked, or building a custom command, a JavaScript web resource and a custom API, a component class this
+   solution does not have, to pass a list. (b) The reviewer's words, *"create grants for them"*, read as the reviews in
+   front of her. (c) It gives Emily a way to hold back one approval: the envelope starts the moment the Grant exists, with
+   the amount requested (`Q-FD-8`, confirmed by the reviewer 2026-10-20).
+4. **One run handles one review,** in the seven steps of §5.7: finalised guard, decided guard, resolve outcome, apply,
+   stamp last. The per-review loop, the up-front list of reviews and the per-review failure capture go.
+5. **Creating the Grant is the only hand-off to acceptance.** Flow #8 starts on Grant create. Flow #7 has no DocuSign
+   action and no signing-order logic (`ADR-077`).
+6. **Feedback is on screen plus the existing failure alert.** A finalised review leaves the view; a failure raises
+   `REV | Ops | Failure Alert`. No new notification.
+7. **Run-only, shared with the process owner's Entra group per environment, on the flow's own connection.**
+
+**Consequences** (numbered as the Decision).
+
+1. *Positive:* Emily works where the verdicts are. *Negative:* the Flow menu lists the flow by its display name,
+   `REV | Portal | Finalise Decisions`; renaming it is not part of this change.
+2. *Positive:* a Dataverse trigger the connector already uses in this solution's connection reference; no new connector
+   or connection. *Negative:* the trigger's definition shape in solution source is new here. The operation id,
+   `RecordSelected`, is observed (reviewer, DEV, 2026-10-20); its parameters, split-on setting and connection-reference
+   binding are not, and are measured by export: `A-FD-10` (§12.8).
+3. *Positive:* she decides what goes out. *Negative:* FR-047's literal *"in the same run"* becomes "in one action": fifteen
+   selected reviews are fifteen runs. A selection above 40 rows may fail to start; a board round is about fifteen.
+4. *Positive:* about 30 actions instead of about 55, nesting 3; a failure is one review's, and the next press retries it.
+   Maintainable for a five-outcome job. *Negative:* none known.
+5. *Positive:* no change to flow #8. *Negative:* a Grant created by anyone else with create rights also starts an
+   envelope; that was already true and is unchanged.
+6. *Positive:* nothing new to build. *Negative:* if Emily selects a review with one verdict, nothing visible happens
+   beyond it staying on the view. The view shows the empty verdict, which is the explanation.
+7. *Positive:* only the process-owner group sees the flow; group sharing survives staff change. The run-only share is
+   the control relied on; trustees are also kept out of the whole app by its role (§5.7, *Two controls*). *Negative:* the writes are
+   made by the service account, so Dataverse audit names it, not Emily; the person who pressed is in the trigger outputs
+   in run history only (28 days). Whether the running user's licence covers a Dataverse flow started in-app on the
+   owner's connection is `A-FD-11`, not asserted here.
+
+**Reviewer decisions in the superseded design, kept or reversed.** `A-FD-6` was the development agent's assumption, not a
+reviewer decision; it is answered by the correction above. The 2026-10-19 reviewer decision *"one DocuSign template for
+all environments, signing order set only in the template"* is **kept**: flow #7 still has no DocuSign action.
+
+**Gates over this artefact** (`config/revitalise-grant-automation-build.yml`). `flow-definition-language` (line 711)
+runs over every flow: the change adds no `select(`/`filter(` expression, alternate-key literal or nested `item`, and
+removing the loop must not leave a reused action name. `source-parses --expect-flows manifest` (line 413): the flow keeps
+its file name and GUID. `flow-reads-no-trigger-body` targets only Round Statistics and is not affected, though this flow
+follows the same rule. `FinaliseDecisions.Tests.ps1` asserts the button trigger and must be rewritten.
+
+**Words this retires** (`git grep`, positive control `rev_finalisedon`: hits in the flow and the trustee code app).
+
+| Hit | Mark |
+|---|---|
+| Flow #7 JSON trigger description *"Manual, process owner, after the board meeting … A-FD-6: run-only sharing, no row-selected trigger"* | *rewrite* (development-agent) |
+| Flow #7 `notes.md` *"## Running it (A-FD-6)"* and *"A manual button flow, run from Power Automate by a run-only user"*; *"What one run does"* | *rewrite* (development-agent) |
+| `src/tests/solutions/FinaliseDecisions.Tests.ps1` *"is a manual button flow with no Dataverse or DocuSign trigger"* | *rewrite* (development-agent) |
+| `config/revitalise-grant-automation-pipeline.yml` wbs:6.6 DEV steps: *"Its trigger is a manual button"*, *"so she can press it from Power Automate … (A-FD-6; TAD 5.7: manual, process owner)"*, the V4/V3 step's *"Run the flow once"* | *rewrite* (pipeline config owner) |
+| Dev Summary §10 row `A-FD-6` | *rewrite*: close as answered by the reviewer (development-agent) |
+| Flow #7 `Compose_outcome` and `notes.md` *"anything else → 2 Deferred"*; Dev Summary §10 `A-FD-1` | *rewrite*: a split ends the run unchanged; agreeing verdicts and a set `rev_outcome` decide (reviewer, 2026-10-20) |
+| Dev Summary §10 `A-FD-3`, `A-FD-8` | *rewrite*: confirmed by the reviewer 2026-10-20 |
+| This TAD §5.7 rev 1 paragraph | *history, kept* (quoted under §5.7) |
+
+**Work-item clauses this overrides** (for pm-agent).
+
+| Item | Clause | TAD row |
+|---|---|---|
+| `WI-0129` | *"Given fifteen grants were approved at one meeting, when I finalise decisions, then all fifteen are issued in the same run. → FR-047"* | `ADR-080` consequence 3: one action, one run per review |
+| `WI-0129` | The quoted rev 1 §5.7 text: *"Manual, process owner, after the board meeting … triggers flow #8 for the whole approved batch in a single run (FR-047) … a second run over an already-finalised round is a no-op"* | §5.7 rev 27: row-selected trigger; the Grant create starts flow #8; the guard is per review |
+
+### ADR-081: A Payment save makes the grant's final payment date and the application's status match the payments that exist
+
+**Status:** `Accepted` (rev 28, approved 2026-10-20 with three answers folded in, below) · **Date:** 2026-10-20 · **WBS:** `wbs:8.6` (change order `CO-010`,
+scope accepted unbilled, not in `contract/wbs.json`) · **Raised by:** SDD Amendment A-12 (FR-107 to FR-112, US-026; FR-112 and OQ-059 added by the reviewer-directed revision), approved 2026-10-20, and the
+architect request in `CO-010`'s "Before development can start".
+
+**Context.** The reviewer's decision on the question deferred since 2026-09-09, verbatim: *"Yes, this flow needs to be build. 2- 4 hours of work on a new WBS 8.6.
+Non-billable."* (`CO-010`). Ground truth read 2026-10-20: (a) every `rev_payment` column except `rev_name` is `IsSecured=1`, including
+`rev_grantid`, `rev_isfinalpayment`, `rev_paymentdate` and `rev_paymentstatus`; (b) `rev_grant.rev_finalpaymentdate` is a DateOnly, secured, audited
+column and no flow writes it; (c) `rev_applicationstatus` has "Grant Paid" (11) and no flow in `Workflows/` writes it; **nothing keys on application
+status 7 or 11** — no flow filter, no saved query, no code-app source other than a label (grepped); (d) the Finance role has create, read and update on
+Payment, Read and AppendTo on Grant and nothing on Application, and no delete on Payment (§6.2); (e) `REV Service Automation` holds write on Grant,
+Application and Payment, and the service account's team is a member of `REV_FinanceOnly`; (f) `rev_paymentstatus` is Pending 1, Issued 2, Cleared 3,
+Cancelled 4 with default 1; (g) `message: 4` is *Added or Modified* (`stringmap`, read live 2026-08-28), and no flow in this solution uses it;
+(h) no flow here writes a null, uses `concurrency` on a row trigger, or filters on `rev_paymentstatus`. SDD A-12's reviewer answers: OQ-057 *"Payment date"*,
+OQ-058 *"Correct. All payments marked final."* (i) **Added at the approval:** `REV_FinanceOnly` gives Read, Update and Create *Allowed* on `rev_paymentstatus`, and
+`REV Service Accounts` is a member of both `REV_FinanceOnly` and `REV_TrusteeRestricted` in all three settings files; `rev_payment` is audit-enabled; the solution
+holds no plug-in, web resource or business rule today (grepped 2026-10-20). **The reviewer's answers at the approval, verbatim:** *"1. Agreed. 2. For now use the
+same as the process owner Emily. At the moment that is a combined role. but in the future probably separated. During testing this can be set to Janine. 3. Make
+payment date required when final payment is set. The the flow can set the payment status to issued. APPROVED"*
+**(j) Added by amendment b, 2026-10-20:** the grant's status column is `rev_grant.rev_status` (the option set is named `rev_grantstatus`), `IsSecured=0`, values 1 Awarded, 2 Acceptance Issued, 3 Acceptance Signed, 4 Paid; the only trigger on `rev_grant` is Create Envelope's `message: 1`; `Completion` writes 3 behind a guard that the status is still 2, and `Reminders & Escalation` selects status 2 (all read from `Workflows/`, 2026-10-20). **The reviewer, verbatim:** *"Obviously the final payment should change the grant status as well."* and, on OQ-059, *"No. payment final means final."*
+
+**Decision.**
+
+1. **Trigger.** Dataverse row trigger on `rev_payment`, `message: 4`, `scope: 4`, `runas: 3`, `filteringattributes`
+   `rev_isfinalpayment,rev_paymentdate,rev_paymentstatus,rev_grantid`, outputs secured, concurrency 1. Delete is not a trigger: Finance cannot delete a
+   Payment and a retention cascade deletes the Grant with it. A payment *moved* to another grant is not handled either (`A-R101`).
+2. **Recompute, never react.** The trigger body supplies the payment's id and the grant id; everything else is read again: the saved payment as it is now
+   (final mark, date, status, grant), the grant (its date, its own status `rev_status` and its application), the application's status, and the latest **dated** final payment on the grant (final,
+   not Cancelled, date present, newest date first, one row). Target date: that payment's date; none when the read is empty. Both day values pass through
+   `coalesce()` before `formatDateTime()` and `greater()`, which throw on null. **A final payment with no date is not a final and starts no clock (answer 3).**
+   The form makes the date required once Final is set (§5.11), so an undated final payment can only come from a write that bypasses the form; the flow then
+   reports "final payment has no date" and does not guess a day. *Previously read (rev 28 as presented, withdrawn at the approval): an undated final payment counted
+   from the day its row was created (UTC), read by a second connector query for the latest undated final payment, because FR-109 needs a day that does not move on a
+   later save. The reviewer's answer removes the case it handled; that query is gone. The reviewer decision it carried, OQ-057 "Payment date", is **kept**: the
+   date is the payment's own, now with no exception.*
+3. **One grant write: the date and the grant's own status together (amendment b, FR-113).** `UpdateOnlyRecord` on `rev_grant`, flat `item/rev_finalpaymentdate` set to the target date or
+   to null, and flat `item/rev_status` set to the target status, **only when either differs from the grant's current value.** Target status: Acceptance Signed (3) to Paid (4) when a dated
+   final payment exists; Paid (4) back to Acceptance Signed (3) when none does; any other status is left as it is and, when the date is written in that run, reported (FR-111, OQ-060).
+   **The flow never changes a grant to 1 or 2:** the only value it ever writes that differs from the one read is 4 or 3; a grant read at 1 or 2 is written back at 1 or 2 when the date alone changes (an echo, and `A-R103`'s race). It depends on the grant's status only, never on the application's. *Previously read: "The flow never writes 1 or 2."* Setting and clearing are one action (FR-107, FR-110, FR-113).
+   *Previously read (rev 28 as approved): the write carried the date only; the grant's status was excluded (item 9).*
+4. **One application write.** `UpdateOnlyRecord` on `rev_application`, flat `item/rev_status`: Approved (7) to Grant Paid (11) when a final payment exists;
+   Grant Paid (11) to Approved (7) when none does; any other combination writes nothing. The flow never writes any other status (FR-108, FR-110).
+5. **One report.** A reason is set in four cases: a final payment with no grant, a date written while the application is at neither Approved nor Grant
+   Paid, or while the grant is at Awarded or Acceptance Issued (and the mirror on clearing; the reason names which status), a saved payment that is final, not Cancelled and has no date, and a saved payment that is final and Cancelled (FR-112, as the plan words it; informational). At the end, if a reason is set, one Teams message goes to `rev_FinanceAlertUpn` and `REV | Ops | Failure Alert` is called at severity Warning.
+   It carries references and the reason, never an amount, bank detail, date or name. A platform failure takes the failure path (FR-111). **Recipient (answer 2):**
+   `rev_FinanceAlertUpn` is **kept as its own variable**, not folded into `rev_ProcessOwnerUpn`. Its value is the process owner for now (a combined role today, likely
+   separated later) and Janine in the test environments (DEV and TST/ACC; DEV is inferred, because testing happens there). Entered as a placeholder per environment next to
+   `rev_ProcessOwnerUpn` in the `pac-import-*.json` and DEV settings files, never as a literal address in a document or a flow (`no-hardcoded-environment-values`). When
+   the roles split, only the value changes. While one person holds both, they get two messages for one cause.
+6. **Identity and wiring.** Flow owner (`runas: 3`), because Finance cannot write Grant or Application. Existing `rev_SharedDataverse` and `rev_SharedTeams`.
+   No new privilege, role, profile permission, profile member or connection reference: the earlier claim was re-checked against the profile source when answer 3 added a
+   write to a secured finance column, and holds (§5.11). One new environment variable, `rev_FinanceAlertUpn`, `isrequired=1`, no default. One new workflow component: the
+   form business rule of item 8.
+7. **The saved payment is marked Issued (answer 3).** One more write, last in the run: `UpdateOnlyRecord` on `rev_payment`, flat `item/rev_paymentstatus` = Issued (2),
+   **only** when the saved payment is final, not Cancelled, dated and Pending. The flow never writes Pending, Cleared or Cancelled. Unticking Final, cancelling and
+   correcting the date reverse or re-record the grant and the application and **do not revert the payment's status**. The write is a fixed point: it falsifies its own guard,
+   so the extra run it starts (the status is in the trigger filter, which cancellation needs) writes nothing and ends.
+8. **Payment date required when Final is set (answer 3).** A business rule on the Payment main form, authored in DEV and exported; not a column requirement, and no plug-in.
+   API writes are caught by the flow (item 2), not blocked.
+9. **Excluded, and why it is stated.** The pre-issue duplicate re-check (`wbs:8.5`, FR-023, `CO-010`). The Anonymised Statistic amount (§5.13 item 2). Each is
+   flagged for the reviewer; none is added. **The Grant's own status "Paid" (value 4) is no longer excluded:** the reviewer put it in scope on 2026-10-20 (item 3). *Previously read
+   (rev 28 as approved): excluded, because FR-107 to FR-111 did not ask for it, so a paid grant's own status would still read "Acceptance Signed".*
+10. **The paid-grants retention job is not part of `wbs:8.6`** and is flagged (§5.11). It is a different artefact (a bulk-delete job over `rev_grant`,
+   applied by a tenant administrator) and is not in `CO-010`.
+
+**Consequences, in the order of the Decision.** What finance and the process owner see.
+
+1. Finance saves a payment with Final ticked, or a final payment's date, status or grant changes: the flow starts within the platform's normal delay (not
+   measured here). A save that changes none of the four columns starts nothing; the restart route is untick, save, tick, save (§5.11). *Negative:* a payment
+   deleted by an administrator leaves the grant as it was.
+2. **A default traced to what is seen (OQ-057, answer 3).** There is no default day any more. In the form, ticking Final makes Payment Date required, so finance cannot
+   save a final payment without one; the grant's date is that date, and a later of two wins. Written by something other than the form, an undated final payment gives the
+   grant **no** date and finance and the process owner see "final payment has no date". **OQ-058:** a Pending payment with Final ticked starts the clock and a Cancelled
+   one never counts. *Previously read (rev 28 as presented): an undated final payment gave the grant the creation day of the payment row, in UTC.*
+3. The grant shows the date; unticking the only final payment empties it. *Negative:* a **hand-set date with no final payment behind it is cleared by the next
+   save of any payment on that grant** (`A-R100`). FR-109 is read as *over a grant that already matches its payments*, because the trigger carries the new
+   state and never the old, so the flow cannot tell "this save removed the mark" from "this save added an instalment". Put to the reviewer.
+4. The application reads "Grant Paid"; unticking returns it to "Approved". An application at any other status (Withdrawn, say) keeps its status and the
+   date is still recorded (US-026 AC-10).
+   **Item 7 trace:** a final, dated, Pending payment reads Issued a moment after save, and its `modifiedby` reads the service account (who ticked it is in the audit
+   history). *Negative:* a payment scheduled for a later day and marked final reads Issued at once; the flow cannot tell scheduled from sent. Unticking Final leaves the
+   payment Issued; finance sets it back if the money did not go. Un-cancelling a final, dated payment to Pending makes it Issued.
+   **Item 3 trace (grant status):** with a dated final payment saved, the grant reads Paid in the same instant the date appears; unticking the only final returns it to Acceptance Signed along with the empty date. A grant still at Awarded or Acceptance Issued keeps its status and finance and the process owner are told which; nothing moves it later by itself when the acceptance is signed (`A-R103`). A Paid grant is out of the reminder and escalation query and cannot be pulled back by `Completion`, whose guard needs status 2.
+   **Item 8 trace:** finance ticks Final with no date and the form refuses to save until a date is entered; an import or API write is not refused.
+5. Finance and the process owner receive the message. **Unset or blank `rev_FinanceAlertUpn`:** the import is refused where the Pipelines pane validates
+   required variables; if a blank is entered, the Teams post fails, the writes have already been made, the run takes the failure path, the process owner is
+   alerted, and **finance is told nothing**. That is a blackout for finance, written down as one, not a safe default. In PRD today the one person is both recipients.
+6. No new access for anyone. The grant, application and payment-status writes are attributed to the service account in audit; the person who ticked the box is in the Payment
+   table's audit history, and on the row until the Issued write.
+7. The statistic's amount is unchanged. *Negative:* a reader may expect it to follow the final payment. *Previously read (rev 28 as approved): "a paid grant's own status is unchanged"; retired by item 3, since the grant now reads Paid.*
+8. No record is deleted by the flow. Over-retention is not possible for years, but only if the job is built before then.
+
+**What it reverses, and what it keeps (`IMP-1125`).** Nothing is reversed. The reviewer's 2026-09-09 *"decide later"* (rev 6) is resolved by his 2026-10-20
+decision above; the rev 6 wording is kept as history in §3.5, §5.11 and `A-R56`. Kept: ADR-048 (finance is an area in the Grant Administration app), ADR-045,
+NFR-150 (no rollup or copy of a secured value; this flow copies none), and `CO-010`'s limit that the high end of its hours rises if a retry or a missing-grant
+case needs more than a logged alert. **This design stops at the alert.** What may raise the high end: the new environment variable and one Teams post, which
+`commercial-agent` should confirm are inside "a logged alert".
+
+**Rejected options.** *React to the change* (set the date when the final mark is ticked, clear it when removed): needs the old value, which the trigger does not
+carry, and gives repeat saves, corrections and cancellations three code paths. *Run as the modifying user:* Finance cannot write Grant or Application. *A
+column on Payment to show the reason to finance:* a new secured column, an import prerequisite (`C-TECH-050`) and more than `CO-010`'s two writes. *Tell finance
+through the Error Log only:* Finance has no privilege on it. *Fall back to the day the flow runs, or the day the row was created, for an undated payment:* the first moves the date on every later save and breaks FR-109; the
+second was the design as presented and is withdrawn by answer 3. *Make `rev_paymentdate` required on the column:* unconditional, blocks Pending payments with no date, and is
+not enforced for API writes. *A plug-in to refuse an undated final payment:* a new component class outside `CO-010`. *Revert Issued to Pending when Final is unticked:* the flow
+cannot see whether the money went out. *Skip the extra run with a trigger condition on Issued:* un-cancelling straight to Issued needs the recompute. *Add the paid-grants job or the duplicate re-check here:* not in `CO-010`.
+
+**Flow size.** About **28 actions** in one scope (four reads, three writes, the reasons built as one `Compose` of conditional fragments, one report block, the failure path). *As built, counted from the shipped JSON 2026-10-20: 27 actions plus the trigger; the Dev Summary's "about 40" is not what the file holds.*
+**Judgement:** proportionate for three writes and their reversal; nothing is nested deeper than four levels.
+
+**Gate interactions** (from `config/revitalise-grant-automation-build.yml` `steps:`).
+
+| Gate | Tripped? |
+|---|---|
+| `flow-definition-language` | No: no `select(` or `filter(` expression (the two List reads are connector filters, not expressions), flat `item/…` writes, no alternate-key Row ID, action names unique across the whole flow |
+| `flow-reads-no-trigger-body` | **Not applied.** The gate's command names one file, `REVPortalRoundStatistics…json`. This flow deliberately reads three values from its trigger body (item 2) and is not a trigger-isolation flow. If a reviewer wants it covered, the gate's file list is widened by its owner |
+| `source-validate` (`--expect-flows manifest`), `root-components-resolve`, `component-shape` | **Yes, by design:** a new flow file, `.json.data.xml` and `.notes.md`, a Solution.xml root component and the manifest count, a new `rev_FinanceAlertUpn` definition folder |
+| `field-length-limits` | Possible: every new description within 256 characters; the reasoning goes in `notes.md` |
+| `no-hardcoded-environment-values` | No, **and it is why the finance address is an environment variable**: a literal `@revitalise.org` in the flow would fail it |
+| `assumption-register`, `assumption-markers` | **Yes:** `A-CP-1` to `A-CP-6` each need a Dev Summary §10 row and a marker at the point of use |
+| `domain-invariants`, `field-security-coverage`, `attribute-type-stability`, `tad-coverage` | No: no column, type or profile permission change; no special-category column is read. The new writes target `rev_paymentstatus`, already in `REV_FinanceOnly`, and `rev_grant.rev_status`, unsecured by design and in no profile (amendment b) |
+| `unit-tests` | Yes, new: final sets date and status; non-final changes nothing; repeat save is idempotent; unticking reverses and leaves the payment Issued; a Withdrawn application keeps its status and is reported; no-grant is reported (`CO-010`'s deliverable, US-026). **Added:** a final dated Pending payment becomes Issued; the second run writes nothing; a Cancelled payment is never written, and one marked final is reported; a final undated payment is reported and starts no clock. **Added by amendment b:** a Signed grant with a dated final becomes Paid in the same write as the date; Awarded or Acceptance Issued stays and is reported when the date is written; a repeat save and a non-final instalment leave the status; unticking the only final returns Paid to Signed (and a Paid grant with another final stays Paid); the grant write carries the date as null and the status together; **no write moves a grant to 1 or 2** (a write carrying 1 or 2 is asserted equal to the status the grant was read at; the flow writes a status different from the one read only as 4 or 3) |
+| `design-doc-claims` | Run on this revision before the gate |
+
+**Words this retires** (`git grep -n --recurse-submodules`, positive control `Capture Payment`: 8 hits in this document before the edit).
+
+| Hit | Mark |
+|---|---|
+| This document: §3.5 conflict 2 row 2, §5 table row 11, §5.11, risk `A-R56`, §5.4 and table row 4 ("#11") | *rewrite* (done, rev 28) |
+| This document: the rev 5 and rev 6 revision entries | *history, kept* |
+| `docs/development/revitalise-grant-automation-dev-summary.md` §3.2, paid-grants row: *"No Phase 1 application can reach Grant Paid"* | *rewrite*, `development-agent`, when the flow ships |
+| `docs/development/revitalise-payment-capture-dev-summary.md` lines 60, 98-99; `docs/plans/revitalise-payment-capture-plan.md` §3 and A-5 | *history, kept* (`wbs:8.3` deliverables) |
+| `docs/plans/revitalise-grant-automation-plan.md` (A-12 text) | plan-agent's FR-107 revision, FR-112 and OQ-059 read at the end of this dispatch, not edited here; two wording differences are stated in `A-R102` and in §5.11 |
+| This document: the *"day its row was created"* / *"undated"* wording in the §5.11 flow, decision table, size and ADR-081 items 2, Consequences 2 and the rejected options | *rewrite* (done), with the old words kept once as *previously read* |
+| This document: the Approval entry's *"the day an undated payment counts from"* (the third gate decision as presented) | *history, kept*, annotated by the approval entry |
+| `src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/Entity.xml` header (*"a plain bit with no wiring behind it"*) and `Other/FieldSecurityProfiles.xml` comment on `rev_isfinalpayment` (*"once that wiring lands"*) | *rewrite*, `development-agent`, with the flow |
+| This document: §5.11 "does not" item 3, `ADR-081` item 9 and Consequences 7 (*"the grant's own status"*, *"still read "Acceptance Signed""*), and rev 28 entry item 6's reading of the flagged items | *rewrite* (done, amendment b), old words kept once as *previously read* |
+| This document: the Approval entry's *"the retention job, the grant's own "Paid" status and the snapshot amount remain flagged, not decided"* | *history, kept*, annotated by the amendment b approval entry |
+| `src/solutions/RevitaliseGrantAutomation/OptionSets/rev_grantstatus.xml`, header comment on value 4 and `Entities/rev_grant/Entity.xml` description of `rev_status` (*"Set by WBS ..."*) | *check, `development-agent`*: value 4's comment should say it is now set by `wbs:8.6` |
+| `docs/plans/revitalise-grant-automation-plan.md` FR-113, OQ-060, AC-16 to AC-19 (read at the end of this dispatch, not edited) | *aligned*; one wording difference, stated in §5.11 ("Paid already") |
+| `rev_grant/Entity.xml` description of `rev_finalpaymentdate` (*"The retention job that reads it is NOT built by this slice"*) and `ensure-bulk-delete-jobs.ps1` header | *history, kept* — still true |
+
+**Functions and contracts it adds** (each grepped across `Workflows/*.json`; zero hits opens an `A-CP` row, `C-TECH-052`). `formatDateTime`, `greater`,
+`coalesce`, `first`, `empty`, `length`, `if`, `equals`, `and`, `not`, flat `item/` writes, a Dataverse `GetItem` by id on `rev_payment`, `UpdateOnlyRecord`, `ListRecords`, `_rev_grantid_value`, `message: 3`, `runas: 3` and `scope: 4` — **and, for amendment b, `item/rev_status` written as an integer picklist value with a second column in the same call, shipped by `Completion` (`item/rev_status: 3` beside other columns): no new function, no new `A-CP` row**:
+all already shipped. **Not shipped, so open:** `message: 4` firing (meaning is measured, firing is not) — `A-CP-1`; `filteringattributes` naming four
+column-secured columns — `A-CP-2`; a DateOnly value read from and written to as a day string — `A-CP-3`; `runtimeConfiguration.concurrency` on a row trigger —
+`A-CP-4`; `rev_paymentstatus ne 4` returning a Pending payment — `A-CP-5`; writing null to clear a DateOnly column — `A-CP-6`; **added at the approval:** a secured-column write by the flow owner through team membership — `A-CP-7`; the flow's own write re-triggering one run that then ends — `A-CP-8`; a form business rule exported from DEV, with *Set business required* behaving as designed — `A-CP-9`. Verification in §12.9.
+
+**Work-item clauses this overrides** (for pm-agent). None: the ledger holds no item for `wbs:8.6` (grepped 2026-10-20). `pm-agent` writes them from FR-107 to
+FR-111 and this ADR, and carries the `CO-010` re-price triggers.
+
+---
+
 ## 11. Risks & Mitigations
 
 R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). A-R10 onward are
@@ -4515,7 +6165,7 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 |---|---|---|---|
 | **R1** A trustee identifies an applicant from data that should be redacted | Low (after controls) | High | Column security profile applied below the app layer (§6); redaction fails closed (§5.5); trustee role has no export privilege; print/pack routes render only permitted columns |
 | **R2** Special-category health data exposed to someone without a need to see it | Low | High | Tier 4 columns in `REV_TrusteeRestricted`; Finance role has no Application privilege; four narrow persona roles; role changes notified to the DPO |
-| **R3** An applicant wrongly rejected by the automated score without meaningful human review | **Medium — pending DPO (OQ-005)** | High | FR-018 override, FR-019 Borderline routing, FR-022 withhold-on-missing-answer; thresholds in `rev_setting` so auto-reject can be routed through the process owner as a **configuration change** if the DPO requires it |
+| **R3** An applicant wrongly rejected by the automated score without meaningful human review | **Medium — pending DPO (OQ-005)** | High | FR-018 override, FR-019 Borderline routing, FR-022 withhold-on-missing-answer; thresholds in `rev_setting` so auto-reject can be routed through the process owner as a **configuration change** if the DPO requires it. **Rev 26 (`ADR-079`):** four more rules now reject automatically (4 of 63 Round 4 applications on financial grounds, SDD A-10 Finding 2). Emily checks every auto-reject with all its reasons (reviewer, 2026-10-19). A switch or a limit can turn a rule **off**; no setting routes a rule's cases to review instead, so if the DPO requires review rather than rejection (OQ-005) that is a flow change, not a configuration change |
 | **R4** Health free-text kept longer than necessary on granted records | **Medium — DPO decision open (OQ-006)** | Medium | `rev_narrativeraw` is a distinct column, so early redaction is a configuration change, not a rebuild |
 | **R5** Bank or payment details accessed outside the Finance role | Low | High | Table-level denial to `REV Admin` **plus** `REV_FinanceOnly` column profile — defence in depth |
 | **R6** Data processed or stored outside the UK | Low | High | UK region on all three environments; UK residency configured per connector; verified at setup as a §12 gate item |
@@ -4535,7 +6185,7 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R20** Trustee adoption — some trustees may resist moving off email attachments | Medium | Medium | Offline anonymised pack (FR-032) and print route (FR-039) exist so partial adoption excludes no one; one round of trustee feedback budgeted (SDD OQ-013, OQ-024) |
 | **A-R21** DPIA and RoPA are **concept drafts, not signed off**, and the DPIA sign-off table is empty | **High** | High | Art. 35 requires completion before go-live (SDD OQ-030). Build may start on approved requirements, but **not** on the field-level-security and 6-year-retention basis until OQ-004/005/006 are recorded |
 | **A-R22** **No SAR extract mechanism is built or agreed** — FR-053 has no assigned component; §4.2 records a proposal only | Medium | Medium | ✅ **Accepted as a known gap by the reviewer on 2026-08-10** (C-DOM-005, SOFT, accepted-risk path). **Carried forward to development-agent as an open item**, with the four questions in §4.2 to close it. Note there is also no SAR turnaround SLA in any source (SDD OQ-023), so the test-agent has no threshold to verify against even once a mechanism exists |
-| **A-R56** **The six-year retention clock never starts.** `rev_grant.rev_finalpaymentdate` is written by nothing: the `REV \| Finance \| Capture Payment` flow was its only writer and stays unbuilt, while the `wbs:8.3` form captures `rev_isfinalpayment` on the **Payment** row and propagates it nowhere (§5.11) | Medium | **High** | **OPEN — the reviewer deferred the deciding decision on 2026-09-09 (rev 6), so this risk is accepted as standing, not mitigated.** Not `wbs:8.3`'s to fix and deliberately not absorbed into it; it is the concrete cost of §3.5 conflict 2's flow decision staying open. Interim: the date can be set by hand on the Grant, but nothing prompts anyone to and no gate detects that nobody did. *Previously read (rev 5): put to the reviewer as the fact that should decide it* |
+| **A-R56** **The six-year retention clock does not start until the `wbs:8.6` flow is live.** `rev_grant.rev_finalpaymentdate` is written by nothing today; the `wbs:8.3` form captures `rev_isfinalpayment` on the **Payment** row and propagates it nowhere (§5.11) | Medium | **High** | **AUTHORISED rev 28 — mitigated by `wbs:8.6` / `ADR-081`, and OPEN until that flow is deployed and its V4 test has passed in TST/ACC.** Until then: the date can be set by hand on the Grant, but nothing prompts anyone to and no gate detects that nobody did. *Previously read (rev 6): OPEN — the reviewer deferred the deciding decision on 2026-09-09, so the risk was accepted as standing, not mitigated; not `wbs:8.3`'s to fix and deliberately not absorbed into it* |
 | **A-R57** **`wbs:8.3`'s evidence rule is wrong, not merely weak (rev 6).** It is a directory-existence check on `AppModules/rev_financecapture` — the app `ADR-044`'s rejection means will never exist — so it can now be satisfied by nothing, and `wbs:8.3` can never derive as complete while it stands. The original risk stands too: US-030 AC-1–AC-5 need `wbs:8.2` (§6.2.1) | **High** | High | §9.4.1 specifies the five replacement rules for `pm-agent`, which owns `contract/evidence-map.json`. ADR-047 states the V-level split explicitly. *Previously read (rev 5): a directory-existence check satisfied by a V1 artefact — the weak-evidence shape already recorded against `wbs:8.2`* |
 | **A-R58** **A later rollup silently defeats `REV_FinanceOnly`.** A rollup of `rev_payment.rev_amount` onto Grant or Application copies a secured value into an unsecured column — the one construct that can. NFR-150 forbids it and **no gate checks for it**: no build step reads rollup or formula metadata | Low | **High** | Held by review, not by a gate, and said so rather than implied. Proposed as an improvement finding so the absence is on the record |
 | **A-R59** **The finance forms and app module are hand-authored ahead of a live environment**, and an app module authored blind has already failed import once on this project with a `NullReferenceException` naming no field | Medium | High | Copy the element shape from `AppModules/rev_grantadministration/AppModule.xml`, which **is** a real DEV export whose header records the eleven ways the first hand-authored guess was wrong — not from documentation. Closed in one first-environment sweep, not one import failure at a time (§12.2) |
@@ -4552,19 +6202,35 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R72** **An import or trigger change silently changes the intake URL** (rev 14). The website keeps posting to the old URL, no run starts, nothing reaches `rev_errorlog` and FR-010 does not alert. The website holds the entry | Medium | High | The pipeline compares the callback URL's SHA-256 before and after each import. If it changed, the deploy is reported `PARTIAL` with `REVIEWER ACTION REQUIRED: update the WordPress webhook URL and the CI secret` (`ADR-011` intervention 4, `A-INT-13`) |
 | **A-R73** **A designer save on a solution flow between deploys rewrites its live definition** (`IMP-1010`). Measured in DEV on 2026-10-02: one save emptied both nested `CreateRecord` actions, removed the trigger's secure outputs, renamed parameters and stripped `inputs.authentication`. The next run succeeded and wrote an empty application | High (if anyone opens the designer) | High | §5 write-shape rule (flat `item/<column>`). No designer saves on solution flows. `verify-live-flow-definitions.py --env dev` before any test run and before any build is put on top of DEV, not only after a deploy (`IMP-1010` proposed change 3) |
 | **A-R74** **A failed run leaves an orphaned DocuSign draft holding personal data** (rev 15, `ADR-067`). Any action after the draft is created (§5.8 steps 7–14) can fail; a draft cannot be voided, and the connector has no delete-draft action. A re-run makes a second draft | Medium | Low | The failure alert carries the draft's envelope id; the process owner deletes it in DocuSign. The retention helper's envelope purge (FR-049) is the backstop. Nobody outside Revitalise is ever emailed by a draft |
-| **A-R75** **The template differs between environments** (rev 15). Each environment's `rev_DocuSignAcceptanceTemplateId` names its own template. Required flags, tab labels and the reassignment setting are hand-configured in each | Medium | Medium | §12.5 T2 and M4 run per environment before activation. A label mismatch is caught at run time by `ADR-067` step 4 (alert, no send); a missing *Required* flag is not caught by anything in the flow |
+| **A-R75** **The template is edited by hand and a mistake reaches every environment** (rev 15; **reworded 2026-10-19: there is ONE DocuSign account and template for all Power Platform environments**, so it cannot differ between them). `rev_DocuSignAcceptanceTemplateId` is a per-environment setting that names that same template. Required flags, tab labels and the reassignment setting are hand-configured on it | Medium | Medium | §12.5 T2 and M4 run once, and again whenever the template is edited. A label mismatch is caught at run time by `ADR-067` step 4 (alert, no send); a missing *Required* flag is not caught by anything in the flow |
 | **A-R76** **A large approved batch exceeds DocuSign's 250 calls per minute per connection** (rev 15). 14 DocuSign calls per envelope on the happy path and 17 with all three spelling fallbacks (rev 16, `ADR-069`); around 20 grants finalised within one minute can exceed it | Low | Low | Every DocuSign action keeps the existing exponential retry (4). The `wbs:3.7` bulk test (five at once) measures it; a trigger concurrency limit is added only if that test shows failures |
 | **A-R77** **An applicant supplies their own contact details as the referee's** (rev 15, `ADR-068`). Every factor the system can check — email, phone — comes from the applicant, who therefore also knows the access code. The access code stops a forwarded email being opened by someone who does not know the number; it does not stop a fabricated referee | Low | High | A process control, not a system one: the process owner checks the referee's number is plausibly theirs before approving. Only ID Verification binds to a named real person, and it was rejected as disproportionate |
 | **A-R78** **The access code is guessable when the referee's number is public** (rev 15, `ADR-068` item 4; **replaces** the phone-authentication UK-delivery risk, which no longer applies because nothing is sent to the phone). The code is the last six digits of a number; an organisation's published number (a GP practice switchboard) makes it public knowledge | Medium | Medium | The process owner records the referee's direct or mobile number in preference to a switchboard. If a stronger factor is ever wanted, DocuSign phone authentication (one-time code to the phone) is the upgrade, with its cost and UK delivery to be confirmed first |
 | **A-R79** **The referee's phone is missing or has fewer than six digits, so no envelope goes out** (rev 15, `ADR-068` item 4). Nothing in Phase 1 writes `rev_refereephone`; the process owner types it | Medium | Low | Step 1 normalises it to digits and alerts and stops below six, naming the field. The grant stays at Awarded until it is corrected |
 | ~~**A-R80** The template's routing order is not applicant first, referee second~~ **RETIRED, rev 16 approval.** Reviewer: *"There is no signing order. The agreement gets send to both."* Both signers are emailed together by design, so there is no order to get wrong. The id is not reused | n/a | n/a | n/a |
+| **A-R94** **The template is not sequenced, or loses its order (replaces retired `A-R80`)** (rev 24, `ADR-077`). The order lives on the one shared DocuSign template. **Update 2026-10-19: sequenced (reviewer-observed in DEV), and as there is one template this applies to every environment.** **No flow guard exists (`ADR-077` item 2 was dropped by the reviewer): the template setting is the only control.** A template left at parallel, or republished without the order, sends both signers at once and nothing in the flow stops it | Medium | Low | Re-read the template's order (`M4`) whenever the template is edited. There is no pre-promotion check: promotion to PRD goes via Power Platform Pipelines and the template does not travel with it |
+| ~~**A-R95** **The referee now sees the applicant's personal details**~~ **CLOSED, accepted by the reviewer 2026-10-19: the referee sees ALL applicant details** (rev 24, `ADR-077` item 4). Rationale, near-verbatim: *"Referees already know the applicant and perform the role of a GP, doctor or other official role and know how to treat personal data."* Name, title, email, phone, address, town, postcode and the agreement checkbox are visible to the referee after the access code. **Residual dependency:** the referee's identity rests on the access code (`A-R96`) | Low | Low | Accepted. No tab is removed; the applicant-facing wording (`ADR-077` item 3) tells the applicant their referee will see what they enter |
+| **A-R96** **The access code may not be enforced in some DocuSign sessions** (rev 24, item 1 of the 2026-10-19 report). **Update 2026-10-19: reduced.** The reviewer observed in DEV that the referee is asked for the access code and it works. The earlier opening without a code was a signed-in browser session: the **explained test-setup case, not a defect**. Residual: DocuSign staff say the code is not asked when sender and recipient share an address or the session is the sender's (E3, forum), so a test run in a signed-in browser will not prove the code. With `A-R95` closed on the basis that the referee is the person who may see the details, the access code is what establishes that, so the cost of an un-asked code is higher than at rev 15 | Low | Low | R10 passed in DEV (case (a)); the four-way variants (b)–(d) were not run and are not needed to close the defect question. Real referees are not DocuSign sender-account holders, so the same-address case should arise only in testing; the reviewer confirms with a distinct mailbox. If R10 shows no prompt for a distinct, signed-out referee, it is a defect and a new dispatch, not an accepted risk |
 | **A-R81** **Eight more secured referee columns hold a second data subject's name, employer and address, and no erasure path for them is established** (rev 16, `ADR-070`). `ADR-043` avoided exactly this. The retention and erasure helper (§5.12) is not in the solution's workflows today | Medium | Medium | The columns are `IsSecured` and in `REV_TrusteeRestricted`. When §5.12 is built its blank list covers all eleven `rev_referee*` columns. The reviewer confirms the DPIA covers a referee's address and employer. TST/ACC and PRD need `ensure-schema.ps1` run for the eight columns (§12.1) |
-| **A-R82** **All three environments are hosted in Switzerland (`crm17`), against NFR-009's UK requirement** (`IMP-1063`). The entity extractor runs there too; a generative prompt would run in the EU Data Boundary, or outside it under flex routing | **Certain** (measured) | High | **Reviewer and DPO decision, not made here:** move the environments to the UK geography, or record an accepted risk with DPO sign-off and update the DPIA. Until then, the prompt stage stays off (`ADR-072` item 3) and *Move data across regions* stays unticked (§12). **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies; what a DEV run of the prompt would need is §12.6.1 |
-| **A-R83** A name the extractor misses carries no score, so a confident record with one missed name could be released | Medium (unmeasured until the live run) | High | No release without the process owner until calibration (`RedactionAutoRelease`, `ADR-071` item 8); the live corpus run (`wbs:5.2`) measures recall per label; rules D-2 (`no-model-detections`) is the reviewer's to decide; the prompt as a second name detector once residency allows |
+| **A-R82** **All three environments are hosted in Switzerland (`crm17`), against NFR-009's UK requirement** (`IMP-1063`). The entity extractor runs there too; a generative prompt would run in the EU Data Boundary, or outside it under flex routing | **Certain** (measured) | High | **Reviewer and DPO decision, not made here:** move the environments to the UK geography, or record an accepted risk with DPO sign-off and update the DPIA. Until then, the prompt stage stays off (`ADR-072` item 3) and *Move data across regions* stays unticked (§12). **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies; what a DEV run of the prompt would need is §12.6.1 | **Rev 22 (2026-10-16):** hosting settled by the client's legal office (Switzerland is UK-adequate); prompt processing is in the EU Data Boundary, flex routing aside (`A-R92`). *Move data across regions* is on in DEV, TST/ACC and PRD (reviewer statements; PRD verbatim: *"the move accross regions is on in prd as well."*; *previously read: "PRD not stated"*). **Decided for prompt inference, 2026-10-16** (reviewer, verbatim: *"Yes, the AI prompt processed in EU is agreed."*). Flex routing is disabled at tenant level (reviewer, verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"*); *previously read: "Flex routing stays undecided"*. NFR-009's text still says UK; plan-agent's amendment to permit EU Data Boundary processing is pending
+| **A-R83** A name the extractor misses carries no score, so a confident record with one missed name could be released | Medium (unmeasured until the live run) | High | **Rev 25 (`ADR-078`): no release without the process owner, ever**; what is left is a name she reads past (`A-R97`). *Previously read:* "No release without the process owner until calibration (`RedactionAutoRelease`, `ADR-071` item 8)". The live corpus run (`wbs:5.2`) measures recall per label; rules D-2 (`no-model-detections`) is the reviewer's to decide; the prompt as a second name detector once residency allows |
 | **A-R84** The residue checks over-trigger ("had surgery", "a road trip"), so most records go to review and the manual workload does not fall | High at first | Medium | It fails in the safe direction. **Rev 20 (`ADR-074`):** each word list is a tested built-in list in the flow plus an additive `rev_setting` row, so the process owner can add words without a deploy; removing a built-in word is a flow change with tests in `wbs:5.6`. *Previously read (rev 19): each list is a constant in one flow* |
-| **A-R85** **An edit to a redaction setting weakens what is found** (rev 20, `ADR-074`). A deleted extension row, or category text that asks for less, cannot be prevented by a check | Low | High | Admin-only and audited. A word list can never fall below the tested built-in list. Any edit to a `Redaction*` row stops auto-release (`auto-release-stale`) and prompt calibration until the process owner confirms again. The prompt is never the only owner of a direct label (`ADR-071` item 2) |
+| **A-R85** **An edit to a redaction setting weakens what is found** (rev 20, `ADR-074`). A deleted extension row, or category text that asks for less, cannot be prevented by a check | Low | High | Admin-only and audited. A word list can never fall below the tested built-in list. **Rev 25 (`ADR-078`):** every record is reviewed by the process owner, so a weakened setting reaches no trustee unread. *Previously read:* "Any edit to a `Redaction*` row stops auto-release (`auto-release-stale`) and prompt calibration until the process owner confirms again." The prompt is never the only owner of a direct label (`ADR-071` item 2) |
 | **A-R86** **The postcode register is not the full Royal Mail list** (rev 20, `ADR-073`). It has no `A9A` or `AA9A` district (`EC1A`, `W1A`, `SW1A`) and lacks some codes such as `HS1` (measured) | Certain | Low | The register only adds detections, never removes one. A postcode without its space outside it still goes to review through `residual-postcode`. A district on its own outside it is not found, as in rev 19 |
 | **A-R87** **Applicant text pasted into a setting row as an example** (rev 20, `ADR-074`). `rev_setting` is Tier 2, not column-secured, and its audit history is kept six years | Low | Medium | Each `Redaction*` row's description says *synthetic examples only*. The process owner is the only editor. A real excerpt found there is removed and handled as a data incident |
+| **A-R88** **The model's rewrite reads wrongly or changes the meaning** (rev 22, `ADR-075`): a wrong pronoun, two people both *they*, a dropped clause | Medium | Medium (a trustee decides on this text) | The process owner reviews every record (rev 25, `ADR-078`; *previously read: "until `wbs:5.7`"*); Iteration 11's `rewrite-dropped-punctuation` flags a rewrite that lost punctuation; `rewrite-dropped-text` holds a rewrite more than 10% shorter; `wbs:5.7` scores the model against `neutral_rewrites` and the client's examples. *Rev 21 read: grammar slips of a deterministic stage* |
+| **A-R89** **A gendered word outside the lists stays** (rev 22): the prompt generalises, but P3's gendered check only knows the listed words, and leaves out *Ms* and *Miss* | Medium | Low (gender only, never identity) | `RedactionNeutralTermsExtra` adds words to both without a deploy |
+| **A-R90** ~~The scrub flow approaches the platform's size limits~~ **Withdrawn, rev 22:** about 80 actions, nesting 5 | — | — | — |
+| **A-R91** **A spelling correction changes a medical or care word** (rev 22): *dyspraxia* to *dyslexia* passes the near-spelling rule | Low | Medium | The template forbids changing conditions, medicines and names; review until `wbs:5.7`; the rule's thresholds are constants changed with tests |
+| **A-R92** ~~**Flex routing processes prompts outside the EU Data Boundary**~~ **Closed, 2026-10-16:** flex routing is disabled at tenant level, reviewer, verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"* (stated, not agent-measured). *Previously read: on by default for tenants created after 2026-03-25 (E2); this tenant's state not measured; Unknown / Medium; reviewer clears the checkbox or the legal office accepts it* | Closed | — | Inference stays in the EU Data Boundary, as decided for prompt processing (`A-R82`) |
+| **A-R93** **An edit to the rule rows weakens gender neutralisation** (rev 23, `ADR-076`): a deleted key line or title also leaves the residue list, so that word reaches a trustee without review | Low | Low (gender only; P1, which guards identity, reads no setting) | `REV Admin` only and audited; the process owner reads every record before release (rev 25, `ADR-078`; *previously read: "any edit makes auto-release stale until the process owner confirms"*); the seed values are recorded in `ADR-076` for a restore |
+| **A-R97** **The process owner reads past a leak because every record now comes to her** (rev 25, `ADR-078`). With no automatic release, most records she opens will have no hint; a review that becomes routine can release a missed name or a fragment | Medium | High (a missed identifier reaches trustees) | The card and the view lead with the hints (`below-threshold`, `no-model-detections`, `residual-name-fragment`, the residue codes), so the records most likely to be wrong are marked. `wbs:5.5` and `5.7` measure what she misses on the synthetic and the board-cycle runs. The volume is one card per scrubbed application per run |
+| **A-R98** **A setting edit, or its absence, changes who is rejected without anyone seeing it happen** (rev 26, `ADR-079`). A limit lowered by mistake rejects good requests; a switch left `false` after a test lets every savings Yes through; and since the rows are create-only, a value changed in a settings file no longer reaches an environment that has the row | Medium | Medium | `rev_setting` is audited, so every change is attributable; `rev_scoringaudit` records the five limits and both switches in force for each application; a malformed value stops scoring with an alert rather than guessing; Emily checks every auto-reject. Board-confirmed values (OQ-001, OQ-003) are entered in the app, not by redeploying |
+| **A-R99** **An approved Grant goes to DocuSign at once, with the amount requested** (rev 27, `ADR-080`). The envelope starts the moment flow #7 creates the Grant. The amount is the reviewer's confirmed rule (`Q-FD-8`, 2026-10-20), so the residual risk is only a panel that awards a different figure, which the reviewer will raise as a new requirement if it ever happens | Low | Medium | Emily selects a review only when it is ready to issue; the envelope is a draft until its read-back checks pass (§5.8) and can be voided |
+| **A-R100** **A grant with a hand-set final payment date, or hand-set to Paid, and no payment marked final, loses the date and returns to Acceptance Signed the next time any payment on it is saved** (rev 28; widened by amendment b, same shape). The flow makes the date match the payments, and a hand-set date has none. FR-109 (*"a payment that is not final changes nothing"*) is read as *over a grant that already matches its payments*; the flow has no way to see what a save changed (`ADR-081` item 2) | Low | Medium | Nothing is hand-set once the flow is live: the process owner marks the payment final instead. **Before the flow is enabled in PRD, list grants with a final payment date and no payment marked final, and grants at status Paid with none (expected: none for both).** **Accepted by the reviewer 2026-10-20** (*"Agreed"*); the pre-PRD listing stays a step before activation |
+| **A-R102** **A final payment written without the form has no date, so it starts no clock** (rev 28, answer 3, FR-107 as revised). The date is required by a form rule only; an API or import write is not stopped, and no plug-in is added. The flow counts only dated finals and reports "final payment has no date" to finance and the process owner, so a clock is never started on a guessed day | Low | Medium | Finance records payments through the `wbs:8.3` form, which enforces it. The flow's report is the backstop and the restart is: add the date, save. An undated final payment that nobody acts on leaves the retention date missing, and the alert is the only prompt. Not blocked at the table, and said so. **The plan's FR-107 says a payment "SHALL NOT be saved as final" without a date, which only a server-side block would guarantee; the design meets it through the form and the flow, and the FR should say so (plan-agent)** |
+| **A-R103** **A final payment recorded before the acceptance is signed leaves the grant's status where it is, and signing later does not promote it** (amendment b, OQ-060 default). The grant at Awarded or Acceptance Issued is not moved, the date and the application are, and finance is told. `Completion` then sets Signed and nothing re-runs this flow. **A second, narrow case:** a date-only change sends the grant's current status back in the same write, so a signature landing in the seconds between the flow's read and its write could be overwritten (2 written over 3) | Low | Medium | Same restart as FR-111: untick Final, save, tick, save, once the grant reads Signed. A payment before signature is itself an exception the report names. The race needs a final payment and a signature on one grant in the same moments; not mitigated, stated rather than implied. **OQ-060 stands at its default and is not put to the reviewer** |
+| **A-R101** **A payment moved to another grant, or deleted, leaves the old grant's date and status as they were** (rev 28). The trigger gives the new state and not the old, so the grant a payment *left* is never recomputed; delete is not a trigger (`ADR-081` item 1) | Low | Medium | Finance has no delete privilege on Payment (§6.2) and the Payment-to-Grant link is `ApplicationRequired`, so both need an unusual act. Correct by marking a payment on the old grant and unmarking it. Not mitigated in the flow; stated rather than implied |
 
 ---
 
@@ -4590,7 +6256,7 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | `REV-MS-Provisioning` app registration + admin consent (`Group.Create`, `GroupMember.ReadWrite.All`, `Sites.Selected`) | Entra app registration + admin consent | `provisioning/entra/` — see ADR-018 | tenant | `APPROVE TENANT` |
 | Power Platform environments **DEV + TST/ACC + PRD** — **UK region**, Dataverse enabled, bound to their security groups (three environments per ADR-006; confirm database capacity first — risk A-R18) | Power Platform environment | `pac admin create` / Power Platform Admin PowerShell | tenant | `APPROVE TENANT` |
 | **UK residency verification** for the environments, AI Builder, DocuSign and QuickBooks — written evidence retained. **Rev 19: environments measured as `crm17` (Switzerland), NOT the UK** (`IMP-1063`, `A-R82`); decision outstanding. **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies | Compliance verification | Manual, evidenced | tenant | `APPROVE TENANT` (NFR-009, DPIA A5) |
-| **Generative AI features → *Move data across regions*: record each environment's current state, and keep it UNTICKED** until the residency decision allows otherwise (rev 19, `ADR-072` item 3). Ticking it sends prompt inputs and outputs outside Switzerland, and the change cannot be reversed for data already moved (E2) | Environment setting | Power Platform admin center, read by the reviewer | per-env | `APPROVE TENANT` (NFR-009) |
+| **Generative AI features → *Move data across regions*: on in every environment; *Allow flex routing*: disabled at tenant level** (reviewer, 2026-10-16, verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"*; *previously read: "off unless accepted"*). **Rev 22: superseded** by the client legal office's residency ruling (2026-10-16) and the reviewer's statement, verbatim: *"the move data accross regions options is on in both dev and acc. This is standard."* So: on in DEV and TST/ACC (stated, not agent-measured), and on in PRD (reviewer, verbatim: *"the move accross regions is on in prd as well."*; stated, not agent-measured). *Previously read: "PRD to be read and recorded before the first PRD deploy".* Prompts are processed in the EU Data Boundary; NFR-009 is being amended by plan-agent to permit that (**pending**). *Previously read (rev 19): "record each environment's current state, and keep it UNTICKED until the residency decision allows otherwise"* | Environment setting | Power Platform admin center, read by the reviewer | per-env | `APPROVE TENANT` (NFR-009, pending amendment) |
 | Environment DLP connector policy (business / blocked groups per §6.4, **including Request/HTTP and Word Online**) | DLP policy | Power Platform Admin PowerShell | tenant, applied per-env | `APPROVE TENANT` |
 | AI Builder credit / capacity assignment to the PROD environment | Capacity allocation | Power Platform admin centre | per-env | `APPROVE TENANT` (SDD OQ-017) |
 | SharePoint site `/sites/grants` + "Signed Acceptances" document library; **Trustee role denied** | SPO site collection + library | `provisioning/sharepoint/` — PnP.PowerShell | tenant (site collection) | `APPROVE TENANT` |
@@ -4609,12 +6275,13 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | **`REV Finance` group team added to `REV_FinanceOnly` membership — `wbs:8.2`, required before `wbs:8.3` reaches V4.** Today the profile's only member is `REV Service Accounts`; `REV Admins` is deliberately excluded and must stay so (NFR-002). Add to `memberTeams` in all three settings files; **no script change** | Dataverse configuration | `provisioning/dataverse/ensure-column-security-profile-members.ps1` (existing) | per-env | `post_deploy` |
 | Connection references bound to service-account connections: `rev-dataverse`, `rev-docusign`, `rev-qbo`, `rev-outlook` | Connections | Manual once per environment (interactive OAuth consent required) | per-env | `post_deploy` |
 | Environment variable values + connection reference bindings | Deployment settings | **CHANGED 2026-08-12 (ADR-007): supplied in the Power Platform Pipelines deployment pane, which validates them before the import. Pipelines does not accept a `--settings-file`.** `provisioning/deploymentSettings/pac-import-tstacc.json` and `pac-import-prd.json` are retained as the reviewed record of the values to enter — C-TECH-047 stays satisfied, but its enforcement moves from a tool to a human reading a code-reviewed file | per-env | During promotion (was `post_deploy`) |
+| **`rev_FinanceAlertUpn` — new environment variable, `wbs:8.6`, `ADR-081`.** The finance contact told when a final payment cannot be applied (FR-111). Definition ships in the solution (`isrequired=1`, no default); the value is entered per environment next to `rev_ProcessOwnerUpn`, in all three settings files. **Decided 2026-10-20 (answer 2): PRD carries the process owner's address, a combined role today and likely split later; DEV and TST/ACC carry Janine.** Placeholders only, as for `rev_ProcessOwnerUpn`; no real address in a document. The variable stays separate from `rev_ProcessOwnerUpn` for the split. **Observation for development-agent:** `dev-settings.json` lists the DEV finance team under `REV_FinanceOnly` with a leading space in its name; check that it resolves | Environment variable | `provisioning/deploymentSettings/` — wherever `rev_ProcessOwnerUpn` is set | per-env | During promotion (the Pipelines deployment pane validates it before import) |
 | `rev_setting` seed rows — thresholds, Likert map, income ceiling, redaction threshold, reminder/escalation days | Reference data | `provisioning/dataverse/` — idempotent upsert | per-env | `post_deploy` — ⚠️ values await SDD OQ-001, OQ-002, OQ-003, OQ-011 |
 | **Rev 9/10 — twelve new intake label-map rows** (`OtherFundingStatusLabelMap` added in rev 10, `TitleLabelMap`, `ApplicantTypeLabelMap`, `GenderLabelMap`, `EthnicGroupLabelMap`, `LikertResponseLabelMap`, `AgreementResponseLabelMap`, `BreakTypeLabelMap`, `IncomeBandLabelMap`, `HearAboutUsLabelMap`, `ConditionProfileLabelMap`, `CareProvidedTypeLabelMap`), **plus one alias entry in the existing `ExceptionalCircumstanceLabelMap`**. Values in Appendix C §C.4. `wbs:4.3` | Reference data | `provisioning/deploymentSettings/{dev,test,prd}-*-settings.json` → the existing idempotent upsert | per-env | `post_deploy`. **Must land before, or with, the flow version that reads them**, or the intake's row-count guard (now 18) stops every submission |
 | **Rev 15 — two acceptance email rows, `AcceptanceEmailApplicant` and `AcceptanceEmailReferee`** (`JSON`, `{subject, body}`, subject ≤ 100 characters; `ADR-068` item 3). Wording supplied by Emily. Absent row → the flow alerts and sends nothing. `wbs:3.2` | Reference data | `provisioning/dataverse/seed-settings.ps1` — idempotent upsert, existing mechanism | per-env | `post_deploy`, before activation |
-| ~~**Rev 15 — phone authentication available on the DocuSign account**~~ **Superseded the same day: `ADR-068` item 4 is an access code**, free per the reviewer, with no delivery channel to confirm. Remaining per-environment check: the account's access-code format accepts six digits (§12.5 R5) | External SaaS | Manual — Revitalise's DocuSign administrator | external | Reviewer, before activation |
+| ~~**Rev 15 — phone authentication available on the DocuSign account**~~ **Superseded the same day: `ADR-068` item 4 is an access code**, free per the reviewer, with no delivery channel to confirm. Remaining check (one DocuSign account, so once): the account's access-code format accepts six digits (§12.5 R5) | External SaaS | Manual — Revitalise's DocuSign administrator | external | Reviewer, before activation |
 | **Rev 9 — one WordPress instance per intake endpoint.** The live site posts only to PRD. Any staging or test site posts only to DEV or TST/ACC, never crossed (§4.1, risk A-R63). `wbs:4.1` | Operating rule | Manual — recorded with Alex | external, per-env | Reviewer, before PRD go-live |
-| **DocuSign**: account, acceptance template replicating the Canva form, UK residency, envelope purge aligned to the retention schedule. **Rev 15 (`ADR-068` items 1–2), per environment's template: every signer-entered field and `n2`/`e2`/`ph2` marked Required; tab labels equal to the anchor names the flow fills, or reported (§12.5 T2); *Allow recipients to change signing responsibility* off (account or template). `wbs:3.1`** | External SaaS | Manual — Revitalise procures | external | Reviewer / before Automation #3 go-live |
+| **DocuSign**: account, acceptance template replicating the Canva form, UK residency, envelope purge aligned to the retention schedule. **Rev 15 (`ADR-068` items 1–2), on the one shared template (every environment uses it): every signer-entered field and `n2`/`e2`/`ph2` marked Required; tab labels equal to the anchor names the flow fills, or reported (§12.5 T2); *Allow recipients to change signing responsibility* off (account or template). `wbs:3.1`** | External SaaS | Manual — Revitalise procures | external | Reviewer / before Automation #3 go-live |
 | **QuickBooks Online**: read-only OAuth connection; confirm edition and that payments carry a searchable applicant identifier | External SaaS | Manual | external | Reviewer (SDD OQ-015) |
 | **WordPress / Gravity Forms**: **rev 9 — supplies its native entry payload (`ADR-051`, Appendix C); the seven `ADR-011` confirmations are Alex's to answer.** Form built to the field-by-field specification (incl. WCAG + reading-age acceptance criteria), webhook or REST credential issued | External, **OUT-OF-PALETTE** | Alex, website designer | external | Reviewer (SDD OQ-014, ADR-020) |
 | Licences: Power Apps Premium ×2 (maker/service + Emily), Power Apps pay-as-you-go (trustees), Power Automate Premium (service account) | Licensing | Manual — Revitalise procures | tenant | Reviewer (SDD OQ-017, OQ-025) |
@@ -4745,9 +6412,13 @@ none of its action shapes is copied into solution source verbatim.
 | R4 | **Tab identification.** Record each tab's `tabLabel` next to its placeholder `value`. If labels are set, the flow keys on them | `A-DS-15` | The C6 output | Reviewer |
 | R5 | **The access code.** Run with a test referee whose phone is entered with spaces and a `+44` prefix. Is the code taken from the digits only, and does DocuSign accept a six-digit code under the account's format setting? Forward the test email and open the link: it must ask for the code. Then try a test referee with a five-digit phone: the flow must alert and stop | `A-DS-17`, `ADR-068` item 4 | One sent test envelope to test mailboxes, then void it | Reviewer |
 | R6 | **Email and reminders.** Each test mailbox gets its own subject and body, and the language string `English UK (en_GB)` is accepted. C9 is accepted on the draft and holds after C10 | `A-DS-16` | The same R5 envelope | Reviewer |
-| R7 | **Both signers receive the agreement at the same time.** On one sent test envelope, confirm the applicant and the referee are each emailed on the send, with no sequence expected. The flow sets no order (`ADR-069` item 3). *Rewritten at rev 16 approval; it formerly checked applicant-then-referee* | `A-DS-19` (closed) | The template in DocuSign; one sent test envelope to test mailboxes, then void it | Reviewer with Emily |
+| R7 | **Applicant first, referee second.** *Rewritten at rev 24 (`ADR-077`); rev 16 had rewritten it to "both at the same time".* On one sent test envelope with two **distinct** test mailboxes: only the applicant is emailed on the send; the referee is emailed only after the applicant finishes; the referee's email carries the referee wording. | `A-DS-20`, `A-DS-23` | The template in DocuSign; two sent test envelopes to test mailboxes, then void them | Reviewer with Emily |
+| R7-result | **R7 PASSED in DEV, 2026-10-19 (reviewer-observed, live; no artefact captured).** Signing order correct: the applicant first, the referee after. **Not covered by this result:** an order check in `Check_both_signers_are_bound` (none exists; dropped 2026-10-19), the "template order switched off" run (not needed: no guard exists and the one template serves every environment), the referee's email wording (pending with Emily) and `A-DS-23` (reminder behaviour, not reported) | `A-DS-20` (closed in DEV at this level) | DEV, build `20261019-1` | Reviewer |
+| R9 | **The referee sees the applicant's entries.** After the applicant has signed in R7, open the referee's link in a private window: the applicant's first and last name, title, email, phone, address, town and postcode must be shown, read-only, as the applicant left them. Record any applicant tab that is not shown and any tab the referee can edit | `A-DS-22`, `A-R95` | Same envelope as R7 | Reviewer |
+| R10 | **Is the access code enforced? (item 1 of 2026-10-19).** Four openings of the referee's link, one test envelope each, recording *asked for the code / not asked*: (a) **private window, referee mailbox that is not a DocuSign user and not the sender's address, nobody signed in to DocuSign**; (b) the same envelope, link forwarded to another mailbox; (c) signed in to DocuSign as the **sender**, referee mailbox a different address; (d) referee mailbox **equal to the sender's address**. Expected: (a) asked, (b) asked, (d) not asked (staff-stated behaviour, E3); (c) unknown, and the answer is the finding. In the DocuSign web app, open the envelope's recipients and record **which recipient** shows the access code (it must be the Grant Referee, not the Grant Acceptor). **A defect is (a) or (b) not asking, or the code shown on the wrong recipient** | `A-DS-17` | Four test envelopes to test mailboxes, then void them | Reviewer (`wbs:3.5`) |
+| R10-result | **R10 PASSED in DEV, 2026-10-19 (reviewer-observed, live; no artefact captured):** the referee is asked for the access code and it works. The earlier "opened without a code" was a signed-in browser session, the explained test-setup case, not a defect. Variants (b)–(d) not run | `A-DS-17` (closed at this level) | DEV | Reviewer |
 | R8 | **The referee's company shows to the signer.** Open the signing view of a test envelope: the `organisation` Text tab (`o2`) must show the company. A Company-typed tab does not (record below) | `A-DS-16` | Same envelope as R7 | Reviewer |
-| M4 | Open the template in DocuSign: each field's *Required* box and *Data Label*; the reassignment option in the template's advanced options and in Admin → Signing Settings | H1 (`ADR-068`); `A-DS-18` | Reading the template, per environment | Reviewer with Emily |
+| M4 | Open the template in DocuSign: each field's *Required* box and *Data Label*; the reassignment option in the template's advanced options and in Admin → Signing Settings; **rev 24: the signing order (Grant Acceptor 1, Grant Referee 2) — confirmed on 2026-10-19 on the one template every environment uses, so there is no per-environment or pre-promotion check; re-read only when the template is edited, together with: no *Document Visibility* restriction, and no *Holiday type* tab** | H1 (`ADR-068`); `A-DS-18` | Reading the template (once; it is shared) | Reviewer with Emily |
 | M5 | ~~Phone authentication values and a test code to a phone~~ **Superseded: `ADR-068` item 4 is an access code, measured by R5** | — | — | — |
 | M6 | After M4 is fixed: send one test envelope to a test referee mailbox, forward it, open the forwarded link | `ADR-068` items 2 and 4 | The forwarded link must ask for the phone code (if item 4) and must not offer *Assign to someone else* | Emily (`wbs:3.5`) |
 
@@ -4759,9 +6430,13 @@ checked across both documents on 2026-10-02):
 | `A-DS-14` | `CompositeTemplates` with `status: Created` produces a draft carrying both template roles as placeholder signers with their tabs; `UpdateEnvelopeRecipient` fills those placeholders rather than adding signers; `SendDraftEnvelope` sends the draft unchanged | R1, R5 — **rev 16:** the draft, its two roles, both binds and the send are observed at run-status level in DEV (runs succeeded after the 4 Oct 07:24 import, every check passing); the DocuSign UI was not read |
 | `A-DS-15` | How each tab is identified (Data Label or only its placeholder `value`); which tabs are prefill and which recipient; that the template's document id is the envelope's | R4, R1 — **rev 16:** recipient tab ids in the read are the signer's `recipientIdGuid` (E1, pipeline L308); the template's document id equals the envelope's for the first of two documents |
 | `A-DS-16` | **Rev 16, partly closed.** Option A is dropped (`ADR-069` item 1). Measured: prefill accepts `textTabs`, recipients accept `Text`; `Company` is dropped and `companyTabs` stores but is shown empty; `English UK (en_GB)` and `AddReminders` on a draft are accepted at run-status level. **Open: the checkbox literal** | R3, R8 |
-| `A-DS-17` | A six-digit access code conforms to the account's access-code format setting, and the signing link requires it | R5 — **rev 16:** DocuSign accepted the six-digit code on the update (run status); that the signing link requires it is still unobserved |
+| `A-DS-17` | A six-digit access code conforms to the account's access-code format setting, and the signing link requires it | R5, **R10 (rev 24)** — **rev 16:** DocuSign accepted the six-digit code on the update (run status). **Rev 24:** the reviewer saw the code shown as set on the recipient in the DocuSign web app (2026-10-19, reported, not read from an artefact). **Closed at the reviewer-observed level, 2026-10-19:** in DEV the referee is asked for the access code and it works (R10). The one earlier session where it was not asked was a signed-in browser session, the explained test-setup case, not a defect. No artefact captured, so not E1; there is one DocuSign account and template for every environment, so this applies to ACC and PRD as well |
 | `A-DS-18` | An envelope created from a template whose reassignment option is off inherits it, when the account setting is left on | M4, M6 |
-| `A-DS-19` | **Closed, not applicable (rev 16 approval).** Was: the template's routing order is applicant 1, referee 2. The reviewer says there is no signing order and both signers get the agreement at once. Id kept, not reused | R7 (rewritten) |
+| `A-DS-19` | **Closed, not applicable (rev 16 approval); reopened as `A-DS-20` at rev 24.** Was: the template's routing order is applicant 1, referee 2. The reviewer said there was no signing order; the customer now requires one (`ADR-077`). Id kept, not reused | R7 |
+| `A-DS-20` | **(rev 24, replaces `A-DS-19`)** The template carries Grant Acceptor before Grant Referee in its routing order, the draft created from it keeps that order after both binds (which send none), and the referee is notified only after the applicant completes | R7. **Update 2026-10-19: observed in DEV (signing order correct, reviewer-observed live, R7); one shared template, so it holds for ACC and PRD** |
+| `A-DS-21` | **RETIRED, not applicable (reviewer, 2026-10-19; id not reused).** Was: `GetRecipientStatus` returns a `routingOrder` for each signer and `int()` over it yields a number, for the flow-side order check. That check was dropped (`ADR-077` item 2), so nothing in the flow uses `routingOrder` or `int()` and nothing is pending | — |
+| `A-DS-22` | **(rev 24)** With the order set, the referee's signing view shows the values the applicant's tabs held at completion, read-only, with Document Visibility off and no tab marked shared | R9 |
+| `A-DS-23` | **(rev 24)** The referee's own email text (`UpdateEnvelopeRecipient`) is the one DocuSign sends when the referee's turn comes, and the reminders set before the send (`AddReminders`, days 3 and 7) neither notify the referee early nor stop reaching the current signer | R7 |
 
 **A-DS-16 measured record (rev 16)** — every row is E1 from a DEV run, read from the hotfix log by `development-agent` and
 the reviewer, not from DocuSign's UI or documentation. Improvement review 2026-09-30-2 row 43 asked for the first three.
@@ -4777,6 +6452,30 @@ the reviewer, not from DocuSign's UI or documentation. Improvement review 2026-0
 | 7 | The template has two documents (the acceptance form and the general T&Cs) | [L303](logs/pipeline.log#L303) | At least one; tabs read and filled on the first |
 | 8 | A flow action description over 256 characters blocks turning the flow on | [L305](logs/pipeline.log#L305) | Descriptions are at most 256 characters |
 | 9 | The checkbox literal DocuSign accepted is **not recorded** | — | Open in `A-DS-16`, R3 |
+
+### 12.9 Platform Contract Verification Plan — Capture Payment (rev 28) (`wbs:8.6`)
+
+One new flow, one new environment variable, no new column. Nine expectations, one DEV session, all visible in run history, on the grant
+form and in the `callbackregistration` row. Each is an OPEN row in the Dev Summary §10 register with its marker at the point of use (`C-TECH-052`).
+Ids were allocated after grepping both documents (`IMP-0792`).
+
+| Marker | Claim | Evidence today | Cheapest verification |
+|---|---|---|---|
+| `A-CP-1` | A `message: 4` row trigger fires for a Payment created already marked final **and** for a later edit, and `callbackregistration.message` reads *Added or Modified* | The value's meaning was read live from `stringmap` 2026-08-28. No flow in this solution uses 4, so firing has never been seen. Existence of the registration proves nothing (`C-TECH-064`) | DEV, signed in as a Finance user: turn the flow on from the designer, read the registration's formatted message, create a payment with Final ticked, then edit a second one |
+| `A-CP-2` | `filteringattributes` naming `rev_isfinalpayment`, `rev_paymentdate`, `rev_paymentstatus`, `rev_grantid` (all `IsSecured=1`) is accepted, and the flow owner reads them from the trigger | The two existing uses are `rev_status` (unsecured) and `rev_safeguardingactioncompleted` (`IsSecured=1`), so one secured filter is already shipped; whether it has been seen firing is not recorded here | Same session. If it does not fire, drop the attribute filter: the flow is still correct and only runs more often |
+| `A-CP-3` | `ListRecords` returns `rev_paymentdate` as a `yyyy-MM-dd` string, and `UpdateOnlyRecord` accepts a `yyyy-MM-dd` string for `rev_finalpaymentdate` | `Create Envelope` writes `@utcNow()` into a DateOnly column, a different shape. No flow reads a DateOnly column back | Same session, read the grant after a dated final payment. Wrong shape fails the run with an alert; the fallback is the full timestamp at midnight |
+| `A-CP-4` | `runtimeConfiguration.concurrency.runs: 1` is accepted on a Dataverse row trigger | Only the intake HTTP trigger has concurrency. The known pair (a `Response` action) does not apply here | Save the flow in DEV without opening it in the designer (risk `A-R73`). If refused, omit it and accept that two saves on one grant at the same instant can race |
+| `A-CP-5` | `rev_paymentstatus ne 4` returns a Pending payment and a payment whose status was never set | No flow filters on `rev_paymentstatus`. Default is 1, so a null should not occur | Test: a Pending payment ticked final starts the clock (OQ-058); a Cancelled one does not |
+| `A-CP-6` | `UpdateOnlyRecord` with `item/rev_finalpaymentdate` null **clears** the date, and does not leave it unchanged | No flow here writes a null | Test: untick the only final payment and read the grant. A silent no-op is the failure to look for, so the test reads the column and not the run status. **Amendment b:** the same write also carries `rev_status`, so read the grant's status too: a null date with status 4 to 3 in one call is the case, and a status that stays 4 beside a cleared date is the failure |
+| `A-CP-7` | The flow owner writes `rev_paymentstatus` (and reads it) although it is a `REV_FinanceOnly` column, through its team's membership of that profile | Profile permission is Update *Allowed* and the team is a member (source, 2026-10-20). No shipped flow writes `rev_payment`, so a secured write on this table has never been seen. Membership is applied per environment by `ensure-column-security-profile-members.ps1` | Same session: a dated final Pending payment must read Issued afterwards. A refused write fails the run with an alert; the fix is membership, not the flow |
+| `A-CP-8` | The Issued write starts exactly one more run, which writes nothing and ends | Argued from the guard, not seen. Whether the platform fires a row trigger on a change the flow owner made is the part to look at | Same session: after one save of a final payment, run history shows two runs and the second changed nothing. More than two is the failure |
+| `A-CP-9` | A business rule scoped to the Payment form, exported from DEV, makes `rev_paymentdate` required when `rev_isfinalpayment` is Yes, and survives the managed import | No business rule exists in this solution yet. *Set business required* is a form-scope action, so it does not apply to API writes (stated in §5.11) | Author it in the DEV designer, export, then in TST/ACC tick Final with no date: the form must refuse the save. Check the exported file in source rather than hand-editing it |
+
+**Per-environment, once.** Enter `rev_FinanceAlertUpn` in all three settings files before the first import (§12). **Before the flow is turned on in PRD:** list grants
+with a final payment date and no payment marked final, and grants at status Paid with none (expected: none for both, `A-R100`).
+
+**First-environment sweep (§11).** The flow is hand-authored ahead of a live run, so these nine are checked in one DEV session before TST/ACC. None can be
+settled from source.
 
 ---
 
@@ -4797,12 +6496,36 @@ below. Ids were taken after checking both documents (`A-NS-7` was the highest). 
 | `A-NS-14` | With *Move data across regions* unticked, a prompt run in a `crm17` environment fails rather than running somewhere else | E2 (documentation says some features "won't work") | Read the setting's state in DEV first (reviewer). Only if the reviewer authorises a run: one synthetic corpus sample, never real data |
 | `A-NS-20` | **Rev 20.** An AI Builder prompt can declare three text inputs (`Categories`, `AllowedLabels`, `Narrative`), the flow's run action passes each by name, and one call accepts at least 16,000 characters of categories plus a 5,000-character window | E3 (template inputs `prompt`, `parameters` are E1; the named-input mapping is not) | With `A-NS-9`: create the prompt in DEV inside the solution, add the action to a test flow, export both and read the parameter names. **No prompt run is needed**, so `A-NS-14` does not gate it |
 | `A-NS-21` | **Rev 20.** *List rows* on `rev_citysettlementregister` with only `$select` returns all 3,394 rows in one response without a pagination setting (the documented default page is 5,000) | E2 | One DEV run of a test flow; compare `length()` of the result with 3,394 |
-| `A-NS-22` | **Rev 20.** *List rows* returns `modifiedon` as an ISO 8601 UTC string that `ticks()` accepts; saving a changed `rev_setting` row in the app moves it, and an unchanged save does not | E3 (`ticks()` is used in two flows here; `modifiedon` is read by none) | One DEV test: read a row, change Effective From, save, read again; then save unchanged and read again |
+| `A-NS-22` | **Withdrawn, rev 25 (`ADR-078`):** nothing reads `modifiedon` once the auto-release guard is retired. *Previously read:* **Rev 20.** *List rows* returns `modifiedon` as an ISO 8601 UTC string that `ticks()` accepts; saving a changed `rev_setting` row in the app moves it, and an unchanged save does not | E3 (`ticks()` is used in two flows here; `modifiedon` is read by none) | One DEV test: read a row, change Effective From, save, read again; then save unchanged and read again |
+| `A-NS-29` | **Rev 21, kept in rev 22, only if used** (the overlap filter). `body('X')?[n]` with a computed integer `n` returns the element at 0-based position `n`, and null past the end. If it does not, a neighbour word is wrong or the action fails; the `first(skip(…))` precedent avoids the question | E3 (not shown on the function reference page, read 2026-10-14) | One `Compose` in a DEV test flow: `createArray('a','b')?[1]` gives `b` and `?[2]` gives null |
+| `A-NS-30` | ~~Rev 21 stage scale~~ **Withdrawn, rev 22** (replaced by `A-NS-33`) | — | — |
+| `A-NS-31` | **Rev 22.** Two AI Builder prompt components (rewrite: inputs `Narrative`, `ExtraTerms`; spelling: input `Text`) export, pack and import with `RevitaliseGrantAutomation`, with the same shape as the existing component in `Other/Customizations.xml`, and each run action passes its inputs by name | E1 for one component's shape (DEV export 2026-10-07); E3 for the second and for the new input names | Reviewer creates both in DEV inside the solution; development-agent exports, unpacks and copies the shape exactly (skill §3) |
+| `A-NS-32` | **Rev 22. RESOLVED by reviewer statement, 2026-10-16.** Flex routing is disabled at tenant level, so prompts are not processed outside the EU Data Boundary at peak load. Verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"* *Previously read: decision still open, clear it or have the legal office accept it* | E4-style reviewer statement, not agent-measured | — (§12.6.1 R0 satisfied for flex routing) |
+| `A-NS-32a` | **Rev 22. RESOLVED by reviewer statements, 2026-10-16.** *Move data across regions* is on in all three environments. DEV and TST/ACC, verbatim: *"the move data accross regions options is on in both dev and acc. This is standard."* PRD, verbatim: *"the move accross regions is on in prd as well."* *Previously read: PRD not stated; if off there, every prompt call fails; reviewer reads the card before the first PRD deploy* | E4-style reviewer statements, not agent-measured (DEV also E1, 2026-10-06) | — |
+| `A-NS-33` | **Rev 22.** One rewrite call on a 5,000-character labelled text returns the whole text with a normal `finishReason` (no truncation at the output limit). If not, P2 still passes a truncated text and `rewrite-dropped-text` holds it | E3 | One DEV run on a synthetic 5,000-character corpus sample |
+| `A-NS-36` | **DISPROVED, 2026-10-16.** A keyed `PATCH` with `If-None-Match: *` does **not** create a missing row: DEV answered 404 with `0x80060891` (*"A record with the specified key values does not exist in rev_setting entity"*; the reviewer's run, `logs/routing.log` 2026-10-16 16:53). Replaced by a `POST` to `rev_settings` for an absent row (`A-NS-38`, closed live in DEV, `logs/routing.log` 2026-10-16 18:06; Dev Summary addendum 10.11). *Previously read:* "A Dataverse Web API keyed `PATCH` with `If-None-Match: *` creates a missing `rev_setting` row and, for an existing row, returns 412 and changes nothing" | E1 (DEV response, 2026-10-16) | — (closed; `ADR-076` item 6 reworded) |
+| `A-NS-37` | **Rev 23.** `contains()` on strings is case-sensitive, so the title residue finds *Ms Smith* and not *MS*. If not, every narrative mentioning MS is held | E3 | One DEV `Compose`: `contains('has MS', 'Ms ')` is false and `contains('Ms Smith', 'Ms ')` is true |
 
 **Corpus rule for every row:** synthetic corpus samples only (`src/tests/narrative/corpus/`), never an application
 from `docs/Import/` or any environment.
 
 ### 12.6.1 The prompt stage in DEV — what no dispatched agent can do (rev 20 approval) (`wbs:5.3`)
+
+> **Rev 23 (`ADR-076`, approved 2026-10-16). R1 is done** (reviewer, 2026-10-16: *"Ok, I added the two prompts in DEV."*).
+> **R1b:** in **REV Narrative Rewrite Prompt** only, remove the `ExtraTerms` input, add the text inputs `NeutralTerms`,
+> `Titles`, `NameRules` and `Labels`, and replace the body with the rev 23 template in
+> `docs/development/revitalise-redaction-prompt.md` §1 (written by development-agent); keep GPT-4.1 mini, temperature 0,
+> moderation Low, output text. **REV Narrative Spelling Prompt is unchanged.** `A-NS-31` stays open until the re-edited
+> component is exported.
+
+> **Rev 22 (`ADR-075`, not yet approved).** The prompts are no longer an optional stage, and hosting is settled, so the
+> reviewer actions become: **R0** — *Move data across regions* is on in DEV and TST/ACC (reviewer, 2026-10-16, verbatim:
+> *"the move data accross regions options is on in both dev and acc. This is standard."*), and in PRD (reviewer, verbatim: *"the move accross regions is on in prd as well."*); `A-NS-32a` resolved, R0 satisfied. *Previously read: "read and record it in PRD only,
+> before the first PRD deploy".* Flex routing: **satisfied** — disabled at tenant
+> level (reviewer, 2026-10-16, verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"*; `A-NS-32` resolved, `A-R92` closed). *Previously read: read the checkbox
+> in all three environments and clear it unless the legal office accepts it; decision open.* **R1** — create the rewrite and spelling prompts in DEV
+> inside the solution (`A-NS-31`); with the setting already on in DEV, nothing blocks this. *Previously read: "If PRD's setting turns out to
+> be off, every record there shows `prompt-error` and is scrubbed by hand until it is ticked."* The text below is the rev 20 plan, kept as history.
 
 **For development-agent: this is the one place that says what the generative prompt stage (`ADR-072`, `ADR-074`) needs
 from the reviewer before it can be built or run in DEV.** Everything below is a reviewer action with its reason. None
@@ -4837,6 +6560,39 @@ not only running it, needs R2. Report that back as an `ARCH_GAP`; do not tick th
 |---|---|---|---|
 | `A-NS-23` | **Rev 20 approval.** In a `crm17` environment with *Move data across regions* unticked, the maker portal lets a prompt be created, given a model, saved inside a solution and exported. If it does not, building `ADR-072`'s component needs the setting ticked | E2 (cross-geo-only model availability; AI Prompts depends on the setting). Not measured | R1 itself: record whether a model can be selected and the prompt saved, with the setting state from R0. No run and no applicant text are needed |
 
+### 12.7 Platform Contract Verification Plan — the auto-reject rules (rev 26) (`wbs:2.4`, `2.7`)
+
+No new component, column or connector. Three hand-authored expectations, one DEV session, all observable in run
+history and on the application form. Each is an OPEN row in the Dev Summary §10 register with its marker at the point
+of use (`C-TECH-052`).
+
+| Marker | Claim | Evidence today | Cheapest verification |
+|---|---|---|---|
+| `A-FLOW-18` | `formatNumber(x, 'N2')` and `formatNumber(x, 'N0')` render a comma thousands separator and a point decimal on this tenant: `1,250.00`, `25,000`. `'N0'` is new to the solution | None; `'N2'` ships in Create Envelope over amounts below 1,000 | DEV: create SDD A-10 example 2 and a £1,250 Holiday accommodation request; read `rev_autorejectreason`. Wrong format is a wording defect only: status is unaffected |
+| `A-FLOW-19` | The create trigger delivers `rev_amountrequested` as a JSON number, and a blank money, choice or yes/no column as absent (null), so `greater()` compares numbers and a blank does not reject | Yes/no null handling is built for `rev_receivedfundingbefore` (EF-34); no flow compares a money column | DEV: example 2 and a request with no amount; read the trigger outputs in run history. A string would fail the run with an alert, not mis-score |
+| `A-FLOW-20` | Resubmitting a failed run from run history replays the row as created and reads the settings as they are now, so a run stopped by a bad row is recovered once the row is fixed | None: no restart route is written down for this create-only flow | DEV: set `SavingsRuleEnabled` to `yes`, create an application, see the alert; set it back to `true`; resubmit; see the application scored |
+
+**Pre-import step, every environment.** Seed the seven new rows **before** importing the solution that carries rev 26's
+flow (§5.2.1). In PRD this cannot happen until OQ-001 to OQ-003 are answered, which already blocks the PRD seed.
+
+### 12.8 Platform Contract Verification Plan — Finalise Decisions from the review list (rev 27) (`wbs:6.6`)
+
+No new column, connector or role. One per-environment step and three hand-authored expectations, each an OPEN row in
+the Dev Summary §10 register with its marker at the point of use (`C-TECH-052`). The reviewer observed part of
+`A-FD-9` and `A-FD-10` in DEV on 2026-10-20; the rows below are narrowed to what is still unmeasured, and all three stay
+OPEN.
+
+| Marker | Claim | Evidence today | Cheapest verification |
+|---|---|---|---|
+| `A-FD-9` | **Observed (reviewer, DEV, 2026-10-20):** `REV Grant Administration` has a **Flow** menu, and trustees cannot open the app because they lack its role. **Still unmeasured:** the menu lists `REV \| Portal \| Finalise Decisions` to a run-only member of the process-owner group and **not** to a Finance user, who can open the app (`ADR-048`); selecting three rows starts three runs, each with its own review id | Menu and trustee exclusion: E1, human observation in DEV. The rest: E2 | DEV: share run-only with `REV-PP-GrantApplications-Admins-DEV`; sign in as a test member; select three test reviews on Awaiting Finalisation; read three runs' trigger outputs. Then sign in as a test Finance user and confirm the flow is absent from the menu. The trustee check is not needed again: the app-access control is already observed, and the design does not rely on it (§5.7) |
+| `A-FD-10` | **Observed (reviewer, DEV designer, 2026-10-20):** the trigger shows as *Microsoft Dataverse — Manual* and its code view has operation id `RecordSelected`, in a DEV flow named *"Run a flow for selected rows"*. **Still unmeasured:** the rest of the solution-source JSON: `type`/`kind`, the table parameter and its name, the split-on setting as stored, the connection-reference binding, and where the selected row's id sits in `triggerOutputs()` | Operation id: E1, human observation. The rest: none | DEV: export that flow (or a scratch copy outside the solution; never save a solution flow in the designer, §5) and read the definition; author the solution flow from it. One test run gives the trigger outputs. Remove the scratch flow afterwards |
+| `A-FD-11` | A process-owner user licensed for the model-driven app can run this Dataverse flow from the Flow menu on the flow's own (service-account) connection without a separate Power Automate licence | None; a licensing claim, not answered from memory | Before TST/ACC: check against current Microsoft licensing terms (`m365-licensing-check`); in DEV the run itself shows whether it is refused |
+
+**Per-environment step, every environment (DEV, TST/ACC, PRD).** Share the flow **run-only** with that environment's
+`REV-PP-GrantApplications-Admins-<env>` group, choosing *Use this connection* for the Dataverse connection. Run-only
+sharing is not solution content and does not travel with an import. It replaces the wbs:6.6 DEV step that shared the
+flow with Emily by name.
+
 ## Appendix A — Requirement Traceability (SDD → TAD)
 
 Every FR and NFR in the approved SDD maps to an architectural element. This is the architect's contract with
@@ -4849,17 +6605,18 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | FR-009 | `REV \| Intake` → Teams 1:1 chat, ADR-015 |
 | FR-083 – FR-093 (SDD A-08) | `ADR-051` items 11–12, `ADR-052`; Appendix C §C.1, §C.6, §C.8; §3.1 rev 10/11 rows; §12.4. FR-093 was conditional on OQ-053 (`TD-011`); rev 17: closed, the columns are removed |
 | FR-010 | `REV \| Ops \| Failure Alert` §5.14; `rev_errorlog` §3.1. **Rev 9:** rejection limited to four empty keys, and every other defect is a note (Appendix C §C.5, `ADR-051` items 6 and 10) |
-| FR-011 – FR-016 | `REV \| Scoring \| Calculate & Flag` §5.2; `rev_circumstancescore`, `rev_scorebreakdown`, `rev_incomeflag` §3.1; `rev_setting` §3.1 |
-| FR-017 | `rev_setting` table, ADR-010, NFR-019 |
+| FR-011 – FR-016 | `REV \| Scoring \| Calculate & Flag` §5.2; `rev_circumstancescore`, `rev_scorebreakdown`, `rev_incomeflag` §3.1; `rev_setting` §3.1. **Rev 26:** FR-014 and FR-015 as amended by SDD A-10, §5.2.1 rules 2 and 5, `ADR-079` items 1 and 3 |
+| FR-102 – FR-105 | **Rev 26:** §5.2.1 rules 1, 3 and 4 and the reason lines; `rev_autorejectreason` §3.1; `ADR-079` items 2, 4, 5 and 7 |
+| FR-017 | `rev_setting` table, ADR-010, NFR-019. **Rev 26:** eleven Automation #2 rows, all create-only (`ADR-079` items 2, 4 and 6) |
 | FR-018 | `rev_statusoverridden` / `rev_overriddenby` / `rev_overriddenon` §3.1; override short-circuit §5.2 |
 | FR-019, FR-022 | §5.2 Borderline and missing-answer branches; §6.6 (Approvals option §4) |
 | FR-020 | `rev_status` choice + filtered views §3.1 |
 | FR-021 | `REV \| Scoring \| Daily Summary` §5.3 (counts only) |
 | FR-023 – FR-025 | `REV \| Duplicate \| QBO Check` §5.4; ADR-017; `rev_duplicateflag` and prior-grant columns §3.1 |
-| FR-026 – FR-031 | `REV \| Narrative \| Scrub Free-Text` §5.5 (rev 19: `ADR-071`, `ADR-072`, §12.6; rev 20: §5.5.1, `ADR-073`, `ADR-074`); `REV_TrusteeRestricted` profile §6; `rev_narrativeraw` / `rev_narrativeredacted` / `rev_redactionconfidence` / `rev_redactionreleased` §3.1; ADR-002 |
+| FR-026 – FR-031 | `REV \| Narrative \| Scrub Free-Text` §5.5 (rev 19: `ADR-071`, `ADR-072`, §12.6; rev 20: §5.5.1, `ADR-073`, `ADR-074`; rev 22: `ADR-075` — names become *They* and the client's neutral terms apply, on the reviewer's decisions of 2026-10-14 and 2026-10-16; spelling correction of the redacted copy. traces FR-026 as amended and FR-094 to FR-099, SDD Amendment A-09, approved 2026-10-16; FR-099 is `CO-009`, approved, unbilled. *Previously read: "Provisional ... until plan-agent's amendment lands"*; rev 25: `ADR-078` — the process owner releases every narrative, the threshold flags; FR-029/FR-030 wording amendment pending with plan-agent; `ADR-075` items 2 and 7 as amended); `REV_TrusteeRestricted` profile §6; `rev_narrativeraw` / `rev_narrativeredacted` / `rev_redactionconfidence` / `rev_redactionreleased` §3.1; ADR-002 |
 | FR-032, FR-033 | `REV \| Narrative \| Trustee Pack` §5.6 — **DERIVED flow**; Word Online (Business) §4; tagged-PDF requirement §8 |
 | FR-034 – FR-039 | Trustee portal — **Code App, confirmed (ADR-003)**; `REV_TrusteeRestricted` §6; `rev_eligibleforround` §3.1; §8 accessibility; no export privilege §6.2 |
-| FR-037, FR-040, FR-047 | `REV \| Portal \| Finalise Decisions` §5.7; `rev_review` verdict columns §3.1 |
+| FR-037, FR-040, FR-047 | `REV \| Portal \| Finalise Decisions` §5.7 (rev 27: started from the Reviews list, one run per selected review, `ADR-080`); `rev_review` verdict columns §3.1 |
 | FR-041 – FR-045 | `REV \| Acceptance \| Create Envelope / Reminders & Escalation / Completion` §5.8–5.10; DocuSign §4; `rev_grant` acceptance columns §3.1 |
 | FR-046 | `rev_manualacceptancerecorded` on Grant, recorded via the MDA — no flow, by design §5.10 |
 | FR-048 | Native recurring bulk-delete jobs ×3 + status/date columns, ADR-004, §12 |
@@ -4891,6 +6648,21 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | SDD OQ-150 (separate app or an area?) | ✅ **Closed by the reviewer 2026-09-09 — an AREA inside the existing `REV Grant Administration` app** (`ADR-048`). *Rev 5 closed it the other way, to a separate app (`ADR-044`); that ADR is rejected and retained* | — |
 | SDD OQ-151 (nickname convention for reimbursement accounts) | ✅ **CLOSED rev 8 — 2026-09-10, reviewer-confirmed.** `ADR-046a` states the convention for **both** payee types and specifies the `Entity.xml` description change; the reviewer confirmed the applicant-reimbursement row (`REV-2026-001 - reimbursement`, the grant reference per `ADR-013`) **as proposed, with no replacement**. No business decision remains pending. *History: rev 7 re-scoped the question to confirm-or-replace, due before `wbs:8.2` deploys, narrowing it from the SDD's original OPEN/load-bearing framing where `ADR-046` recommended the grant reference and the business decided* | — |
 | SDD OQ-152 (finance role privileges on Grant) | ✅ **Answered as a build specification for `wbs:8.2`** — §6.2.1 items 1–7, two of which correct §6.2's approved row | — |
+
+**Capture Payment flow — added rev 28, from SDD Amendment A-12 (`wbs:8.6`, `CO-010`, unbilled).**
+
+| SDD requirement | TAD element |
+|---|---|
+| FR-107 (final payment sets the grant's date; later of several; the payment's own date, OQ-057; **a final payment must carry a date**, answer 3) | §5.11 and `ADR-081` items 2, 3 and 8; `A-CP-3`, `A-CP-6`, `A-CP-9`, `A-R102` |
+| FR-108 (the application moves to Grant Paid, from Approved only) | §5.11 decision table; `ADR-081` item 4 |
+| FR-109 (a non-final or repeated save changes nothing) | `ADR-081` item 2 and 3, writes only on difference, concurrency 1; **read as "over a grant that matches its payments"** — `A-R100` |
+| FR-110 (withdrawing the mark or cancelling reverses it; correcting the date re-records it; OQ-058) | One computed target, so the reversal is the same two writes; **the payment's own Issued status is not reverted** (`ADR-081` item 7); `A-CP-5`, `A-CP-6` |
+| FR-111 (a final payment that cannot be applied is visible to finance and the process owner; no retry) | §5.11 visibility and restart route; `ADR-081` item 5; `rev_FinanceAlertUpn` §12; `A-R101` is the case it does not catch |
+| US-026 AC-1 – AC-10 | §5.11 decision table, one row per acceptance criterion's situation; `unit-tests` row of `ADR-081` |
+| SDD OQ-057, OQ-058 | ✅ **Closed 2026-10-20 at their defaults** (SDD §9): `ADR-081` item 2 |
+| FR-112 (a final, Pending payment becomes Issued; Issued or Cleared left alone; Cancelled stays and is reported; unticking does not revert; OQ-059) | §5.11 payment-status table; `ADR-081` item 7; `A-CP-7`, `A-CP-8`. **OQ-059 is open at its default (stays Issued), which the design implements. A "yes, revert" answer would add a Pending write, falsify the fixed-point argument in §5.11 and reopen `A-CP-8`** |
+| FR-113 (the grant's own status Signed to Paid with the date; Paid back to Signed on reversal; other statuses left and reported; OQ-060) | §5.11 "The grant's own status" and its table; `ADR-081` items 3 and 9; `A-R103`, `A-R100`. US-026 AC-16 to AC-19. **OQ-060 stands at its default** |
+| Out of scope in the SDD: duplicate re-check, retention job | Not built here; `ADR-081` items 9 and 10 |
 
 ---
 
@@ -5372,3 +7144,71 @@ that reading. A reader who disagrees should treat `ADR-073` and `ADR-074` as `Pr
 "As currently designed" keeps the prompt stage off and *Move data across regions* unticked in every environment; what a
 DEV build or run of the prompt needs from the reviewer is §12.6.1 (new; `A-NS-23` added). No schema, privilege or
 behaviour change. `wbs:5.3` (tuning `5.6`).
+
+**Rev 21 — returned for revision, 2026-10-16** (Xander Lykopoulos, verbatim: *"Simplify the workflow, 340 actions is
+absurd for the goal of this workflow."*). Superseded by rev 22.
+
+**Rev 22 — status at this gate (as presented):** `ADR-075` rewritten and `Proposed`: the extractor labels,
+one prompt rewrites, a second corrects spelling, and checks P1 and P2 decide the write; about 80 actions instead of 313.
+`ADR-071` to `ADR-074` superseded in part by note. Risks `A-R88`, `A-R89` revised, `A-R90` withdrawn, `A-R91`, `A-R92`
+added; `A-NS-31`–`A-NS-33` and `A-NS-32a` added. *Move data across regions* on in DEV and TST/ACC and PRD by reviewer statements (2026-10-16; PRD *"the move accross regions is on in prd as well."*; *previously read: "PRD not stated"*). Prompt processing in the EU decided by the reviewer (2026-10-16, *"Yes, the AI prompt processed in EU is agreed."*); flex routing disabled at tenant level (reviewer, *"Ah, the flex routing option is disabled on tenant level. Only EU handling"*; *previously read: "flex routing undecided"*). No schema or privilege change. FR trace provisional on plan-agent's FR-026 and NFR-009
+amendment (since approved, A-09); spelling's commercial status with `CO-009` (since approved, unbilled). `wbs:5.3`, `5.6`. Presented for review; not yet approved.
+
+**Rev 22 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-16  **Response:** `APPROVED` (verbatim: *"Approved Design revision 22"*, relayed by
+lead-agent, including the carried SOFT warning **C-DOM-005**). `ADR-075` is `Accepted`. In the same turn: SDD Amendment
+A-09 approved (*"Approved for requirements Amendment A-09"*, OQ-054 to OQ-056 at their defaults), so the FR trace is final;
+`CO-009` approved with the unbilled tag (verbatim: *"CO-009 Approved with unbilled tag. Features always expand a bit during development and this one is within reasonable limits."*). `wbs:5.3`, `5.6`.
+
+**Rev 23 — status at this gate (as presented):** `ADR-076` is `Proposed`: four `rev_setting` rows hold the
+rewrite rules Emily may change, reach the prompt as inputs, and are the single source of P2 and P3; malformed rows fail
+closed; seeded create-only. Amends `ADR-075` items 3 and 8 by note. New risk `A-R93`; new rows `A-NS-36`, `A-NS-37`.
+About 95 actions. No schema or privilege change. `wbs:5.6`, `5.3`. Presented for review; not yet approved.
+
+**Rev 23 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-16  **Response:** `APPROVED` (verbatim: *"Approved for revision 23"*, relayed by
+lead-agent, including the carried SOFT warning **C-DOM-005**). `ADR-076` is `Accepted`; `ADR-075` items 3 and 8 are
+amended by it. `wbs:5.6`, `5.3`.
+
+**Rev 25 — status at this gate (as presented):** `ADR-078` is `Proposed`: the flow never writes `rev_redactionreleased`,
+sets `rev_redactionreviewrequired` and sends the card for every scrubbed application, retires `RedactionAutoRelease` and
+its two reason codes, and keeps `RedactionConfidenceThreshold` as a review signal, seeded create-only at `0.85`. It
+supersedes `ADR-071` item 8 and `ADR-074` item 5's auto-release half by note. `ADR-075` items 2 and 7 and `ADR-076`'s
+`RedactionNameRules` seed record Dev Summary Iteration 11. New risk `A-R97`; `A-NS-22` withdrawn. About 97 actions. No
+schema, privilege, connector or prompt change. SDD amendment of FR-029/FR-030 (and FR-095 for the writer's own name)
+requested from plan-agent. Independent of rev 24. `wbs:5.3`, `5.4`, `5.6`. Presented for review; not yet approved.
+
+**Rev 25 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-19  **Response:** `APPROVED` (verbatim: *"1. Approved"*, relayed by
+lead-agent, including the carried SOFT warning **C-DOM-005**). `ADR-078` is `Accepted`; `ADR-075` items 2 and 7 and
+`ADR-076`'s `RedactionNameRules` seed are amended as recorded. `wbs:5.3`, `5.4`, `5.6`.
+
+**Rev 26 — status at this gate (as presented):** `ADR-079` is `Proposed`: `Derive_eligibility_rules` decides five
+auto-reject rules once (amount by break type, income via the income flag, savings, prior funding, score), and the
+status and every reason that fired, one per line, are both derived from it. Seven new `rev_setting` rows (five amount
+limits, two switches) seeded create-only in all three environments with the reviewer's values; the four existing
+FR-017 rows become create-only (`ADR-079` item 6, a reviewer decision). The row guard goes from 8 to 15. About 74
+actions. `rev_autorejectreason` stays at 1,000 characters (about 440 used at most). No new column, connector, privilege
+or option set; no view or daily-summary change. New risk `A-R98`; `R3` noted; §12.7 adds `A-FLOW-18` to `A-FLOW-20`.
+SDD Amendment A-10 rev 2. `wbs:2.4`, `2.7`. Independent of rev 25. Presented for review; not yet approved.
+
+**Rev 26 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-19  **Response:** `APPROVED` (verbatim: *"Approved"*, relayed by
+lead-agent, including the carried SOFT warning **C-DOM-005**). lead-agent's preceding message told the reviewer that approving
+as written includes `ADR-079` item 6: `KnockoutThreshold`, `BorderlineBandLower`, `BorderlineBandUpper` and `IncomeCeiling`
+become create-only, so a deploy no longer overwrites them. `ADR-079` is `Accepted`. `A-R98` is carried forward as an open
+item; `A-FLOW-18` to `A-FLOW-20` (§12.7) stay open until development-agent verifies them. `wbs:2.4`, `2.7`.
+
+**Rev 27 — status at this gate (as presented):** `ADR-080` is `Proposed`: flow #7 is started by the process owner from
+`REV Grant Administration` → Reviews → Awaiting Finalisation through the Flow menu, Dataverse *When a row is selected* on
+`rev_review`, one run per selected review; it acts on the selected reviews, not on every decided one. Creating the
+Grant starts flow #8, whose trigger the flow table now states correctly as `rev_grant` create. Shared run-only with the
+process-owner group per environment on the flow's own connection. `Q-FD-1`, `Q-FD-3` and `Q-FD-8` were answered by the
+reviewer on 2026-10-20 (not an approval of rev 27): a split waits for the quarterly panel and is not finalised by the
+flow; a deferral writes no snapshot; the Grant carries the amount requested. `A-FD-9` and `A-FD-10` are narrowed by his
+DEV observations and stay open. New risk `A-R99`; §12.8 adds `A-FD-9` to `A-FD-11`; `A-FD-6` is answered. No new column,
+option set, privilege or connector. `wbs:6.6`, `WI-0129`. Presented for review; not yet approved.
+
+**Rev 27 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `APPROVED` (verbatim: *"Approved"*, relayed by
+lead-agent, including the carried SOFT warning **C-DOM-005**). `ADR-080` is `Accepted`. The approval covers rev 27 only,
+not rev 28 in this file. `A-FD-9` to `A-FD-11` (§12.8) stay open until development-agent verifies them. `wbs:6.6`, `WI-0129`.
+
+**Rev 28 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `APPROVED` (verbatim, relayed by lead-agent: *"1. Agreed. 2. For now use the same as the process owner Emily. At the moment that is a combined role. but in the future probably separated. During testing this can be set to Janine. 3. Make payment date required when final payment is set. The the flow can set the payment status to issued. APPROVED"*). `ADR-081` is `Accepted`. The three gate decisions as presented were answered: (1) `A-R100` accepted as proposed; (2) `rev_FinanceAlertUpn` is the process owner for now, Janine in test, kept as a separate variable; (3) the third decision as presented (the day an undated payment counts from) is **replaced**: payment date is required when Final is set, the creation-day rule is withdrawn, and the flow marks the payment Issued. The retention job, the grant's own "Paid" status and the snapshot amount remain flagged, not decided *(the grant's own status was decided the same day: see amendment b below)*. Independent of the rev 27 entry (Automation #6). `wbs:8.6`, `CO-010` (unbilled).
+
+**Rev 28, amendment b — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** recorded as approved (verbatim, relayed by lead-agent: *"Obviously the final payment should change the grant status as well."*; and on OQ-059, *"No. payment final means final."*). No gate decision was forced. Covers FR-113 and `ADR-081` items 3 and 9 as amended; OQ-060 stands at its default; `A-R103` is new and `A-R100` is widened. `wbs:8.6`, `CO-010` (unbilled).

@@ -96,6 +96,11 @@ managed artifact carries no environment URL, mailbox or tenant identifier at all
   only caller the intake endpoint accepts (NFR-008, C-TECH-006). A client ID is a public
   identifier, not a secret, so it is a plain environment variable and NOT a secret-type variable
   (TAD section 6.3, ADR-011).
+- **rev_FinanceAlertUpn** (added 2026-10-20, `wbs:8.6`, CO-010, ADR-081 item 5) - the finance contact
+  `REV | Finance | Capture Payment` tells in Teams when a final payment cannot be applied (FR-111).
+  `isrequired` is `1` with no default, so the import pane refuses a blank (a blank would make finance hear
+  nothing). Kept apart from `rev_ProcessOwnerUpn` so the two roles can split later with only a value
+  change. PRD: the process owner; TST/ACC and DEV: the test finance user.
 
 ## Directory, file name and shape - all three are ground truth, not a guess
 

@@ -21,6 +21,11 @@
       "_comment": "The process owner's own mailbox. Teams notifications go to a 1:1 chat, not a channel, because the new-application notification carries an applicant name (TAD ADR-015)."
     },
     {
+      "SchemaName": "rev_FinanceAlertUpn",
+      "Value": "{{FINANCE_ALERT_UPN_PROD}}",
+      "_comment": "Recipient of the Capture Payment flow's Teams message when a final payment cannot be applied (FR-111, wbs:8.6, ADR-081). PRD carries the process owner for now (a combined role today, likely split later); only this value changes when it splits."
+    },
+    {
       "SchemaName": "rev_ServiceMailbox",
       "Value": "{{SERVICE_MAILBOX_PROD}}",
       "_comment": "Outlook fallback address used when the Teams connector is unavailable (TAD §4)."

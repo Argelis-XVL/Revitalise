@@ -1,0 +1,949 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Portal | Finalise Decisions (wbs:6.6, TAD 5.7 rev 27, ADR-080). One run per selected review. See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "dynamicscrmonline.entityName": {
+          "type": "String",
+          "defaultValue": ""
+        }
+      },
+      "triggers": {
+        "manual": {
+          "splitOn": "@triggerBody()['rows']",
+          "type": "Request",
+          "kind": "ApiConnection",
+          "description": "Dataverse When a row is selected, rev_review, one run per row (ADR-080). Shape from a DEV export (A-FD-10). A-FD-9: Flow menu visibility. A-FD-11: licence for a run-only user.",
+          "inputs": {
+            "operationId": "RecordSelected",
+            "parameters": {
+              "entityName": "rev_reviews"
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "entity": {
+                        "properties": {},
+                        "type": "object",
+                        "required": []
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "rows"
+              ]
+            },
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['shared_commondataserviceforapps']['connectionId']"
+              }
+            }
+          }
+        }
+      },
+      "actions": {
+        "Initialise_failure_detail": {
+          "type": "InitializeVariable",
+          "runAfter": {},
+          "description": "Holds the failed action name and code for the alert.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureDetail",
+                "type": "string",
+                "value": "No failure detail was captured."
+              }
+            ]
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Initialise_failure_detail": [
+              "Succeeded"
+            ]
+          },
+          "description": "Deep link to THIS run, for the alert.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Compose_review_id": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "A-FD-10: the selected row's id from the trigger. Path not yet measured by a run; two candidates, and an empty result stops the run with an alert below.",
+          "inputs": "@coalesce(triggerOutputs()?['body/entity/rev_reviewid'], triggerOutputs()?['body/rev_reviewid'])"
+        },
+        "Check_the_review_id_arrived": {
+          "type": "If",
+          "runAfter": {
+            "Compose_review_id": [
+              "Succeeded"
+            ]
+          },
+          "description": "A-FD-10: stops loudly if the trigger did not deliver an id, rather than reading nothing and finishing as a no-op.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@empty(string(coalesce(outputs('Compose_review_id'), '')))",
+                  true
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Alert_review_id_missing": {
+              "type": "Workflow",
+              "runAfter": {},
+              "description": "FR-010: names the run and the review id, never a value.",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                },
+                "body": {
+                  "text": "REV | Portal | Finalise Decisions",
+                  "text_1": "@{workflow()?['run']?['name']}",
+                  "text_2": "The trigger did not deliver the selected review's id, so nothing was changed. The trigger output path in the flow needs correcting (A-FD-10).",
+                  "text_3": "unknown-review",
+                  "text_4": "Error",
+                  "text_5": "@{outputs('Compose_run_link')}"
+                }
+              }
+            },
+            "Stop_review_id_missing": {
+              "type": "Terminate",
+              "runAfter": {
+                "Alert_review_id_missing": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "description": "Stops the run Failed whether or not the alert went out.",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "ReviewIdMissing",
+                  "message": "The trigger did not deliver the selected review's id. Nothing was changed."
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        },
+        "Finalise_this_review": {
+          "type": "Scope",
+          "runAfter": {
+            "Check_the_review_id_arrived": [
+              "Succeeded"
+            ]
+          },
+          "description": "One review end to end, one scope, one failure branch. TAD 5.7.",
+          "actions": {
+            "Get_the_review": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "TAD 5.7 step 1: re-reads the review by id. The trigger supplies only the id. Verdicts, outcome, round only: no identifier.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                  "operationId": "ListRecords"
+                },
+                "parameters": {
+                  "entityName": "rev_reviews",
+                  "$filter": "@concat('rev_reviewid eq ', outputs('Compose_review_id'))",
+                  "$select": "rev_name,_rev_applicationid_value,rev_verdict1,rev_verdict2,rev_outcome,rev_paneldate,rev_finalisedon"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Compose_review": {
+              "type": "Compose",
+              "runAfter": {
+                "Get_the_review": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The one review row (the read filters by primary key).",
+              "inputs": "@first(outputs('Get_the_review')?['body/value'])"
+            },
+            "Compose_outcome": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_review": [
+                  "Succeeded"
+                ]
+              },
+              "description": "TAD 5.7 steps 1-3. 0 = do nothing: finalised, undecided, or a split (Q-FD-1). Else a set rev_outcome wins; else agreeing verdicts (1,2,3 = Approved, Deferred, Rejected). 4 is left open.",
+              "inputs": "@if(not(equals(outputs('Compose_review')?['rev_finalisedon'], null)), 0, coalesce(outputs('Compose_review')?['rev_outcome'], if(and(not(equals(outputs('Compose_review')?['rev_verdict1'], null)), equals(outputs('Compose_review')?['rev_verdict1'], outputs('Compose_review')?['rev_verdict2'])), outputs('Compose_review')?['rev_verdict1'], 0)))"
+            },
+            "Check_there_is_something_to_apply": {
+              "type": "If",
+              "runAfter": {
+                "Compose_outcome": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Outcomes 1 to 3 only. 0 (finalised, undecided, split) and 4 end here with nothing changed (A-FD-1, A-FD-2). Nothing is read or written for them.",
+              "expression": {
+                "and": [
+                  {
+                    "greaterOrEquals": [
+                      "@outputs('Compose_outcome')",
+                      1
+                    ]
+                  },
+                  {
+                    "lessOrEquals": [
+                      "@outputs('Compose_outcome')",
+                      3
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Get_the_application": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "FR-040: the application, by primary key via ListRecords (IMP-0112). No referee, name or email column is read. Secured both ways: it holds the condition profile (A-FD-4).",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                      "operationId": "ListRecords"
+                    },
+                    "parameters": {
+                      "entityName": "rev_applications",
+                      "$filter": "@{concat('rev_applicationid eq ', outputs('Compose_review')?['_rev_applicationid_value'])}",
+                      "$select": "rev_name,_rev_applicantid_value,rev_amountrequested,rev_breakstart,rev_breakend,rev_conditionprofile"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Get_the_applicant": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Get_the_application": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-055: only the two coarse bands the snapshot keeps. Neither is a listed personal column.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                      "operationId": "ListRecords"
+                    },
+                    "parameters": {
+                      "entityName": "rev_applicants",
+                      "$filter": "@{concat('rev_applicantid eq ', first(outputs('Get_the_application')?['body/value'])?['_rev_applicantid_value'])}",
+                      "$select": "rev_agerange,rev_locationarea"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                },
+                "Find_an_existing_grant": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Get_the_applicant": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Idempotency: one grant per application (entity key rev_grant_applicationid). A retry after a partial failure must not create a second one.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                      "operationId": "ListRecords"
+                    },
+                    "parameters": {
+                      "entityName": "rev_grants",
+                      "$filter": "@{concat('_rev_applicationid_value eq ', outputs('Compose_review')?['_rev_applicationid_value'])}",
+                      "$select": "rev_grantid",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                },
+                "Compose_decision_month": {
+                  "type": "Compose",
+                  "runAfter": {
+                    "Find_an_existing_grant": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-055: first of the month of the panel date, else today. A month label, not a reference to any case.",
+                  "inputs": "@formatDateTime(coalesce(outputs('Compose_review')?['rev_paneldate'], utcNow()), 'yyyy-MM-01')"
+                },
+                "Check_a_grant_is_due": {
+                  "type": "If",
+                  "runAfter": {
+                    "Compose_decision_month": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-040, FR-047. Approved and no Grant yet. The Grant row is the hand-off: flow #8 starts on creation (A-DS-3, A-FD-5). No DocuSign, no signing order (ADR-077).",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@outputs('Compose_outcome')",
+                          1
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@length(outputs('Find_an_existing_grant')?['body/value'])",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Create_the_grant": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "description": "Status 1 (Awarded). Amount = amount requested (Q-FD-8, confirmed); dates = preferred break dates. Provider left empty: the application holds no provider lookup.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                          "operationId": "CreateRecord"
+                        },
+                        "parameters": {
+                          "entityName": "rev_grants",
+                          "item/rev_applicationid@odata.bind": "@concat('/rev_applications(', outputs('Compose_review')?['_rev_applicationid_value'], ')')",
+                          "item/rev_status": 1,
+                          "item/rev_amountawarded": "@first(outputs('Get_the_application')?['body/value'])?['rev_amountrequested']",
+                          "item/rev_holidaystart": "@first(outputs('Get_the_application')?['body/value'])?['rev_breakstart']",
+                          "item/rev_holidayend": "@first(outputs('Get_the_application')?['body/value'])?['rev_breakend']"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                },
+                "Check_approved": {
+                  "type": "If",
+                  "runAfter": {
+                    "Check_a_grant_is_due": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-040: application status 7, Approved. Update-only, never an upsert (IMP-1095).",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@outputs('Compose_outcome')",
+                          1
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Set_the_application_approved": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "description": "Application status 7, Approved.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                          "operationId": "UpdateOnlyRecord"
+                        },
+                        "parameters": {
+                          "entityName": "rev_applications",
+                          "recordId": "@outputs('Compose_review')?['_rev_applicationid_value']",
+                          "item/rev_status": 7
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                },
+                "Check_rejected": {
+                  "type": "If",
+                  "runAfter": {
+                    "Check_approved": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-040: application status 8, Rejected; rev_decisiondate starts the retention countdown (its own description).",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@outputs('Compose_outcome')",
+                          3
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Set_the_application_rejected": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "description": "Application status 8, Rejected, and the decision date.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                          "operationId": "UpdateOnlyRecord"
+                        },
+                        "parameters": {
+                          "entityName": "rev_applications",
+                          "recordId": "@outputs('Compose_review')?['_rev_applicationid_value']",
+                          "item/rev_status": 8,
+                          "item/rev_decisiondate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                },
+                "Check_snapshot_is_due": {
+                  "type": "If",
+                  "runAfter": {
+                    "Check_rejected": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-055: a snapshot for Approved (Granted) and Rejected (Not Granted) only. A deferral writes none (Q-FD-3, A-FD-3 confirmed).",
+                  "expression": {
+                    "or": [
+                      {
+                        "equals": [
+                          "@outputs('Compose_outcome')",
+                          1
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@outputs('Compose_outcome')",
+                          3
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Select_condition_areas": {
+                      "type": "Select",
+                      "runAfter": {},
+                      "description": "A-FD-4: profile values 1-10 map to the six coarse areas (rev_conditionareas.xml). Secured: it reads the profile.",
+                      "inputs": {
+                        "from": "@split(string(coalesce(first(outputs('Get_the_application')?['body/value'])?['rev_conditionprofile'], '')), ',')",
+                        "select": "@coalesce(json('{\"1\":\"1\",\"2\":\"1\",\"3\":\"2\",\"4\":\"2\",\"5\":\"3\",\"6\":\"3\",\"7\":\"4\",\"8\":\"5\",\"9\":\"6\",\"10\":\"7\"}')?[trim(string(item()))], '')"
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Filter_condition_areas": {
+                      "type": "Query",
+                      "runAfter": {
+                        "Select_condition_areas": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "Drops blanks: an empty or unmapped profile value maps to nothing.",
+                      "inputs": {
+                        "from": "@body('Select_condition_areas')",
+                        "where": "@not(empty(item()))"
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Compose_condition_areas": {
+                      "type": "Compose",
+                      "runAfter": {
+                        "Filter_condition_areas": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "Comma-separated, de-duplicated option values for the multi-select column, or null when none (as intake's Derive_condition_profile).",
+                      "inputs": "@if(empty(body('Filter_condition_areas')), null, join(union(body('Filter_condition_areas'), body('Filter_condition_areas')), ','))",
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Create_the_snapshot": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {
+                        "Compose_condition_areas": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "FR-055: no lookup, no reference (TAD 3). Outcome 1 Granted, 2 Not Granted. Amount only when granted. A-FD-7: a retry may repeat a row.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                          "operationId": "CreateRecord"
+                        },
+                        "parameters": {
+                          "entityName": "rev_anonymisedstatistics",
+                          "item/rev_name": "@concat('Decision ', formatDateTime(outputs('Compose_decision_month'), 'yyyy-MM'))",
+                          "item/rev_outcome": "@if(equals(outputs('Compose_outcome'), 1), 1, 2)",
+                          "item/rev_amountawarded": "@if(equals(outputs('Compose_outcome'), 1), first(outputs('Get_the_application')?['body/value'])?['rev_amountrequested'], null)",
+                          "item/rev_agerange": "@first(outputs('Get_the_applicant')?['body/value'])?['rev_agerange']",
+                          "item/rev_locationarea": "@first(outputs('Get_the_applicant')?['body/value'])?['rev_locationarea']",
+                          "item/rev_conditionareas": "@outputs('Compose_condition_areas')",
+                          "item/rev_decisionmonth": "@outputs('Compose_decision_month')",
+                          "item/rev_snapshotdate": "@utcNow()"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                },
+                "Stamp_the_review": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Check_snapshot_is_due": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "TAD 5.7 step 7: the resolved outcome and rev_finalisedon, the double-run guard. The LAST write: a run that fails before it leaves the review on the view.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                      "operationId": "UpdateOnlyRecord"
+                    },
+                    "parameters": {
+                      "entityName": "rev_reviews",
+                      "recordId": "@outputs('Compose_review_id')",
+                      "item/rev_outcome": "@outputs('Compose_outcome')",
+                      "item/rev_finalisedon": "@utcNow()"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            }
+          }
+        },
+        "Find_the_failed_action": {
+          "type": "Query",
+          "runAfter": {
+            "Finalise_this_review": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "The child of the scope whose own status is Failed, not the generic wrapper message.",
+          "inputs": {
+            "from": "@result('Finalise_this_review')",
+            "where": "@equals(item()?['status'], 'Failed')"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Describe_the_failure": {
+          "type": "Switch",
+          "runAfter": {
+            "Find_the_failed_action": [
+              "Succeeded"
+            ]
+          },
+          "description": "Descends one level when the failed child is the apply step (IMP-0349, check 7); default = already a leaf.",
+          "expression": "@coalesce(first(body('Find_the_failed_action'))?['name'], 'none')",
+          "cases": {
+            "Case_apply_step": {
+              "case": "Check_there_is_something_to_apply",
+              "actions": {
+                "Find_the_failed_step_inside_the_apply_step": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when the apply step is the failure, so result() on it is safe (check 7).",
+                  "inputs": {
+                    "from": "@result('Check_there_is_something_to_apply')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Describe_the_apply_failure": {
+                  "type": "Switch",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_the_apply_step": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Descends once more into the container that failed inside the apply step (check 7); default = already a leaf.",
+                  "expression": "@coalesce(first(body('Find_the_failed_step_inside_the_apply_step'))?['name'], 'none')",
+                  "cases": {
+                    "Case_grant": {
+                      "case": "Check_a_grant_is_due",
+                      "actions": {
+                        "Find_the_failed_step_inside_the_grant_check": {
+                          "type": "Query",
+                          "runAfter": {},
+                          "description": "Only evaluated when Check_a_grant_is_due is the failure, so result() on it is safe (check 7).",
+                          "inputs": {
+                            "from": "@result('Check_a_grant_is_due')",
+                            "where": "@equals(item()?['status'], 'Failed')"
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          }
+                        },
+                        "Set_failure_detail_from_the_grant_check": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "Find_the_failed_step_inside_the_grant_check": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "Step name and code only.",
+                          "inputs": {
+                            "name": "failureDetail",
+                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_grant_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_grant_check'))?['error']?['code'], 'none'))}"
+                          }
+                        }
+                      }
+                    },
+                    "Case_approved": {
+                      "case": "Check_approved",
+                      "actions": {
+                        "Find_the_failed_step_inside_the_approved_check": {
+                          "type": "Query",
+                          "runAfter": {},
+                          "description": "Only evaluated when Check_approved is the failure, so result() on it is safe (check 7).",
+                          "inputs": {
+                            "from": "@result('Check_approved')",
+                            "where": "@equals(item()?['status'], 'Failed')"
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          }
+                        },
+                        "Set_failure_detail_from_the_approved_check": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "Find_the_failed_step_inside_the_approved_check": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "Step name and code only.",
+                          "inputs": {
+                            "name": "failureDetail",
+                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_approved_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_approved_check'))?['error']?['code'], 'none'))}"
+                          }
+                        }
+                      }
+                    },
+                    "Case_rejected": {
+                      "case": "Check_rejected",
+                      "actions": {
+                        "Find_the_failed_step_inside_the_rejected_check": {
+                          "type": "Query",
+                          "runAfter": {},
+                          "description": "Only evaluated when Check_rejected is the failure, so result() on it is safe (check 7).",
+                          "inputs": {
+                            "from": "@result('Check_rejected')",
+                            "where": "@equals(item()?['status'], 'Failed')"
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          }
+                        },
+                        "Set_failure_detail_from_the_rejected_check": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "Find_the_failed_step_inside_the_rejected_check": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "Step name and code only.",
+                          "inputs": {
+                            "name": "failureDetail",
+                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_rejected_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_rejected_check'))?['error']?['code'], 'none'))}"
+                          }
+                        }
+                      }
+                    },
+                    "Case_snapshot": {
+                      "case": "Check_snapshot_is_due",
+                      "actions": {
+                        "Find_the_failed_step_inside_the_snapshot_check": {
+                          "type": "Query",
+                          "runAfter": {},
+                          "description": "Only evaluated when Check_snapshot_is_due is the failure, so result() on it is safe (check 7).",
+                          "inputs": {
+                            "from": "@result('Check_snapshot_is_due')",
+                            "where": "@equals(item()?['status'], 'Failed')"
+                          },
+                          "runtimeConfiguration": {
+                            "secureData": {
+                              "properties": [
+                                "inputs",
+                                "outputs"
+                              ]
+                            }
+                          }
+                        },
+                        "Set_failure_detail_from_the_snapshot_check": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "Find_the_failed_step_inside_the_snapshot_check": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "Step name and code only.",
+                          "inputs": {
+                            "name": "failureDetail",
+                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_snapshot_check'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_snapshot_check'))?['error']?['code'], 'none'))}"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "default": {
+                    "actions": {
+                      "Set_failure_detail_from_an_apply_leaf": {
+                        "type": "SetVariable",
+                        "runAfter": {
+                          "Find_the_failed_step_inside_the_apply_step": [
+                            "Succeeded"
+                          ]
+                        },
+                        "description": "Step name and code only.",
+                        "inputs": {
+                          "name": "failureDetail",
+                          "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_apply_step'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_apply_step'))?['error']?['code'], 'none'))}"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "actions": {
+              "Set_failure_detail_from_a_leaf": {
+                "type": "SetVariable",
+                "runAfter": {
+                  "Find_the_failed_action": [
+                    "Succeeded"
+                  ]
+                },
+                "description": "Step name and code only.",
+                "inputs": {
+                  "name": "failureDetail",
+                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'))}"
+                }
+              }
+            }
+          }
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-010: names the run and the review id, never a value.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Portal | Finalise Decisions",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "@{concat('Finalise decisions stopped before the review was finished. ', variables('failureDetail'), ' Nothing is stamped finalised unless the last step ran; select the review and run it again.')}",
+              "text_3": "@{concat('review ', coalesce(outputs('Compose_review_id'), 'unknown'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_after_failure": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_on_failure": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed whether or not the alert went out.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "FinaliseStopped",
+              "message": "The review could not be finished. Run it again from the Flow menu."
+            }
+          }
+        },
+        "Compose_run_summary": {
+          "type": "Compose",
+          "runAfter": {
+            "Finalise_this_review": [
+              "Succeeded"
+            ]
+          },
+          "description": "What this run did, in words, no identifiers. For run history; a run-only user cannot see it (E2).",
+          "inputs": "@{if(not(equals(outputs('Compose_review')?['rev_finalisedon'], null)), 'Already finalised: nothing changed.', if(equals(outputs('Compose_outcome'), 0), 'Not finalised: fewer than two verdicts, or the verdicts differ and no outcome is set. Nothing changed.', if(equals(outputs('Compose_outcome'), 4), 'Outcome Non-Qualifying is not applied by this flow. Nothing changed.', concat('Finalised with outcome ', string(outputs('Compose_outcome')), ' (1 Approved, 2 Deferred, 3 Rejected).'))))}"
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

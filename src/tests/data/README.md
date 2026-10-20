@@ -260,7 +260,7 @@ Ofcom drama numbers, emails use `example.org`. Nothing comes from `docs/Import/`
 
 | Case | What it is for | Expected |
 |---|---|---|
-| TD-13 | Typical application. Names, family members, a GP practice, an address, two phones, an email and three ages over five columns | Every counterpart redacted as in `expectedRedacted`. With auto-release on: released |
+| TD-13 | Typical application. Names, family members, a GP practice, an address, two phones, an email and three ages over five columns | Every counterpart redacted as in `expectedRedacted`. With the threshold row: no hint. Never released by the flow (TAD ADR-078): the process owner releases it |
 | TD-14 | Edge. One narrative of 10,456 characters (three windows, with a phone, an email and a name placed in the overlaps), a column with nothing to redact, a short column with a name and phone, eleven empty columns | `rev_narrativeredacted` stays EMPTY (the redacted text cannot fit 4,000 characters, so the flow holds it back and sends the record to review); the other two counterparts are written. Always review |
 | TD-15 | Review. The words "street" and "practice" are left in on purpose, and `rev_disabilityimpactdescriptionredacted` already holds a grant admin's edit | `rev_narrativeredacted` written with both words kept; the edited counterpart is untouched. Always review |
 
@@ -292,11 +292,14 @@ the loader never updates an existing row.
 Before it can run: the scrub flow is on and its trigger registered; the four REV flows are on (the loader
 checks); `rev_ProcessOwnerUpn` has a current value; the AI Builder entity extraction model has credits;
 `rev_citysettlementregister` holds its 3,394 rows. `Redaction*` `rev_setting` rows are optional: with none,
-every record goes to review, which is the safe state and exercises the column writes. For TD-13 to be
-released, `RedactionConfidenceThreshold` (0.85) and `RedactionAutoRelease` (`true`, saved **after** any other
-`Redaction*` row) must exist.
+nothing is scrubbed and every record is flagged, which is the safe state. With the four rule rows and
+`RedactionConfidenceThreshold` (0.85; the deploy seeds all five create-only), TD-13 is written with no hint.
+**No record is ever released by the flow** (TAD rev 25, `ADR-078`): every one waits in the Review Required
+view until the process owner sets Redaction Released. `RedactionAutoRelease` is retired; a leftover row is ignored.
+*Previously read: "For TD-13 to be released, `RedactionConfidenceThreshold` (0.85) and `RedactionAutoRelease`
+(`true`, saved after any other `Redaction*` row) must exist."*
 
-Then read the three rows' twelve `...redacted` columns and the two release flags into one JSON file and score:
+Then read the three rows' twelve `...redacted` columns and the two flags into one JSON file and score:
 
 ```bash
 python3 src/tests/narrative/score_seeded_run.py --live <rows.json> --settings none   # or: on

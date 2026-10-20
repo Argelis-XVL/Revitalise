@@ -1996,7 +1996,7 @@ environments.
 | **Orphaned applicants** | Applicant rows with no remaining child application | Recurring bulk-delete job, monthly — **the derived remediation for TAD §3.4 gap 1 / risk A-R10**, which no source document covers and which would otherwise leave name, address and date of birth in place indefinitely |
 | Error log | 90 days from `rev_occurredon` | Recurring bulk-delete job, monthly |
 | Settings | Indefinite; changes audited | No job. Auditing enabled on the table |
-| Paid grants (6 years from final payment) | Not implementable in this release | Needs `rev_grant.rev_finalpaymentdate`, which arrives with Automation #3/#8. **No Phase 1 application can reach `Grant Paid`**, so no record class is left unprotected — but this is the one retention rule that is designed and not yet built |
+| Paid grants (6 years from final payment) | Not implementable in this release | **Rewritten 2026-10-20 (`wbs:8.6`, ADR-081 item 10).** `REV \| Finance \| Capture Payment` sets `rev_grant.rev_finalpaymentdate` and moves the application to `Grant Paid` (and the grant to `Paid`) from the day it is turned on in each environment. The six-year **retention job is still not built**: it is not in CO-010, and no record can be six years from a final payment for years. *Previously read: "Needs `rev_grant.rev_finalpaymentdate`, which arrives with Automation #3/#8. No Phase 1 application can reach `Grant Paid` ..."* |
 
 `rev_lastcontactdate` is refreshed on every repeat application (intake flow,
 `Refresh_existing_applicant`). Without that, a live applicant's six-month clock would run from
@@ -12479,7 +12479,6 @@ signer's role, read from the draft, decides only which value goes in.
 |---|---|---|---|
 | prefill | Name | `rev_applicant.rev_fullname` | |
 | prefill | Amount | `rev_grant.rev_amountawarded`, `N2` | awarded, not requested |
-| prefill | Holiday type | `rev_application.rev_breaktype`, formatted label | |
 | prefill | Holiday destination | `rev_application.rev_breaklocation` | |
 | prefill | Dates | `rev_grant.rev_holidaystart` to `rev_holidayend`, `d MMMM yyyy` | |
 | Grant Acceptor | First name / Last name | `rev_firstname` / `rev_lastname` | column-secured |
@@ -12679,3 +12678,413 @@ Risk `A-R80` is retired in the TAD; this document restates nothing of it beyond 
 ### 6. Amendment: build step 96 (IMP-1048)
 
 `IntakeContract.Tests.ps1` still asserted `TD-011` present in `contract/tad-deferrals.json`; TAD rev 17 deleted it (no middle name or suffix fields on the form). The test is renamed and now asserts TD-011 and TD-010 absent, keeping the `rev_middlename`/`rev_namesuffix` absence checks. No other test pins TD-006, TD-011, `rev_financialanswers` or the TD-007 expiry. Full Pester suite 1329 passed, 0 failed, 1 skipped.
+
+## Revision — Purpose label removed from the DocuSign template: Create Envelope no longer fills `p_type` (wbs:3.2, 2026-10-19)
+
+**Configuration decision (IMP-0836).** This revision **amends** `config/revitalise-grant-automation-build.yml` (untouched) and the pipeline configuration (untouched); no configuration of its own.
+
+**Request.** The customer removed the "Purpose" label from the template. The reviewer confirmed it is prefill tab `p_type` (placeholder `Holiday type`, from `rev_application.rev_breaktype`, formatted label). Scope-neutral removal of one field: no change order is indicated (`C-COM-002` not engaged); `commercial-agent` may overrule.
+
+### 1. What changed
+
+| Item | Change | Where |
+|---|---|---|
+| `Compose_tab_values` | `label\|p_type` and `prefill\|Holiday type` removed; 57 keys become 55 | `src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json` |
+| `Filter_missing_tabs` | `p_type` removed from the required ids; 15 become 14. Action description now says "4 prefill" | same file |
+| `Get_the_application` | `rev_breaktype` dropped from `$select`; nothing else in the flow read it (grep, zero hits). `rev_breaklocation` stays for `p_venue` | same file |
+| Flow notes | Mapping row and "five prefill" removed; new dated section with the template-version dependency | `...REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.notes.md` |
+| Envelope test contract | Key count 57 to 55, the two keys asserted absent, required-id list 14, fixture template 31 to 30 tabs (sends 23 to 22), prefill array 5 to 4 | `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1` |
+| This document | Mapping table row for `Holiday type` removed from the TAD rev 15 section; earlier text left as history | this file |
+
+**Template version dependency (by design, no workaround).** A template version that still carries a "Holiday type" tab has no mapping for it, so the no-mapping check stops the run before the send and names the placeholder. The remedy is to publish the template without the tab, not to change the flow.
+
+**For architect-agent (not edited here).** `docs/architecture/revitalise-grant-automation-architecture.md`: L1540 ("57 keys" to 55); L1543 and L1547 (drop `p_type` and `Holiday type` from the key lists); L1585-1586 (15 required ids to 14, drop `p_type`); L1664 (prefill 5 to 4, drop `Holiday type`); L3971 and L3973 and L12304 area equivalents in the test-contract text ("five prefill tabs"); the 31-tab test-contract figures (31 read, 23 sent) to 30 and 22; `rev_breaktype` in the `Get_the_application` `$select` list if named.
+
+### 2. §10 register
+
+No row added or changed. A-DS-2's `rev_breaktype` formatted-value sub-item is no longer exercised by this flow. `ASSUMPTION MARKERS: PASS`, `ASSUMPTION REGISTER: PASS`.
+
+### 3. Hours proposal (for `commercial-agent`, not a booking)
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 3.2 | 0.4 h | One flow edit (two keys, one id, one `$select` column), notes, test counts, this section |
+
+### 4. Verification (second run, after the last edit)
+
+**Highest level executed: V1.** Source and tests only; nothing packaged, imported or run against DocuSign. `AcceptanceEnvelopeContract.Tests.ps1` 71 of 71. `verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation` exit 0. `run-source-gates.py` 19 of 19 PASS; 83 of 102 build steps not covered by it.
+
+## Revision — TAD rev 26 / ADR-079: five auto-reject rules, every one tunable in `rev_setting`, every reason that fired written (SDD Amendment A-10 rev 2, wbs:2.4, 2.7, 2026-10-19)
+
+**Configuration decision (IMP-0836).** This revision **amends** `config/revitalise-grant-automation-build.yml` (one gate's key list widened) and `config/revitalise-grant-automation-pipeline.yml` (same CI slug: counts, two pre-import seed steps, wording); it needs no configuration of its own.
+
+**Reviewer decisions carried out.** TAD rev 26 approved 2026-10-19 (*"Approved"*), `ADR-079` item 6 included: the four existing FR-017 rows become create-only. SOFT warning C-DOM-005 (subject access path) is carried forward unchanged; nothing in this revision touches it.
+
+**Work items.** `WI-0033`, `WI-0036`, `WI-0047`, `WI-0117` to `WI-0124` closed to `built` one at a time. `WI-0125` (DEV verification of A-FLOW-18 to A-FLOW-20) is left at `ready`: it needs the DEV run described in section 4.
+
+**Sub-agent fan-out not performed — the flow, its tests, the settings rows and the pipeline wording are one change read by the same gates (`ScoringInvariants.Tests.ps1` executes the flow expressions against the seeded settings), so splitting them would have cost a hand-off per edge and a second reader of the same TAD.**
+
+### 1. What changed
+
+| Item | Change | Where |
+|---|---|---|
+| Five rules in one place | New Compose `Derive_eligibility_rules` returns `amount`, `income`, `savings`, `priorFunding`, `score`. `Derive_status` is the `or()` of the five, then the band as before. `Derive_income_flag` is unchanged and the income rule reads its value 2 only | scoring flow JSON, [`Derive_eligibility_rules`](src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json#L908) |
+| Amount limits | New Compose `Parse_amount_limits`: all five `AmountLimit*` rows parsed on every run with `int(trim(coalesce(…, '')))`, because `int(null)` is 0 and a blank row would otherwise reject every request. It runs after the FR-022 withhold gate, so a missing scored answer still gives Under Review with no rule | [`Parse_amount_limits`](src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json#L868) |
+| Fifteen rows | `Read_scoring_configuration` names fifteen rows, the guard requires fifteen, seven `Setting_*` queries added; new guard `Fail_if_a_rule_switch_is_not_true_or_false` inside `Read_configuration` stops the run on any switch value that is not `true` or `false` (trimmed, any case) | same file, [guard](src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json#L422) |
+| Reasons | New Composes `Compose_reason_labels` (the option sets' own names) and `Compose_reason_lines` (one segment per rule, newline then sentence, in the order amount, income, savings, prior funding, score). `Derive_autoreject_reason` returns null unless status is 4, else the lines without their first newline. `Write_score_and_status` is untouched: status and reason were already one call | [`Compose_reason_lines`](src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json#L937) |
+| Audit trail | Status-4 line reads `4 Auto-reject:` plus the reason lines; *Thresholds in force* adds the five limits and both switches | `Compose_scoring_audit`, same file |
+| Seeding | Seven rows added and the four FR-017 rows marked `createOnly`, in DEV, TST/ACC and PRD. Rows appended at the END of `settingRows`: PRD's `_unresolved` paths are array indexes (see section 5). PRD's `{{PENDING_OQ_*}}` tokens are unchanged, so the PRD seed still stops before any write. `seed-settings.ps1` needed no logic change (it already honours `createOnly`); its header documents the eleven rows | `provisioning/deploymentSettings/*.json`, `provisioning/dataverse/seed-settings.ps1` |
+| Pipeline | "Seed the 40 rev_setting rows" now says 48 in the DEV and TST/ACC steps; a pre-import `seed-settings.ps1` step added to the DEV and TST/ACC `pre_deploy` lists (TAD 12.7); the create-only sentence extended in all three. **No pre-import step in PRD:** PRD has had no import, and its seed is blocked by OQ-001 to OQ-003 anyway | `config/revitalise-grant-automation-pipeline.yml` |
+| Retired words | Flow descriptions and `notes.md` no longer say "8 rows", "checked FIRST", "EF-34's rule wins" or "WHY THE ORDER MATTERS"; `rev_autorejectreason` description names all five rules (ntext, 1,000, `IsSecured=0` unchanged) | flow JSON, `notes.md`, `Entities/rev_application/Entity.xml` |
+| Gate key list | The five `AmountLimit*` keys added to the `no-hardcoded-thresholds` grep. The TAD marked this "proposed for its owner"; the step is in this feature's build config, which this agent produces, so it is done and flagged here for the reviewer | `config/revitalise-grant-automation-build.yml` |
+| Tests | `ScoringInvariants.Tests.ps1`: fifteen `ConfigKeys`, four new column tokens, EF-34 and precedence tests now read `Derive_eligibility_rules` and the `or()`, the five-reasons-in-order test replaces the two-reasons test, benefits confinement covers the three new actions, and the executable cases (below; the suite went from 111 tests to 162). A new `ScoringOriginalAsks.test.Tests.ps1` (4 tests) executes EF-34, EF-45 and EF-31's override against their rows in the feedback spreadsheet (see section 5). `DeploymentSettings.Tests.ps1` and `DataverseScripts.Tests.ps1` gain the seven rows, the four create-only changes, and two seed behaviours. The WDL evaluator gained `int`, `min`, `lessOrEquals`, `greaterOrEquals`, `decodeUriComponent`, `utcNow`, and `contains` on an object (key test) | `src/tests/` |
+
+**The worked examples are executed, not only located.** `ScoringInvariants.Tests.ps1` runs the flow's own expressions through the eager evaluator on SDD A-10 examples 1 to 11 and 14 to 19, each with the exact reason text, plus every boundary (£500, £100 pass; £501, £101 reject, per break type), the switches, the setting edits (example 19), the longest reason (five lines, under 1,000) and the longest audit (under 4,000). Examples 12 and 13 are structural: the limits are parsed downstream of the withhold gate, and only `Write_score_and_status` names `rev_autorejectreason`. A mutation (`greater` changed to `greaterOrEquals` in the amount rule) fails seven of those cases, then was reverted.
+
+**What those tests prove and do not prove.** They prove the expressions, with `if()` and `and()` evaluated eagerly (the stricter reading). They do not prove the platform: the three contracts below are the platform's.
+
+### 2. §10 Unvalidated Assumptions Register — rev 26 rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FLOW-18 | `formatNumber(x, 'N2')` and `formatNumber(x, 'N0')` render a comma thousands separator and a point decimal on this tenant: `1,250.00`, `25,000`. `'N0'` is new to the solution | `src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json` | The evaluator renders it en-US by construction, which says nothing about the tenant. `'N2'` ships in Create Envelope over amounts below 1,000 | No DEV run of the new flow | TAD 12.7: DEV, A-10 example 2 and a £1,250 Holiday accommodation request; read `rev_autorejectreason`. A wrong format is a wording defect only, status is unaffected | OPEN |
+| A-FLOW-19 | The create trigger delivers `rev_amountrequested` as a JSON number, and a blank money, choice or yes/no column as absent (null), so `greater()` compares numbers and a blank does not reject | `src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json` | The evaluator throws on a string in `greater()`, as the platform does, so a string would fail the run with an alert and not mis-score. Yes/no null handling is built for `rev_receivedfundingbefore` (EF-34) | No flow compares a money column today; no DEV run | TAD 12.7: DEV, example 2 and a request with no amount; read the trigger outputs in run history | OPEN |
+| A-FLOW-20 | Resubmitting a failed run from run history replays the row as created and reads the settings as they are now, so a run stopped by a bad row is recovered once the row is fixed | `src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json` | None: no restart route is written down for this create-only flow | No DEV run | TAD 12.7: DEV, set `SavingsRuleEnabled` to `yes`, create an application, see the alert; set it back to `true`; resubmit; see the application scored | OPEN |
+
+One guess is not in the TAD's list and is declared here instead of hidden, as a fourth row:
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FLOW-21 | `int('')` and `int('£150')` **throw** on the platform, so a blank or malformed limit stops scoring with an alert instead of becoming 0 | `src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json` | `notes.md` already records that `int()` threw on an empty string for the `float()` cast of `Add_the_configured_points_for_this_answer` (D-014); the evaluator assumes the same. `int(null)` is 0 is also recorded there, which is why the expression coalesces to `''` | No DEV run of the new flow | Same DEV run as A-FLOW-20: set `AmountLimitOther` to blank and create an application; expect the Failure Alert naming `Parse_amount_limits` | OPEN |
+
+And a fifth, found by the test evaluator during this revision:
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FLOW-22 | `join(skip(split(text, NL), 1), NL)` returns `''` for `''` and `A\nB` for `\nA\nB`, so `Derive_autoreject_reason` drops its leading newline without a `substring()` (which throws on an empty string, `power-automate.md` (l)) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json` | The evaluator, with `substring()` now enforcing (l); `split`, `skip` and `join` are documented functions. `split('')` returning `[""]` or `[]` both give `''` | No DEV run | Same DEV session: an Auto-pass application (no rule) completes with the reason empty, and example 11's four lines read in order | OPEN |
+
+**Proposed for `constraints/domain/special-category-register.yml` (C-DOM-033):** none. No column was secured, added or changed; the four new reads (`rev_amountrequested`, `rev_breaktype`, `rev_exceptionalfundingrequested`, `rev_savingsover6000`) are not special-category, and `rev_exceptionalfundingdetail`, `rev_employmentstatus` and `rev_additionalamountrequested` are asserted unread.
+
+### 3. Hours proposal (for `commercial-agent`, not a booking)
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 2.4 | 1.5 h | `Derive_eligibility_rules`, the income, savings and score rules, `Derive_status` rewrite, the switch guard, executable tests for those rules |
+| 2.7 | 4.0 h | Amount limits and parser, prior-funding switch, reason lines and audit, fifteen-row read, seven seeded rows in three environments, pipeline wording and pre-import step, notes and retired words, executable cases, evaluator extension |
+| system | 0.5 h | WDL evaluator functions and the gate key list (tooling, not what the client bought) |
+
+### 4. What DEV must show before `WI-0125` can close
+
+Deploy order matters (TAD 12.7): run `seed-settings.ps1 -Env dev` **before** the solution import, because the new flow stops every new application until all fifteen rows exist (the DEV `pre_deploy` step does this). Then, in DEV: **(a)** create SDD A-10 example 2 and a £1,250 Holiday accommodation request and record the observed `rev_autorejectreason` text (A-FLOW-18) and that the trigger shows `rev_amountrequested` as a JSON number, with a no-amount request absent and not rejected (A-FLOW-19); **(b)** set `SavingsRuleEnabled` to `yes` and, separately, `AmountLimitOther` to blank, create an application each time, see the Failure Alert (the second names `Parse_amount_limits`, A-FLOW-21), set both back and resubmit the failed runs from run history, see the applications scored (A-FLOW-20); **(c)** create one application that no rule rejects (an Auto-pass) and, if the A-10 examples can be created, example 11, and see no failure and the four lines in order (A-FLOW-22). Close each register row with the observed text, not the expectation.
+
+### 5. Things found on the way
+
+- **PRD's `_unresolved` list is positional.** Inserting the seven rows after `IncomeCeiling` moved the two acceptance-email placeholder rows from index 33 and 34 to 40 and 41 and `pipeline-config-preflight` failed. Rows are now appended at the end in all three files. Logged as `IMP-1151` (proposes keying the entry by setting key).
+- **The test evaluator was weaker than the platform, and the first draft of `Derive_autoreject_reason` passed it.** The draft stripped the leading newline with `substring()`, which throws on an empty string and the text is empty on every run where no rule applies. The evaluator allowed it; 21 tests were green over an expression that would have failed every Auto-pass and Borderline application if `if()` evaluates both branches (the repository records that as open). The evaluator now enforces `power-automate.md` (l), the 21 cases failed, the action was rewritten to `join(skip(split(…)))`, and a test now forbids `substring(` in these actions. `WI-0047` was reopened once for it and rebuilt. Logged as `IMP-1153`.
+- **A Pester file cannot satisfy the import-document rule unless its name contains `.test.`.** `WI-0036` and `WI-0047` cite `docs/Import/FeedbackDeployment_20-09-2026.xlsx`, and the engine's rule wants a test line naming it in a file matching `\.(test|spec)\.`, which `X.Tests.ps1` never does. The tests are in `ScoringOriginalAsks.test.Tests.ps1` (Pester still discovers it). Logged as `IMP-1152`, engine level.
+- **`IMP-1148` is fixed in source** (the four FR-017 rows are create-only). It is a `friction` entry, so nothing blocks the build; only improvement-agent closes it. The consequence the TAD already names stands: a value changed in a settings file no longer reaches an environment where the row exists.
+- **Shared files.** `seed-settings.ps1`, the three settings files, `DataverseScripts.Tests.ps1`, `Entity.xml`, the pipeline config and this document also carry Automation #5's uncommitted edits. Every edit here was a targeted, anchored replacement on text read immediately beforehand; none of Automation #5's content or `revitalise-narrative-scrubbing-dev-summary.md` was touched. The three settings files now end with the seven rows after `RedactionConfidenceThreshold`; a later Automation #5 row would append after them.
+
+### 6. Verification (second run, after the last edit)
+
+**Highest level executed: V1.** Source and tests only; nothing packaged, imported or run in DEV. Nothing here proves the flow runs on the platform; A-FLOW-18 to A-FLOW-22 are exactly the five things only DEV can show.
+
+Full Pester suite (`src/tests/Invoke-Tests.ps1`, strict mode): **1418 passed, 0 failed, 1 skipped.** An earlier full run failed 15 cases that passed standalone, because that runner sets strict mode and a case without a `Settings` key then errors; fixed in the test, re-run green. `ScoringInvariants.Tests.ps1` 164, `ScoringOriginalAsks.test.Tests.ps1` 4, `DeploymentSettings.Tests.ps1` 48, `DataverseScripts.Tests.ps1` 87, `AcceptanceEnvelopeContract.Tests.ps1` 71, `src/tests/build` 146. `run-source-gates.py` 19 of 19 (83 of 102 build steps not covered by it). `verify-build-config.py` PASS (102 steps), `verify-pipeline-config.py` PASS, `verify-flow-definition-language.py` exit 0, `verify-tad-coverage.py` OK, `verify-assumption-markers.py` PASS (81 OPEN rows, each with its marker), `verify-assumption-register.py` PASS, `verify-improvement-log.py --check` exit 0. Items evidence recorded earlier in this revision cites 162 `ScoringInvariants` tests; the suite is now 164 after the last two test fixes, and the full run above is the later evidence.
+
+### 7. Code review (ADR-079 revision)
+
+**Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `Approved` (recorded by lead-agent, relayed to development-agent). Accepts the carried SOFT warning C-DOM-005 (subject access path), unchanged by this revision. No feedback, no revision requested; no source changed after approval. `WI-0125` stays at `ready` pending the DEV run in section 4.
+
+## Revision — Flow #7 `REV | Portal | Finalise Decisions` built: verdicts applied, Grants created, snapshot written, review stamped (wbs:6.6, WI-0129, 2026-10-20)
+
+**Configuration decision (IMP-0836).** This **amends** `config/revitalise-grant-automation-build.yml` (no edit needed: the new flow is a Solution.xml root component, so `verify-source-parses --expect-flows manifest` and the `unit-tests` step pick it up) and `config/revitalise-grant-automation-pipeline.yml` (three DEV manual `post_deploy` steps added, before the IMP-0956 block). No configuration of its own.
+
+**sub-agent fan-out not performed — one flow, and the research that fixes its shape (what flow #8 triggers on, which columns exist) decides what is written.**
+
+### Summary
+
+The flow is built and passes every source gate that can run without an environment. It has not run: highest level is V1. One business rule is mine and needs the reviewer's answer before real data goes through it: what to do when the two trustees do not agree (A-FD-1 below). Everything else the TAD leaves silent is also declared as an OPEN row.
+
+### Five checks the dispatch asked for, and what each found
+
+| Check | Finding |
+|---|---|
+| Component label | pm-agent's `REV \| Portal \| Finalise Decisions` is not a label the pipeline config knows. Labels there are `deploy`, `operation:<name>` and `script:<file>`. Replaced by `deploy` (a flow ships with the solution import). Nothing else is owed: no script, no push operation |
+| Hand-off to flow #8 | The TAD's flow table says #8 triggers on "status becomes Approved". Its source triggers on a `rev_grant` row being **created** ([trigger](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06.json#L54), `message` 1, `entityname` `rev_grant`; its notes explain the reading, A-DS-3). So this flow does not call #8 or DocuSign: [`Create_the_grant`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L367) **is** the hand-off, and one run creating fifteen Grants starts fifteen envelope runs |
+| One template, no signing order | The reviewer's 2026-10-19 decision is in [`ADR-077`](../architecture/revitalise-grant-automation-architecture.md) and in flow #8's notes: the order is the template's alone. This flow has no DocuSign connection reference and no DocuSign action. The test asserts both |
+| `rev_finalisedon` | Exists: [`rev_review/Entity.xml`](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_review/Entity.xml) declares it (`datetime`, audited, unsecured), and the Awaiting Finalisation view filters on it. No ARCH_GAP, no data-agent work |
+| Automation #5 external dependency | Not a reason to stop, as instructed. Not touched |
+
+### 1. What has been built
+
+| File | What |
+|---|---|
+| [`REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json) | The flow. Manual button, Dataverse connection only |
+| `…E12.json.data.xml`, `…E12.notes.md` (same folder) | Metadata (imports as Draft, like every flow here) and the reasoning that does not fit in a 256-character description |
+| [`Other/Solution.xml`](../../src/solutions/RevitaliseGrantAutomation/Other/Solution.xml#L287) | Root component `8f1c2a44-1012-…` |
+| [`src/tests/solutions/FinaliseDecisions.Tests.ps1`](../../src/tests/solutions/FinaliseDecisions.Tests.ps1) | 28 source-level tests; the decisions are executed with the WDL evaluator, not only located |
+| `config/revitalise-grant-automation-pipeline.yml` | DEV `post_deploy`: turn on from the designer; share run-only with the process owner; a V3/V4 run with test identities |
+
+**How one run goes.** It reads every review with `rev_finalisedon` empty. A review is **decided** when an outcome is already set or both verdicts are recorded; the rest stay open and are counted. For each decided review, one at a time: resolve the outcome; read the application and the applicant; Approved creates the Grant (unless one exists) and sets the application to Approved; Rejected sets it to Rejected and stamps `rev_decisiondate`; Deferred changes nothing. Approved and Rejected then write one snapshot row. Last, the review gets its outcome and `rev_finalisedon`. A review that fails is caught, counted and named; the loop carries on, and after it the Failure Alert is raised and the run ends Failed. The run's last action writes the counts into run history.
+
+### 2. Acceptance clauses of WI-0129 and where each is met
+
+| # | Clause | Met at |
+|---|---|---|
+| 0 | Emily clicks Finalise, reads decisions from the Review table, updates the Grant records, triggers DocuSign for approved, handles partial decisions | Button trigger [L31](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L31); read [L178](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L178); partial decisions [L190](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L190); "triggers DocuSign" is met through the Grant creation, see the table above |
+| 1 | Apply verdicts and initiate the acceptance workflow when the process owner confirms | Outcome [L233](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L233); Approved [L415](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L415), Rejected [L454](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L454) |
+| 2 | Verdicts applied to the grant records | `Create_the_grant` [L367](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L367), application status writes above |
+| 3 | Approved applications get acceptance documents | Grant row created (L367), which is flow #8's trigger. Proof is a run: `verified:dev` |
+| 4 | Fifteen approvals issued in the same run | `For_each_review` [L218](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L218) over every decided review, sequential ([L989](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L989)) |
+| 5 | Manual, one controlled step; FR-055 snapshot; second run is a no-op | Snapshot [L552](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L552); stamp [L623](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L623); the read filter [L178](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L178) excludes a stamped review |
+
+### 3. §10 Unvalidated Assumptions Register — flow #7 rows
+
+None is verified: no environment ran this flow. All eight carry their marker in the flow's descriptions.
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| ~~A-FD-1~~ | Both Approve is Approved; both Reject is Rejected; every other pair is Deferred; a pre-set `rev_outcome` wins; outcome 4 (Non-Qualifying) is left open. **This is a business rule the TAD and SDD do not state**: only "both trustees must approve" (BR-R03) is written, and the review's option-set header says the flow "has to resolve" the verdicts without saying how | `src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json` (`Compose_outcome`) | `knowledge/domain/business-rules.md` BR-R03; chosen so that only unanimous verdicts take an action that cannot be taken back. Executed by 5 test cases | A rule is not a platform fact; only the process owner can confirm it | Ask Emily the four split cases. If the answer differs, one expression changes | CLOSED — answered by the reviewer 2026-10-20 (TAD rev 27); see the rebuilt revision below |
+| A-FD-2 | A review with fewer than two verdicts and no outcome is "partial": left open, counted, never finalised | same file (`Filter_decided_reviews`) | The Awaiting Finalisation view's own description ("at least one verdict recorded but not yet finalised") shows the view lists such rows | Same: a business reading of "handle partial decisions" | Ask Emily: should a one-verdict review stop the whole run instead? | OPEN |
+| ~~A-FD-3~~ | A deferral changes no application status and writes no snapshot. TAD 5.13 lists a snapshot for "Approved / Deferred / Rejected"; `rev_statisticoutcome` holds only Granted and Not Granted | same file (`Switch_on_outcome`, `Check_snapshot_is_due`) | `OptionSets/rev_statisticoutcome.xml` (two values; its header says why) | The TAD and the option set disagree; neither is mine to change | Architect to say whether a Deferred value is wanted. Adding one is a data-agent change plus one case here | CLOSED — answered by the reviewer 2026-10-20 (TAD rev 27); see the rebuilt revision below |
+| A-FD-4 | The Dataverse connector returns a choice as a number, a multi-select as a comma-separated string (`"1,2"`), and a date-only column as a string the same column accepts back; a Switch on a number matches a numeric `case` | same file (`Get_the_application`, `Select_condition_areas`, `Switch_on_outcome`) | Intake writes the multi-select as `join(…, ',')` and DEV accepted it (`Derive_condition_profile`); the read side has not been observed | No DEV run | Run the DEV test in the pipeline config; read the `Select_condition_areas` result in run history (it is secured, so read it as the service account in the designer) | OPEN |
+| A-FD-5 | Creating N Grants starts N runs of flow #8 at once, inside DocuSign's call limit | same file (`Create_the_grant_if_none_exists`) | TAD A-R76 states the same risk and says a limit is added only if a test fails. This flow adds no delay | No bulk run | The `wbs:3.7` bulk test (five at once), then a larger one before a real round | OPEN |
+| ~~A-FD-6~~ | A manual button flow shared run-only is the right way for the process owner to run it; no button on the review view | same file (trigger) | TAD 5.7 says "manual, process owner"; a button on a view would need a Dataverse selected-rows trigger, which no flow here uses | Not tried | Emily presses it once in DEV | CLOSED — answered by the reviewer 2026-10-20 (TAD rev 27); see the rebuilt revision below |
+| A-FD-7 | A retry after a failure between the snapshot and the stamp writes a second snapshot for that review. Accepted: the snapshot has no key by design (TAD 3) | same file (`Create_the_snapshot`) | TAD 3: no lookup, no reference | Nothing to check until it happens | If duplicates appear, the Retention helper's snapshot check (TAD 5.13 item 3) is where to count them | OPEN |
+| ~~A-FD-8~~ | The Grant's amount is the amount requested, and its dates the preferred break dates, because no awarded amount exists on the review or the application. The Grant also starts flow #8 at once, so Emily cannot correct the amount first | same file (`Create_the_grant`) | `rev_amountawarded` on the Grant is fed by nothing else in the solution | Business reading | Ask Emily whether the panel ever awards less than requested. If it does, this needs an amount on the review | CLOSED — answered by the reviewer 2026-10-20 (TAD rev 27); see the rebuilt revision below |
+
+**Proposed for `constraints/domain/special-category-register.yml` (C-DOM-033):** none. No column was secured, added or changed.
+
+### 4. §11 Verification evidence
+
+**Highest level executed: V1** (well-formed source, source-level tests). Nothing packaged, imported or run. Two things the tests can and cannot say: they execute the flow's own expressions (outcome, decided filter, condition mapping, snapshot outcome) with an evaluator that throws where the platform throws; they cannot show that a Dataverse write lands, that flow #8 starts, or that the designer saves the flow (V4, not performed).
+
+- `python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation`: exit 0, 12 flows, check 7 (descent into every container) with no exception applied.
+- `FinaliseDecisions.Tests.ps1`: 28 passed, 0 failed.
+
+### 5. Items
+
+| Item | State | Evidence |
+|---|---|---|
+| WI-0129 | built | Every clause traced to a line in section 2; `run-source-gates.py` and the Pester file recorded as test runs. Components: `deploy` |
+
+### 6. Hours proposal (for `commercial-agent`, not a booking)
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 6.6 | 3.2 h | One flow, its notes, metadata and root component, 28 tests, three pipeline steps, this section |
+
+### 7. For architect-agent (not edited here)
+
+TAD §5.7 and the flow table (trigger wording for #8, the outcome rule, deferral and snapshot, where the Grant's amount comes from) and §5.13 item 1 (snapshot for Deferred). A-FD-1 and A-FD-3 are the two that need a decision first.
+
+## Revision — Flow #7 rebuilt as a row-selected flow: one run per selected review, a split is not finalised (wbs:6.6, WI-0129 reopened, TAD rev 27 / ADR-080, 2026-10-20)
+
+**Configuration decision (IMP-0836).** Amends the same `config/revitalise-grant-automation-build.yml` (no edit: same file name, same GUID, so `--expect-flows manifest` is unchanged) and replaces the three wbs:6.6 DEV `post_deploy` steps in `config/revitalise-grant-automation-pipeline.yml`. The section above is kept as history; where it disagrees with this one, this one is current.
+
+**sub-agent fan-out not performed — one flow, and the trigger's shape had to be read from the export before anything was written.**
+
+### Summary
+
+Flow #7 is rebuilt to TAD rev 27. The trigger's shape came from a DEV export, as asked. Two things the export could not show stay OPEN (A-FD-10): where the selected row's id sits in the trigger outputs, and whether the trigger imports against this solution's connection reference. The flow stops loudly if the id does not arrive. Nothing has run: V1.
+
+### Measurement: A-FD-10 by export (done)
+
+`pac env fetch` against REV-GrantApplications-DEV, using the existing `svc_grantapplications` profile (read-only; no `PROVISION_*` credential needed). The reviewer's scratch flow *Run a flow for selected rows* (`ff876020-85cc-f111-a05c-7ced8d43e87d`, unmanaged, Activated, not in the solution) was read as `workflow.clientdata`. Its trigger: `type` Request, `kind` ApiConnection, `operationId` RecordSelected, `parameters.entityName` `rev_reviews`, a `schema` with `rows`, `splitOn` `@triggerBody()['rows']`, `host.connection.name` reading `$connections`; the definition also declares parameter `dynamicscrmonline.entityName`. Kept as [`record-selected-trigger.json`](../../src/tests/fixtures/dev-export/record-selected-trigger.json) and compared by the test. **No `flowrun` row exists for it**, so the trigger outputs were not observed.
+
+### Retired wording, as ADR-080's table lists it
+
+| Hit | Now |
+|---|---|
+| Flow trigger description "Manual … A-FD-6" | Rewritten: row-selected, A-FD-10, A-FD-9, A-FD-11 |
+| `notes.md` "Running it (A-FD-6)" and "What one run does" | Rewritten, whole file |
+| Test "is a manual button flow" | Rewritten: asserts `RecordSelected`, `rev_reviews`, `splitOn`, and equality with the export |
+| Pipeline wbs:6.6 steps | Replaced: turn on, share run-only with `REV-PP-GrantApplications-Admins-<env>`, a three-part A-FD-9/10/11 DEV check |
+| `Compose_outcome` "anything else → Deferred" | Now: split gives 0, not finalised |
+| §10 rows A-FD-1, A-FD-3, A-FD-6, A-FD-8 | Closed below |
+
+### 1. What changed
+
+| File | Change |
+|---|---|
+| [flow](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json) | Trigger replaced (L34 `splitOn`, L39 `RecordSelected`). Loop, list read, counters and per-review catch removed. 55 actions become about 40 at nesting 3 |
+| `…E12.notes.md` | Rewritten |
+| [`FinaliseDecisions.Tests.ps1`](../../src/tests/solutions/FinaliseDecisions.Tests.ps1) | Rewritten, 31 tests |
+| `src/tests/fixtures/dev-export/record-selected-trigger.json` | New fixture, the export |
+| `config/revitalise-grant-automation-pipeline.yml` | wbs:6.6 steps replaced |
+
+**One run.** Id from the trigger (L97), stops with an alert if missing (L107). Reads the review (L176). `Compose_outcome` (L209): finalised, undecided or a split give 0; a staff-set `rev_outcome` wins; agreeing verdicts decide. Only outcomes 1 to 3 go on (L219): Grant if Approved and none exists (L340, L365), application to 7 (L428) or 8 (L475), snapshot for Approved and Rejected only (L491, L571), stamp last (L617, L635). A failure alerts and ends Failed (L652). `Compose_run_summary` (L934) says in words what happened.
+
+### 2. Clauses of WI-0129 and where each is met
+
+| # | Clause | Met at |
+|---|---|---|
+| 0 | Emily clicks Finalise, reads decisions, updates Grants, triggers DocuSign, handles partial decisions | Trigger L39; review read L176; undecided and split give 0 at L209; Grant L365 is the hand-off to flow #8 |
+| 1 | Apply verdicts and start acceptance on confirmation | L209, L428, L475, L365 |
+| 2 | Verdicts applied to the grant records | L365 and the status writes |
+| 3 | Approved applications get acceptance documents | Grant created, flow #8 triggers on it; proof needs a run |
+| 4 | Fifteen approvals in the same run | **Reinterpreted by ADR-080 consequence 3**: one selection of fifteen is fifteen runs and fifteen envelope runs |
+| 5 | One controlled step; snapshot; second run is a no-op | Snapshot L571; stamp L617; the finalised guard at L209 gives 0 for a stamped review |
+
+### 3. §10 Unvalidated Assumptions Register — status changes and new rows (the last row naming an id is current)
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FD-1 | Outcome rule | `src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json` | Reviewer answer Q-FD-1, 2026-10-20 (TAD 5.7): a set outcome wins, agreeing verdicts decide, a split is not finalised. Executed by tests | n/a | n/a | CLOSED — answered by the reviewer; outcome 4 stays unapplied, as built |
+| A-FD-3 | Deferred writes no snapshot | same file | Reviewer answer Q-FD-3 | n/a | n/a | CLOSED — confirmed by the reviewer |
+| A-FD-6 | Run-only button, no view button | same file | Reviewer correction (IMP-1162) | n/a | n/a | CLOSED — answered and replaced by ADR-080 |
+| A-FD-8 | Grant amount is the amount requested | same file | Reviewer answer Q-FD-8 | n/a | n/a | CLOSED — confirmed by the reviewer |
+| A-FD-2 | A review with fewer than two verdicts and no outcome is left on the view, nothing changed | same file | TAD 5.7 step 2, unchanged | No DEV run | Pipeline DEV check part 3 | OPEN |
+| A-FD-4 | The connector returns a choice as a number and a multi-select as `"1,2"`; a date-only column round-trips as a string | same file | Intake writes the multi-select the same way and DEV accepted it; the read side is unobserved | No DEV run | Pipeline DEV check part 2 | OPEN |
+| A-FD-5 | N approvals start N runs of flow #8 inside DocuSign's call limit | same file | TAD A-R76 | No bulk run | `wbs:3.7` bulk test | OPEN |
+| A-FD-7 | A retry between the snapshot and the stamp can repeat a snapshot row | same file | TAD 3, no key by design | Nothing to check until it happens | Retention helper's snapshot check | OPEN |
+| A-FD-9 | The Flow menu lists this flow to a run-only member of the admins group and not to a Finance user; three selected rows start three runs with their own review ids | same file (trigger) | Menu and trustee exclusion observed by the reviewer in DEV; the rest from Microsoft Learn | Needs a shared flow and test users | Pipeline DEV check part 1 and 2 | OPEN |
+| A-FD-10 | **Measured:** trigger shape (export, above). **Still guessed:** the selected row's id is at `body/entity/rev_reviewid` (else `body/rev_reviewid`); and the trigger in this form imports against `rev_SharedDataverse` and turns on | same file (`Compose_review_id`, trigger) | The export for the shape. For the id path: nothing; the scratch flow never ran. A wrong path stops the run with an alert | No run, no import | One DEV run, read the trigger outputs; designer card after import | OPEN |
+| A-FD-11 | A user licensed for the app can run this Dataverse flow from the Flow menu on the flow's own connection without a Power Automate licence | same file (trigger) | None: a licensing claim | Not answered from memory | DEV run as a test member; `m365-licensing-check` before TST/ACC | OPEN |
+
+**Scratch flow.** *Run a flow for selected rows* is a diagnostic component in DEV, outside the solution. `C-TECH-056` says remove it; it is the reviewer's, so removal is theirs, after the A-FD-10 run (it can serve as the place to read the trigger outputs first).
+
+### 4. §11 Verification evidence
+
+**Highest level executed: V3 for one fact only** (the trigger's solution-JSON shape, read from DEV by export); **V1 for the flow.** Nothing packaged, imported or run. `FinaliseDecisions.Tests.ps1` 31 passed (executes the outcome rule, the id-missing guard and the condition mapping). `verify-flow-definition-language.py` exit 0, check 7 with no exception.
+
+### 5. Items
+
+| Item | State | Evidence |
+|---|---|---|
+| WI-0129 | built (reopened once, by the reviewer's correction) | Clauses traced above; components `deploy` |
+
+### 6. Hours proposal (for `commercial-agent`, not a booking)
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 6.6 | 2.4 h | The rebuild, export measurement, 31 tests, notes, pipeline steps, this section; in addition to the first build |
+
+### 7. Constraint check
+
+```
+CONSTRAINT CHECK
+Domain HARD: no violations (C-DOM-004 secured reads, alerts name an id and a step only; C-DOM-030 not engaged: the outcome depends on verdicts only)
+Tech   HARD: no violations (C-TECH-045 Dataverse only; C-TECH-047 no environment values; C-TECH-052 markers; C-TECH-053 levels stated; C-TECH-056 scratch flow named for removal; C-TECH-060 descriptions within 256; C-TECH-079)
+Tech   SOFT: none
+Overall: PASS
+```
+
+### 8. Code review (flow #7 rebuild, ADR-080)
+
+**Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `Approved` (verbatim, recorded by lead-agent and relayed to development-agent). No feedback, no revision requested; no source changed after approval. A-FD-2, A-FD-4, A-FD-5, A-FD-7, A-FD-9, A-FD-10 and A-FD-11 stay OPEN pending the DEV check in the pipeline config. `WI-0129` is `built`.
+
+## Revision — Flow #11 `REV | Finance | Capture Payment` built: final payment sets the retention date, the grant, the application and the payment's status (wbs:8.6, CO-010 unbilled, TAD rev 28 / ADR-081, 2026-10-20)
+
+**Configuration decision (IMP-0836).** Amends the same `config/revitalise-grant-automation-build.yml` (no edit: `--expect-flows manifest` counts the new root component by itself, and the Pester suite and the Python executor suite are picked up by the existing `unit-tests` step). `config/revitalise-grant-automation-pipeline.yml` gains wbs:8.6 steps in DEV, TST/ACC and PRD.
+
+**sub-agent fan-out not performed — one flow plus its registration, tests and settings rows, all keyed off the same definition; splitting them would have meant five prompts restating the decision table.**
+
+### Summary
+
+The flow is built to TAD rev 28 and the reviewer's later addition (the grant's own status). It has about 40 actions in one scope, nesting 3. Nothing ran on the platform: V1 for the flow, and an in-memory execution of the shipped JSON at V2 for its decisions. **Not done, and why:** the Payment form business rule (WI-0136) and the DEV verification session (WI-0140) both need a person in the DEV designer; both are deferred with reasons below.
+
+### Reviewer addition received during the build (2026-10-20, via lead-agent)
+
+*"Obviously the final payment should change the grant status as well."* Built as relayed: `rev_grant.rev_status` moves Acceptance Signed (3) to Paid (4) **in the same write as the date**, and Paid back to Acceptance Signed on reversal; another grant status is left alone and reported. **The design landed while this was being built** (TAD rev 28 amendment b, FR-113, US-026 AC-16 to AC-19, OQ-060 open at its default) and the build was checked against it: the column is `rev_grant.rev_status` (option set `rev_grantstatus`, `IsSecured=0`); date and status travel in the one `UpdateOnlyRecord`, which runs when either differs from the target; the flow never moves a grant out of 1 or 2; the report on a grant at 1 or 2 fires only in the run where the date is written or cleared; a repeat save of a Paid grant is silent. One nuance for the architect: ADR-081 says a date-only change *sends the current status back*, and the unit-test row says *the flow writes only 3 or 4*. For a grant at 1 or 2 the first means the value 1 or 2 is written back unchanged. It is not a transition, and the test asserts that no write ever moves a grant to 1 or 2. `A-R103` (payment before signature) is the architect's row and is not restated. OQ-059 is resolved at its default (the payment stays Issued on untick), as built.
+
+### Retired wording, as ADR-081's table lists it
+
+| Hit | Now |
+|---|---|
+| This document §3.2, paid-grants row (line 1999) | Rewritten; old words kept once as "previously read". Positive control before: 1 hit. After: 1 hit, inside the "previously read" quotation, 0 live |
+| `Entities/rev_payment/Entity.xml` header, "plain bit with no wiring" | Rewritten, previous wording quoted once (WI-0143 clause 0) |
+| `Other/FieldSecurityProfiles.xml` comment, "once that wiring lands" | Rewritten, comment text only (clause 1) |
+| `rev_grant/Entity.xml`, `ensure-bulk-delete-jobs.ps1`, the `wbs:8.3` summary and plan lines | Kept as history, untouched (clause 2) |
+
+### 1. What changed
+
+| File | Change |
+|---|---|
+| [flow](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json) | New. Trigger L56, reads L92 to L330, writes L380, L430, L489, report L537 to L586, failure path L621 |
+| `…E13.json.data.xml`, `…E13.notes.md` | New: workflow metadata (Draft, as every flow here), reasoning behind the shipped descriptions |
+| `environmentvariabledefinitions/rev_FinanceAlertUpn/` | New: `isrequired=1`, no default; README paragraph added |
+| `Other/Solution.xml` | Root component for the flow (type 29) and the variable (type 380) |
+| `provisioning/deploymentSettings/pac-import-tstacc.json`, `pac-import-prd.json` | `rev_FinanceAlertUpn` as a placeholder (`FINANCE_ALERT_UPN_TSTACC`, `FINANCE_ALERT_UPN_PROD`) |
+| `provisioning/dataverse/queries/grants-with-final-date-and-no-final-payment.fetchxml`, `grants-paid-with-no-final-payment.fetchxml` | New: the A-R100 listings (widened by amendment b), read-only, grant reference only |
+| `OptionSets/rev_grantstatus.xml` | Comment on value 4 now names the flow; comment only |
+| `src/tests/solutions/capture_payment/test_capture_payment_flow.py`, `CapturePayment.Tests.ps1` | New: 41 executed tests and 26 Pester tests |
+| `config/revitalise-grant-automation-pipeline.yml` | wbs:8.6 steps: DEV value, turn-on, A-CP session, form rule; TST/ACC value and V4; PRD listing and value |
+
+**One run.** Reads the saved payment (L92), the grant (L180), the latest dated final payment (L216), the application. Composes the target date (L303) and the plan (L330): grant date differs, new application status 7/11/0, new grant status 3/4/0. Writes in a fixed order: grant date and status in one call (L380), application (L430), the payment Issued last (L489). Then one reason string (L537), the Warning alert (L568), the Teams message (L586). A platform failure alerts at Error and ends Failed (L621, L644).
+
+**Where it differs from the design text.** (1) The reason is one `Compose` of four or five `if()` fragments, not a variable and its setters: fewer actions, no `SetVariable`. (2) The three reads always run, with an all-zero id when no grant is linked, so there is no no-grant branch and the report block is not duplicated. (3) Order of the report: the Warning alert first, then Teams, so the process owner learns the reason even when the Teams post fails. (4) The grant's status is in the same write as the date.
+
+### 2. Items and the clauses they trace to
+
+| Item | Clause | Met at |
+|---|---|---|
+| WI-0131 | 0 date is the payment's own; later of two wins | L216 (`$orderby rev_paymentdate desc`, `$top 1`), L303; tests `ac2`, `ac5` |
+| | 1 undated final ignored | L173 `finalUndated`, filter `rev_paymentdate ne null` at L216; test `ac12` |
+| | 2 non-final changes nothing; repeat save changes nothing | L356 `dateDiffers`; tests `ac3`, `ac4` |
+| | 3 trigger, concurrency 1, runas 3, reread, one write only when different | L56 to L65, L92, L380; test `reads` |
+| | 4 US-026 AC for FR-107, FR-109 | `UsAc` ac1 to ac5 |
+| WI-0132 | 0, 1, 2 | L340 `newApplicationStatus`, L430; tests `ac1`, `ac10` |
+| WI-0133 | 0, 1, 2 | L303 (no final gives empty), L340, L393 (null); tests `ac6`, `ac7`, `ac8`; the column is read, not the run status |
+| WI-0134 | 0, 1, 2 | L537, L568, L586; tests `Reports` |
+| | 3 variable, placeholders, leading-space check | See section 5. DEV has no settings file for variable values: **discrepancy with the item's text**, handled by a DEV pipeline step |
+| WI-0135 | 0 to 3 | L489 and guard L458; tests `ac13`, `ac14`, `ac15`, `FixedPoint` |
+| WI-0136 | | **Deferred**, see section 7 |
+| WI-0137 | 0, 1 | Section 4 gates |
+| WI-0138 | 0, 1, 2 | 41 executed tests, one or more per AC 1 to 15; AC-11 is excluded by the plan; AC-12 form half is A-CP-9 |
+| WI-0139 | 0, 1 | Section 3 and the markers in the flow's descriptions |
+| WI-0140 | | **Deferred**, section 7 |
+| WI-0141 | 0, 1 | Two `.fetchxml` files (date with no final payment; Paid with no final payment); both run on DEV 2026-10-20 with `pac env fetch`: 0 rows. The PRD run is a pipeline step for a tenant administrator, not done here |
+| WI-0142 | 0, 1 | Line 1999 |
+| WI-0143 | 0, 1, 2 | `rev_payment/Entity.xml` header, `FieldSecurityProfiles.xml` |
+
+### 3. §10 Unvalidated Assumptions Register — new rows
+
+All nine are **OPEN**. None is claimed verified. "Where" is the flow file `src/solutions/RevitaliseGrantAutomation/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json`.
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-CP-1 | A `message: 4` row trigger fires for Added and for a later Modified, and the registration reads Added or Modified | `src/solutions/RevitaliseGrantAutomation/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json` (trigger) | Meaning of 4 read live from `stringmap` 2026-08-28; firing never seen | No import yet | Pipeline DEV step "A-CP-1 to A-CP-9" | OPEN |
+| A-CP-2 | `filteringattributes` naming four secured columns is accepted and the flow owner reads them | same file (trigger) | One secured filter already ships (`rev_safeguardingactioncompleted`) | No import yet | Same session; if it does not fire, drop the filter | OPEN |
+| A-CP-3 | `ListRecords` returns a DateOnly as `yyyy-MM-dd` and `UpdateOnlyRecord` accepts that string | same file (`Get_the_saved_payment`, `Write_the_grant_date`) | `Finalise Decisions` already writes a day string to `rev_decisiondate`; the read side is unseen. The flow normalises either shape | No run | Same session, read the grant | OPEN |
+| A-CP-4 | `runtimeConfiguration.concurrency.runs: 1` is accepted on a row trigger | same file (trigger) | Only the intake HTTP trigger has it | No import yet | Save in DEV without opening (A-R73); if refused, remove | OPEN |
+| A-CP-5 | `rev_paymentstatus ne 4` returns a Pending payment | same file (`Get_the_latest_dated_final_payment`) | No flow filters on it | No run | Test: Pending final starts the clock, Cancelled does not | OPEN |
+| A-CP-6 | A null `item/rev_finalpaymentdate` CLEARS the column | same file (`Write_the_grant_date`) | No flow here writes a null | No run | Untick the only final; read the column | OPEN |
+| A-CP-7 | The flow owner writes secured columns through its team's profile membership | same file (`Write_the_grant_date`, `Write_the_payment_issued`) | Profile source, 2026-10-20 | No run | A dated final Pending payment reads Issued | OPEN |
+| A-CP-8 | The Issued write starts exactly one more run, which writes nothing | same file (`Write_the_payment_issued`) | Argued from the guard; **executed as an argument** in `FixedPoint`, not as a platform event | Platform firing unseen | Run history shows two runs | OPEN |
+| A-CP-9 | A form business rule exported from DEV makes the date required when Final is Yes, and survives the managed import | same file (`Compose_saved_payment` description: the flow is the backstop) | None: the rule is not built | Needs the designer | Section 7 | OPEN |
+
+### 4. Gates run, and what they do not cover
+
+`run-source-gates.py` and the four step-8 commands are reported in the gate output below, second run. **The `NOT covered by this run` list was read:** packaging, the code-app suite, provisioning, and every document gate wait for the build. Checked and not applicable, per the baseline-sibling rule: no gate was wired to a baseline here.
+
+### 5. The leading space in the DEV finance team's name (the architect's observation)
+
+`provisioning/deploymentSettings/dev-settings.json` lists `" REV-PP-GrantApplications-Finance-DEV"` under `REV_FinanceOnly`. Read-only `pac env fetch` on REV-GrantApplications-DEV, 2026-10-20: the live team is named `" REV-PP-GrantApplications-Finance-DEV"` **with the leading space**, team type Security Group. `Get-DataverseTeamByName` filters by exact name and does not trim, so the entry **resolves as written**. Nothing to change; trimming it would break it. It is also why the Finance team's membership of `REV_FinanceOnly` can be provisioned in DEV today.
+
+### 6. §11 Verification evidence
+
+**Highest level executed: V2 for the flow's decisions** (the shipped JSON executed by the repository's WDL executor against an in-memory Dataverse: 41 tests); **V3 for two facts**, read from DEV by `pac env fetch`: the finance team's name, and the A-R100 listing returning no rows on DEV. Nothing imported or run on the platform. `verify-flow-definition-language.py` exit 0. The executor evaluates `if()` eagerly, the stricter reading; it implements `formatDateTime` in the test, not the platform.
+
+### 7. Deferred, for the reviewer's decision
+
+| Item | Reason | What would unblock it |
+|---|---|---|
+| WI-0136 | A business rule is a designer artefact; the brief and ADR-081 item 8 require it authored in DEV and exported, never hand-written XAML. No headless route exists | A maker authors it in the DEV designer, exports, development-agent copies the file unedited |
+| WI-0140 | The nine checks need a Finance test user in a DEV session with the flow turned on | The pipeline step "A-CP-1 to A-CP-9"; WI-0139 leaves every row OPEN until then |
+
+### 8. Hours proposal (for `commercial-agent`, not a booking)
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 8.6 (CO-010, unbilled) | 3.6 h | Flow, registration, 67 tests, notes, settings rows, pipeline steps, the grant-status addition and this section. Not in `contract/wbs.json`; `CO-010` gives its own range |
+
+### 9. Constraint check
+
+```
+CONSTRAINT CHECK
+Domain HARD: no violations (C-DOM-004: reads select no personal column, reasons carry references only; no new column, so C-DOM-033 not engaged)
+Tech   HARD: no violations (C-TECH-047 finance address is an environment variable; C-TECH-052 markers A-CP-1..9; C-TECH-053 levels stated; C-TECH-060 descriptions within 256)
+Tech   SOFT: none
+Overall: PASS
+```

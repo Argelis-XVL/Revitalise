@@ -577,13 +577,15 @@ tenant_prerequisites:
     # immediately above (rev_setting must exist before it can be seeded) and on the solution
     # import that creates rev_setting's alternate key rev_setting_name.
     - description: >
-        Seed the 36 rev_setting rows in DEV from provisioning/deploymentSettings/
+        Seed the 48 rev_setting rows in DEV from provisioning/deploymentSettings/
         dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
         seed-settings.ps1's own header explains why dev-settings.json must continue not to
         exist). Values are copied from test-settings.json, including the PROVISIONAL
         KnockoutThreshold/BorderlineBand/IncomeCeiling figures already accepted for TST/ACC,
         so a developer testing the scoring flow in DEV sees the same behaviour QA sees in
         TST/ACC (SDD OQ-001/002/003 remain open for the board, i.e. for PRD only).
+        Since 2026-10-16 (TAD rev 23, ADR-076) four of them are createOnly: RedactionNeutralTerms, RedactionTitles, RedactionNameRules and RedactionLabels are created where absent and never written again, because the process owner edits them (A-NS-36). Since 2026-10-19 (TAD rev 25, ADR-078) a fifth, RedactionConfidenceThreshold (0.85, a review hint only), is createOnly too; RedactionAutoRelease is retired and never seeded.
+        Since 2026-10-19 (TAD rev 26, ADR-079) eleven more are createOnly because Emily changes them in the app (FR-017): KnockoutThreshold, BorderlineBandLower, BorderlineBandUpper and IncomeCeiling (upserted until then, so a deploy overwrote her edit), and the seven new Automation #2 rows AmountLimitHolidayAccommodation 500, AmountLimitDayTripsOrOutings 100, AmountLimitActivityOrExperience 100, AmountLimitRespiteCareFacilityStay 500, AmountLimitOther 500, SavingsRuleEnabled true and PriorFundingRuleEnabled true. The scoring flow of rev 26 stops every new application until all fifteen rows it reads exist, so this seed runs BEFORE the solution import that carries it (the pre_deploy step of the same name).
       script: provisioning/dataverse/seed-settings.ps1 -Env dev
 
 environments:
@@ -697,7 +699,7 @@ environments:
           one (TAD risk R-G05). Read the ACL back afterwards; do not trust the set call's
           exit code (IMP-0013's class).
         script: manual   # BLOCKED — see below. ensure-site.ps1 takes only -Env; -LibraryOnly does not exist
-        blocked_on_asserted: 2026-10-01   # re-tested 2026-10-01 (pipeline-agent): repo ls/grep, `pac env fetch` READ of DEV rev_SpoSiteUrl / rev_SpoSignedAcceptanceUrl, one unauthenticated HTTP GET. Site/library/ACL NOT probed (needs reviewer-held PROVISION_APP_ID / PROVISION_CERT_THUMBPRINT).
+        blocked_on_asserted: 2026-10-16   # re-tested 2026-10-16 (pipeline-agent, read-only, repo only, no live calls): `ls provisioning/sharepoint/templates/` -> README.md only; `grep -n 'param' -A1 provisioning/sharepoint/ensure-site.ps1` -> only -Env; dev-settings.json has no sharepoint block. STILL BLOCKED, cause unchanged from 2026-10-01 note. Live site/library/ACL still NOT probed (needs reviewer-held credential).
         # Prior assertion, retained as history (IMP-0764 evidence needle): re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
         # DISCHARGE: `ls provisioning/sharepoint/templates/` lists a PnP template declaring the
         # library (README.md only on 2026-10-01), AND ensure-site.ps1 accepts a library-scoped
@@ -728,7 +730,7 @@ environments:
           profile's membership set. Profile MEMBERSHIP is not a solution component
           (C-TECH-050) — the profile ships, its members do not.
         script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-09-29   # re-tested 2026-09-29 (improvement-agent, review 2026-09-28 change 23, grep/read only, no live calls): the STATED CAUSE WAS FALSE and is corrected below; the redundancy still holds.
+        blocked_on_asserted: 2026-10-16   # re-tested 2026-10-16 (pipeline-agent, read-only, repo only, no live calls): `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 3. STILL BLOCKED, cause unchanged. Discharges when that command returns 0 (real Entra group object ids supplied by the reviewer from the tenant, never invented).
         # DISCHARGE: the step stays manual on its REDUNDANCY, not on a loader throw. Re-test the
         # corrected premise with `git ls-files provisioning/deploymentSettings/dev-settings.json`
         # (tracked since 5bdfbd7) and `grep -n "throw" provisioning/common/provisioning-common.ps1`
@@ -750,7 +752,7 @@ environments:
           Bind REV Admin and REV Service Automation to their group teams so the five new
           rev_grant privileges take effect. Roles are looked up BY NAME (C-TECH-040).
         script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-09-29   # re-tested 2026-09-29 (improvement-agent, review 2026-09-28 change 23, grep/read only, no live calls): the STATED CAUSE WAS FALSE and is corrected below.
+        blocked_on_asserted: 2026-10-16   # re-tested 2026-10-16 (pipeline-agent, read-only, repo only, no live calls): `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 3. STILL BLOCKED, cause unchanged. Discharges when that command returns 0 (real Entra group object ids supplied by the reviewer from the tenant, never invented).
         # DISCHARGE: `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json`
         # returns 0 (3 on 2026-09-29: its entraGroupObjectId values are still unresolved
         # placeholders, IMP-0771), after which bind-roles-to-groups.ps1 -Env dev can load its
@@ -1111,6 +1113,14 @@ environments:
         script: >
           pwsh provisioning/entra/verify-intake-callback-url.ps1 -Env dev -Mode Capture
           -SnapshotPath intake-callback-dev-before.json
+      - description: >
+          Seed the rev_setting rows BEFORE the DEV import (TAD rev 26, ADR-079, section 12.7
+          pre-import step). Rev 26's scoring flow reads fifteen rows and stops every new application
+          while any is missing, so the seven Automation #2 rows (create-only) must exist before the
+          import that carries it. rev_setting and its alternate key already exist in DEV. Same script
+          and settings file as the one-time DEV seed in tenant_prerequisites.operations; every
+          create-only row reports EXISTS on a re-run.
+        script: provisioning/dataverse/seed-settings.ps1 -Env dev
 
     post_deploy:
       - description: >
@@ -1257,7 +1267,7 @@ environments:
           (C-TECH-040, ADR-008) — the sentinel id in the role's source file is irrelevant to
           this step and does not block it.
         script: manual   # same Get-ProvisioningSettings -Env dev cause as the sibling steps
-        blocked_on_asserted: 2026-09-29   # re-tested 2026-09-29 (improvement-agent, review 2026-09-28 change 23, grep/read only, no live calls): the STATED CAUSE WAS FALSE and is corrected below.
+        blocked_on_asserted: 2026-10-16   # re-tested 2026-10-16 (pipeline-agent, read-only, repo only, no live calls): `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 3. STILL BLOCKED, cause unchanged. Discharges when that command returns 0 (real Entra group object ids supplied by the reviewer from the tenant, never invented).
         # DISCHARGE: `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json`
         # returns 0 (3 on 2026-09-29: the placeholders IMP-0771 records). Then
         # bind-roles-to-groups.ps1 -Env dev, which reads `dataverse.groupTeams` from that file,
@@ -1508,6 +1518,86 @@ environments:
           without a documented DocuSign-side webhook-registration query.
         script: manual
         owner: reviewer (or a session holding live-write permission)
+
+      # ══ wbs:6.6, Automation #6, DEV steps only (WI-0129, TAD rev 27, ADR-080, section 12.8) ══
+      # REV | Portal | Finalise Decisions is source-complete. Trigger: Dataverse "When a row is
+      # selected" on rev_review, one run per selected review, started from the Flow menu on the
+      # Awaiting Finalisation view in REV Grant Administration. It creates Grant rows, and each
+      # created Grant starts REV | Acceptance | Create Envelope, so that flow's DEV steps above
+      # (DocuSign connection, template, settings rows, turn-on) are preconditions of a real run.
+      - description: >
+          Turn REV | Portal | Finalise Decisions on from the DESIGNER (IMP-0113/IMP-0104); it reuses
+          the rev_SharedDataverse connection reference, so no new binding. The trigger is a
+          row-selected one: no callbackregistration row to assert and no schedule to watch. Confirm
+          the flow shows as On, then open it ONCE in the designer and read the trigger card: if the
+          import left the trigger with no connection, that is A-FD-10's second half, tell
+          development-agent (do not save a solution flow, risk A-R73, unless the check says so).
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Share REV | Portal | Finalise Decisions RUN-ONLY with the Entra group
+          REV-PP-GrantApplications-Admins-DEV (TAD 5.7, 12.8), choosing "Use this connection" for the
+          Dataverse connection (the service account), never "Provided by run-only user". Run-only
+          sharing is environment state and does not travel with an import: repeat it in TST/ACC and
+          PRD against REV-PP-GrantApplications-Admins-<env>. It replaces the earlier step that
+          shared the flow with Emily by name.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          A-FD-9, A-FD-10, A-FD-11 in DEV with TEST identities only, BEFORE any real board round.
+          (1) Sign in as a test member of the admins group, open REV Grant Administration, Reviews,
+          Awaiting Finalisation: the Flow menu lists REV | Portal | Finalise Decisions. A test
+          Finance user does not see it. (2) Create test reviews: one with both verdicts Approve, one
+          Defer and Defer, one Reject and Reject, one Approve and Reject, one with a single verdict.
+          Select the first three and press the flow: three runs, each with its own review id (the
+          owner reads the trigger outputs in run history: this is the one measurement of where the id
+          sits, A-FD-10). Expect an approved application with one Grant (status Awarded) and flow #8
+          started, a deferred review stamped with the application unchanged and NO snapshot, a
+          rejected application at Rejected, two snapshot rows (Granted, Not Granted). (3) Select the
+          split and the one-verdict review and press it: nothing changes and both stay on the view.
+          Set rev_outcome on the split review and press it again: it finalises on that outcome.
+          (4) Press the first three again: nothing changes. (5) Note whether the test member was
+          refused for lack of a licence (A-FD-11). Void the test envelopes afterwards.
+        script: manual
+        owner: reviewer
+
+      # ══ wbs:8.6, REV | Finance | Capture Payment (CO-010, TAD rev 28 section 5.11, ADR-081, section 12.9) ══
+      - description: >
+          Set the CURRENT VALUE (never the default, IMP-0121) of rev_FinanceAlertUpn in DEV to the test finance user
+          (Janine). The variable is isrequired=1 with no default, so the flow cannot work, and finance is told
+          nothing, until it is set (ADR-081 item 5). DEV has no settings file that carries environment variable
+          values: DEV values are entered in the environment, as for rev_ProcessOwnerUpn. No address is written
+          in this repository.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Turn REV | Finance | Capture Payment on from the DESIGNER (IMP-0113/IMP-0104); it reuses the
+          rev_SharedDataverse and rev_SharedTeams references, so no new binding. Save it WITHOUT editing
+          (risk A-R73: do not open-and-save a solution flow unless this check says so). Then read the trigger's
+          callbackregistrations row: its message must read Added or Modified (A-CP-1, read the formatted value, not
+          only that a row exists, C-TECH-064).
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          A-CP-1 to A-CP-9 in ONE DEV session, signed in as a Finance TEST user, BEFORE TST/ACC (architecture
+          section 12.9, WI-0140). (1) Create a payment dated 14 Nov with Final ticked, then edit a second: both
+          start a run (A-CP-1, A-CP-2). (2) Read the grant: date 14 Nov (A-CP-3), grant status Paid (4),
+          application Grant Paid, the payment Issued (A-CP-7); run history shows exactly TWO runs for that one
+          save, the second changing nothing (A-CP-8). (3) Untick Final and save: the date is EMPTY (read the
+          column, not the run status, A-CP-6), the grant status back from Paid to Acceptance Signed in the SAME
+          write (a null date beside a status that stays Paid is the failure), the application Approved, the
+          payment still Issued. (4) A Pending payment ticked final starts the clock; a Cancelled one does not
+          (A-CP-5). (5) Check the saved flow kept concurrency 1 (A-CP-4); if refused, remove it and say so.
+          (6) Record every observed result in Dev Summary section 10; an assumption not observed stays OPEN.
+        script: manual
+        owner: reviewer (Finance test user) with development-agent
+      - description: >
+          A-CP-9 (WI-0136, NOT YET BUILT): author the Payment-form business rule in the DEV maker designer
+          (when Final payment is Yes, Payment Date is business required), then export and unpack it, and copy the
+          exported file into source unedited. development-agent cannot author a designer artefact headlessly and
+          will not write the workflow XAML by hand.
+        script: manual
+        owner: reviewer (maker, DEV designer)
 
       # ══ IMP-0956 / IMP-0959 — the live flow definition is re-read after the import ══
       - description: >
@@ -2010,6 +2100,18 @@ environments:
           declaration makes that the pipeline's shape rather than a remembered act.
         script: provisioning/dataverse/ensure-schema.ps1 -Env test
       - description: >
+          Seed the rev_setting rows BEFORE the solution import (TAD rev 26, ADR-079, section 12.7
+          pre-import step). Rev 26's scoring flow reads fifteen rows and stops every new application,
+          with a Failure Alert, while any is missing; the seven Automation #2 rows are created here,
+          create-only, with the reviewer's values, so no application created between the import and
+          the post_deploy seed fails. Safe before the import wherever rev_setting and its alternate
+          key rev_setting_name already exist (any environment that has had one import), and the flow
+          version before rev 26 reads rows by name and ignores the new ones. ASSUMPTION, not measured:
+          TST/ACC has had an import. If this is its first, the keyed probe fails before the key exists:
+          skip this step and let the post_deploy seed below create the rows (the new flow is then
+          switched on after it). The post_deploy seed stays and reports EXISTS for create-only rows.
+        script: provisioning/dataverse/seed-settings.ps1 -Env test
+      - description: >
           Capture every cloud flow's statecode BEFORE promotion, so the
           post_deploy diff below can report which flows the import actually
           deactivated rather than a guess (IMP-0136: two consecutive DEV imports
@@ -2053,7 +2155,7 @@ environments:
           phase (C-DOM-003, ADR-004).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
-          Seed/upsert the 36 rev_setting rows — Likert point map, feeling-scale
+          Seed/upsert the 48 rev_setting rows — Likert point map, feeling-scale
           inversion, knockout threshold, borderline band lower and upper, income
           ceiling, income-band upper-bound map, age-band map, age-range label map,
           exceptional-circumstance/employment-status/care-hours-band label maps,
@@ -2073,6 +2175,8 @@ environments:
           is written on create only so a pipeline re-run does not destroy the evidence of
           when a value took effect. The script fails fast, BEFORE any write, on any
           unresolved {{...}} token.
+          Since 2026-10-16 (TAD rev 23, ADR-076) four of them are createOnly: RedactionNeutralTerms, RedactionTitles, RedactionNameRules and RedactionLabels are created where absent and never written again, because the process owner edits them (A-NS-36). Since 2026-10-19 (TAD rev 25, ADR-078) a fifth, RedactionConfidenceThreshold (0.85, a review hint only), is createOnly too; RedactionAutoRelease is retired and never seeded.
+          Since 2026-10-19 (TAD rev 26, ADR-079) eleven more are createOnly because Emily changes them in the app (FR-017): KnockoutThreshold, BorderlineBandLower, BorderlineBandUpper and IncomeCeiling (upserted until then, so a deploy overwrote her edit), and the seven new Automation #2 rows AmountLimitHolidayAccommodation 500, AmountLimitDayTripsOrOutings 100, AmountLimitActivityOrExperience 100, AmountLimitRespiteCareFacilityStay 500, AmountLimitOther 500, SavingsRuleEnabled true and PriorFundingRuleEnabled true. The scoring flow of rev 26 stops every new application until all fifteen rows it reads exist, so this seed runs BEFORE the solution import that carries it (the pre_deploy step of the same name).
         script: provisioning/dataverse/seed-settings.ps1 -Env test
       # ══ wbs:4.7 (CO-007, EF-03) — City Settlement Register ═══════════════════════
       - description: >
@@ -2119,6 +2223,16 @@ environments:
       # mode is Anyone and is DECLARED in the flow source (inputs.triggerAuthenticationType
       # "All", read from the live DEV definition 2026-10-02), so every import applies it and
       # nobody sets it in the designer. The smoke test below verifies it.
+
+      # ══ wbs:8.6, REV | Finance | Capture Payment (CO-010) ══
+      - description: >
+          Enter rev_FinanceAlertUpn in TST/ACC (the Pipelines deployment pane validates it; the placeholder in
+          provisioning/deploymentSettings/pac-import-tstacc.json is FINANCE_ALERT_UPN_TSTACC). Value: the test
+          finance user (Janine). Then turn REV | Finance | Capture Payment on from the designer and run the US-026
+          cases with test payments only: AC-1, AC-6, AC-10, AC-12 (the form refuses a final payment with no date,
+          A-CP-9), AC-13 to AC-15. A-R56 stays OPEN until this V4 test has passed here.
+        script: manual
+        owner: reviewer (Finance test user)
 
     smoke_tests:
       - description: Imported solution version matches the artifact (C-TECH-030)
@@ -2315,6 +2429,8 @@ environments:
       - description: >
           Seed the rev_setting rows with the board-confirmed values. Fails fast
           while any {{PENDING_OQ_...}} token remains.
+          Since 2026-10-16 (TAD rev 23, ADR-076) four of them are createOnly: RedactionNeutralTerms, RedactionTitles, RedactionNameRules and RedactionLabels are created where absent and never written again, because the process owner edits them (A-NS-36). Since 2026-10-19 (TAD rev 25, ADR-078) a fifth, RedactionConfidenceThreshold (0.85, a review hint only), is createOnly too; RedactionAutoRelease is retired and never seeded.
+          Since 2026-10-19 (TAD rev 26, ADR-079) eleven more are createOnly because Emily changes them in the app (FR-017): KnockoutThreshold, BorderlineBandLower, BorderlineBandUpper and IncomeCeiling (upserted until then, so a deploy overwrote her edit), and the seven new Automation #2 rows AmountLimitHolidayAccommodation 500, AmountLimitDayTripsOrOutings 100, AmountLimitActivityOrExperience 100, AmountLimitRespiteCareFacilityStay 500, AmountLimitOther 500, SavingsRuleEnabled true and PriorFundingRuleEnabled true. The scoring flow of rev 26 stops every new application until all fifteen rows it reads exist, so this seed runs BEFORE the solution import that carries it (the pre_deploy step of the same name).
         script: provisioning/dataverse/seed-settings.ps1 -Env prd
       # ══ wbs:4.7 (CO-007, EF-03) — City Settlement Register ═══════════════════════
       - description: >
@@ -2350,6 +2466,23 @@ environments:
         script: manual
       # ── RETIRED 2026-10-02 (TAD rev 14, ADR-011 intervention 5) — see the matching
       # comment in tst_acc.post_deploy: the trigger mode is declared in the flow source.
+
+      # ══ wbs:8.6, REV | Finance | Capture Payment (CO-010) ══
+      - description: >
+          BEFORE turning REV | Finance | Capture Payment on in PRD (A-R100, accepted by the reviewer 2026-10-20):
+          run the read-only listing provisioning/dataverse/queries/grants-with-final-date-and-no-final-payment.fetchxml
+          AND provisioning/dataverse/queries/grants-paid-with-no-final-payment.fetchxml (grants at status Paid with
+          none) against PRD with pac env fetch (xml option; the text must be on one line without the comment:
+          collapse the whitespace and drop the comment first) and record both row counts. Expected: none for both. Any row goes to the
+          process owner first, because the next save of any payment on that grant clears its hand-set date.
+        script: manual
+        owner: tenant administrator (reads PRD)
+      - description: >
+          Enter rev_FinanceAlertUpn in PRD (placeholder FINANCE_ALERT_UPN_PROD in pac-import-prd.json): the
+          process owner's address for now (a combined role today); only the value changes when the roles split.
+          Until then that person receives two messages for one cause. Then turn the flow on from the designer.
+        script: manual
+        owner: reviewer
 
     smoke_tests:
       - description: Imported solution version matches the artifact
