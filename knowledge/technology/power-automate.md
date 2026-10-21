@@ -526,9 +526,13 @@ the definition-shape facts (b, c, e, f, g's weekDays half, and the lookup rule a
   same trigger without weekDays turned on with no edit (IMP-1107, DEV 2026-10-09, V3). The designer's
   Week-and-back toggle drops weekDays and rewrites the time zone. Check 16 covers weekDays; hours on a
   Month frequency is unobserved (IMP-1124).
-- **(h) An import over an Activated flow leaves it Draft** ("the original workflow definition has
-  been deactivated and replaced"). Read the live statecode before a scoped import, and say in the
-  brief who turns it back on (IMP-1102, DEV 2026-10-09).
+- **(h) An import over an Activated flow can leave it Draft, and pac's message does not say
+  which.** pac printed "the original workflow definition has been deactivated and replaced" on every
+  scoped DEV import measured. 1008 went Activated to Draft (2026-10-09) and 1011 stayed Activated
+  (2026-10-17) (IMP-1102, IMP-1137). The cause is unconfirmed. An untested candidate: the 1008
+  import also added an environment variable its trigger reads, with no value set. Read the live
+  statecode before AND after every import, record both, and say in the brief who turns a Draft flow
+  back on.
 - **(i) A webhook trigger's registration name on a shared external account is an environment
   variable**, never a literal: a managed flow cannot be edited per environment, and the external
   system sees every environment's registration side by side (IMP-1100, DocuSign Connect, 2026-10-09).

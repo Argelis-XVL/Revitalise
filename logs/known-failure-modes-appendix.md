@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1198 entries)
+Source: `logs/improvement-log.jsonl` (1199 entries)
 Generated: 2026-10-21
 
 ## What this file is, and who reads it
@@ -29,8 +29,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`approved-document-internally-inconsistent`** (×45): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163
 - **`platform-fact-groundtruthed`** (×44): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016, IMP-1085, IMP-1087, IMP-1107, IMP-1167, IMP-1184, IMP-1185
 - **`declared-policy-not-mechanically-enforced`** (×42): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160
+- **`gate-reassures-wrongly`** (×39): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798, IMP-1130, IMP-1134, IMP-1195, IMP-1203
 - **`gate-scope-mismatch`** (×39): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054, IMP-1132, IMP-1154, IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194
-- **`gate-reassures-wrongly`** (×38): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798, IMP-1130, IMP-1134, IMP-1195
 - **`no-assertion-on-shipped-content`** (×38): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049, IMP-1133
 - **`stale-claim-contradicting-rechecked-source`** (×36): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015, IMP-1056, IMP-1069, IMP-1075, IMP-1114, IMP-1115, IMP-1117, IMP-1120, IMP-1143, IMP-1150, IMP-1158
 - **`finding-diagnosis-unverified`** (×35): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959, IMP-1182
@@ -761,7 +761,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*678 lesson(s), in the order the digest would have ranked them.*
+*679 lesson(s), in the order the digest would have ranked them.*
 
 - Never trust an extractor span as a word boundary: widen a name span over a directly joined hyphen/apostrophe fragment before labelling, and hold any label still joined to letters (P3 name-fragment), on the input and on the output.  
   <sub>IMP-1139 · `privacy-check-blind-spot`</sub>
@@ -965,6 +965,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Before trusting a green batch-trigger line, count the awaiting-approval entries whose review names them; hollow stamps hide a batch that is due.  
+  <sub>IMP-1203 · `gate-reassures-wrongly`</sub>
 - Tell a rewrite prompt explicitly to keep every punctuation mark where it is, and measure punctuation survival per column in the corpus rather than only flagging large losses.  
   <sub>IMP-1202 · `rewrite-prompt-drops-punctuation`</sub>
 - For a reviewer-scoped DEV fix of one flow, pack an unmanaged carrier solution with only that workflow, import it, delete the container, and diff every workflow's modifiedon before and after; call the stage PARTIAL because the declared post_deploy steps are skipped.  
@@ -1057,16 +1059,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-1141 · `llm-output-fidelity-unchecked`</sub>
 - State the order of rules a prompt reads, in the row itself, and make the oracle apply them in that order; keep a title the rules depend on outside the label deterministically.  
   <sub>IMP-1140 · `rule-precedence-unstated`</sub>
-- A deploy is the observation that deploy-keyed deferrals wait for; the post-deploy batch must re-measure them or they stay open after their condition is met.  
-  <sub>IMP-1138 · `stale-deferral-uncaught-across-sessions`</sub>
-- Anchor structural regexes to line-start indentation and parse the result as XML before import. Also observed: flow 1011 stayed Activated after this scoped import (IMP-1102 did not recur here; 1008 went Draft on 10-09).  
-  <sub>IMP-1137 · `scoped-pack-hand-built`</sub>
 - A Dataverse write returns the row: secure its outputs as well as its inputs when the identity can read personal columns, and make every test double return what the connector returns  
   <sub>IMP-1136 · `simulator-more-lenient-than-platform`</sub>
 - A pre-flight must check what this run depends on; an all-or-nothing override that also silences the useful checks teaches people to skip them.  
   <sub>IMP-1108 · `gate-false-positive`</sub>
-- Before a scoped import of a flow, read its live statecode; an Activated flow will come back Draft, so the brief must say who turns it on, and the pre-state must be recorded in the dispatch.  
-  <sub>IMP-1102 · `import-changes-flow-statecode`</sub>
 - When a task derives not_started and verify-wbs-chain shows UNQUOTED WORK with a near-identical name, fix the evidence-map value to the TAD's file prefix; for wbs:3.4 that is REVAcceptanceCompletion.  
   <sub>IMP-1097 · `wrong-artefact-cited-as-evidence`</sub>
 - A deferral of a governance-lane blocker releases the production guard. If a reviewed finding must keep holding the last environment, there is no clean state for it today; say so in the decision rather than proposing to leave it open, which produces a standing 'left behind' warning.  
@@ -1388,6 +1384,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - When a triage plan routes a rule change into a built flow, amend the parent SDD's FR in the same cycle; a rule that exists only in code and a triage table is invisible to every later amendment.  
   <sub>IMP-1143 · `stale-claim-contradicting-rechecked-source`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-1145`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
+- A deploy is the observation that deploy-keyed deferrals wait for; the post-deploy batch must re-measure them or they stay open after their condition is met.  
+  <sub>IMP-1138 · `stale-deferral-uncaught-across-sessions`</sub>
+- Anchor structural regexes to line-start indentation and parse the result as XML before import. Also observed: flow 1011 stayed Activated after this scoped import (IMP-1102 did not recur here; 1008 went Draft on 10-09).  
+  <sub>IMP-1137 · `scoped-pack-hand-built`</sub>
 - A test report naming a build is not approval of it: before deploying, read the report's Status (PASS or PARTIAL, never FAIL) and the reviewer's APPROVED, not only that a report mentions the artifact.  
   <sub>IMP-1134 · `gate-reassures-wrongly`</sub>
 - A fixed-in-flight entry whose closure needs a live observation stays in the batch count even when deferred; say so in the batch review rather than reporting it cleared.  
@@ -1422,6 +1422,9 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-1110 · `approved-spec-silent-on-client-requirement`</sub>
 - Before designing live-run test data, read what the scoring instrument takes as input and which outputs the flow actually persists. Added score_seeded_run.py for rows; windows are proven in the model only.  
   <sub>IMP-1103 · `instrument-scope-assumed-not-read`</sub>
+- Before a scoped import of a flow, read its live statecode; an Activated flow will come back Draft, so the brief must say who turns it on, and the pre-state must be recorded in the dispatch.  
+  <sub>IMP-1102 · `import-changes-flow-statecode`</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-1137`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - For flow-avoid-recursive-loop, expect one result per write to the trigger's table; decide it from the trigger filter against the written item/ columns (NoTriggerLoop does this for every flow), and re-triage when the flagged set changes.  
   <sub>IMP-1091 · `untriaged-tool-warning`</sub>
 - When a dispatch adds or changes a flow, the Solution Checker count printed by the lint step is compared against the triage row's figure, and the per-rule breakdown from the SARIF is read, before the build is called clean.  

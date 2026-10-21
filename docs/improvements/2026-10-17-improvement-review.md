@@ -4,7 +4,7 @@
 **Findings processed:** 3 `NEW` → 3 clusters (the 1 unread at dispatch; 1 reviewer-deferred entry whose approved return condition this deploy met; 1 logged by this review. The 2 fixed-in-flight entries were processed by an earlier review and are named in §5, not re-derived)
 **Trigger:** post-deploy batch — pipeline-agent's PARTIAL (V3) scoped DEV deploy of build `revitalise-grant-automation-20261017-1`, [pipeline.log L353](logs/pipeline.log#L353)
 **Gate:** `APPROVE IMPROVEMENTS`
-**Status:** DRAFT, parked at its gate. Nothing applied.
+**Status:** APPLIED 2026-10-21 — rows 1–4 and the three dispositions in §8 (IMP-1102, IMP-1137, IMP-1138). `APPROVE IMPROVEMENTS` from Xander Lykopoulos, relayed by lead-agent 2026-10-21. **54 other entries carry `reviewed_in` naming this document and were never part of it; they are NOT disposed of by this approval** (see the applied record, §9).
 **WBS:** system work, `wbs:system`, not billable. The findings belong to wbs:5.3 and 5.6, as each entry records.
 
 ---
@@ -244,3 +244,55 @@ Verification at draft time:
 - Digest regenerated; `--check` current. `verify-derived-counts.py`: 11 of 11.
 
 Not verified: the tool itself (unwritten until approval) and whether pac accepts its output (V3, at the next partial push).
+
+---
+
+## 9. Applied record — 2026-10-21
+
+**Summary.** All four rows landed as approved, and the three findings are closed. One thing matters more than the rows: 54 findings (IMP-1139 to IMP-1193, except IMP-1143) carry this document's name in `reviewed_in`, but this document never processed them. Two batch drafts stamped them and were paused before writing anything here. This approval does not dispose of them. They still need a draft of their own.
+
+**Approval.** `APPROVE IMPROVEMENTS` from Xander Lykopoulos, verbatim *"Approve Improvements for all open improvement reviews"*, relayed by lead-agent on 2026-10-21. The draft had gone back to the reviewer first.
+
+### Re-verified before applying (the draft was four days old)
+
+- **Tree and HEAD.** The tree was clean at `9fd72e9`. `.engine` was on `deploy-first-learning-and-item-closure`, the same as `origin/`.
+- **Target lines.** [pipeline-agent.md](agents/pipeline-agent.md#L92): the "Before any later stage" bullet was still the one the new bullet sits in front of. [improvement-agent.md](agents/improvement-agent.md#L92): the Scope bullet was still at L92–94. [power-automate.md fact (h)](knowledge/technology/power-automate.md#L529) was still at L529 with the old text.
+- **The note about uncommitted edits to power-automate.md.** It no longer applies. Those edits are committed, and the file had no changes before this review edited it.
+- **Later findings.** No entry appended since the draft carries `corrects` against IMP-1102, IMP-1137 or IMP-1138. Two later findings bear on these rows, and neither undoes them:
+  - [IMP-1201, log L1197](logs/improvement-log.jsonl#L1197): the 2026-10-21 single-flow DEV push was a seventh hand-built partial pack. This time it was a carrier solution packed from source, not from an artifact. That supports row 1's premise. It also conflicts with the new row 2 bullet, which says "never by hand". The review that processes IMP-1201 has to settle which route is the documented one.
+  - The same push left 1011 Activated after the import. That matches the corrected fact (h).
+- **Row 1's premise.** Re-grepped: no repack tool existed in `scripts/`, `.engine/scripts/`, `provisioning/` or the agent and knowledge files.
+
+### What was applied
+
+| # | Change | Verified |
+|---|---|---|
+| 1 | [scripts/scoped-repack.py](scripts/scoped-repack.py#L268), new, this repository only | `--selftest` passed 21 of 21, including today's case: a comment quoting `<connectionreferences>` before `<AIModels>` keeps the AI model and the pack parses. Corpus run on build 20261017-1 with the three ids from 17 October: 5 files, 3 root components, and the 1011 JSON matches the source byte for byte. Keeping every component of builds 20261017-1 and 20261021-3 gives output that matches the source byte for byte, 0 of 24 and 0 of 28 files different. Sweep of 16 recent artifacts: 10 OK; the other 6 have no solution zip (failed builds) and were refused correctly. The text contains no `--check`, so it is not a gate and does not need a build step |
+| 2 | [pipeline-agent.md bullet](agents/pipeline-agent.md#L92), engine | Approved text, word for word |
+| 3 | [power-automate.md fact (h)](knowledge/technology/power-automate.md#L529) | Approved text, word for word. Needle `IMP-1102, IMP-1137`: 1 match |
+| 4 | [improvement-agent.md bullet](agents/improvement-agent.md#L95), engine | Approved text, word for word |
+
+**One narrowing in row 1 (NARROW-AND-REPORT), forced by a measurement.** The draft said the allow-list would be *"set from the real artifact's file list at apply time"*. Today's latest artifact, 20261021-3, holds `Workflows/Rev-Payment-Issued-…xaml`, a classic workflow file that the 17 October artifact did not have. So the tool's first version refused it. The allow-list now accepts `Workflows/*.xaml`, and the tool reads `XamlFileName` as well as `JsonFileName`. Every other unknown file is still refused. Nothing was loosened beyond the one file the real artifact contains.
+
+**Two other additions, both bookkeeping.** Applying the rows made the digest 637 lines long, so the size sentence changed from 633 to 637 in both copies of `generate-known-failure-modes.py` (`verify-derived-counts.py` reports 11 of 11). The review also logged one finding, IMP-1203, described below.
+
+### Dispositions (as planned in §8)
+
+| Entry | Now | Closure |
+|---|---|---|
+| [IMP-1137, log L1133](logs/improvement-log.jsonl#L1133) | APPLIED | `evidence_grep` `scripts/scoped-repack.py` · `IMP-1137`; `corrects: IMP-1102` |
+| [IMP-1102, log L1098](logs/improvement-log.jsonl#L1098) | APPLIED | `evidence_grep` `power-automate.md` · `IMP-1102, IMP-1137`. `reobserved` at V3: pipeline-agent's 2026-10-17 scoped import over Activated flow 1011, with the state read before and after ([pipeline.log L348](logs/pipeline.log#L348), [L352](logs/pipeline.log#L352)). `deferred_reason` removed |
+| [IMP-1138, log L1134](logs/improvement-log.jsonl#L1134) | APPLIED | `evidence_grep` `agents/improvement-agent.md` · `IMP-1138` |
+| IMP-1095, IMP-1098 | unchanged | still waiting on the reviewer's designer save (§5) |
+
+The three log rows were each changed with a single-line edit. No other row was touched.
+
+### What is still open
+
+**54 findings stamped with this document's name and never processed here.** The 2026-10-20 20:35 batch stamped IMP-1139 to IMP-1183 (except IMP-1143) and was paused (logged as [IMP-1195, log L1191](logs/improvement-log.jsonl#L1191)). The 2026-10-21 14:39 batch stamped IMP-1184 to IMP-1193 and was also paused. This document names none of the 54. Now that this review has closed three entries, `verify-improvement-log.py --check` warns 54 times: *"that review's keyword WAS given and this entry was left behind"*. This is the IMP-0762 check firing correctly. The gate still exits 0.
+
+- **Why the stamps were left in place.** On a scratch copy, removing them raises the count of findings no review has looked at from 9 to 63. The batch trigger is 45, so `--check` exits 1 and every build would stop. Halting delivery was not part of this approval, and choosing these entries' fate is not part of it either. This is logged as [IMP-1203, log L1199](logs/improvement-log.jsonl#L1199).
+- **What clears them.** The next post-deploy batch drafts them in a new review and re-stamps `reviewed_in` to that review. That moves the batch's queue size past its trigger, which is the honest reading.
+- **The fixed-in-flight blockers.** IMP-1139, IMP-1156 and IMP-1179 are among the 54. The census calls them "already reviewed", which they are not.
+
+**Row 2 meets its first test at the next partial push.** The tool is at V1. Whether pac imports a pack it built (V3) is seen the first time it is used. The bullet also names a script that exists only in this repository. Another client's instance reading the engine bullet will not find it, which is the instance-only residual the draft accepted (cluster 1, residual c).
