@@ -18,10 +18,14 @@ in the Dev Summary section 10 and is closed only by the DEV session of architect
          concurrency 1 would give; two simultaneous runs are not simulated);
   A-CP-5 `rev_paymentstatus ne 4` returning a Pending payment (the stand-in implements it as written);
   A-CP-6 a null write CLEARS a DateOnly column (the stand-in clears it; the platform is unproven);
-  A-CP-7 the flow owner writing a secured column through team membership;
-  A-CP-8 the Issued write starts exactly one more run that writes nothing (the stand-in replays that
-         second run explicitly, so the fixed-point ARGUMENT is executed; the platform's firing is not);
-  A-CP-9 the form business rule (no such component exists yet, WI-0136).
+  A-CP-7 the flow owner reading secured finance columns and writing the grant's date through team
+         membership (narrowed by amendment c: the flow no longer writes rev_payment);
+  A-CP-8 WITHDRAWN (amendment c, 2026-10-20): the flow writes nothing to rev_payment, so it starts no
+         run of its own making. NoTriggerLoop (src/tests/narrative/test_solution_flows.py) is the gate;
+  A-CP-9 the table-scope business rule on rev_payment (date required, Pending to Issued), authored in
+         the DEV designer and exported (WI-0136). It is not unit-testable here. This suite asserts only
+         that the flow is indifferent to it (the same result for a Pending and an Issued read) and,
+         once the exported file exists in source, that it names the three columns (SourceOfRule).
 The executor evaluates if() eagerly, the stricter of the two readings the platform leaves open.
 """
 from __future__ import annotations
@@ -282,14 +286,21 @@ class UsAc(unittest.TestCase):
         self.assertFalse(r.writes)
         self.assertEqual(len(r.messages), 1)
 
-    def test_ac13_a_pending_dated_final_payment_becomes_issued(self):
-        w = World().payment("p1", final=True, date="2026-11-14", status=PENDING)
-        r = w.save("p1")
-        self.assertEqual(w.payments["p1"]["rev_paymentstatus"], ISSUED)
-        self.assertEqual((w.grant_date(), w.app_status()), ("2026-11-14", GRANT_PAID))
-        order = [x[0] for x in r.writes]
-        self.assertEqual(order, ["Write_the_grant_date", "Write_the_application_status", "Write_the_payment_issued"],
-                         "fixed order, the payment's own status last")
+    def test_ac13_the_issued_mark_is_not_the_flows_the_recompute_is_identical_for_pending_and_issued(self):
+        """Amendment c: the payment rule sets Issued inside the save; the flow reads Pending or Issued and
+        reaches the same grant, grant status and application, and writes nothing to rev_payment."""
+        results = {}
+        for status in (PENDING, ISSUED):
+            w = World().payment("p1", final=True, date="2026-11-14", status=status)
+            r = w.save("p1")
+            self.assertEqual(r.status, "Succeeded")
+            self.assertFalse(r.wrote("rev_payments"), "no action writes rev_payment")
+            self.assertEqual(w.payments["p1"]["rev_paymentstatus"], status, "the status is left exactly as read")
+            results[status] = ((w.grant_date(), w.grant_status(), w.app_status()),
+                               [(n, e, items) for n, e, _, items in r.writes], len(r.messages), len(r.alerts))
+        self.assertEqual(results[PENDING], results[ISSUED])
+        self.assertEqual(results[PENDING][0], ("2026-11-14", 4, GRANT_PAID))
+        self.assertEqual([x[0] for x in results[PENDING][1]], ["Write_the_grant_date", "Write_the_application_status"])
 
     def test_ac14_a_cleared_payment_stays_cleared(self):
         w = World().payment("p1", final=True, date="2026-11-14", status=CLEARED)
@@ -302,13 +313,13 @@ class UsAc(unittest.TestCase):
         w = World().payment("p1", final=True, date="2026-11-14", status=ISSUED)
         self.assertFalse(w.save("p1").wrote("rev_payments"))
 
-    def test_ac15_unticking_final_reverts_the_grant_and_the_application_and_leaves_the_payment_issued(self):
-        w = World().payment("p1", final=True, date="2026-11-14", status=PENDING)
+    def test_ac15_unticking_final_reverts_the_grant_and_the_application_and_leaves_the_payment_as_it_is(self):
+        w = World().payment("p1", final=True, date="2026-11-14", status=ISSUED)
         w.save("p1")
         w.payments["p1"]["rev_isfinalpayment"] = False
         r = w.save("p1")
         self.assertEqual((w.grant_date(), w.app_status()), (None, APPROVED))
-        self.assertEqual(w.payments["p1"]["rev_paymentstatus"], ISSUED, "OQ-059 default: never reverted to Pending")
+        self.assertEqual(w.payments["p1"]["rev_paymentstatus"], ISSUED, "OQ-059: never reverted to Pending, and never written")
         self.assertFalse(r.wrote("rev_payments"))
 
 
@@ -395,21 +406,10 @@ class GrantStatus(unittest.TestCase):
                         self.assertIn(items["rev_status"], (gs, 3, 4))
 
 
-class FixedPoint(unittest.TestCase):
-    """A-CP-8 as an argument, executed: the flow's own Issued write starts one more run, and that run ends."""
+class Recompute(unittest.TestCase):
+    """The flow writes the grant and the application and nothing else (amendment c; A-CP-8 withdrawn)."""
 
-    def test_the_run_the_issued_write_starts_writes_nothing_and_a_third_cannot_follow(self):
-        w = World().payment("p1", final=True, date="2026-11-14", status=PENDING)
-        first = w.save("p1")
-        self.assertEqual(len(first.writes), 3)
-        second = w.save("p1")                  # the run the platform would start for the Issued write
-        self.assertTrue(second.silent, second.writes)
-        self.assertEqual(w.payments["p1"]["rev_paymentstatus"], ISSUED)
-        # the flow never writes Pending, so no write in either run can re-open the guard
-        for _, entity, _, items in first.writes + second.writes:
-            self.assertNotEqual(items.get("rev_paymentstatus"), PENDING)
-
-    def test_the_flow_never_writes_pending_cleared_or_cancelled_on_any_input(self):
+    def test_no_action_writes_rev_payment_on_any_input(self):
         statuses = (PENDING, ISSUED, CLEARED, CANCELLED)
         for status in statuses:
             for final in (True, False):
@@ -420,24 +420,22 @@ class FixedPoint(unittest.TestCase):
                             r = w.save("p1")
                             self.assertEqual(r.status, "Succeeded")
                             for _, entity, _, items in r.writes:
-                                if entity == "rev_payments":
-                                    self.assertEqual(items, {"rev_paymentstatus": ISSUED})
+                                self.assertNotEqual(entity, "rev_payments", "no action writes rev_payment")
                                 if entity == "rev_applications":
                                     self.assertIn(items["rev_status"], (APPROVED, GRANT_PAID))
-                            # and a second save of the result is always a no-op (FR-109, a fixed point)
+                            # and a second save of the result is always a no-op (FR-109)
                             self.assertFalse(w.save("p1").writes)
 
     def test_a_run_stopped_between_the_writes_is_finished_by_the_next_save(self):
-        w = World().payment("p1", final=True, date="2026-11-14", status=PENDING)
+        w = World().payment("p1", final=True, date="2026-11-14", status=ISSUED)
         w.fail = {"Write_the_application_status"}
         broken = w.save("p1")
         self.assertEqual(broken.status, "Failed")
-        self.assertEqual((w.grant_date(), w.app_status(), w.payments["p1"]["rev_paymentstatus"]),
-                         ("2026-11-14", APPROVED, PENDING), "still Pending is the visible sign it did not finish")
+        self.assertEqual((w.grant_date(), w.app_status()), ("2026-11-14", APPROVED),
+                         "the application still reads Approved: the visible sign it did not finish")
         w.fail = set()
         w.save("p1")
-        self.assertEqual((w.grant_date(), w.app_status(), w.payments["p1"]["rev_paymentstatus"]),
-                         ("2026-11-14", GRANT_PAID, ISSUED))
+        self.assertEqual((w.grant_date(), w.app_status()), ("2026-11-14", GRANT_PAID))
 
     def test_the_date_shape_is_normalised_so_a_timestamp_and_a_day_string_agree(self):
         w = World(application_status=GRANT_PAID, grant_status=4).payment("p1", final=True, date="2026-11-14T00:00:00Z", status=ISSUED)
@@ -497,6 +495,64 @@ class Reports(unittest.TestCase):
         self.assertEqual(body["text_3"], "PAY-p1")
         self.assertEqual(sum(1 for x in r.engine.records if x.name == "Write_the_grant_date"), 1, "no loop, no re-run")
         self.assertEqual(w.app_status(), APPROVED)
+
+
+class SourceOfRule(unittest.TestCase):
+    """A-CP-9 / WI-0136: the table-scope payment rule is a designer artefact, authored in the DEV maker designer,
+    exported and copied in UNEDITED (ADR-081 item 8). Present since 2026-10-20 (Rev-Payment-Issued). This suite
+    asserts what a source read can show: the file is present, is a business rule (category 2) on rev_payment at
+    Entity scope (ProcessTriggerScope 2) and activated, and carries both branches and nothing else. The behaviour
+    on the platform is A-CP-9 checks 1 to 6 and stays OPEN until they are run."""
+
+    WORKFLOWS = REPO / "src" / "solutions" / "RevitaliseGrantAutomation" / "Workflows"
+    SOLUTION = REPO / "src" / "solutions" / "RevitaliseGrantAutomation" / "Other" / "Solution.xml"
+    RULE_ID = "02ac658e-9bcc-f111-a05c-7ced8d43e1b4"
+
+    def rule(self):
+        xaml = [f for f in self.WORKFLOWS.glob("Rev-Payment-Issued-*.xaml")]
+        self.assertEqual(len(xaml), 1, "the exported rule file is not present in source exactly once (WI-0136)")
+        data = Path(str(xaml[0]) + ".data.xml")
+        self.assertTrue(data.exists(), "the rule's .xaml.data.xml is missing")
+        return xaml[0].read_text(encoding="utf-8-sig"), data.read_text(encoding="utf-8-sig")
+
+    def test_the_exported_rule_is_present_and_registered_in_the_solution(self):
+        self.rule()
+        self.assertIn(f'<RootComponent type="29" id="{{{self.RULE_ID}}}"', self.SOLUTION.read_text(encoding="utf-8"))
+
+    def test_the_rule_is_an_active_entity_scope_business_rule_on_the_payment(self):
+        _, data = self.rule()
+        for needle in ("<Category>2</Category>", "<ProcessTriggerScope>2</ProcessTriggerScope>",
+                       "<PrimaryEntity>rev_payment</PrimaryEntity>", "<StateCode>1</StateCode>",
+                       "<StatusCode>2</StatusCode>"):
+            self.assertIn(needle, data)
+
+    def test_branch_a_final_yes_and_no_date_shows_an_error_on_the_payment_date(self):
+        xaml, _ = self.rule()
+        self.assertIn('Attribute="rev_isfinalpayment"', xaml)
+        self.assertIn('Attribute="rev_paymentdate"', xaml)
+        self.assertIn("WorkflowPropertyType.Boolean, \"1\"", xaml)           # Final = Yes
+        self.assertIn('<InArgument x:TypeArguments="mxsq:ConditionOperator" x:Key="ConditionOperator">Null<', xaml)
+        self.assertRegex(xaml, r'<mcwc:SetMessage ControlId="rev_paymentdate"[^>]*Level="\[Nothing\]"')
+
+    def test_branch_b_final_yes_and_pending_sets_issued_and_nothing_else(self):
+        xaml, _ = self.rule()
+        self.assertIn('WorkflowPropertyType.OptionSetValue, "1", "Picklist"', xaml)    # status = Pending
+        self.assertIn('WorkflowPropertyType.OptionSetValue, "2", "Picklist"', xaml)    # set to Issued
+        sets = re.findall(r'<mxswa:SetEntityProperty Attribute="([a-z_]+)"', xaml)
+        self.assertEqual(sets, ["rev_paymentstatus"], "the rule must write only the payment status")
+        for forbidden in ('"3", "Picklist"', '"4", "Picklist"'):
+            self.assertNotIn(forbidden, xaml, "the rule must never write Cleared or Cancelled")
+
+    def test_the_rule_sets_no_requirement_level_and_is_not_form_scoped(self):
+        xaml, data = self.rule()
+        self.assertNotIn("SetRequirementLevel", xaml)
+        self.assertNotIn("<ProcessTriggerFormId>", data)
+
+    def test_the_flow_does_not_depend_on_the_rule_being_present(self):
+        """The build passes without the rule: the flow carries no reference to it."""
+        raw = FLOW.read_text(encoding="utf-8")
+        self.assertNotIn("Write_the_payment_issued", raw)
+        self.assertNotIn('"rev_paymentstatus": 2', raw)
 
 
 class Reads(unittest.TestCase):

@@ -2163,3 +2163,38 @@ pwsh -NoProfile -File provisioning/dataverse/seed-settings.ps1 -Env dev
 Verify afterwards by reading `rev_setting` for the two names (value must be non-empty). Then, with TEST identities only: confirm the DocuSign template (every signer field Required, "change signing responsibility" off), turn "REV | Acceptance | Create Envelope" on from the designer (do not save the flow in the designer, risk A-R73), confirm a `callbackregistrations` row for `rev_grant`, then run R1–R6 per TAD §12.5 with a test grant and test mailboxes. Void the test envelopes afterwards. The DEV template's tab layout was not read by this session.
 
 **Not established.** That the flow runs, that option A fills the referee tabs, that the referee access code works, and that the reminders hold. TAD rev 15 is still at ARCHITECTURE REVIEW REQUIRED.
+
+## Addendum, 2026-10-20 (build `revitalise-grant-automation-20261020-6`) — wbs:8.6, Capture Payment + Rev-Payment-Issued, DEV ONLY
+
+Authorised by the reviewer, Xander Lykopoulos, 2026-10-20: "Deploy to dev." DEV only; no promotion. Level reached: **DEPLOYED (V3)**. Nothing is V4. Items WI-0131 to WI-0139 and WI-0141 to WI-0144 (13) carry `deployed:dev` for the `deploy` component.
+
+**Provenance:** `verify-artifact-provenance.py ... --env dev` PASS. `verify-improvement-log.py --check --target-env dev` exit 0.
+
+**Credential held by this session:** none of `PROVISION_APP_ID` / `PROVISION_CERT_THUMBPRINT`; `pac` profile REV-GrantApplications-DEV (svc_grantapplications). Excluded steps and owner (reviewer or a session holding the credential): access preflight, `ensure-schema.ps1`, `seed-settings.ps1`, `reconcile-flow-statecodes.ps1`, intake callback URL Capture/Compare. This build changes no schema-shaping source (rev_payment `Entity.xml` diff is a comment only), so the import was not blocked by the missing converge step.
+
+**Executed (markers in `logs/pipeline.log`):** `pac solution import` SUCCEEDED; idempotent re-run SUCCEEDED; `pac code push` for trustee-review-portal (70869c95) and trustee-review-portal-cards (b0483396) SUCCEEDED (full-build artifact, no unchanged-proof taken, so both were pushed).
+
+**Verified by query (pac env fetch, UTC):**
+- `Rev-Payment-Issued` (source id 02ac658e-9bcc-f111-a05c-7ced8d43e1b4): **Activated** after import (modified 17:29). A second row of the same name, id b5d4aed6-9bcc-f111-a05c-7ced8d43e1b4, is **Draft** (17:23): the earlier copy the reviewer authored, deactivated by the import. Reviewer to delete it in the designer; it is not in source.
+- `REV | Finance | Capture Payment` (1013): present, **Draft** (not activated: see below).
+- `rev_FinanceAlertUpn` definition: present (String, isrequired, no default). **No current value row exists.**
+- Flow definitions re-read: 13 of 13 live equal source, none modified after import (run against a scratch copy of the flow files; the script's default directory fails on the new business-rule data file, IMP-1178).
+- Other flows after import: 1002-1009 and 1011 Activated 17:29; 1001, 1010, 1012, 1013 Draft.
+
+**Pre-activation A-R100 listings (read-only, both queries in `provisioning/dataverse/queries/`, DEV, 2026-10-20):** grants at status Paid with no final payment: 0 rows. Grants with a final date and no final payment: 0 rows.
+
+**Pending manual steps (not done by this session):**
+1. Set the CURRENT VALUE of `rev_FinanceAlertUpn` in DEV to Janine's address (maker portal, Solutions, Environment variables, Current Value; never the default). No address is written in this repository.
+2. Turn on `REV | Finance | Capture Payment` from the designer, saved WITHOUT editing (A-R73), after step 1. Then read its `callbackregistrations` row: message must read Added or Modified (A-CP-1).
+3. Delete the Draft duplicate of Rev-Payment-Issued (b5d4aed6...), or confirm to keep it.
+
+**A-CP-1 to A-CP-9:** none could be run by this session. They need the flow activated and a Finance-role test user creating and editing real payment rows (pac has no create-row verb and the service account holds no Finance session). All stay OPEN; none was observed, none is claimed. Needs a human Finance test user: A-CP-1 to A-CP-7 (one session, DEV post_deploy step 27), A-CP-9 checks 1 to 6 (business rule behaviour, including the error text the reviewer is to accept or re-author), and A-CP-4 (concurrency 1 kept after the designer save). Assumption-register gate: these rows can only be closed after the flow exists, so the reviewer's explicit instruction to deploy and then test is treated as the override; recorded here.
+
+**Other undeployed source carried by this full-tree artifact (not wbs:8.6):**
+- `REV | Narrative | Scrub Free-Text` (1011) at TAD rev 29 / Iteration 13: 100 actions, practice-name suffix/word/span actions. Live 1011 is **Activated** after the import (wbs:5.x, Narrative Scrubbing).
+- `rev_setting` rewrite-prompt text changed in the three `deploymentSettings` files (dev-scoring, test, prd). Not applied to DEV rows: `seed-settings.ps1` is credential-gated and create-only, so DEV's stored prompt value may still be the old one. Owner: reviewer / credentialed session.
+- Redaction rules doc, tests and logs changed in the tree; these do not ship.
+
+**Warnings:** 5 accepted in the manifest (root-component class), 0 untriaged; the `Type=` line count rose from 21 to 22 (the new line is `rev_FinanceAlertUpn`).
+
+**Findings:** IMP-1178 (reread script fails on a business-rule data file).

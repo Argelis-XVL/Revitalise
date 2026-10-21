@@ -34,7 +34,7 @@
           "splitOn": "@triggerBody()['rows']",
           "type": "Request",
           "kind": "ApiConnection",
-          "description": "Dataverse When a row is selected, rev_review, one run per row (ADR-080). Shape from a DEV export (A-FD-10). A-FD-9: Flow menu visibility. A-FD-11: licence for a run-only user.",
+          "description": "Dataverse When a row is selected, rev_review, one run per row (ADR-080). Shape from a DEV export (A-FD-10); declares rev_reviewid. A-FD-9: Flow menu visibility. A-FD-11: licence for a run-only user.",
           "inputs": {
             "operationId": "RecordSelected",
             "parameters": {
@@ -49,7 +49,17 @@
                     "type": "object",
                     "properties": {
                       "entity": {
-                        "properties": {},
+                        "properties": {
+                          "rev_name": {
+                            "title": "Review Reference",
+                            "type": "string"
+                          },
+                          "rev_reviewid": {
+                            "title": "Review",
+                            "type": "string",
+                            "format": "guid"
+                          }
+                        },
                         "type": "object",
                         "required": []
                       }
@@ -94,117 +104,88 @@
           "description": "Deep link to THIS run, for the alert.",
           "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
         },
-        "Compose_review_id": {
-          "type": "Compose",
+        "Get_the_review": {
+          "type": "OpenApiConnection",
           "runAfter": {
             "Compose_run_link": [
               "Succeeded"
             ]
           },
-          "description": "A-FD-10: the selected row's id from the trigger. Path not yet measured by a run; two candidates, and an empty result stops the run with an alert below.",
-          "inputs": "@coalesce(triggerOutputs()?['body/entity/rev_reviewid'], triggerOutputs()?['body/rev_reviewid'])"
-        },
-        "Check_the_review_id_arrived": {
-          "type": "If",
-          "runAfter": {
-            "Compose_review_id": [
-              "Succeeded"
-            ]
-          },
-          "description": "A-FD-10: stops loudly if the trigger did not deliver an id, rather than reading nothing and finishing as a no-op.",
-          "expression": {
-            "and": [
-              {
-                "equals": [
-                  "@empty(string(coalesce(outputs('Compose_review_id'), '')))",
-                  true
-                ]
-              }
-            ]
-          },
-          "actions": {
-            "Alert_review_id_missing": {
-              "type": "Workflow",
-              "runAfter": {},
-              "description": "FR-010: names the run and the review id, never a value.",
-              "inputs": {
-                "host": {
-                  "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
-                },
-                "body": {
-                  "text": "REV | Portal | Finalise Decisions",
-                  "text_1": "@{workflow()?['run']?['name']}",
-                  "text_2": "The trigger did not deliver the selected review's id, so nothing was changed. The trigger output path in the flow needs correcting (A-FD-10).",
-                  "text_3": "unknown-review",
-                  "text_4": "Error",
-                  "text_5": "@{outputs('Compose_run_link')}"
-                }
-              }
+          "description": "TAD 5.7 step 1, ADR-080: the first action that touches data. Reads the review by the id the trigger delivers; everything later works from this row. A-FD-4: GetItem output and $select.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+              "operationId": "GetItem"
             },
-            "Stop_review_id_missing": {
-              "type": "Terminate",
-              "runAfter": {
-                "Alert_review_id_missing": [
-                  "Succeeded",
-                  "Failed",
-                  "TimedOut"
-                ]
-              },
-              "description": "Stops the run Failed whether or not the alert went out.",
-              "inputs": {
-                "runStatus": "Failed",
-                "runError": {
-                  "code": "ReviewIdMissing",
-                  "message": "The trigger did not deliver the selected review's id. Nothing was changed."
-                }
-              }
+            "parameters": {
+              "entityName": "rev_reviews",
+              "recordId": "@triggerBody()?['entity']?['rev_reviewid']",
+              "$select": "rev_reviewid,rev_name,_rev_applicationid_value,rev_verdict1,rev_verdict2,rev_outcome,rev_paneldate,rev_finalisedon"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
             }
+          }
+        },
+        "Alert_review_not_read": {
+          "type": "Workflow",
+          "runAfter": {
+            "Get_the_review": [
+              "Failed",
+              "TimedOut"
+            ]
           },
-          "else": {
-            "actions": {}
+          "description": "FR-010: names the run and the review id, never a value.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Portal | Finalise Decisions",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The selected review could not be read: the trigger delivered no id, or no such review exists. Nothing was changed (A-FD-10).",
+              "text_3": "@{concat('review ', coalesce(triggerBody()?['entity']?['rev_reviewid'], 'unknown'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_review_not_read": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_review_not_read": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed whether or not the alert went out.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "ReviewNotRead",
+              "message": "The selected review could not be read. Nothing was changed."
+            }
           }
         },
         "Finalise_this_review": {
           "type": "Scope",
           "runAfter": {
-            "Check_the_review_id_arrived": [
+            "Get_the_review": [
               "Succeeded"
             ]
           },
           "description": "One review end to end, one scope, one failure branch. TAD 5.7.",
           "actions": {
-            "Get_the_review": {
-              "type": "OpenApiConnection",
-              "runAfter": {},
-              "description": "TAD 5.7 step 1: re-reads the review by id. The trigger supplies only the id. Verdicts, outcome, round only: no identifier.",
-              "inputs": {
-                "host": {
-                  "connectionName": "shared_commondataserviceforapps",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
-                  "operationId": "ListRecords"
-                },
-                "parameters": {
-                  "entityName": "rev_reviews",
-                  "$filter": "@concat('rev_reviewid eq ', outputs('Compose_review_id'))",
-                  "$select": "rev_name,_rev_applicationid_value,rev_verdict1,rev_verdict2,rev_outcome,rev_paneldate,rev_finalisedon"
-                },
-                "authentication": "@parameters('$authentication')",
-                "retryPolicy": {
-                  "type": "exponential",
-                  "count": 4,
-                  "interval": "PT10S"
-                }
-              }
-            },
             "Compose_review": {
               "type": "Compose",
-              "runAfter": {
-                "Get_the_review": [
-                  "Succeeded"
-                ]
-              },
-              "description": "The one review row (the read filters by primary key).",
-              "inputs": "@first(outputs('Get_the_review')?['body/value'])"
+              "runAfter": {},
+              "description": "The review row read straight after the trigger. Every decision below works from it, not from trigger fields.",
+              "inputs": "@outputs('Get_the_review')?['body']"
             },
             "Compose_outcome": {
               "type": "Compose",
@@ -630,7 +611,7 @@
                     },
                     "parameters": {
                       "entityName": "rev_reviews",
-                      "recordId": "@outputs('Compose_review_id')",
+                      "recordId": "@triggerBody()?['entity']?['rev_reviewid']",
                       "item/rev_outcome": "@outputs('Compose_outcome')",
                       "item/rev_finalisedon": "@utcNow()"
                     },
@@ -856,11 +837,7 @@
                     "actions": {
                       "Set_failure_detail_from_an_apply_leaf": {
                         "type": "SetVariable",
-                        "runAfter": {
-                          "Find_the_failed_step_inside_the_apply_step": [
-                            "Succeeded"
-                          ]
-                        },
+                        "runAfter": {},
                         "description": "Step name and code only.",
                         "inputs": {
                           "name": "failureDetail",
@@ -877,11 +854,7 @@
             "actions": {
               "Set_failure_detail_from_a_leaf": {
                 "type": "SetVariable",
-                "runAfter": {
-                  "Find_the_failed_action": [
-                    "Succeeded"
-                  ]
-                },
+                "runAfter": {},
                 "description": "Step name and code only.",
                 "inputs": {
                   "name": "failureDetail",
@@ -907,7 +880,7 @@
               "text": "REV | Portal | Finalise Decisions",
               "text_1": "@{workflow()?['run']?['name']}",
               "text_2": "@{concat('Finalise decisions stopped before the review was finished. ', variables('failureDetail'), ' Nothing is stamped finalised unless the last step ran; select the review and run it again.')}",
-              "text_3": "@{concat('review ', coalesce(outputs('Compose_review_id'), 'unknown'))}",
+              "text_3": "@{concat('review ', coalesce(triggerBody()?['entity']?['rev_reviewid'], 'unknown'))}",
               "text_4": "Error",
               "text_5": "@{outputs('Compose_run_link')}"
             }

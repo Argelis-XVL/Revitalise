@@ -609,6 +609,12 @@ class Engine:
         for x in arr:
             if not isinstance(x, dict) or key not in x:
                 raise WdlError(f"sort() key {key!r} missing")
+        # The platform's sort() over an object array needs the sortBy property to be the SAME type in every object:
+        # an Integer next to a Float is InvalidTemplate (DEV 2026-10-21, build 20261021-3, application 1086, IMP-1198).
+        kinds = {("bool" if isinstance(x[key], bool) else "float" if isinstance(x[key], float)
+                  else "int" if isinstance(x[key], int) else type(x[key]).__name__) for x in arr}
+        if len(kinds) > 1:
+            raise WdlError(f"sort() sortBy {key!r} is not the same type in every object: {sorted(kinds)}")
         return sorted(arr, key=lambda x: x[key])
 
     def f_decodeUriComponent(self, s):

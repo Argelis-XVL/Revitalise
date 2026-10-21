@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """Executes the SHIPPED `REV | Narrative | Scrub Free-Text` definition, rebuilt to TAD rev 22 / ADR-075 in
-Iteration 9 (wbs:5.3, 5.6), and compares it with the flow model in redaction_reference.py.
+Iteration 9 and changed by TAD rev 30 / ADR-082 in Iteration 14 (wbs:5.3, 5.6): one extractor call per BATCH of
+columns, one prompt that rewrites and corrects spelling. Compares it with the flow model in redaction_reference.py.
 
 Run:  python3 -m unittest discover -s src/tests/narrative -p 'test_*.py' -v
 Also run by NarrativeRedaction.Tests.ps1 inside the HARD `unit-tests` build step.
 
-Level: a definition-level execution in wdl_sim.py, not a platform run. The two prompts are STAND-INS
+Level: a definition-level execution in wdl_sim.py, not a platform run. The rewrite prompt is a STAND-IN
 (corpus_support.py): a good model, and bad models written to break the checks. What this proves is the
-property ADR-075 rests on: whatever the models answer, the flow writes a column only when P1 (no
-extractor value survives) and P2 (the rewrite added no word) pass, and the spelling answer is accepted
-only word by word. It proves nothing about the live models' quality (wbs:5.7), the AI Builder wire
-shapes (A-NS-13, A-NS-16, A-NS-31) or a designer save (V4).
+property ADR-075 and ADR-082 rest on: whatever the model answers, the flow writes a column only when P1 (no
+extractor value survives) and P2 (every word of the rewrite is an input word, a closed-list word, a plural
+form, or the corrected half of a DECLARED, validated near-spelling pair) pass. It proves nothing about the
+live model's quality (wbs:5.7), the AI Builder wire shapes (A-NS-13, A-NS-16, A-NS-31), the offsets of a
+joined call (A-NS-41), a nested loop's save (A-NS-42) or a designer save (V4).
 
 No narrative text is printed: assertion messages name sample ids and reason codes only (C-DOM-004).
 """
@@ -36,11 +38,12 @@ FLOW = (REPO / "src" / "solutions" / "RevitaliseGrantAutomation" / "Workflows"
 DEFINITION = json.loads(FLOW.read_text(encoding="utf-8"))["properties"]["definition"]
 ENTITY_XML = REPO / "src" / "solutions" / "RevitaliseGrantAutomation" / "Entities" / "rev_application" / "Entity.xml"
 
-# A-NS-31, closed 2026-10-16: the two prompt components' ids, as exported from DEV after R1b
-# (test_prompt_component.py reads the same ids out of Other/Customizations.xml).
+# A-NS-31, closed 2026-10-16: the rewrite prompt component's id, as exported from DEV after R1b
+# (test_prompt_component.py reads the same id out of Other/Customizations.xml). Rev 30 (ADR-082 item 4): the
+# spelling prompt (763cff31-...) is no longer called, so the flow carries one prompt id.
 REWRITE_ID = "e853d7c8-dd36-4917-951f-50108a812fc4"
-SPELLING_ID = "763cff31-d653-416b-a52f-7e6f400bce21"
-PROMPT_INPUTS = {REWRITE_ID: {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}, SPELLING_ID: {"Text"}}
+RETIRED_SPELLING_ID = "763cff31-d653-416b-a52f-7e6f400bce21"
+PROMPT_INPUTS = {REWRITE_ID: {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}}
 SEED_CODES = rr.load_register()
 SEED = object()
 OTHER_SETTING = {"rev_name": "PostcodeRegionMap", "rev_value": "{\"LS\": 1}", "modifiedon": "2026-10-20T10:00:00Z"}
@@ -80,7 +83,7 @@ class Run:
         return [n for n, o in self.calls if o == op]
 
 
-def run_flow(row, settings, extract, rewrite=cs.good_rewrite, spelling=cs.echo_spelling, *, status=6,
+def run_flow(row, settings, extract, rewrite=cs.good_rewrite, *, status=6,
              case_insensitive=True, fail_write=False, modified=None, register=SEED, definition=None,
              stop_loops_on_failure=False) -> Run:
     calls, prompt_inputs, column_writes, notices, alerts, decision = [], [], {}, [], [], {}
@@ -120,7 +123,7 @@ def run_flow(row, settings, extract, rewrite=cs.good_rewrite, spelling=cs.echo_s
             inputs = {n: params[f"item/requestv2/{n}"] for n in PROMPT_INPUTS[rid]}
             prompt_inputs.append((rid, inputs))
             try:
-                ans = (rewrite if rid == REWRITE_ID else spelling)(**inputs)
+                ans = rewrite(**inputs)
             except Exception as e:  # noqa: BLE001
                 raise wdl_sim.ConnectorFailure(str(e)) from e
             return {"responsev2": {"predictionOutput": ans}}
@@ -151,18 +154,18 @@ def run_flow(row, settings, extract, rewrite=cs.good_rewrite, spelling=cs.echo_s
                decision.get("Write_the_decision") or decision.get("Hold_the_record_for_review"), notices, alerts, engine)
 
 
-def model(row, settings, extract, rewrite=cs.good_rewrite, spelling=cs.echo_spelling, **kw):
+def model(row, settings, extract, rewrite=cs.good_rewrite, **kw):
     if kw.get("register", SEED) is SEED:
         kw.pop("register", None)
-    return rr.flow_scrub_record(row, settings, extract, rewrite, spelling, **kw)
+    return rr.flow_scrub_record(row, settings, extract, rewrite, **kw)
 
 
 class Agreement(unittest.TestCase):
     """The shipped JSON and the oracle give the same writes, reasons and decision."""
 
-    def compare(self, row, settings, extract, rewrite=cs.good_rewrite, spelling=cs.echo_spelling, ci=True, **kw):
-        sim = run_flow(row, settings, extract, rewrite, spelling, case_insensitive=ci, **kw)
-        dec, writes, outcomes = model(row, settings, extract, rewrite, spelling, **kw)
+    def compare(self, row, settings, extract, rewrite=cs.good_rewrite, ci=True, **kw):
+        sim = run_flow(row, settings, extract, rewrite, case_insensitive=ci, **kw)
+        dec, writes, outcomes = model(row, settings, extract, rewrite, **kw)
         self.assertEqual(sim.status, "Succeeded")
         self.assertEqual(sim.column_writes, writes)
         self.assertEqual(sim.reasons, dec.reasons)
@@ -198,8 +201,10 @@ class FlowAgreesWithModelOnCorpus(Agreement):
                 texts.append((plain, cs.simulated_entities(s, plain, gold)))
             with self.subTest(first=chunk[0][0]["id"]):
                 sim, *_ = self.compare(row, cs.ALL_SETTINGS, cs.extractor_for(texts))
-                self.assertEqual(len(sim.ops("aibuilderpredict_entityextraction")), len(chunk))
-                self.assertEqual(len(sim.ops("aibuilderpredict_customprompt")), 2 * len(chunk))
+                # ADR-082: one extractor call per batch of at most 5,000 characters, one prompt call per column.
+                self.assertEqual(len(sim.ops("aibuilderpredict_entityextraction")),
+                                 len(rr.plan_batches([len(row[raw]) for raw, _ in rr.SCRUB_COLUMNS if raw in row])))
+                self.assertEqual(len(sim.ops("aibuilderpredict_customprompt")), len(chunk))
 
     def test_the_model_never_receives_a_value_the_extractor_found(self):
         """ADR-075 item 2: the rewrite prompt gets the labelled text, so no labelled span's text reaches it."""
@@ -207,8 +212,8 @@ class FlowAgreesWithModelOnCorpus(Agreement):
             ents = cs.simulated_entities(s, plain, gold)
             row, ext = one(plain, ents)
             sim = run_flow(row, cs.RULES, ext)
-            (rid, inp), (rid2, inp2) = sim.prompt_inputs
-            self.assertEqual((rid, rid2), (REWRITE_ID, SPELLING_ID))
+            (rid, inp), = sim.prompt_inputs
+            self.assertEqual(rid, REWRITE_ID)
             lab, kept, _, _ = rr.label_spans(plain, cs.as_entities(ents))
             self.assertEqual(inp["Narrative"], rr.labelled_text(plain, kept), s["id"])
             for span in kept:
@@ -296,49 +301,274 @@ class P1NoFoundIdentifierSurvives(Agreement):
         self.assertEqual(rr.surviving_identifiers("ring 07700 900123", ["07700 900123"]), ["07700 900123"])
 
 
-class SpellingAcceptedWordByWord(Agreement):
+class SpellingDeclaredPairs(Agreement):
+    """ADR-082 items 4 to 6 (rev 30): the rewrite prompt also corrects spelling and DECLARES each correction after a
+    `###CORRECTIONS###` line as `wrong=>right`. P2 accepts a corrected word only as the right half of a declared pair
+    that passes the pair rule; anything else it did not get from the input is `rewrite-invalid` and the column is not
+    written. (Replaces the word-by-word acceptance of the retired second call, ADR-075 item 4.)"""
     TEXT = "I care for my partner who has dementai and needs help."
 
-    def run_with(self, spelling):
-        row, ext = one(self.TEXT)
-        return self.compare(row, cs.ALL_SETTINGS, ext, spelling=spelling)
+    def held(self, rewrite, text=None):
+        row, ext = one(text or self.TEXT)
+        _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, rewrite=rewrite)
+        self.assertEqual(writes, {})
+        self.assertIn("rewrite-invalid:rev_narrativeraw", dec.reasons)
+        return dec
 
-    def test_a_near_spelling_of_a_lower_case_word_is_taken(self):
-        _, _, writes, _ = self.run_with(cs.spelling_from({"dementai": "dementia"}))
-        self.assertEqual(writes["rev_narrativeredacted"], "I care for my partner who has dementia and needs help.")
+    def test_a_declared_near_spelling_of_a_lower_case_input_word_is_written(self):
+        for ci in (True, False):
+            row, ext = one(self.TEXT)
+            _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, rewrite=cs.rewrite_corrected({"dementai": "dementia"}), ci=ci)
+            self.assertEqual(writes["rev_narrativeredacted"], "I care for my partner who has dementia and needs help.")
+            self.assertEqual(dec.reasons, ("no-model-detections",))
 
-    def test_an_answer_with_a_different_word_count_is_discarded(self):
-        _, dec, writes, _ = self.run_with(lambda Text: cs.answer(Text.replace("dementai", "demen tia")))
-        self.assertEqual(writes["rev_narrativeredacted"], self.TEXT)
-        self.assertFalse([r for r in dec.reasons if "spell" in r])
+    def test_the_same_correction_undeclared_is_rewrite_invalid(self):
+        self.held(cs.rewrite_corrected({"dementai": "dementia"}, declare=[]))
 
-    def test_each_refused_change_is_refused_at_that_word_only(self):
-        fixes = {"dementai": "dementia",       # taken
-                 "I": "We",                    # capitalised: refused
-                 "help.": "help!",             # punctuation: refused
-                 "partner": "husband",         # closed-list word, and a different first letter: refused
-                 "who": "wha"}                 # taken (same first letter, same length)
-        _, _, writes, _ = self.run_with(cs.spelling_from(fixes))
-        self.assertEqual(writes["rev_narrativeredacted"], "I care for my partner wha has dementia and needs help.")
-
-    def test_a_label_is_never_changed(self):
-        row, ext = one("Ring Ann on Mondya.", [("PersonName", "Ann", 5, 3, 0.9)])
-        spell = cs.spelling_from({"[NAME]": "[NAMES]", "them": "then", "Mondya.": "Monday."})
-        sim, _, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, spelling=spell)
-        self.assertEqual(writes["rev_narrativeredacted"], "Ring them on Mondya.")
+    def test_each_refused_declaration_is_rewrite_invalid(self):
+        """The pair rule's six refusals, each with the correction applied in the text and declared."""
+        cases = {
+            "a different first letter": ({"care": "scare"}, None),
+            "a length change of 3": ({"dementai": "dementiaxyz"}, None),
+            "a capitalised wrong word": ({"I": "We"}, None),
+            "a wrong word that is not in the input": ({"dementai": "dementia"}, [("dementaix", "dementia")]),
+            "a closed-list wrong word": ({"my": "mu"}, None),          # 'my' is on the closed list
+            "a right word with a digit": ({"care": "car3"}, None),
+        }
+        for name, (fixes, declare) in cases.items():
+            for ci in (True, False):
+                with self.subTest(name, ci=ci):
+                    row, ext = one(self.TEXT)
+                    _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, rewrite=cs.rewrite_corrected(fixes, declare), ci=ci)
+                    self.assertEqual(writes, {})
+                    self.assertIn("rewrite-invalid:rev_narrativeraw", dec.reasons)
 
     def test_a_correction_never_brings_back_a_gendered_word(self):
-        """FR-100: 'sun' to 'son' keeps the first letter and the length, and is still refused."""
-        self.assertFalse(rr.take_correction("sun", "son"))
-        self.assertTrue(rr.take_correction("sunn", "sun"))
+        """FR-100: 'sun' to 'son' keeps the first letter and the length and is still refused, as declared."""
+        self.assertEqual(rr.valid_corrections("We sit in the sun", ["sun=>son"]), [])
+        self.assertEqual(rr.valid_corrections("We sit in the sunn", ["sunn=>sun"]), ["sun"])
         row, ext = one("We sit in the sun and the breze.")
-        _, _, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, spelling=cs.spelling_from({"sun": "son", "breze.": "breeze."}))
-        self.assertEqual(writes["rev_narrativeredacted"], "We sit in the sun and the breeze.")
+        _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, rewrite=cs.rewrite_corrected({"sun": "son"}))
+        self.assertEqual(writes, {})
+        self.assertIn("rewrite-invalid:rev_narrativeraw", dec.reasons)
 
-    def test_a_failed_spelling_call_writes_the_rewrite_with_no_reason(self):
-        _, dec, writes, _ = self.run_with(cs.failing)
+    def test_a_declared_pair_does_not_excuse_a_different_added_word(self):
+        """The safety proof: a rewrite that adds a name, a number or a sentence is held by P2 as before, whatever
+        correction it declares."""
+        good = lambda **i: cs.good_rewrite(**i)["text"]   # noqa: E731
+        for change in (lambda t: t.replace("partner", "Derek"), lambda t: t + " Ring 07700 900999.",
+                       lambda t: t + " The family lives near the station."):
+            with self.subTest(change("x partner")):
+                self.held(lambda change=change, **i: cs.corrections_answer(
+                    change(good(**i)).replace("dementai", "dementia"), [("dementai", "dementia")]))
+
+    def test_a_word_that_is_not_an_input_word_cannot_be_declared(self):
+        """The labelled text 'Ring [NAME] on Mondya.': 'them' is the rewrite's word, not an input word."""
+        row, ext = one("Ring Ann on Mondya.", [("PersonName", "Ann", 5, 3, 0.9)])
+        for ci in (True, False):
+            _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, ci=ci,
+                                             rewrite=cs.rewrite_corrected({"them": "then", "Mondya.": "Monday."}))
+            self.assertEqual(writes, {})
+            self.assertIn("rewrite-invalid:rev_narrativeraw", dec.reasons)
+
+    def test_the_answer_is_split_at_the_first_delimiter_and_malformed_lines_are_ignored(self):
+        want = "I care for my partner who has dementia and needs help."
+        answers = {
+            "a second delimiter line is not a pair": f"{want}\n###CORRECTIONS###\ndementai=>dementia\n###CORRECTIONS###\nx=>y",
+            "malformed lines": f"{want}\n###CORRECTIONS###\n\nnot a pair\na=>b=>c\ndementai=>dementia\n=>\ndementai =>",
+            "carriage returns": f"{want}\r\n###CORRECTIONS###\r\ndementai=>dementia\r\n",
+            "trailing white space before the delimiter": f"{want}\n\n   \n###CORRECTIONS###\ndementai=>dementia",
+        }
+        for name, text in answers.items():
+            for ci in (True, False):
+                with self.subTest(name, ci=ci):
+                    row, ext = one(self.TEXT)
+                    _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, rewrite=lambda t=text, **_: cs.answer(t), ci=ci)
+                    self.assertEqual(writes["rev_narrativeredacted"], want)
+
+    def test_no_delimiter_means_no_corrections_and_the_whole_answer_is_the_rewrite(self):
+        row, ext = one(self.TEXT)
+        _, _, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext)
         self.assertEqual(writes["rev_narrativeredacted"], self.TEXT)
-        self.assertEqual(dec.reasons, ("no-model-detections",))   # no entity in this text; nothing about spelling
+
+    def test_an_answer_that_is_only_corrections_is_prompt_error(self):
+        row, ext = one(self.TEXT)
+        _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext,
+                                         rewrite=lambda **_: cs.answer("###CORRECTIONS###\ndementai=>dementia"))
+        self.assertEqual(writes, {})
+        self.assertEqual(dec.reasons, ("prompt-error:rev_narrativeraw", "no-model-detections"))
+
+    def test_the_spelling_prompt_is_never_called(self):
+        row, ext = one(self.TEXT)
+        sim, *_ = self.compare(row, cs.ALL_SETTINGS, ext, rewrite=cs.rewrite_corrected({"dementai": "dementia"}))
+        self.assertEqual([rid for rid, _ in sim.prompt_inputs], [REWRITE_ID])
+
+    def test_the_pair_rule_in_the_reference(self):
+        lab = "I care for my [NAME] who has dementai and needs help. Ann"
+        ok = lambda *lines: rr.valid_corrections(lab, list(lines))   # noqa: E731
+        self.assertEqual(ok("dementai=>dementia"), ["dementia"])
+        self.assertEqual(ok("dementai=>dementIA"), ["dementia"])               # the right word is compared in lower case
+        self.assertEqual(ok("dementai=>Dementia"), [])                          # first letter must be the same letter, as written
+        self.assertEqual(ok("Ann=>Anne"), [])                                   # a capitalised word is never changed
+        self.assertEqual(ok("dementai=>dementi4"), [])                         # letters only
+        self.assertEqual(ok("dementai =>dementia"), ["dementia"])               # white space around a word is trimmed
+        self.assertEqual(ok("dementai=>dement ia"), [])                         # a single word
+        self.assertEqual(ok("care=>carefully", "care=>cares"), ["cares"])      # +5 refused, +1 taken
+        self.assertEqual(ok("[NAME]=>[NAMES]"), [])                             # a label is never changed
+
+
+class BatchedExtraction(Agreement):
+    """ADR-082 items 1 to 3 (rev 30): the columns to scrub are packed in order into calls of at most 5,000
+    characters (separators counted); each entity goes back to its column by offset; a failed call holds every
+    column of its batch."""
+
+    @staticmethod
+    def text(tag, n):
+        """A synthetic column of exactly n characters whose first word is the tag (so the mock can tell columns apart)."""
+        s = (tag + " " + "word " * (n // 5 + 2))[:n]
+        return s[:-1] + "x" if s.endswith(" ") else s
+
+    def row_of(self, lengths):
+        cols = [raw for raw, _ in rr.SCRUB_COLUMNS]
+        row = {raw: self.text(f"tag{i}", n) for i, (raw, n) in enumerate(zip(cols, lengths))}
+        return row, [row[c] for c in cols[:len(lengths)]]
+
+    def calls_for(self, lengths, **kw):
+        row, texts = self.row_of(lengths)
+        calls = []
+        ext = cs.extractor_for([(t, []) for t in texts], calls)
+        sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, **kw)
+        return sim, dec, writes, texts, calls
+
+    def test_the_typical_application_is_one_call_whatever_the_column_count(self):
+        for n_cols in (1, 5, 12):
+            sim, dec, writes, texts, calls = self.calls_for([100] * n_cols)
+            self.assertEqual(len(sim.ops("aibuilderpredict_entityextraction")), 1, n_cols)
+            self.assertEqual(len(sim.ops("aibuilderpredict_customprompt")), n_cols)
+
+    def test_the_limit_is_5000_characters_including_separators(self):
+        for lengths, want in (([2499, 2499], [[0, 1]]), ([2500, 2499], [[0], [1]]), ([5000], [[0]]), ([5000, 1], [[0], [1]]),
+                              ([3000, 3000], [[0], [1]]), ([2000, 2000, 996], [[0, 1, 2]]), ([2000, 2000, 997], [[0, 1], [2]]),
+                              ([100, 4900], [[0], [1]]), ([100, 4898], [[0, 1]])):
+            with self.subTest(lengths=lengths):
+                self.assertEqual(rr.plan_batches(lengths), want)
+                sim, dec, writes, texts, calls = self.calls_for(lengths)
+                calls = calls[:len(want)]       # compare() runs the shipped flow first, then the oracle, on one mock
+                self.assertEqual(len(sim.ops("aibuilderpredict_entityextraction")), len(want))
+                self.assertTrue(all(c <= 5000 for c in calls))
+                # the text sent is each column exactly as stored, joined by two line feeds, in column order
+                self.assertEqual(calls, [sum(len(texts[i]) for i in b) + 2 * (len(b) - 1) for b in want])
+
+    def test_no_column_chosen_means_no_call(self):
+        self.assertEqual(rr.plan_batches([]), [])
+        row = {"rev_narrativeraw": "kept", "rev_narrativeredacted": "the admin's text", "rev_otherconditionraw": "   "}
+        sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, lambda _: [])
+        self.assertEqual(sim.ops("aibuilderpredict_entityextraction"), [])
+        self.assertEqual(sim.status, "Succeeded")
+
+    def test_an_entity_in_a_later_column_goes_back_to_that_column(self):
+        t = ["Ann helps me.", "Then Bob visits.", "Later Cara calls on Dee."]
+        row = dict(zip(["rev_narrativeraw", "rev_otherconditionraw", "rev_caresupportdescription"], t))
+        found = [(t[0], ents_at(t[0], ("PersonName", "Ann"))), (t[1], ents_at(t[1], ("PersonName", "Bob"))),
+                 (t[2], ents_at(t[2], ("PersonName", "Cara"), ("PersonName", "Dee")))]
+        for ci in (True, False):
+            sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, cs.extractor_for(found), ci=ci)
+            self.assertEqual(len(sim.ops("aibuilderpredict_entityextraction")), 1)
+            self.assertEqual([i["Narrative"] for _, i in sim.prompt_inputs],
+                             ["[NAME] helps me.", "Then [NAME] visits.", "Later [NAME] calls on [NAME]."])
+            self.assertEqual(dec.reasons, ())
+
+    def test_an_entity_that_straddles_two_columns_holds_both(self):
+        a, b = "Ring Ann", "Smith today."
+        row = {"rev_narrativeraw": a, "rev_otherconditionraw": b}
+        joined = a + "\n\n" + b
+        value = "Ann\n\nSmith"
+        ext = cs.batch_extractor(lambda text: [("PersonName", value, text.index(value), len(value), 0.9)])
+        for ci in (True, False):
+            sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, ci=ci)
+            self.assertEqual(writes, {})
+            self.assertEqual([r for r in dec.reasons if r.startswith("overlapping")],
+                             ["overlapping-identifiers:rev_narrativeraw", "overlapping-identifiers:rev_otherconditionraw"])
+            self.assertEqual(len(joined), 8 + 2 + 12)
+
+    def test_a_straddling_entity_holds_the_column_even_when_another_span_contains_it_there(self):
+        a, b = "We see Moorside Surgery", "Ann rang."
+        row = {"rev_narrativeraw": a, "rev_otherconditionraw": b}
+        value = "Surgery\n\nAnn"
+        ext = cs.batch_extractor(lambda text: [("PersonName", value, text.index(value), len(value), 0.9)])
+        _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext)
+        self.assertEqual(writes, {})
+        self.assertIn("overlapping-identifiers:rev_narrativeraw", dec.reasons)
+        self.assertIn("overlapping-identifiers:rev_otherconditionraw", dec.reasons)
+
+    def test_an_entity_inside_the_separator_touches_no_column(self):
+        a, b = "Ring Ann", "Smith today."
+        row = {"rev_narrativeraw": a, "rev_otherconditionraw": b}
+        ext = cs.batch_extractor(lambda text: [("PersonName", "\n\n", len(a), 2, 0.9)])
+        sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext)
+        self.assertEqual([r for r in dec.reasons if "overlapping" in r], [])
+        self.assertEqual(set(writes), {"rev_narrativeredacted", "rev_otherconditionredacted"})
+        self.assertEqual(rr.map_entities([a, b], [rr.ExtractorEntity("PersonName", "\n\n", len(a), 2, 0.9)]), [[], []])
+
+    def test_a_line_break_inside_a_column_does_not_move_the_next_columns_offsets(self):
+        """The property of A-NS-41, as far as a simulator can show it: the extractor mock counts the joined text
+        character by character, a CRLF inside a column included, and the flow rebases by the same count."""
+        a, b = "First line\r\nAnn is here.", "\r\nBob and Cara\r\nvisit."
+        row = {"rev_narrativeraw": a, "rev_otherconditionraw": b}
+
+        def found(text):
+            out = []
+            for name in ("Ann", "Bob", "Cara"):
+                out.append(("PersonName", name, text.index(name), len(name), 0.9))
+            return out
+        for ci in (True, False):
+            sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, cs.batch_extractor(found), ci=ci)
+            self.assertEqual([i["Narrative"] for _, i in sim.prompt_inputs],
+                             ["First line\r\n[NAME] is here.", "\r\n[NAME] and [NAME]\r\nvisit."])
+            self.assertEqual(rr.batch_layout([a, b]), [(0, len(a)), (len(a) + 2, len(a) + 2 + len(b))])
+
+    def test_a_failed_batch_marks_every_column_in_it_and_no_other(self):
+        row, texts = self.row_of([3900, 3900, 100])         # batches: [0] and [1, 2]
+        for failing_first in (0, 1):
+            def ext(text, hit=texts[failing_first]):
+                if text.startswith(hit):
+                    raise RuntimeError("no credits")
+                return []
+            for ci in (True, False):
+                with self.subTest(failing_batch=failing_first, ci=ci):
+                    sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, ci=ci)
+                    cols = [raw for raw, _ in rr.SCRUB_COLUMNS][:3]
+                    bad = cols[:1] if failing_first == 0 else cols[1:]
+                    self.assertEqual([r for r in dec.reasons if r.startswith("ai-error")], [f"ai-error:{c}" for c in bad])
+                    self.assertEqual(set(writes), {red for raw, red in rr.SCRUB_COLUMNS[:3] if raw not in bad})
+                    self.assertEqual(len(sim.ops("aibuilderpredict_customprompt")), 3 - len(bad))
+
+    def test_an_unreadable_answer_is_a_failed_batch(self):
+        sim, dec, writes, _ = self.compare({"rev_narrativeraw": "Ann helps.", "rev_otherconditionraw": "Bob helps."},
+                                           cs.ALL_SETTINGS, lambda _: "UNREADABLE")
+        self.assertEqual(writes, {})
+        self.assertEqual(dec.reasons, ("ai-error:rev_narrativeraw", "ai-error:rev_otherconditionraw"))
+        self.assertEqual(sim.ops("aibuilderpredict_customprompt"), [])
+
+    def test_the_plan_names_columns_and_numbers_never_text(self):
+        row, texts = self.row_of([300, 300, 4900])
+        sim, *_ = self.calls_for([300, 300, 4900])
+        plans = [v for var, v in sim.engine.assignments if var == "batchPlan" and isinstance(v, dict)]
+        self.assertTrue(plans)
+        for entry in plans:
+            self.assertEqual(set(entry), {"raw", "red", "batch", "used"})
+            self.assertTrue(all(isinstance(entry[k], int) for k in ("batch", "used")))
+        self.assertEqual([(e["batch"], e["used"]) for e in plans], [(0, 300), (0, 602), (1, 4900)])
+
+    def test_the_reference_batching(self):
+        self.assertEqual(rr.plan_batches([4998, 1]), [[0], [1]])      # 4998 + 2 + 1 = 5001
+        self.assertEqual(rr.plan_batches([4997, 1]), [[0, 1]])
+        self.assertEqual(rr.plan_batches([10, 5000, 10]), [[0], [1], [2]])
+        self.assertEqual(rr.batch_layout(["ab", "cde"]), [(0, 2), (4, 7)])
+        ents = [rr.ExtractorEntity("PersonName", "b\n\nc", 1, 4, 0.9), rr.ExtractorEntity("PersonName", "de", 4, 2, 0.8)]
+        got = rr.map_entities(["ab", "cde"], ents)
+        self.assertEqual([(e.startIndex, e.length, e.crosses) for e in got[0]], [(1, 1, True)])
+        self.assertEqual([(e.startIndex, e.length, e.crosses) for e in got[1]], [(0, 1, True), (0, 2, False)])
 
 
 class FailClosedPaths(Agreement):
@@ -591,6 +821,95 @@ class NameFragments(Agreement):
         self.assertEqual(self._labelled(sim), ["[NAME] Drew reviews me."])
 
 
+class PracticeNamesTheExtractorMisses(Agreement):
+    """TAD rev 29, ADR-075 item 2 "Decided: label" (IMP-1170): a capitalised practice suffix, walked back over at most
+    four capitalised words (or St / St.), is labelled [GP PRACTICE] before the rewrite, whatever the extractor said."""
+
+    def _labelled(self, text, ents=(), settings=None, ci=True):
+        row, ext = one(text, list(ents))
+        sim, dec, writes, _ = self.compare(row, settings or cs.ALL_SETTINGS, ext, ci=ci)
+        return [i["Narrative"] for r, i in sim.prompt_inputs if r == REWRITE_ID], dec
+
+    def test_the_tads_worked_examples(self):
+        cases = {
+            "Dr Adeyemi at Moorside Medical Centre reviews me.": (("PersonName", "Dr Adeyemi"),),
+            "We go to The Old Mill Surgery.": (),
+            "St John's Health Centre is near.": (),
+            "We use St. John's Surgery now.": (),
+            "I see Dr Patel's Surgery.": (("PersonName", "Patel"),),          # the extractor's name is contained
+            "Yesterday Moorside Surgery rang.": (),                           # ambiguity labels more
+        }
+        want = {
+            "Dr Adeyemi at Moorside Medical Centre reviews me.": "Dr [NAME] at [GP PRACTICE] reviews me.",
+            "We go to The Old Mill Surgery.": "We go to [GP PRACTICE].",
+            "St John's Health Centre is near.": "[GP PRACTICE] is near.",
+            "We use St. John's Surgery now.": "We use [GP PRACTICE] now.",
+            "I see Dr Patel's Surgery.": "I see [GP PRACTICE].",
+            "Yesterday Moorside Surgery rang.": "[GP PRACTICE] rang.",
+        }
+        for text, found in cases.items():
+            for ci in (True, False):
+                with self.subTest(text, ci=ci):
+                    lab, dec = self._labelled(text, ents_at(text, *found), ci=ci)
+                    self.assertEqual(lab, [want[text]])
+                    self.assertNotIn("residual-practice-word:rev_narrativeraw", dec.reasons)
+
+    def test_iteration_14_an_extractor_span_and_a_practice_span_in_one_column_sort_on_one_type(self):
+        """IMP-1198, DEV 2026-10-21, build 20261021-3, application 1086: Compose_column_outcome sorts the labelled spans
+        by 'score'. An extractor span carries float(score); the practice-suffix span carried the integer literal 2, so a
+        column with both was InvalidTemplate. wdl_sim.f_sort now rejects mixed Integer/Float like the platform; this
+        column (a PersonName the extractor found, a practice suffix it did not) fails before the fix and is written after."""
+        text = "Dr Adeyemi at Moorside Medical Centre reviews me."
+        for ci in (True, False):
+            with self.subTest(ci=ci):
+                lab, dec = self._labelled(text, ents_at(text, ("PersonName", "Dr Adeyemi")), ci=ci)
+                self.assertEqual(lab, ["Dr [NAME] at [GP PRACTICE] reviews me."])
+                self.assertEqual(dec.reasons, ())
+
+    def test_iteration_14_the_sim_rejects_a_sort_over_mixed_integer_and_float(self):
+        f_sort = lambda arr: wdl_sim.Engine.f_sort(None, arr, "score")   # noqa: E731  (f_sort reads no engine state)
+        with self.assertRaises(wdl_sim.WdlError):
+            f_sort([{"score": 0.9}, {"score": 2}])
+        self.assertEqual(f_sort([{"score": 2.0}, {"score": 0.9}])[0]["score"], 0.9)
+
+    def test_what_is_never_labelled(self):
+        for text in ("I had surgery last spring.", "The practice nurse visits.", "We use a health centre.",
+                     "Surgery was cancelled.", "We went to the Surgery.", "Moorside Surgeryx is not a word."):
+            for ci in (True, False):
+                with self.subTest(text, ci=ci):
+                    lab, _ = self._labelled(text, ci=ci)
+                    self.assertEqual(lab, [text])
+
+    def test_the_walk_stops(self):
+        cases = {"I would like. Moorside Surgery rang.": "I would like. [GP PRACTICE] rang.",   # a full stop
+                 "Call 01 Moorside Surgery.": "Call 01 [GP PRACTICE].",                        # a digit
+                 "One Two Three Four Five Surgery.": "One [GP PRACTICE].",                     # four words at most
+                 "My Moorside Surgery and Hilltop Health Centre.": "[GP PRACTICE] and [GP PRACTICE]."}
+        for text, want in cases.items():
+            with self.subTest(text):
+                self.assertEqual(self._labelled(text)[0], [want])
+
+    def test_an_extractor_span_partly_overlapping_a_practice_holds_the_column(self):
+        text = "Moorside Surgery Ann visits."
+        row, ext = one(text, ents_at(text, ("PersonName", "Surgery Ann")))
+        _, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext)
+        self.assertEqual(writes, {})                                     # not written
+        self.assertIn("overlapping-identifiers:rev_narrativeraw", dec.reasons)
+
+    def test_an_equal_extractor_organization_is_kept_once(self):
+        text = "We see Moorside Medical Centre."
+        lab, dec = self._labelled(text, ents_at(text, ("Organization", "Moorside Medical Centre")))
+        self.assertEqual(lab, ["We see [GP PRACTICE]."])
+        self.assertEqual(dec.confidence, 0.9)        # the extractor's score; a rule span carries none
+
+    def test_an_extra_practice_word_is_a_suffix_capitalised(self):
+        text = "We go to Moorside Walk In Clinic weekly."
+        settings = {**cs.ALL_SETTINGS, "RedactionPracticeWordsExtra": "walk in clinic"}
+        self.assertEqual(self._labelled(text, settings=settings)[0], ["We go to [GP PRACTICE] weekly."])
+        self.assertEqual(self._labelled(text)[0], [text])
+        self.assertEqual(rr.run_context(settings).practice_suffixes[-1], "Walk In Clinic")
+
+
 class PunctuationFidelity(Agreement):
     """Iteration 11: the rewrite dropped full stops and commas in DEV (2026-10-19). Two or more marks fewer
     AND more than 10% fewer: written and held, rewrite-dropped-punctuation."""
@@ -644,6 +963,42 @@ class SeededCasesSeenInDev(Agreement):
                 self.assertEqual(writes["rev_caresupportdescriptionredacted"],
                                  "My partner helps me wash and dress each morning and cooks most meals. "
                                  "Our child, who is [AGE 35 to 44], does the shopping at weekends.")
+
+    def test_td13_the_gp_practice_is_labelled_beside_dr_name(self):
+        """DEV 2026-10-20, build 20261020-1: "... Dr [NAME] at Moorside Medical Centre reviews ..." with
+        residual-practice-word. Pinned here: with a name and an Organization ending in a practice suffix, the shipped
+        flow labels the practice, whether the name span includes "Dr" or not (the Iteration 11 trim and widening touch
+        PersonName spans only). The DEV text is reproduced only when the extractor returns no such Organization; then
+        P3 flags the column, as in DEV (next test)."""
+        d = self.app("TD-13")["rev_disabilityimpactdescription"]
+        want = ("Parkinson's makes walking slow and I fall more often than I would like. "
+                "Dr [NAME] at [GP PRACTICE] reviews my medication every three months.")
+        for name in ("Dr Adeyemi", "Adeyemi"):
+            for ci in (True, False):
+                with self.subTest(name=name, ci=ci):
+                    row = {"rev_disabilityimpactdescription": d}
+                    ext = cs.extractor_for([(d, ents_at(d, ("PersonName", name), ("Organization", "Moorside Medical Centre")))])
+                    sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, ext, ci=ci)
+                    self.assertEqual([i["Narrative"] for r, i in sim.prompt_inputs if r == REWRITE_ID], [want])
+                    self.assertEqual(writes["rev_disabilityimpactdescriptionredacted"], want)
+                    self.assertEqual(dec.reasons, ())
+
+    def test_td13_a_practice_the_extractor_misses_is_labelled(self):
+        """TAD rev 29, ADR-075 item 2 "Decided: label" (IMP-1170). The DEV shape of 2026-10-20: the extractor's
+        Organization is absent, truncated or over-long. The practice is now labelled by its capitalised suffix, so the
+        column is written as with a good extractor answer, and no reason is given."""
+        d = self.app("TD-13")["rev_disabilityimpactdescription"]
+        want = ("Parkinson's makes walking slow and I fall more often than I would like. "
+                "Dr [NAME] at [GP PRACTICE] reviews my medication every three months.")
+        for org in (None, "Moorside Medical", "Moorside Medical Centre reviews"):
+            for ci in (True, False):
+                with self.subTest(org=org, ci=ci):
+                    found = [("PersonName", "Dr Adeyemi")] + ([("Organization", org)] if org else [])
+                    row = {"rev_disabilityimpactdescription": d}
+                    sim, dec, writes, _ = self.compare(row, cs.ALL_SETTINGS, cs.extractor_for([(d, ents_at(d, *found))]), ci=ci)
+                    self.assertEqual([i["Narrative"] for r, i in sim.prompt_inputs if r == REWRITE_ID], [want])
+                    self.assertEqual(writes["rev_disabilityimpactdescriptionredacted"], want)
+                    self.assertEqual(dec.reasons, ())
 
     def test_td15_the_writers_own_name(self):
         a = self.app("TD-15")
@@ -707,7 +1062,7 @@ class RuleRows(Agreement):
         row, ext = one(self.TEXT, self.ENTS)
         settings = {**cs.ALL_SETTINGS, "RedactionNameRules": "Rule one.\r\nRule two."}
         sim = run_flow(row, settings, ext)
-        (rid, inp), _ = sim.prompt_inputs
+        (rid, inp), = sim.prompt_inputs
         self.assertEqual(inp["NeutralTerms"], cs.RULES["RedactionNeutralTerms"])
         self.assertEqual(inp["Titles"], cs.RULES["RedactionTitles"])
         self.assertEqual(inp["Labels"], cs.RULES["RedactionLabels"])
@@ -885,15 +1240,37 @@ class DefinitionShape(unittest.TestCase):
 
     def test_size_and_nesting_stay_what_a_maker_can_read(self):
         """About 95 actions in the TAD's rev 23 estimate; 97 as built (Dev Summary Iteration 10); 100 with Iteration 11's
-        name-fragment widening and check (3 actions); 97 after ADR-078 removed the auto-release reads and the If. A ceiling,
-        not a count: a later change that grows the flow back towards rev 20's 313 fails here."""
-        self.assertLessEqual(len(ACTIONS), 100)
+        name-fragment widening and check (3 actions); 97 after ADR-078 removed the auto-release reads and the If; 100
+        with rev 29's practice spans; 109 with rev 30 (ADR-082: the batch plan and the nested batch loop, minus the
+        spelling call). A ceiling, not a count: ADR-082 item 8 raises it to 125 and the nesting limit to 6 (the platform
+        allows 500 and 8, Microsoft Learn, read 2026-10-21); a change that would cross it goes back to the reviewer with
+        what it proposes to remove."""
+        self.assertLessEqual(len(ACTIONS), 125)
 
         def depth(actions, d=0):
             return max([d] + [depth(sub, d + 1) for _, a in actions.items()
                               for sub in [a.get("actions"), (a.get("else") or {}).get("actions")]
                               + [c.get("actions") for c in (a.get("cases") or {}).values()] if isinstance(sub, dict) and sub])
-        self.assertLessEqual(depth(DEFINITION["actions"]), 5)
+        self.assertLessEqual(depth(DEFINITION["actions"]), 6)
+        self.assertEqual(depth(DEFINITION["actions"]), 6)    # the batch loop wraps the column loop: exactly one level more
+
+    def test_every_expression_is_under_the_platform_limit(self):
+        """Microsoft Learn (Limits of automated, scheduled and instant flows, read 2026-10-21): an expression holds
+        8,192 characters. The pair rule's Select and the two Compose_check_texts forms are the longest new ones."""
+        longest = []
+
+        def scan(v, where):
+            if isinstance(v, str):
+                longest.append((len(v), where))
+            elif isinstance(v, dict):
+                for k, x in v.items():
+                    scan(x, f"{where}.{k}")
+            elif isinstance(v, list):
+                for x in v:
+                    scan(x, where)
+        for n, a in ACTIONS.items():
+            scan(a.get("inputs"), n)
+        self.assertLess(max(longest)[0], 8192, max(longest))
 
     def test_no_compose_in_any_flow_secures_outputs(self):
         """DEV 2026-10-20: the designer refused to save the scrub flow, "InvalidSecureDataConfiguration ...
@@ -909,12 +1286,15 @@ class DefinitionShape(unittest.TestCase):
         self.assertEqual(bad, [])
         self.assertEqual(ACTIONS["Compose_raw_classes"]["runtimeConfiguration"]["secureData"]["properties"], ["inputs"])
 
-    def test_no_until_no_result_and_three_variables(self):
+    def test_no_until_no_result_and_four_variables(self):
         blob = json.dumps(DEFINITION)
         self.assertNotIn('"Until"', blob)
         self.assertNotIn("result(", blob)
         inits = [a["inputs"]["variables"][0]["name"] for a in ACTIONS.values() if a["type"] == "InitializeVariable"]
-        self.assertEqual(inits, ["reasons", "scores", "anyScrubbed"])
+        self.assertEqual(inits, ["reasons", "scores", "anyScrubbed", "batchPlan"])
+        # check 4 (InitializeVariable scoping): all four at the top level, never inside the scope or a loop
+        self.assertEqual([n for n, a in DEFINITION["actions"].items() if a["type"] == "InitializeVariable"],
+                         ["Initialise_reasons", "Initialise_scores", "Initialise_any_scrubbed", "Initialise_batch_plan"])
 
     def test_the_constants_are_the_oracles(self):
         c = ACTIONS["Compose_constants"]["inputs"]
@@ -926,6 +1306,8 @@ class DefinitionShape(unittest.TestCase):
         self.assertNotIn("genderedWords", c)        # rev 23: the gendered list is the RedactionNeutralTerms row
         self.assertEqual(c["streetWords"], rr.STREET_WORDS)
         self.assertEqual(c["practiceWords"], rr.PRACTICE_WORDS)
+        self.assertEqual((c["batchLimit"], c["separator"], c["correctionsMark"], c["pairLengthChange"]),
+                         (rr.BATCH_LIMIT, rr.BATCH_SEPARATOR, rr.CORRECTIONS_MARK, rr.PAIR_MAX_LENGTH_CHANGE))   # ADR-082 items 1, 5, 6
         sel = json.dumps(ACTIONS["Select_spans"]["inputs"]["select"]["code"])
         for s in rr.GP_SUFFIXES:
             self.assertIn(f"' {s}'", sel)
@@ -964,14 +1346,17 @@ class DefinitionShape(unittest.TestCase):
         """A-NS-31, closed: the recordIds are the exported components' ids, named once each (C-TECH-051:
         never invented; until 2026-10-16 they were placeholders). The input names are the TAD's (rev 23): Narrative, NeutralTerms, Titles, NameRules,
         Labels; Text."""
-        rw, sp = ACTIONS["Run_the_rewrite_prompt"], ACTIONS["Run_the_spelling_prompt"]
+        rw = ACTIONS["Run_the_rewrite_prompt"]
         self.assertEqual(rw["inputs"]["parameters"]["recordId"], REWRITE_ID)
-        self.assertEqual(sp["inputs"]["parameters"]["recordId"], SPELLING_ID)
         self.assertEqual(set(rw["inputs"]["parameters"]), {"recordId"} | {f"item/requestv2/{n}" for n in PROMPT_INPUTS[REWRITE_ID]})
-        self.assertEqual(set(sp["inputs"]["parameters"]), {"recordId", "item/requestv2/Text"})
         blob = json.dumps(DEFINITION)
         self.assertEqual(blob.count(REWRITE_ID), 1)
-        self.assertEqual(blob.count(SPELLING_ID), 1)
+        # ADR-082 item 4: the spelling prompt, and the three actions that called and read it, are gone
+        self.assertNotIn(RETIRED_SPELLING_ID, blob)
+        for gone in ("Run_the_spelling_prompt", "Compose_spelling", "Select_spelling_words", "Extract_entities_from_the_column",
+                     "Compose_entities"):
+            self.assertNotIn(gone, ACTIONS)
+            self.assertNotIn(gone, blob)
         self.assertNotIn("122be8e0-4b6b-44cd-a9a9-d1faff162b02", blob)   # the rev 20 detector prompt is not called
 
     def test_every_setting_the_tad_keeps_is_read_and_no_retired_one(self):

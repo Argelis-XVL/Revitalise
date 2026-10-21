@@ -1536,11 +1536,11 @@ environments:
         owner: reviewer (or a session holding live-write permission)
       - description: >
           Share REV | Portal | Finalise Decisions RUN-ONLY with the Entra group
-          REV-PP-GrantApplications-Admins-DEV (TAD 5.7, 12.8), choosing "Use this connection" for the
-          Dataverse connection (the service account), never "Provided by run-only user". Run-only
-          sharing is environment state and does not travel with an import: repeat it in TST/ACC and
-          PRD against REV-PP-GrantApplications-Admins-<env>. It replaces the earlier step that
-          shared the flow with Emily by name.
+          REV-PP-GrantApplications-DEV (the DEV group named in dev-settings.json, confirmed live
+          2026-09-15, IMP-0734; TAD 5.7, 12.8), choosing "Use this connection" for the Dataverse
+          connection (the service account), never "Provided by run-only user". Run-only sharing is
+          environment state and does not travel with an import; TST/ACC and PRD have their own steps
+          below. It replaces the earlier step that shared the flow with Emily by name.
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
@@ -1579,23 +1579,30 @@ environments:
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
-          A-CP-1 to A-CP-9 in ONE DEV session, signed in as a Finance TEST user, BEFORE TST/ACC (architecture
+          A-CP-1 to A-CP-7 in ONE DEV session, signed in as a Finance TEST user, BEFORE TST/ACC (architecture
           section 12.9, WI-0140). (1) Create a payment dated 14 Nov with Final ticked, then edit a second: both
           start a run (A-CP-1, A-CP-2). (2) Read the grant: date 14 Nov (A-CP-3), grant status Paid (4),
-          application Grant Paid, the payment Issued (A-CP-7); run history shows exactly TWO runs for that one
-          save, the second changing nothing (A-CP-8). (3) Untick Final and save: the date is EMPTY (read the
+          application Grant Paid (A-CP-7). The payment reads Issued only once the payment rule exists (A-CP-9,
+          below); until then it reads Pending and the grant, application and clock are unaffected (A-R104).
+          Run history shows exactly ONE run for that save (A-CP-9 check 5; A-CP-8 is withdrawn). (3) Untick Final and save: the date is EMPTY (read the
           column, not the run status, A-CP-6), the grant status back from Paid to Acceptance Signed in the SAME
           write (a null date beside a status that stays Paid is the failure), the application Approved, the
-          payment still Issued. (4) A Pending payment ticked final starts the clock; a Cancelled one does not
+          payment's status unchanged. (4) A Pending payment ticked final starts the clock; a Cancelled one does not
           (A-CP-5). (5) Check the saved flow kept concurrency 1 (A-CP-4); if refused, remove it and say so.
           (6) Record every observed result in Dev Summary section 10; an assumption not observed stays OPEN.
         script: manual
         owner: reviewer (Finance test user) with development-agent
       - description: >
-          A-CP-9 (WI-0136, NOT YET BUILT): author the Payment-form business rule in the DEV maker designer
-          (when Final payment is Yes, Payment Date is business required), then export and unpack it, and copy the
-          exported file into source unedited. development-agent cannot author a designer artefact headlessly and
-          will not write the workflow XAML by hand.
+          A-CP-9 (WI-0136, AUTHORED AND EXPORTED 2026-10-20; amendment c, reviewer decision "4"): the rule
+          "Rev-Payment-Issued" (id 02ac658e-9bcc-f111-a05c-7ced8d43e1b4) is in the DEV solution and in source,
+          copied unedited from the DEV export: a table-scope (Entity) business rule on rev_payment, Activated.
+          Branch a: Final = Yes AND Payment Date empty shows an error on Payment Date. Branch b (a separate
+          condition, not an else): Final = Yes AND Payment Status = Pending sets Payment Status = Issued. No
+          set-requirement-level action, no form-scope rule. Source shows its shape only; its BEHAVIOUR is unproven
+          and stays OPEN: run A-CP-9 checks 1 to 6 (architecture section 12.9) as a Finance test user in DEV
+          after this build is imported, and again in TST/ACC after the managed import (verify it imports Active).
+          The error text in DEV reads "A payment date is required to set the value of "Final Payment" to Yes."
+          (the design said "...when the payment is marked final."): reviewer to accept or re-author.
         script: manual
         owner: reviewer (maker, DEV designer)
 
@@ -2229,10 +2236,24 @@ environments:
           Enter rev_FinanceAlertUpn in TST/ACC (the Pipelines deployment pane validates it; the placeholder in
           provisioning/deploymentSettings/pac-import-tstacc.json is FINANCE_ALERT_UPN_TSTACC). Value: the test
           finance user (Janine). Then turn REV | Finance | Capture Payment on from the designer and run the US-026
-          cases with test payments only: AC-1, AC-6, AC-10, AC-12 (the form refuses a final payment with no date,
-          A-CP-9), AC-13 to AC-15. A-R56 stays OPEN until this V4 test has passed here.
+          cases with test payments only: AC-1, AC-6, AC-10, AC-12 (the save is refused for a final payment with
+          no date, on the form and by API, A-CP-9), AC-13 and AC-14 (the Issued mark, by the payment rule). A-R56 stays OPEN until this V4 test has passed here.
         script: manual
         owner: reviewer (Finance test user)
+
+      # ══ wbs:6.6, REV | Portal | Finalise Decisions, run-only sharing in tst_acc (IMP-1180) ══
+      - description: >
+          Share REV | Portal | Finalise Decisions RUN-ONLY with the Entra group REV-PP-GrantApplications-Admins-ACC
+          (the group named in the environment's deployment settings file), choosing "Use this
+          connection" for the Dataverse connection (the service account), never "Provided by
+          run-only user". CHECK, do not assume: that run-only users can be added to a flow that
+          sits in a MANAGED solution in this environment; if they cannot, stop and tell
+          development-agent, because the control the design relies on is then missing. Then
+          confirm a test Finance user in this environment does NOT see the flow in the Flow menu
+          of REV Grant Administration, Reviews, Awaiting Finalisation (A-FD-9). Sharing is
+          environment state and does not travel with an import.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
 
     smoke_tests:
       - description: Imported solution version matches the artifact (C-TECH-030)
@@ -2483,6 +2504,20 @@ environments:
           Until then that person receives two messages for one cause. Then turn the flow on from the designer.
         script: manual
         owner: reviewer
+
+      # ══ wbs:6.6, REV | Portal | Finalise Decisions, run-only sharing in prd (IMP-1180) ══
+      - description: >
+          Share REV | Portal | Finalise Decisions RUN-ONLY with the Entra group REV-PP-GrantApplications-Admins-PRD
+          (the group named in the environment's deployment settings file), choosing "Use this
+          connection" for the Dataverse connection (the service account), never "Provided by
+          run-only user". CHECK, do not assume: that run-only users can be added to a flow that
+          sits in a MANAGED solution in this environment; if they cannot, stop and tell
+          development-agent, because the control the design relies on is then missing. Then
+          confirm a test Finance user in this environment does NOT see the flow in the Flow menu
+          of REV Grant Administration, Reviews, Awaiting Finalisation (A-FD-9). Sharing is
+          environment state and does not travel with an import.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
 
     smoke_tests:
       - description: Imported solution version matches the artifact

@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 """The AI prompt components (wbs:5.3) against the repo's own documents and the flow that calls them.
 
-REV 22 (Iteration 9, 2026-10-16). The flow now calls two NEW prompts (rewrite, spelling; ADR-075 items 3-4) that do
-not exist yet: their run actions carry placeholder ids until the reviewer creates them in DEV (TAD 12.6.1 R1,
-A-NS-31). The rev 20 detector component below is still in the solution and no longer called. Its tests stand, as a
-check on the component the solution ships; the run-action tests now check the TWO NEW actions against the one
-designer-saved run action this tenant has (fixtures/run-a-prompt-action.json), for host, parameter shape and answer
-path - the parts that are E1 for one prompt and E3 for the new ones.
+REV 22 (Iteration 9, 2026-10-16). The flow called two NEW prompts (rewrite, spelling; ADR-075 items 3-4), created in
+DEV by the reviewer (TAD 12.6.1 R1, A-NS-31 closed by the export of 2026-10-16). The rev 20 detector component below
+is still in the solution and no longer called. Its tests stand, as a check on the component the solution ships; the
+run-action test checks the rewrite action against the one designer-saved run action this tenant has
+(fixtures/run-a-prompt-action.json), for host, parameter shape and answer path.
+
+REV 30 (Iteration 14, 2026-10-21, ADR-082). ONE prompt now rewrites and corrects spelling, so the flow calls the
+rewrite prompt only. The spelling component stays in the solution, uncalled, until the reviewer deletes it in DEV
+(its root-component entry goes in the same commit), so its export is still checked here. The rewrite template of
+rev 30 is in the prompt document section 1 and is APPLIED IN DEV BY THE REVIEWER AFTER the new flow is deployed (R1d),
+so until the component is re-exported, Other/Customizations.xml still holds the rev 23 template. Two tests carry that
+state: the export is compared with the rev 23 text the document keeps in section 1.2, and the rev 30 text is proved to
+be that text plus exactly the spelling changes of ADR-082 item 5. When R1d is done and the export refreshed, a later
+dispatch moves the export comparison to section 1.
 
 Run:  python3 -m unittest discover -s src/tests/narrative -p 'test_*.py' -v
 Also run by NarrativeRedaction.Tests.ps1 inside the HARD `unit-tests` build step.
@@ -85,15 +93,20 @@ def documented_template(heading: str = r"### A1\. The rev 20 detector template")
     return re.search(heading + r".*?```text\n(.*?)\n```", PROMPT_DOC, re.S).group(1)
 
 
+REWRITE_REV30 = r"## 1\. The rewrite prompt"           # the template the reviewer applies in DEV (R1d)
+REWRITE_REV23 = r"### 1\.2 The rev 23 template"         # the template Customizations.xml exports until R1d is re-exported
+SPELLING_DOC = r"## 2\. The spelling prompt"            # retired by ADR-082, kept until the component is deleted in DEV
+
+
 def run_actions() -> dict:
-    """The column loop's If: every action the flow runs per column once the extractor has answered."""
-    return (FLOW["actions"]["Scrub_free_text"]["actions"]["For_each_column"]["actions"]
+    """The column loop's If: every action the flow runs per column once its batch's extractor call has answered.
+    Rev 30: the column loop sits inside the batch loop."""
+    return (FLOW["actions"]["Scrub_free_text"]["actions"]["For_each_batch"]["actions"]["For_each_column"]["actions"]
             ["Label_rewrite_and_check_the_column"]["actions"])
 
 
 NEW_PROMPTS = {  # run action -> (answer Compose, documented section, input names)
-    "Run_the_rewrite_prompt": ("Compose_rewrite", r"## 1\. The rewrite prompt", {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}),
-    "Run_the_spelling_prompt": ("Compose_spelling", r"## 2\. The spelling prompt", {"Text"}),
+    "Run_the_rewrite_prompt": ("Compose_rewrite", REWRITE_REV30, {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}),
 }
 
 
@@ -162,8 +175,13 @@ class TheFlowsRunActions(unittest.TestCase):
             self.assertEqual(act["type"], truth["type"])
             self.assertEqual(act["inputs"]["host"], truth["inputs"]["host"])
             self.assertEqual(set(act["inputs"]["parameters"]), {"recordId"} | {f"item/requestv2/{n}" for n in inputs})
-            self.assertEqual(act["inputs"]["parameters"]["recordId"],
-                             model_id(REWRITE if name == "Run_the_rewrite_prompt" else SPELLING))
+            self.assertEqual(act["inputs"]["parameters"]["recordId"], model_id(REWRITE))
+
+    def test_the_spelling_prompt_is_no_longer_called(self):
+        """ADR-082 item 4: the component is still in the solution (the reviewer deletes it in DEV, then its source reference
+        goes in the same commit) but nothing calls it."""
+        self.assertNotIn(model_id(SPELLING), json.dumps(FLOW))
+        self.assertNotIn("Run_the_spelling_prompt", json.dumps(FLOW))
 
     def test_each_template_declares_exactly_the_inputs_its_action_passes(self):
         for name, (_, heading, inputs) in NEW_PROMPTS.items():
@@ -180,6 +198,7 @@ class TheFlowsRunActions(unittest.TestCase):
             ans = acts[compose]
             self.assertEqual(ans["runAfter"], {name: ["Succeeded", "Failed", "TimedOut"]})
             path = re.search(rf"body\('{name}'\)((?:\?\['[^']+'\])+)\?\['text'\]", ans["inputs"]["text"]).group(1)
+            self.assertIn(f"body('{name}')" + path + "?['finishReason']", ans["inputs"]["usable"])
             self.assertEqual(re.findall(r"\['([^']+)'\]", path) + ["text"], designer)
 
     def test_no_deploy_seeds_the_kill_switch(self):
@@ -194,9 +213,9 @@ class TheFlowsRunActions(unittest.TestCase):
 class TheTwoNewComponents(unittest.TestCase):
     """A-NS-31, closed by the DEV export of 2026-10-16 (after R1b): both components copied from it exactly,
     and checked here against the prompt document and the flow that calls them."""
-    PROMPTS = {REWRITE: ("Run_the_rewrite_prompt", r"## 1\. The rewrite prompt",
+    PROMPTS = {REWRITE: ("Run_the_rewrite_prompt", REWRITE_REV23,
                          {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}),
-               SPELLING: ("Run_the_spelling_prompt", r"## 2\. The spelling prompt", {"Text"})}
+               SPELLING: (None, SPELLING_DOC, {"Text"})}      # None: no run action any more (ADR-082)
 
     def test_the_run_specification_declares_the_inputs_the_flow_passes_and_text_and_finish_reason(self):
         for name, (action, _, inputs) in self.PROMPTS.items():
@@ -205,6 +224,8 @@ class TheTwoNewComponents(unittest.TestCase):
                 required = {k for k, v in spec["InputRootEntity"]["Attributes"].items() if not v.get("Optional")}
                 self.assertEqual(required, inputs)
                 self.assertEqual(set(spec["OutputRootEntity"]["Attributes"]), {"text", "finishReason"})
+                if action is None:
+                    continue
                 passed = {k.split("/", 2)[2] for k in run_actions()[action]["inputs"]["parameters"] if k.startswith("item/requestv2/")}
                 self.assertEqual(passed, inputs)
 
@@ -227,6 +248,41 @@ class TheTwoNewComponents(unittest.TestCase):
                 for t in inputs:
                     doc = doc.replace("{" + t + "}", " {" + t + "} ")
                 self.assertEqual(exported_template(active_configuration(name)["custom"]), doc + "\n")
+
+    def test_the_rev30_template_is_the_exported_one_plus_exactly_the_spelling_changes(self):
+        """ADR-082 item 5. The text the reviewer pastes (section 1) is derived from the text now in DEV (section 1.2) by
+        three edits and nothing else: a Spelling paragraph before the lists, the two closing sentences saying 'apart from
+        the spelling corrections you list' (and no longer 'do not correct spelling'), and the reply form with the
+        delimiter. Any other difference is new drift."""
+        old, new = documented_template(REWRITE_REV23), documented_template(REWRITE_REV30)
+        spelling = ("Spelling. Before applying any rule, correct each word of the text that is misspelt or mistyped. Correct a "
+                    "word only if it starts with a lower-case letter and the correct word starts with the same letter and "
+                    "has the same number of letters give or take two. Never change a word that starts with a capital "
+                    "letter, a label in square brackets, a number, a name of a condition, a medicine or a treatment. Then "
+                    "apply the lists below to the corrected text.\n\n")
+        derived = old.replace("Apply these four lists of rules, and nothing else.", spelling
+                              + "Apply these four lists of rules, and nothing else.", 1)
+        derived = derived.replace("Use only words that are in the text or in the lists above. Correct only",
+                                  "Use only words that are in the text or in the lists above, apart from the spelling "
+                                  "corrections you list. Correct only", 1)
+        derived = derived.replace("Change nothing else: do not add, remove, reorder or reword anything, do not correct spelling, do not add\n"
+                                  "punctuation,", "Change nothing else, apart from the spelling corrections you list: do not add, remove, reorder or reword\n"
+                                  "anything, do not add punctuation,", 1)
+        # IMP-1202: DEV already holds this sentence (reviewer-applied, confirmed on application 1086); the third edit's tail
+        # is extended so the model keeps full stops. The allowed difference now includes exactly this sentence.
+        derived = derived.replace("anything, do not add punctuation, and do not change",
+                                  "anything; keep every punctuation mark exactly where it is, including the full stop at the end "
+                                  "of every sentence and after a label; do not add punctuation; and do not change", 1)
+        derived = derived.replace("Reply with the rewritten text only, with no explanation, quotation marks or code fences.",
+                                  "Reply with the rewritten text only, with no explanation, quotation marks or code fences. If you "
+                                  "corrected any word, add a line ###CORRECTIONS###, and under it one line per corrected word, "
+                                  "misspelt=>corrected, in lower case, nothing else.", 1)
+        norm = lambda t: re.sub(r"\s+", " ", t).strip()  # noqa: E731
+        self.assertEqual(norm(new), norm(derived))
+        self.assertNotIn("do not correct spelling", new)
+        self.assertIn("###CORRECTIONS###", new)
+        self.assertIn("including the full stop at the end of every sentence and after a label", norm(new))
+        self.assertEqual(set(re.findall(r"\{([A-Za-z]+)\}", new)), set(re.findall(r"\{([A-Za-z]+)\}", old)))   # no new input
 
     def test_the_rewrite_prompt_has_no_extra_terms_input_any_more(self):
         custom = active_configuration(REWRITE)["custom"]

@@ -475,17 +475,18 @@ def decide_with_plan(columns, threshold_setting, plan: WritePlan, **kw) -> Decis
 
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
-# FLOW MODEL — TAD rev 22, ADR-075 (approved 2026-10-16): label, rewrite, spell, check
+# FLOW MODEL — TAD rev 22, ADR-075 (approved 2026-10-16), amended by rev 30, ADR-082 (2026-10-21): label, rewrite and spell, check
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # Everything above this line is the v0.1 SPECIFICATION, written with regular expressions. The
 # functions below are `REV | Narrative | Scrub Free-Text` as rebuilt in Iteration 9, step for step:
 #
-#   1. the extractor labels what it finds, in one call per column (no windows: a column over 5,000
-#      characters is not scrubbed, `too-long`);
+#   1. the extractor labels what it finds, in one call per BATCH of columns of at most 5,000 characters
+#      (rev 30, ADR-082; a column over 5,000 characters is not scrubbed, `too-long`), each entity going back
+#      to its column by offset (plan_batches, map_entities);
 #   2. the labelled text is rebuilt by offset, so the model never receives a value the extractor found;
-#   3. the REWRITE prompt applies the client's key, turns names into They, fixes the grammar and labels
-#      anything else identifying;
-#   4. the SPELLING prompt corrects slips, accepted word by word (accept_spelling);
+#   3. the REWRITE prompt applies the client's key, turns names into They, fixes the grammar, labels
+#      anything else identifying and (rev 30) corrects spelling, declaring each correction (split_answer);
+#   4. a declared correction counts only as a validated near-spelling pair (valid_corrections);
 #   5. check P1 (surviving_identifiers): no extractor value survives -> otherwise not written;
 #   6. check P2 (validate_rewrite): the rewrite added no word -> otherwise not written;
 #   7. check P3 (residue_kinds): a residue writes the column and holds the record.
@@ -536,7 +537,7 @@ EXTRACTOR_TYPE_CODE = {
     **{t: "" for t, cat in PREBUILT_TYPE_HANDLING.items() if cat is None},
 }
 
-EXTRACTOR_MAX_CHARS = 5000   # ADR-075 item 1: one call per column, at most this many characters
+EXTRACTOR_MAX_CHARS = 5000   # ADR-075 item 1: a column of more characters is not scrubbed (rev 30: E2, the per-call limit)
 DIGITS = "0123456789"
 LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 LOWER = "abcdefghijklmnopqrstuvwxyz"
@@ -559,7 +560,7 @@ NORM_PUNCT = [",", ":", ";", ".", "(", ")", "-", "–", '"', "!", "?", "/", "[",
               "\n", "\r", "\t"]
 # WORD_PUNCT -> space, for P2's words: the same list WITHOUT the apostrophes, so "they're" stays one word.
 WORD_PUNCT = [p for p in NORM_PUNCT if p not in ("'", "’")]
-# CORE_PUNCT -> removed, for the spelling rule's "is this a closed-list word" test.
+# CORE_PUNCT -> removed, for the pair rule's "is this a closed-list word" test.
 CORE_PUNCT = [p for p in WORD_PUNCT if p not in ("\n", "\r", "\t")]
 COLLAPSES = 4   # double spaces collapsed four times: up to 16 in a row become one
 
@@ -652,6 +653,7 @@ class ExtractorEntity:
     startIndex: int
     length: int
     score: float
+    crosses: bool = False   # ADR-082 item 2: the entity runs past this column into its neighbour (batched call)
 
 
 @dataclass(frozen=True)
@@ -662,6 +664,7 @@ class Span:
     code: str
     score: float
     value: str       # normalised value: what P1 searches for
+    crosses: bool = False   # ADR-082 item 2: the extractor's entity straddles a column boundary
 
     @property
     def end(self) -> int:
@@ -743,7 +746,8 @@ def all_spans(text: str, entities: list[ExtractorEntity]) -> list[Span]:
         if EXTRACTOR_TYPE_CODE.get(e.type or "", "U") == "N":
             trim, back, fwd = dr_trim(text, start, length), joined_before(text, start), joined_after(text, start + length)
             start, length = start + trim - back, length - trim + back + fwd
-        out.append(Span(i, start, length, entity_code(e), float(e.score or 0), normalise(e.value or "")))
+        out.append(Span(i, start, length, entity_code(e), float(e.score or 0), normalise(e.value or ""),
+                        bool(e.crosses)))
     return out
 
 
@@ -768,12 +772,74 @@ def _contains(t: Span, s: Span) -> bool:
     return t.start <= s.start and s.end <= t.end
 
 
-def label_spans(text: str, entities: list[ExtractorEntity]):
+# ── A GP practice the extractor missed (TAD rev 29, ADR-075 item 2 "Decided: label", IMP-1170) ─────────────
+# DEV 2026-10-20: the extractor returned no Organization for "Moorside Medical Centre" in TD-13, and the name was
+# written with only residual-practice-word on it. Now, on the raw column, every case-sensitive occurrence of a
+# capitalised practice suffix (word boundary before: a space or the start; after: a non-letter or the end) becomes a
+# [GP PRACTICE] span from the start of the name to the end of the suffix. The start: walk back word by word (split on
+# single spaces) while the word is St or St., or begins with A-Z and is ASCII letters with optional internal
+# apostrophes or hyphens; at most four words. Zero words: no span. These spans join the extractor's AFTER them, so
+# the existing containment rule drops a span inside another (an equal one kept once, the extractor's), and a partial
+# overlap holds the column. Score NO_SCORE (a rule, not the model); value "" (P1 searches extractor values only).
+PRACTICE_SUFFIXES = ["Surgery", "Medical Centre", "Health Centre", "Medical Practice", "Group Practice",
+                     "Family Practice"]
+PRACTICE_HIT_CAP = 25          # occurrences of one suffix per column; a later one is left to residual-practice-word
+PRACTICE_WALK_WORDS = 4
+PRACTICE_SPAN_BASE = 1000      # practice span i = 1000 + suffix index * 25 + occurrence: never an extractor index
+
+
+def capitalise_words(entry: str) -> str:
+    """A RedactionPracticeWordsExtra entry (word form, single spaces) with each word's first letter upper-cased."""
+    return " ".join(w[:1].upper() + w[1:] for w in entry.split(" "))
+
+
+def _raw_class(text: str) -> str:
+    """Compose_raw_classes without its padding: ASCII letter -> A, anything else itself."""
+    return "".join("A" if c in LETTERS else c for c in text)
+
+
+def practice_name_word(word: str, cls: str) -> bool:
+    if word in ("St", "St."):
+        return True
+    return (word[:1] in LETTERS[26:] and cls[:1] == "A" and cls[-1:] == "A"
+            and not cls.replace("A", "").replace("'", "").replace("’", "").replace("-", ""))
+
+
+def practice_spans(text: str, suffixes=None) -> list[Span]:
+    suffixes = PRACTICE_SUFFIXES if suffixes is None else list(suffixes)
+    cls = _raw_class(text)
+    out = []
+    for k, suffix in enumerate(suffixes):
+        parts = text.split(suffix)
+        for j in range(PRACTICE_HIT_CAP):
+            if j >= len(parts) - 1:
+                continue
+            pos = len(suffix.join(parts[:j + 1]))
+            end = pos + len(suffix)
+            if not (pos == 0 or text[pos - 1] == " ") or _letter(text, end):
+                continue
+            words = text[:max(pos - 1, 0)].split(" ")
+            cwords = cls[:max(pos - 1, 0)].split(" ")
+            taken, total = 0, 0
+            for back in range(1, PRACTICE_WALK_WORDS + 1):
+                w = words[-back] if len(words) >= back else ""
+                cw = cwords[-back] if len(cwords) >= back else ""
+                if not practice_name_word(w, cw):
+                    break
+                taken, total = back, total + len(w)
+            if taken == 0:
+                continue
+            start = pos - 1 - (total + taken - 1)
+            out.append(Span(PRACTICE_SPAN_BASE + k * PRACTICE_HIT_CAP + j, start, end - start, "G", NO_SCORE, ""))
+    return out
+
+
+def label_spans(text: str, entities: list[ExtractorEntity], suffixes=None):
     """-> (labelled spans, kept spans sorted by start, unmapped?, partial overlap?).
     Labelled: a code that is neither retained ('') nor unmapped ('U'), and a length above 0. A span inside
     another is dropped (the longer wins; equal extents: the earlier entity wins). Two spans that overlap
     without either containing the other hold the column (`overlapping-identifiers`, not written)."""
-    spans = all_spans(text, entities)
+    spans = all_spans(text, entities) + practice_spans(text, suffixes)   # rev 29: practice spans after
     unmapped = any(s.code == "U" for s in spans)
     lab = [s for s in spans if s.code not in ("", "U") and s.length > 0]
     dropped, partial = set(), False
@@ -785,6 +851,9 @@ def label_spans(text: str, entities: list[ExtractorEntity]):
                 dropped.add(s.i)
             elif t.start < s.end and s.start < t.end and not _contains(t, s) and not _contains(s, t):
                 partial = True
+    # ADR-082 item 2: a labelled entity that straddles two columns of a batched call is held exactly as a partial
+    # overlap is, in every column it touches, whether or not another span contains it here.
+    partial = partial or any(s.crosses for s in lab)
     kept = sorted([s for s in lab if s.i not in dropped], key=lambda s: s.start)
     return lab, kept, unmapped, partial
 
@@ -1068,6 +1137,7 @@ class RunContext:
     invalid_lists: tuple = ()
     street_words: tuple = tuple(STREET_WORDS)
     practice_words: tuple = tuple(PRACTICE_WORDS)
+    practice_suffixes: tuple = tuple(PRACTICE_SUFFIXES)   # rev 29: the built-ins plus the extra row, capitalised
     gendered_words: tuple = ()         # left-hand words of RedactionNeutralTerms, as typed (lower case)
     titles: tuple = ()                 # RedactionTitles, capitals as written, no full stop
     closed: tuple = tuple(closed_words())
@@ -1123,6 +1193,7 @@ def run_context(settings: dict, modified: dict | None = None, register=_SEED) ->
         invalid_lists=tuple(invalid),
         street_words=_union(STREET_WORDS, extra["RedactionStreetWordsExtra"]),
         practice_words=_union(PRACTICE_WORDS, extra["RedactionPracticeWordsExtra"]),
+        practice_suffixes=_union(PRACTICE_SUFFIXES, [capitalise_words(e) for e in extra["RedactionPracticeWordsExtra"]]),
         gendered_words=tuple(w for w, _ in terms),
         titles=tuple(parsed["RedactionTitles"] or ()),
         closed=_union(_union(closed_words(), targets), parsed["RedactionLabels"] or []),
@@ -1133,43 +1204,104 @@ def run_context(settings: dict, modified: dict | None = None, register=_SEED) ->
     )
 
 
-# ── Step 4: the spelling answer, accepted word by word (ADR-075 item 4) ───────────────────────
-SPELLING_MAX_LENGTH_CHANGE = 2
+# ── Rev 30 (ADR-082): batches, offsets, the merged answer and the declared-pair rule ─────────────
+# Items 1 and 2: the columns chosen are packed, in order, into calls of at most BATCH_LIMIT characters
+# (separators included), one extractor call per batch; each entity goes back to its column by offset.
+BATCH_LIMIT = 5000          # E2: "Documents can't exceed 5,000 characters" (Compose_constants.batchLimit)
+BATCH_SEPARATOR = "\n\n"     # two line feeds (Compose_constants.separator)
+CORRECTIONS_MARK = "###CORRECTIONS###"   # item 5 (Compose_constants.correctionsMark)
 
 
-def _alnum(ch: str) -> bool:
-    return ch.lower() in LOWER + DIGITS and ch != ""
+def plan_batches(lengths: list[int]) -> list[list[int]]:
+    """Next fit: a column joins the open batch when batch + separator + column is at most BATCH_LIMIT, else it
+    opens the next. Order kept, no column split, no look-back. No column: no batch, so no call."""
+    batches: list[list[int]] = []
+    used = 0
+    for i, n in enumerate(lengths):
+        if batches and used + len(BATCH_SEPARATOR) + n <= BATCH_LIMIT:
+            batches[-1].append(i)
+            used += len(BATCH_SEPARATOR) + n
+        else:
+            batches.append([i])
+            used = n
+    return batches
 
 
-def take_correction(original: str, corrected: str, closed=None, gendered=None) -> bool:
-    """One word: the correction is taken only when the original starts with a lower-case letter, the
-    correction keeps that first letter, neither is (part of) a label, the original is not a closed-list
-    word, the correction is not a gendered word (FR-100: never bring a replaced word back), the trailing
-    punctuation is kept, and the length changes by at most two letters."""
+def batch_layout(texts: list[str]) -> list[tuple[int, int]]:
+    """(start, end) of each column in the joined text. Select_batch_layout: start is the length of the
+    joined earlier columns plus one separator; end is start plus the column's length."""
+    out = []
+    for i, t in enumerate(texts):
+        start = 0 if i == 0 else len(BATCH_SEPARATOR.join(texts[:i])) + len(BATCH_SEPARATOR)
+        out.append((start, start + len(t)))
+    return out
+
+
+def map_entities(texts: list[str], ents: list[ExtractorEntity]) -> list[list[ExtractorEntity]]:
+    """Per column, the entities that TOUCH it (start < end and start + length > start of the column), rebased to
+    the column and clamped to it, with `crosses` when it is not wholly inside. An entity inside the separator
+    touches no column and is dropped (Filter_column_entities, Select_column_entities)."""
+    out = []
+    for start, end in batch_layout(texts):
+        col = []
+        for e in ents:
+            si, ln = int(e.startIndex or 0), int(e.length or 0)
+            if si < end and si + ln > start:
+                col.append(ExtractorEntity(
+                    e.type, e.value, max(min(si - start, end - start), 0),
+                    max(min(si + ln, end) - max(si, start), 0), e.score, si < start or si + ln > end))
+        out.append(col)
+    return out
+
+
+def split_answer(text: str) -> tuple[str, list[str]]:
+    """Item 5: the answer is split at the FIRST CORRECTIONS_MARK; the text before it (white space trimmed, as
+    the flow's trim()) is the rewrite, each line after it a declared correction. No mark: no corrections."""
+    i = text.find(CORRECTIONS_MARK)
+    if i < 0:
+        return text.strip(), []
+    return text[:i].strip(), [ln.replace("\r", "") for ln in text[i + len(CORRECTIONS_MARK):].split("\n")]
+
+
+PAIR_MAX_LENGTH_CHANGE = 2   # the pair rule's number (Select_valid_corrections), a constant not a setting
+
+
+def _word_ok(w: str) -> bool:
+    """Letters, with an optional INTERNAL hyphen or apostrophe: first and last character are letters."""
+    return bool(w) and w[0] in LETTERS and w[-1] in LETTERS and all(c in LETTERS or c in "-'" for c in w)
+
+
+def input_case_words(labelled: str) -> set:
+    """Compose_check_texts.inputCase: the labelled text with labels removed and punctuation to spaces, CASE KEPT."""
+    s = remove_labels(labelled).replace("’", "'")
+    for ch in WORD_PUNCT:
+        s = s.replace(ch, " ")
+    return set(_collapse(s).split())
+
+
+def valid_corrections(labelled: str, declared: list[str], closed=None, gendered=None) -> list[str]:
+    """Item 6, the pair rule: a declared `wrong=>right` is valid when `wrong` is a word of the labelled input as
+    written there and starts with a lower-case letter, `right` starts with the same letter, their lengths differ by
+    at most two, both are letters (an optional internal hyphen or apostrophe, no brackets), `wrong` is not a
+    closed-list word and `right` is not a gendered word. Returns the valid `right` words, lower case.
+    A line that is not `word=>word` is ignored."""
     closed = SEED_CONTEXT().closed if closed is None else closed
     gendered = SEED_CONTEXT().gendered_words if gendered is None else gendered
-    o0, c0 = (original + " ")[0], (corrected + " ")[0]
-    if o0 not in LOWER or c0 != o0:
-        return False
-    if abs(len(corrected) - len(original)) > SPELLING_MAX_LENGTH_CHANGE:
-        return False
-    if any(b in original or b in corrected for b in "[]"):
-        return False
-    if core(original) in closed or core(corrected) in gendered:
-        return False
-    lo, lc = (" " + original)[-1], (" " + corrected)[-1]
-    return _alnum(lc) if _alnum(lo) else lc == lo
-
-
-def accept_spelling(rewrite: str, corrected: str | None, usable: bool = True, closed=None, gendered=None) -> str:
-    """Both texts split on single spaces. A different word count, or an unusable answer, discards the
-    correction: the rewrite stands, and no reason code is added (a spelling failure is not a safety event)."""
-    if not usable or corrected is None:
-        return rewrite
-    o, c = rewrite.split(" "), corrected.split(" ")
-    if len(o) != len(c):
-        return rewrite
-    return " ".join(cw if take_correction(ow, cw, closed, gendered) else ow for ow, cw in zip(o, c))
+    given = input_case_words(labelled)
+    out = []
+    for line in declared:
+        parts = line.strip().split("=>")
+        if len(parts) != 2:
+            continue
+        w, r = parts[0].strip(), parts[1].strip()
+        if not (_word_ok(w) and _word_ok(r)) or w[0] not in LOWER or r[0] != w[0]:
+            continue
+        if abs(len(r) - len(w)) > PAIR_MAX_LENGTH_CHANGE or w not in given:
+            continue
+        if core(w) in closed or core(r) in gendered:
+            continue
+        out.append(r.lower())
+    return out
 
 
 # ── Step 5-7: checks P1, P2 and P3 (ADR-075 items 5-7) ─────────────────────────────────────────
@@ -1179,16 +1311,18 @@ def surviving_identifiers(final: str, values) -> list[str]:
     return [v for v in values if v.strip() and f" {v} " in f]
 
 
-def validate_rewrite(labelled: str, rewrite: str, closed=None) -> list[str]:
+def validate_rewrite(labelled: str, rewrite: str, closed=None, corrected=()) -> list[str]:
     """P2: the words of the rewrite (labels removed) that are neither a word of the labelled input, nor on
     the closed list, nor a plural-agreement form of an input word (`rely` when `relies` is in the input).
     Empty = valid. Anything the model writes is therefore a word it was given after labelling, or a word
-    the flow holds: it cannot add an identifier, only move or drop words already there."""
+    the flow holds: it cannot add an identifier, only move or drop words already there.
+    Rev 30 (ADR-082 item 6): a word is also allowed when it is the corrected half of a declared correction that
+    passed the pair rule (`corrected`, from valid_corrections)."""
     closed = SEED_CONTEXT().closed if closed is None else closed
     given = set(p2_words(labelled))
     added = []
     for w in p2_words(rewrite):
-        if w in given or w in closed or w + "s" in given or w + "es" in given \
+        if w in given or w in closed or w in corrected or w + "s" in given or w + "es" in given \
                 or (w.endswith("y") and w[:-1] + "ies" in given):
             continue
         added.append(w)
@@ -1201,8 +1335,8 @@ def dropped_text(labelled: str, rewrite: str) -> bool:
 
 
 # Iteration 11: a fidelity check, like dropped_text. DEV 2026-10-19: the rewrite model dropped full stops and
-# commas in several columns; nothing in the flow removes punctuation (the spelling answer is taken only with
-# the same end punctuation, word by word). Write and hold when the rewrite has at least two FEWER marks than
+# commas in several columns; nothing in the flow removes punctuation (rev 30: the prompt corrects spelling, and a
+# declared pair must be letters only). Write and hold when the rewrite has at least two FEWER marks than
 # its input AND more than 10% fewer: one title written "Mr." removed costs one mark and is not held.
 FIDELITY_PUNCT = ".,;:!?"
 
@@ -1253,14 +1387,16 @@ class ColumnOutcome:
 
 
 def _answer(call, **inputs):
-    """A prompt call: (usable, text). Any failure, a non-stop finish or an empty text is unusable."""
+    """A prompt call: (usable, rewrite, declared corrections). Any failure, a non-stop finish or an empty rewrite
+    (the text before the first CORRECTIONS_MARK) is unusable (Compose_rewrite)."""
     try:
         ans = call(**inputs) or {}
     except Exception:  # noqa: BLE001 - any failure of the call is handled, by design
-        return False, ""
+        return False, "", []
     text, reason = ans.get("text"), ans.get("finishReason")
-    usable = isinstance(reason, str) and reason.lower() == "stop" and isinstance(text, str) and bool(text.strip())
-    return usable, text if isinstance(text, str) else ""
+    rw, declared = split_answer(text if isinstance(text, str) else "")
+    usable = isinstance(reason, str) and reason.lower() == "stop" and isinstance(text, str) and bool(rw)
+    return usable, rw, declared
 
 
 def column_state(text: str | None, existing: str | None) -> str:
@@ -1273,23 +1409,20 @@ def column_state(text: str | None, existing: str | None) -> str:
     return "scrub"
 
 
-def scrub_column(key: str, text: str, extract, rewrite, spelling, ctx: RunContext) -> ColumnOutcome:
-    """A column already chosen for scrubbing. `extract(text) -> [ExtractorEntity]` (raising or None = the
-    call failed); `rewrite(Narrative=, NeutralTerms=, Titles=, NameRules=, Labels=)` and `spelling(Text=)` return {"text", "finishReason"}."""
-    try:
-        ents = extract(text)
-    except Exception:  # noqa: BLE001
-        ents = None
-    if not isinstance(ents, list):          # a failed call, or an answer at neither entity path
+def scrub_column(key: str, text: str, ents, rewrite, ctx: RunContext) -> ColumnOutcome:
+    """A column already chosen for scrubbing. `ents` is this column's entities from its batch's call, mapped by
+    offset (map_entities), or None when the batch's call failed or answered at neither entity path (every column of
+    the batch is then ai-error, ADR-082 item 3); `rewrite(Narrative=, NeutralTerms=, Titles=, NameRules=, Labels=)`
+    returns {"text", "finishReason"}, the merged answer of ADR-082 item 5."""
+    if not isinstance(ents, list):
         return ColumnOutcome("error", reasons=[f"ai-error:{key}"])
-    lab, kept, unmapped, partial = label_spans(text, ents)
+    lab, kept, unmapped, partial = label_spans(text, ents, ctx.practice_suffixes)
     labelled = labelled_text(text, kept)
-    usable, rw = _answer(rewrite, Narrative=labelled, NeutralTerms=ctx.neutral_terms, Titles=ctx.titles_text,
-                         NameRules=ctx.name_rules, Labels=ctx.labels_text)
-    sp_ok, sp = _answer(spelling, Text=rw)
-    final = accept_spelling(rw, sp, sp_ok, ctx.closed, ctx.gendered_words)
+    usable, rw, declared = _answer(rewrite, Narrative=labelled, NeutralTerms=ctx.neutral_terms, Titles=ctx.titles_text,
+                                   NameRules=ctx.name_rules, Labels=ctx.labels_text)
+    final = rw                       # Compose_final_text is an alias of the rewrite
     p1 = surviving_identifiers(final, [s.value for s in lab])
-    p2 = validate_rewrite(labelled, rw, ctx.closed)
+    p2 = validate_rewrite(labelled, rw, ctx.closed, valid_corrections(labelled, declared, ctx.closed, ctx.gendered_words))
     write = usable and not partial and not p1 and not p2 and len(final) <= REDACTED_MAX_CHARS
     reasons = []
     if unmapped:
@@ -1322,7 +1455,7 @@ class FlowDecision:
     reasons: tuple[str, ...]
 
 
-def flow_scrub_record(row_: dict, settings, extract, rewrite, spelling, *, modified: dict | None = None,
+def flow_scrub_record(row_: dict, settings, extract, rewrite, *, modified: dict | None = None,
                       register=_SEED) -> tuple[FlowDecision | None, dict, list]:
     """The whole flow for one application row -> (decision, writes, outcomes). A released record is
     never touched: (None, {}, [])."""
@@ -1331,16 +1464,29 @@ def flow_scrub_record(row_: dict, settings, extract, rewrite, spelling, *, modif
     ctx = settings if isinstance(settings, RunContext) else run_context(settings, modified, register)
     loop_reasons, not_scrubbed, writes, outcomes, scores = [], [], {}, [], []
     any_scrubbed = False
-    for raw, red in SCRUB_COLUMNS:
-        state = column_state(row_.get(raw), row_.get(red))
+    states = [(raw, red, column_state(row_.get(raw), row_.get(red))) for raw, red in SCRUB_COLUMNS]
+    chosen = [raw for raw, _, st in states if st == "scrub" and not ctx.stage_off and ctx.rules_ok]
+    # ADR-082 items 1-3: the chosen columns are packed into batches, one extractor call per batch, each entity back
+    # to its column by offset; a failed or unreadable call is None for every column of its batch.
+    mapped: dict = {}
+    for batch in plan_batches([len(row_[raw]) for raw in chosen]):
+        names = [chosen[i] for i in batch]
+        texts = [row_[n] for n in names]
+        try:
+            ents = extract(BATCH_SEPARATOR.join(texts))
+        except Exception:  # noqa: BLE001
+            ents = None
+        per = map_entities(texts, ents) if isinstance(ents, list) else [None] * len(names)
+        mapped.update(zip(names, per))
+    for raw, red, state in states:
         if state == "kept":
             not_scrubbed.append(f"kept-existing-counterpart:{raw}")
         elif state == "too-long":
             not_scrubbed.append(f"too-long:{raw}")
-        if state != "scrub" or ctx.stage_off or not ctx.rules_ok:
+        if raw not in mapped:
             outcomes.append(ColumnOutcome(state if state != "scrub" else "not-run"))
             continue
-        o = scrub_column(raw, row_[raw], extract, rewrite, spelling, ctx)
+        o = scrub_column(raw, row_[raw], mapped[raw], rewrite, ctx)
         outcomes.append(o)
         loop_reasons += o.reasons
         if o.status == "scrubbed":
@@ -1409,8 +1555,9 @@ SEED_ROWS = {
     # keeps [NAME] ("I am they" in DEV); the relationship word leads even when others are named ("Our child
     # [NAME]" in DEV); worked examples, label-only. The rules are in the order they apply.
     "RedactionNameRules": "\n".join([
-        "When [NAME] is the writer's own name, as in \"I am [NAME]\", \"I'm [NAME]\" or \"my name is [NAME]\", "
-        "keep [NAME].",
+        "When [NAME] is the writer's own name, keep [NAME]. This includes \"I am [NAME]\", \"I'm [NAME]\", "
+        "\"my name is [NAME]\" and any sentence where the writer says [NAME] is what they are called, such as "
+        "\"[NAME] is the name my friends use for me\".",
         "Keep [NAME] after Dr: \"Dr [NAME] reviews my medication\" stays as it is.",
         "When [NAME] comes straight after a relationship word, remove it and keep the neutral word, even when the "
         "text names other people: \"my husband [NAME]\" becomes \"my partner\", and \"our son [NAME], who is "
@@ -1652,9 +1799,16 @@ def _agreements(text: str, words: list, i: int, agreed: set) -> list[tuple[int, 
 
 
 def _self_name(words: list, i: int, text: str) -> bool:
-    """The writer's own name (Iteration 11): "I am [NAME]", "I'm [NAME]", "my name is [NAME]"."""
+    """The writer's own name (Iteration 11): "I am [NAME]", "I'm [NAME]", "my name is [NAME]"; and (DEV 2026-10-20,
+    TD-15 "they is the name my friends use for me") a sentence where the writer says [NAME] is what they are called:
+    "[NAME] is the name …", "[NAME] is what … call me", "… call me [NAME]"."""
     def w(k):
-        return words[i - k][2].lower().replace("’", "'") if i - k >= 0 else ""
+        j = i - k
+        return words[j][2].lower().replace("’", "'") if 0 <= j < len(words) else ""
+    if ((w(-1), w(-2), w(-3)) == ("is", "the", "name") and w(-4) != "of") or (w(-1), w(-2)) == ("is", "what"):
+        return True
+    if w(2) in ("call", "calls") and w(1) == "me":
+        return True
 
     def tight(k):     # word i-k and the next one are separated by spaces only
         return text[words[i - k][1]:words[i - k + 1][0]].strip(" ") == ""

@@ -5,10 +5,10 @@
     TWO KINDS OF TEST. (1) The Python suite under src/tests/solutions/capture_payment/ EXECUTES the
     shipped flow definition with the repository's WDL executor over an in-memory Dataverse and
     asserts every US-026 acceptance criterion that is a statement about the flow's own decisions,
-    the fixed-point argument behind A-CP-8, and the failure paths. (2) The static tests below pin
+    that no action writes rev_payment (A-CP-8 is withdrawn), and the failure paths. (2) The static tests below pin
     the shape a later edit could silently break.
 
-    WHAT NEITHER CAN DO. Nothing here ran on the platform. A-CP-1 to A-CP-9 (Dev Summary section
+    WHAT NEITHER CAN DO. Nothing here ran on the platform. A-CP-1 to A-CP-7 and A-CP-9 (Dev Summary section
     10) stay open until the DEV session of architecture section 12.9; the Python suite's header
     says, per row, what its stand-in assumes.
 #>
@@ -26,12 +26,11 @@ BeforeAll {
     $script:Repo = Get-RepositoryRoot
     $script:Writes = @(
         $script:Scope['Check_the_grant_date_differs']['actions']['Write_the_grant_date'],
-        $script:Scope['Check_the_application_status_changes']['actions']['Write_the_application_status'],
-        $script:Scope['Check_the_payment_becomes_issued']['actions']['Write_the_payment_issued'])
+        $script:Scope['Check_the_application_status_changes']['actions']['Write_the_application_status'])
 }
 
 Describe 'REV | Finance | Capture Payment - executed against an in-memory Dataverse' {
-    It 'passes the Python suite (US-026 AC-1 to AC-15, the fixed point, the failure paths, the reads)' {
+    It 'passes the Python suite (US-026 AC-1 to AC-15, no write to rev_payment, the failure paths, the reads)' {
         $dir = Join-Path $PSScriptRoot 'capture_payment'
         $output = & python3 -m unittest discover -s $dir -p 'test_*.py' 2>&1
         $code = $LASTEXITCODE
@@ -63,23 +62,25 @@ Describe 'REV | Finance | Capture Payment - trigger (ADR-081 item 1)' {
     }
 }
 
-Describe 'REV | Finance | Capture Payment - what it writes (ADR-081 items 3, 4, 7)' {
-    It 'writes three things and only three: the grant date, the application status, the payment status' {
-        [regex]::Matches($script:Exec, '"operationId":"(UpdateOnlyRecord|UpdateRecord|CreateRecord|DeleteRecord)"').Count | Should -Be 3
-        $script:Writes.Count | Should -Be 3
+Describe 'REV | Finance | Capture Payment - what it writes (ADR-081 items 3, 4, 7; amendment c)' {
+    It 'writes two things and only two: the grant (date and status) and the application status; nothing writes rev_payment' {
+        [regex]::Matches($script:Exec, '"operationId":"(UpdateOnlyRecord|UpdateRecord|CreateRecord|DeleteRecord)"').Count | Should -Be 2
+        $script:Writes.Count | Should -Be 2
+        $script:Exec | Should -Not -Match '"entityName":"rev_payments"[^}]*"item/'
+        $script:Exec | Should -Not -Match 'Write_the_payment_issued'
+        @($script:Writes | Where-Object { $_['inputs']['parameters']['entityName'] -eq 'rev_payments' }).Count | Should -Be 0
         ($script:Writes | ForEach-Object { $_['inputs']['host']['operationId'] } | Sort-Object -Unique) | Should -Be 'UpdateOnlyRecord'
     }
     It 'writes flat item/ keys, never a nested item object (the known UpdateRecord trap)' {
         $script:Exec | Should -Not -Match '"item"\s*:\s*\{'
         (($script:Writes[0]['inputs']['parameters'].Keys | Where-Object { $_ -like 'item/*' } | Sort-Object) -join ',') | Should -Be 'item/rev_finalpaymentdate,item/rev_status'
         ($script:Writes[1]['inputs']['parameters'].Keys | Where-Object { $_ -like 'item/*' }) | Should -Be 'item/rev_status'
-        ($script:Writes[2]['inputs']['parameters'].Keys | Where-Object { $_ -like 'item/*' }) | Should -Be 'item/rev_paymentstatus'
     }
     It 'sets or clears the grant date in ONE action (null when no final payment exists)' {
         $script:Writes[0]['inputs']['parameters']['item/rev_finalpaymentdate'] | Should -Match 'if\(empty\(.*\), null, '
     }
-    It 'writes the payment status only to Issued (2), and never Pending, Cleared or Cancelled' {
-        $script:Writes[2]['inputs']['parameters']['item/rev_paymentstatus'] | Should -Be 2
+    It 'still lists rev_paymentstatus in the trigger filter, so a cancel or un-cancel recomputes the grant (FR-110)' {
+        $script:Trigger['inputs']['parameters']['subscriptionRequest/filteringattributes'] | Should -Match 'rev_paymentstatus'
     }
     It 'writes the application only between Approved (7) and Grant Paid (11)' {
         $script:Scope['Compose_plan']['inputs']['newApplicationStatus'] | Should -Match 'equals\(outputs\(.Compose_application_status.\), 7\)\), 11'
@@ -89,8 +90,7 @@ Describe 'REV | Finance | Capture Payment - what it writes (ADR-081 items 3, 4, 
         $script:Scope['Compose_plan']['inputs']['newGrantStatus'] | Should -Match "equals\(outputs\('Compose_grant'\)\?\['status'\], 3\)\), 4"
         $script:Scope['Compose_plan']['inputs']['newGrantStatus'] | Should -Match ', 3, 0\)\)$'
     }
-    It 'writes the payment LAST, so a stopped run leaves the visible sign (still Pending)' {
-        $script:Scope['Check_the_payment_becomes_issued']['runAfter'].Keys | Should -Contain 'Check_the_application_status_changes'
+    It 'writes the grant, then the application, in that fixed order' {
         $script:Scope['Check_the_application_status_changes']['runAfter'].Keys | Should -Contain 'Check_the_grant_date_differs'
     }
     It 'every write carries a retry policy (the platform transient-error retry; the flow adds no loop)' {
@@ -139,7 +139,7 @@ Describe 'REV | Finance | Capture Payment - visibility (FR-111) and the failure 
     }
     It 'sends the report last, after every write, so a failure to send never undoes them' {
         $script:Scope['Compose_reasons']['runAfter'].Keys | Should -Contain 'Compose_grant_status_name'
-        $script:Scope['Compose_application_status_name']['runAfter'].Keys | Should -Contain 'Check_the_payment_becomes_issued'
+        $script:Scope['Compose_application_status_name']['runAfter'].Keys | Should -Contain 'Check_the_application_status_changes'
     }
     It 'a platform failure alerts at Error and ends the run Failed, and does not accept Skipped as a cause' {
         $alert = $script:Def['actions']['Alert_capture_failed']

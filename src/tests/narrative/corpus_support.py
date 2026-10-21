@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Shared test support for the narrative suite (wbs:5.2, 5.3): the simulated extractor over the 20-sample
-synthetic corpus, and stand-ins for the two prompts. Not a test module.
+synthetic corpus, and stand-ins for the rewrite prompt. Not a test module.
 
 The simulated extractor is 'perfect' in the way the platform documents it (E2): it returns names, GP
 practices (Organization), ages, emails and the STREET part of an address. It does NOT return UK phone
@@ -9,7 +9,8 @@ those any more: the rewrite prompt labels them, and the residue checks hold the 
 
 The prompt stand-ins are what the tests feed the SHIPPED flow and the oracle alike. `good_rewrite` is the
 oracle's own neutral_rewrite (what wbs:5.7 expects of the live model); the others are bad models, written
-to prove P1, P2 and the spelling rule hold against them (ADR-075, "What the tests must prove").
+to prove P1, P2 and the declared-pair rule hold against them (ADR-075, ADR-082 "What the tests must prove").
+Rev 30: one prompt rewrites AND corrects spelling, so `rewrite_corrected` answers in the merged form.
 """
 from __future__ import annotations
 
@@ -55,14 +56,39 @@ def as_entities(ents):
 
 
 def extractor_for(texts_and_entities, calls=None):
-    """The mock extractor call for a row whose columns hold different texts: the whole column is one call."""
+    """The mock extractor for a row whose columns hold different texts. Rev 30 (ADR-082): one call carries a BATCH,
+    the chosen columns joined by two line feeds, and the entities come back with offsets into the joined text. The
+    mock walks the joined text, recognises each column by the texts the test supplied (longest first) and shifts
+    that column's entities by its offset."""
+    known = sorted(texts_and_entities, key=lambda te: -len(te[0]))
+
     def call(text):
         if calls is not None:
             calls.append(len(text))
-        for plain, ents in texts_and_entities:
-            if plain == text:
-                return as_entities(ents)
-        raise AssertionError("extractor called with a text no test supplied")
+        out, pos = [], 0
+        while True:
+            for plain, ents in known:
+                if text.startswith(plain, pos):
+                    out += [rr.ExtractorEntity(t, v, s + pos, n, sc) for t, v, s, n, sc in ents]
+                    pos += len(plain)
+                    break
+            else:
+                raise AssertionError("extractor called with a text no test supplied")
+            if pos == len(text):
+                return out
+            if not text.startswith(rr.BATCH_SEPARATOR, pos):
+                raise AssertionError("extractor called with a text no test supplied")
+            pos += len(rr.BATCH_SEPARATOR)
+    return call
+
+
+def batch_extractor(per_text, calls=None):
+    """A mock that answers a JOINED text with entities the test positions itself (offsets into the joined text):
+    `per_text(text) -> [(type, value, start, length, score)]`. For tests of the straddle, the separator and CRLF."""
+    def call(text):
+        if calls is not None:
+            calls.append(text)
+        return as_entities(per_text(text))
     return call
 
 
@@ -85,14 +111,27 @@ def good_rewrite(Narrative, NeutralTerms="", Titles="", NameRules="", Labels="")
     return answer(rr.neutral_rewrite(Narrative, 1, terms, titles))
 
 
-def echo_spelling(Text):  # noqa: N803
-    return answer(Text)
+def corrections_answer(text, pairs, finish="Stop"):
+    """The merged answer of ADR-082 item 5: the rewritten text, then, if any word was corrected, a line holding
+    exactly the delimiter and one `wrong=>right` line per correction."""
+    if not pairs:
+        return answer(text, finish)
+    lines = "\n".join(f"{w}=>{r}" for w, r in pairs)
+    return answer(f"{text}\n{rr.CORRECTIONS_MARK}\n{lines}", finish)
 
 
-def spelling_from(fixes: dict):
-    """A spelling model that replaces whole words by a map (and changes nothing else)."""
-    def call(Text):  # noqa: N803
-        return answer(" ".join(fixes.get(w, w) for w in Text.split(" ")))
+def rewrite_corrected(fixes: dict, declare=None):
+    """The good rewrite, then each whole word of `fixes` replaced (wrong -> right), the answer declaring the pairs
+    that were applied. `declare` (a list of (wrong, right)) overrides what is declared, to test an undeclared or a
+    refused correction."""
+    def call(**inputs):
+        words = good_rewrite(**inputs)["text"].split(" ")
+        applied = []
+        for i, w in enumerate(words):
+            if w in fixes:
+                applied.append((w, fixes[w]))
+                words[i] = fixes[w]
+        return corrections_answer(" ".join(words), applied if declare is None else declare)
     return call
 
 

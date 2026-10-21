@@ -65,7 +65,9 @@ class PlatformLimits(unittest.TestCase):
     def test_every_flow_is_within_the_documented_limits(self):
         flows = sorted(FLOW.parent.glob("*.json"))
         manifest = (FLOW.parents[1] / "Other" / "Solution.xml").read_text(encoding="utf-8")
-        self.assertEqual(len(flows), manifest.count('<RootComponent type="29"'),
+        # a business rule (Workflow Category 2, WI-0136) is a type-29 root with no JSON definition
+        rules = len([f for f in FLOW.parent.glob("*.xaml.data.xml") if "<Category>2</Category>" in f.read_text(encoding="utf-8-sig")])
+        self.assertEqual(len(flows), manifest.count('<RootComponent type="29"') - rules,
                          "every cloud flow the solution declares is checked (C-TECH-067: both sides from source)")
         for f in flows:
             with self.subTest(f.name):

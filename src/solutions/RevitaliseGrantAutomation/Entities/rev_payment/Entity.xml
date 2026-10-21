@@ -53,8 +53,9 @@
   rev 28 section 5.11, ADR-081). On every save of a payment that flow recomputes, from the
   payments that exist, the grant's rev_finalpaymentdate (which starts the six-year retention
   clock, per rev_grant/Entity.xml's own comment on that column), the application's status
-  (Approved / Grant Paid) and, for a final, dated, Pending payment, this row's own
-  rev_paymentstatus (Pending to Issued). The column itself is still a plain bit: the wiring is in
+  (Approved / Grant Paid) and the grant's own status. It writes nothing to this row (amendment c):
+  this row's rev_paymentstatus (Pending to Issued) and the date-required check belong to one
+  table-scope business rule (WI-0136, authored in the DEV designer, not yet exported). The column itself is still a plain bit: the wiring is in
   the flow, not in the schema. *Previously read (until wbs:8.6): "a plain bit with no wiring
   behind it ... flow/automation work, out of this schema-only WBS task"; that wiring is now built.*
 -->

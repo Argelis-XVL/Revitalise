@@ -42,14 +42,73 @@ Describe 'REV | Portal | Finalise Decisions - trigger' {
         $t['splitOn'] | Should -Be "@triggerBody()['rows']"
     }
 
-    It 'matches the DEV export of a real row-selected trigger in type, kind, operation, parameters, schema, host and split-on (A-FD-10)' {
+    It 'matches the DEV export of the reviewer''s working row-selected trigger exactly: type, kind, split-on, operation, parameters, schema, host (A-FD-10)' {
         $mine = $script:Def['triggers']['manual']
         $theirs = $script:Export['triggers']['manual']
-        $mine['type'] | Should -Be $theirs['type']
-        $mine['kind'] | Should -Be $theirs['kind']
-        $mine['splitOn'] | Should -Be $theirs['splitOn']
-        ($mine['inputs'] | ConvertTo-Json -Depth 20) | Should -Be ($theirs['inputs'] | ConvertTo-Json -Depth 20)
+        foreach ($k in 'type', 'kind', 'splitOn') { $mine[$k] | Should -Be $theirs[$k] }
+        $mine['inputs']['operationId'] | Should -Be $theirs['inputs']['operationId']
+        foreach ($k in 'parameters', 'schema', 'host') {
+            ($mine['inputs'][$k] | ConvertTo-Json -Depth 20) | Should -Be ($theirs['inputs'][$k] | ConvertTo-Json -Depth 20)
+        }
         $script:Def['parameters'].ContainsKey('dynamicscrmonline.entityName') | Should -BeTrue
+    }
+
+    It 'the first action after the trigger that touches data is the row read, a Get a row by ID keyed on the trigger''s id, as the export does; only the variable init and the run-link compose come before it' {
+        # Walk the top-level chain from the trigger. Before the read, only an InitializeVariable or a
+        # Compose that reads no action output and no trigger field may run (the run link uses workflow() only).
+        $step = @($script:Actions.Keys | Where-Object { $script:Actions[$_]['runAfter'].Count -eq 0 })
+        $step.Count | Should -Be 1
+        $before = @()
+        $current = $step[0]
+        while ($script:Actions[$current]['type'] -in 'InitializeVariable', 'Compose') {
+            if ($script:Actions[$current]['type'] -eq 'Compose') {
+                ($script:Actions[$current]['inputs'] | ConvertTo-Json -Depth 20 -Compress) | Should -Not -Match 'outputs\(|body\(|triggerBody\(|triggerOutputs\('
+            }
+            $before += $current
+            $next = @($script:Actions.Keys | Where-Object { $script:Actions[$_]['runAfter'].Keys -contains $current })
+            $next.Count | Should -Be 1 -Because "$current must lead to exactly one next step before the read"
+            $current = $next[0]
+        }
+        $current | Should -Be 'Get_the_review'
+        $before | Should -Be @('Initialise_failure_detail', 'Compose_run_link')
+        $g = $script:Actions['Get_the_review']['inputs']
+        $g['host']['operationId'] | Should -Be $script:Export['actions']['Get_a_row_by_ID']['inputs']['host']['operationId']
+        $g['parameters']['entityName'] | Should -Be 'rev_reviews'
+        $g['parameters']['recordId'] | Should -Be '@triggerBody()?[''entity'']?[''rev_reviewid'']'
+        # every decision works from the row, not from the trigger: the only trigger fields read are the id
+        $script:Scope['Compose_review']['inputs'] | Should -Be "@outputs('Get_the_review')?['body']"
+    }
+
+    It 'a read that fails (no id, or no such review) raises the alert and stops Failed, and the apply scope waits for the read' {
+        $script:Actions['Alert_review_not_read']['runAfter']['Get_the_review'] | Should -Be @('Failed', 'TimedOut')
+        $script:Actions['Alert_review_not_read']['inputs']['host']['workflowReferenceName'] | Should -Be '8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04'
+        $script:Actions['Stop_review_not_read']['inputs']['runStatus'] | Should -Be 'Failed'
+        $script:Actions['Finalise_this_review']['runAfter'].Keys | Should -Contain 'Get_the_review'
+    }
+
+    It 'the top level is one chain from the trigger: no action other than the variable init has an empty runAfter, so nothing runs in parallel with it (designer, DEV 2026-10-21)' {
+        $roots = @($script:Actions.Keys | Where-Object { $script:Actions[$_]['runAfter'].Count -eq 0 })
+        $roots | Should -Be @('Initialise_failure_detail')
+        $script:Actions['Initialise_failure_detail']['type'] | Should -Be 'InitializeVariable'
+    }
+
+    It 'no top-level action joins on more than one predecessor: the read''s success goes to the apply scope, its failure to the alert (designer, DEV 2026-10-21)' {
+        $joins = @($script:Actions.Keys | Where-Object { $script:Actions[$_]['runAfter'].Count -gt 1 } | ForEach-Object { "$_ <- $(@($script:Actions[$_]['runAfter'].Keys) -join ', ')" })
+        $joins | Should -BeNullOrEmpty
+        @($script:Actions['Get_the_review']['runAfter'].Keys) | Should -Be @('Compose_run_link')
+        ($script:Actions['Finalise_this_review']['runAfter'] | ConvertTo-Json -Compress) | Should -Be '{"Get_the_review":["Succeeded"]}'
+        ($script:Actions['Alert_review_not_read']['runAfter'] | ConvertTo-Json -Compress) | Should -Be '{"Get_the_review":["Failed","TimedOut"]}'
+    }
+
+    It 'declares every trigger column it reads under rows.items.entity.properties, rev_reviewid at least: an empty entity schema delivers an empty row (DEV 2026-10-20, IMP-1182)' {
+        $declared = $script:Def['triggers']['manual']['inputs']['schema']['properties']['rows']['items']['properties']['entity']['properties']
+        $declared.Keys | Should -Contain 'rev_reviewid'
+        $read = [regex]::Matches($script:Raw, "\['entity'\]\??\['(\w+)'\]") | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+        $read | Should -Contain 'rev_reviewid'
+        foreach ($c in $read) { $declared.Keys | Should -Contain $c }
+        # the export's own entry shows the shape the designer stores for a referenced column
+        $ex = $script:Export['triggers']['manual']['inputs']['schema']['properties']['rows']['items']['properties']['entity']['properties']
+        $ex.Keys.Count | Should -BeGreaterThan 0
     }
 
     It 'holds only the Dataverse connection reference: nothing here talks to DocuSign (flow #8 does)' {
@@ -61,17 +120,9 @@ Describe 'REV | Portal | Finalise Decisions - trigger' {
         $script:Raw | Should -Not -Match 'routingOrder|UpdateEnvelopeRecipient|signingOrder'
     }
 
-    It 'reads the review id from the trigger and stops loudly when none arrives (A-FD-10)' {
-        $script:Actions['Compose_review_id']['inputs'] | Should -Match "body/entity/rev_reviewid"
-        $script:Actions['Check_the_review_id_arrived']['actions']['Stop_review_id_missing']['inputs']['runStatus'] | Should -Be 'Failed'
-        $script:Actions['Check_the_review_id_arrived']['actions']['Alert_review_id_missing']['inputs']['host']['workflowReferenceName'] | Should -Be '8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04'
-        $e = $script:Actions['Check_the_review_id_arrived']['expression']['and'][0]['equals'][0]
-        (Invoke-WdlExpression -Value $e -Outputs @{ Compose_review_id = $null }) | Should -BeTrue
-        (Invoke-WdlExpression -Value $e -Outputs @{ Compose_review_id = 'abc' }) | Should -BeFalse
-    }
-
     It 'reads the trigger for the id and nothing else' {
-        ([regex]::Matches($script:Raw, 'triggerOutputs\(\)|triggerBody\(\)')).Count | Should -Be 3  # count-coupled by design: splitOn, and the two id candidates
+        $cols = [regex]::Matches($script:Raw, "triggerBody\(\)\?\['entity'\]\??\['(\w+)'\]") | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+        @($cols) | Should -Be @('rev_reviewid')
     }
 }
 
@@ -112,10 +163,9 @@ Describe 'REV | Portal | Finalise Decisions - the hand-off to flow #8' {
 Describe 'REV | Portal | Finalise Decisions - what one run acts on' {
 
     It 'reads one review by id, with rev_finalisedon, and nothing from other reviews' {
-        $g = $script:Scope['Get_the_review']['inputs']['parameters']
+        $g = $script:Actions['Get_the_review']['inputs']['parameters']
         $g['$select'] | Should -Match 'rev_finalisedon'
-        $g['$filter'] | Should -Match 'rev_reviewid eq'
-        $g.ContainsKey('$top') | Should -BeFalse
+        $g.ContainsKey('$filter') | Should -BeFalse
     }
 
     It 'rev_finalisedon is a column of rev_review in the solution source' {
@@ -245,6 +295,22 @@ Describe 'REV | Portal | Finalise Decisions - stamp last, and failure behaviour'
     It 'the check-7 descent exists for every container of the apply step' {
         $names = @($script:Inner.Keys | Where-Object { $script:Inner[$_]['type'] -eq 'If' })
         foreach ($n in $names) { $script:Raw | Should -Match "result\('$n'\)" }
+    }
+
+    It 'every runAfter key names a sibling in the same actions collection (the platform refuses to turn on a flow otherwise: TemplateValidationError, DEV 2026-10-20)' {
+        function Get-RunAfterOrphans($Actions, [string]$Path) {
+            foreach ($name in $Actions.Keys) {
+                $a = $Actions[$name]
+                foreach ($r in @($a['runAfter'].Keys)) {
+                    if (-not $Actions.ContainsKey($r)) { "$Path/$name -> $r" }
+                }
+                if ($a.ContainsKey('actions')) { Get-RunAfterOrphans $a['actions'] "$Path/$name" }
+                if ($a.ContainsKey('else')) { Get-RunAfterOrphans $a['else']['actions'] "$Path/$name/else" }
+                if ($a.ContainsKey('cases')) { foreach ($c in $a['cases'].Keys) { Get-RunAfterOrphans $a['cases'][$c]['actions'] "$Path/$name/$c" } }
+                if ($a.ContainsKey('default')) { Get-RunAfterOrphans $a['default']['actions'] "$Path/$name/default" }
+            }
+        }
+        @(Get-RunAfterOrphans $script:Actions '') | Should -BeNullOrEmpty
     }
 
     It 'reads no referee, name or email column, and no free text' {

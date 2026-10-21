@@ -128,7 +128,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "The saved payment as plain values. Status defaults to 1 (Pending, the column default). A-CP-9: the form rule makes the date required when Final is set; this flow is the backstop for writes that skip the form.",
+              "description": "The saved payment as plain values. Status defaults to 1 (Pending, the column default). A-CP-9: the table-scope payment rule refuses a final payment with no date and sets Issued; this flow only reads the result and backstops rows the rule never saw.",
               "inputs": {
                 "reference": "@coalesce(first(outputs('Get_the_saved_payment')?['body/value'])?['rev_name'], 'unknown-payment')",
                 "grantId": "@coalesce(first(outputs('Get_the_saved_payment')?['body/value'])?['_rev_grantid_value'], '')",
@@ -380,7 +380,7 @@
                 "Write_the_grant_date": {
                   "type": "OpenApiConnection",
                   "runAfter": {},
-                  "description": "One grant write: date and status (3 to 4 and back). A-CP-6: null assumed to CLEAR a DateOnly column. A-CP-3: day string assumed accepted. A-CP-7: secured write via team membership.",
+                  "description": "One grant write: date and status (3 to 4 and back). A-CP-6: null assumed to CLEAR a DateOnly column. A-CP-3: day string assumed accepted. A-CP-7: secured read and grant-date write via team membership.",
                   "inputs": {
                     "host": {
                       "connectionName": "shared_commondataserviceforapps",
@@ -455,69 +455,10 @@
                 "actions": {}
               }
             },
-            "Check_the_payment_becomes_issued": {
-              "type": "If",
-              "runAfter": {
-                "Check_the_application_status_changes": [
-                  "Succeeded"
-                ]
-              },
-              "description": "FR-112, ADR-081 item 7: only a final, not Cancelled, dated, Pending payment linked to a grant. The flow never writes Pending, Cleared or Cancelled, so this is the fixed point.",
-              "expression": {
-                "and": [
-                  {
-                    "equals": [
-                      "@outputs('Compose_saved_checks')?['linked']",
-                      true
-                    ]
-                  },
-                  {
-                    "equals": [
-                      "@outputs('Compose_saved_checks')?['countsAsFinal']",
-                      true
-                    ]
-                  },
-                  {
-                    "equals": [
-                      "@outputs('Compose_saved_payment')?['status']",
-                      1
-                    ]
-                  }
-                ]
-              },
-              "actions": {
-                "Write_the_payment_issued": {
-                  "type": "OpenApiConnection",
-                  "runAfter": {},
-                  "description": "Last write in the run: Pending (1) to Issued (2). A-CP-7: secured write by the flow owner. A-CP-8: this write starts one more run, which finds the payment not Pending and writes nothing.",
-                  "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "UpdateOnlyRecord",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_payments",
-                      "recordId": "@triggerOutputs()?['body/rev_paymentid']",
-                      "item/rev_paymentstatus": 2
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": {
-                      "type": "exponential",
-                      "count": 4,
-                      "interval": "PT10S"
-                    }
-                  }
-                }
-              },
-              "else": {
-                "actions": {}
-              }
-            },
             "Compose_application_status_name": {
               "type": "Compose",
               "runAfter": {
-                "Check_the_payment_becomes_issued": [
+                "Check_the_application_status_changes": [
                   "Succeeded"
                 ]
               },

@@ -255,6 +255,17 @@ class Names(unittest.TestCase):
         self.assertEqual(scrub("I'm Sam and Sam is tired", ["Sam", "Sam"]), "I'm [NAME] and they are tired")
         self.assertEqual(scrub("My name is Sam. I need help", ["Sam"]), "My name is [NAME]. I need help")
 
+    def test_a_sentence_saying_what_the_writer_is_called_keeps_the_label(self):
+        # DEV 2026-10-20, TD-15: "Fenella is the name my friends use for me" came back as "they is the name ..."
+        self.assertEqual(scrub("My left side is weak and stairs are very hard. Fenella is the name my friends use for me.",
+                               ["Fenella"]),
+                         "My left side is weak and stairs are very hard. [NAME] is the name my friends use for me.")
+        self.assertEqual(scrub("Fen is what my family call me", ["Fen"]), "[NAME] is what my family call me")
+        self.assertEqual(scrub("Everyone calls me Fen", ["Fen"]), "Everyone calls me [NAME]")
+        # someone else's name is still a third person
+        self.assertNotIn("[NAME]", scrub("Pat is the name of my carer", ["Pat"]))
+        self.assertNotIn("[NAME]", scrub("Pat helps me", ["Pat"]))
+
     def test_the_writers_own_name_does_not_count_as_another_person(self):
         # SDD A-11, OQ-054 (e), reviewer 2026-10-19, verbatim example
         self.assertEqual(scrub("I am Sam and Pat helps me", ["Sam", "Pat"]), "I am [NAME] and they help me")

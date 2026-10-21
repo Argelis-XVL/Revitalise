@@ -70,9 +70,22 @@ def declared_flow_count(root: str) -> tuple[int | None, str]:
         tree = ET.parse(manifest)
     except ET.ParseError as exc:
         return None, f"Other/Solution.xml is not well-formed: {exc}"
-    declared = [el for el in tree.getroot().iter("RootComponent")
-                if el.get("type") == CLOUD_FLOW_COMPONENT_TYPE]
-    return len(declared), f"{len(declared)} <RootComponent type=\"29\"> entry(ies)"
+    # Type 29 is every "process", and a business rule (Workflow Category 2, authored in the maker
+    # designer, WI-0136) is a process with no JSON definition. Read each one's category from its own
+    # Workflows/*.xaml.data.xml, an independent file, so a rule is not counted as a missing flow.
+    rules = set()
+    for data in glob.glob(os.path.join(root, "Workflows", "*.xaml.data.xml")):
+        try:
+            wf = ET.parse(data).getroot()
+        except ET.ParseError:
+            continue
+        if (wf.findtext("Category") or "").strip() == "2":
+            rules.add((wf.get("WorkflowId") or "").strip("{}").lower())
+    all_declared = [el for el in tree.getroot().iter("RootComponent")
+                    if el.get("type") == CLOUD_FLOW_COMPONENT_TYPE]
+    declared = [el for el in all_declared if (el.get("id") or "").strip("{}").lower() not in rules]
+    note = f" ({len(all_declared) - len(declared)} business rule(s) not counted)" if rules else ""
+    return len(declared), f"{len(declared)} <RootComponent type=\"29\"> entry(ies){note}"
 
 
 def main(argv: list[str] | None = None) -> int:

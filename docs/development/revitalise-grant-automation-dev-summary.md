@@ -12899,7 +12899,7 @@ Flow #7 is rebuilt to TAD rev 27. The trigger's shape came from a DEV export, as
 | Flow trigger description "Manual … A-FD-6" | Rewritten: row-selected, A-FD-10, A-FD-9, A-FD-11 |
 | `notes.md` "Running it (A-FD-6)" and "What one run does" | Rewritten, whole file |
 | Test "is a manual button flow" | Rewritten: asserts `RecordSelected`, `rev_reviews`, `splitOn`, and equality with the export |
-| Pipeline wbs:6.6 steps | Replaced: turn on, share run-only with `REV-PP-GrantApplications-Admins-<env>`, a three-part A-FD-9/10/11 DEV check |
+| Pipeline wbs:6.6 steps | Replaced: turn on, share run-only with that environment's own group (DEV `REV-PP-GrantApplications-DEV`, TST/ACC `…-Admins-ACC`, PRD `…-Admins-PRD`; IMP-1180), a three-part A-FD-9/10/11 DEV check |
 | `Compose_outcome` "anything else → Deferred" | Now: split gives 0, not finalised |
 | §10 rows A-FD-1, A-FD-3, A-FD-6, A-FD-8 | Closed below |
 
@@ -12913,7 +12913,7 @@ Flow #7 is rebuilt to TAD rev 27. The trigger's shape came from a DEV export, as
 | `src/tests/fixtures/dev-export/record-selected-trigger.json` | New fixture, the export |
 | `config/revitalise-grant-automation-pipeline.yml` | wbs:6.6 steps replaced |
 
-**One run.** Id from the trigger (L97), stops with an alert if missing (L107). Reads the review (L176). `Compose_outcome` (L209): finalised, undecided or a split give 0; a staff-set `rev_outcome` wins; agreeing verdicts decide. Only outcomes 1 to 3 go on (L219): Grant if Approved and none exists (L340, L365), application to 7 (L428) or 8 (L475), snapshot for Approved and Rejected only (L491, L571), stamp last (L617, L635). A failure alerts and ends Failed (L652). `Compose_run_summary` (L934) says in words what happened.
+**One run.** Id from the trigger (L97), stops with an alert if missing (L107). Reads the review (L176). `Compose_outcome` (L209): finalised, undecided or a split give 0; a staff-set `rev_outcome` wins; agreeing verdicts decide. Only outcomes 1 to 3 go on (L219): Grant if Approved and none exists (L340, L365), application to 7 (L428) or 8 (L475), snapshot for Approved and Rejected only (L491, L571), stamp last (L617, L635). A failure alerts and ends Failed (L652). `Compose_run_summary` (L926) says in words what happened.
 
 ### 2. Clauses of WI-0129 and where each is met
 
@@ -12982,7 +12982,7 @@ Overall: PASS
 
 ### Summary
 
-The flow is built to TAD rev 28 and the reviewer's later addition (the grant's own status). It has about 40 actions in one scope, nesting 3. Nothing ran on the platform: V1 for the flow, and an in-memory execution of the shipped JSON at V2 for its decisions. **Not done, and why:** the Payment form business rule (WI-0136) and the DEV verification session (WI-0140) both need a person in the DEV designer; both are deferred with reasons below.
+The flow is built to TAD rev 28 and the reviewer's later addition (the grant's own status). It has 27 actions plus the trigger (the architect's count) in one scope, nesting 3. Nothing ran on the platform: V1 for the flow, and an in-memory execution of the shipped JSON at V2 for its decisions. **Not done, and why:** the Payment form business rule (WI-0136) and the DEV verification session (WI-0140) both need a person in the DEV designer; both are deferred with reasons below.
 
 ### Reviewer addition received during the build (2026-10-20, via lead-agent)
 
@@ -13040,19 +13040,19 @@ The flow is built to TAD rev 28 and the reviewer's later addition (the grant's o
 
 ### 3. §10 Unvalidated Assumptions Register — new rows
 
-All nine are **OPEN**. None is claimed verified. "Where" is the flow file `src/solutions/RevitaliseGrantAutomation/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json`.
+Eight are **OPEN** and `A-CP-8` is **WITHDRAWN** (amendment c, below). None is claimed verified. "Where" is the flow file `src/solutions/RevitaliseGrantAutomation/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json`.
 
 | ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
 |---|---|---|---|---|---|---|
-| A-CP-1 | A `message: 4` row trigger fires for Added and for a later Modified, and the registration reads Added or Modified | `src/solutions/RevitaliseGrantAutomation/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json` (trigger) | Meaning of 4 read live from `stringmap` 2026-08-28; firing never seen | No import yet | Pipeline DEV step "A-CP-1 to A-CP-9" | OPEN |
+| A-CP-1 | A `message: 4` row trigger fires for Added and for a later Modified, and the registration reads Added or Modified | `src/solutions/RevitaliseGrantAutomation/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json` (trigger) | Meaning of 4 read live from `stringmap` 2026-08-28; firing never seen | No import yet | Pipeline DEV step "A-CP-1 to A-CP-7" | OPEN |
 | A-CP-2 | `filteringattributes` naming four secured columns is accepted and the flow owner reads them | same file (trigger) | One secured filter already ships (`rev_safeguardingactioncompleted`) | No import yet | Same session; if it does not fire, drop the filter | OPEN |
 | A-CP-3 | `ListRecords` returns a DateOnly as `yyyy-MM-dd` and `UpdateOnlyRecord` accepts that string | same file (`Get_the_saved_payment`, `Write_the_grant_date`) | `Finalise Decisions` already writes a day string to `rev_decisiondate`; the read side is unseen. The flow normalises either shape | No run | Same session, read the grant | OPEN |
 | A-CP-4 | `runtimeConfiguration.concurrency.runs: 1` is accepted on a row trigger | same file (trigger) | Only the intake HTTP trigger has it | No import yet | Save in DEV without opening (A-R73); if refused, remove | OPEN |
 | A-CP-5 | `rev_paymentstatus ne 4` returns a Pending payment | same file (`Get_the_latest_dated_final_payment`) | No flow filters on it | No run | Test: Pending final starts the clock, Cancelled does not | OPEN |
 | A-CP-6 | A null `item/rev_finalpaymentdate` CLEARS the column | same file (`Write_the_grant_date`) | No flow here writes a null | No run | Untick the only final; read the column | OPEN |
-| A-CP-7 | The flow owner writes secured columns through its team's profile membership | same file (`Write_the_grant_date`, `Write_the_payment_issued`) | Profile source, 2026-10-20 | No run | A dated final Pending payment reads Issued | OPEN |
-| A-CP-8 | The Issued write starts exactly one more run, which writes nothing | same file (`Write_the_payment_issued`) | Argued from the guard; **executed as an argument** in `FixedPoint`, not as a platform event | Platform firing unseen | Run history shows two runs | OPEN |
-| A-CP-9 | A form business rule exported from DEV makes the date required when Final is Yes, and survives the managed import | same file (`Compose_saved_payment` description: the flow is the backstop) | None: the rule is not built | Needs the designer | Section 7 | OPEN |
+| A-CP-7 | The flow owner reads the secured payment columns and writes `rev_grant.rev_finalpaymentdate` through its team's profile membership. **Narrowed by amendment c:** the flow no longer writes `rev_paymentstatus` (*previously read: also a secured write to the payment*) | same file (`Write_the_grant_date`) | Profile source, 2026-10-20 | No run | A dated final payment gives the grant its date (read the column) | OPEN |
+| A-CP-8 | ~~The Issued write starts exactly one more run, which writes nothing~~ **WITHDRAWN (amendment c, 2026-10-20):** the flow no longer writes `rev_payment`, so it starts no run of its own making; one run per save is `A-CP-9` check 5 | — (marker removed from the flow with `Write_the_payment_issued`) | — | — | — | WITHDRAWN |
+| A-CP-9 | **Reworked by amendment c.** ONE table-scope (Entity) business rule on `rev_payment`, authored in the DEV designer and exported, (a) refuses a save with Final = Yes and no Payment Date on every write path and (b) sets Payment Status Pending to Issued when Final = Yes, without touching Cancelled, Issued or Cleared; it imports Active in a managed solution | same file (`Compose_saved_payment` description: the flow only reads the result and backstops rows the rule never saw) | The rule now exists in DEV and in source (2026-10-20): Entity scope and Activated are read from the exported file; the behaviour is not observed. Microsoft Learn, read by the architect 2026-10-20, states Entity scope and the available actions | Needs a Finance test user in DEV | Six checks, architecture section 12.9: (1) form, (2) API, (3) column security, (4) audit, (5) flow gets one run and the same result, (6) Cancelled, Issued and Cleared untouched; file unedited, Entity scope, Active after import | OPEN |
 
 ### 4. Gates run, and what they do not cover
 
@@ -13070,8 +13070,8 @@ All nine are **OPEN**. None is claimed verified. "Where" is the flow file `src/s
 
 | Item | Reason | What would unblock it |
 |---|---|---|
-| WI-0136 | A business rule is a designer artefact; the brief and ADR-081 item 8 require it authored in DEV and exported, never hand-written XAML. No headless route exists | A maker authors it in the DEV designer, exports, development-agent copies the file unedited |
-| WI-0140 | The nine checks need a Finance test user in a DEV session with the flow turned on | The pipeline step "A-CP-1 to A-CP-9"; WI-0139 leaves every row OPEN until then |
+| ~~WI-0136~~ | ~~A business rule is a designer artefact...~~ **Delivered 2026-10-20** (see "Revision: the payment rule is in source", below): the reviewer authored it in DEV; it is exported and in source unedited | built; the rule's behaviour stays `A-CP-9`, OPEN |
+| WI-0140 | The nine checks need a Finance test user in a DEV session with the flow turned on | The pipeline steps "A-CP-1 to A-CP-7" and "A-CP-9"; WI-0139 leaves every row OPEN until then |
 
 ### 8. Hours proposal (for `commercial-agent`, not a booking)
 
@@ -13088,3 +13088,195 @@ Tech   HARD: no violations (C-TECH-047 finance address is an environment variabl
 Tech   SOFT: none
 Overall: PASS
 ```
+
+## Revision — Flow #11 amendment c: the flow stops writing the Payment (wbs:8.6, CO-010 unbilled, TAD rev 28 amendment c / ADR-081 items 6 to 8, reviewer decision "4", 2026-10-20)
+
+Everything above this heading describes the flow as first built. **Where it says the flow writes `rev_payment`, marks the payment Issued, runs `FixedPoint`, or counts 27 actions, this section supersedes it**; the old words stay once as history. Line numbers in section 1 above predate this edit.
+
+**Configuration decision (IMP-0836).** Same `config/revitalise-grant-automation-build.yml`, no edit. **sub-agent fan-out not performed: one action deleted from one flow, with its tests and wording; inseparable.**
+
+### What changed
+
+| File | Change |
+|---|---|
+| [flow](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVFinanceCapturePayment-8F1C2A44-1013-4B7A-9E21-0A1B2C3D4E13.json) | `Check_the_payment_becomes_issued` and `Write_the_payment_issued` deleted; `Compose_application_status_name` now follows `Check_the_application_status_changes`. The trigger, its filter (`rev_paymentstatus` stays, so cancelling recomputes) and `Compose_reasons` are unchanged. **Recount: 25 actions plus the trigger** (was 27; the design's "about 25" holds). Two writes: the grant (date and status together), then the application. `A-CP-8` marker removed; `A-CP-9` and `A-CP-7` wording rewritten |
+| `…E13.notes.md`, `…E13.json.data.xml`, `Entities/rev_payment/Entity.xml` header | Wording: the flow writes nothing to the payment; the rule is WI-0136. Previous words quoted once |
+| `src/tests/solutions/capture_payment/test_capture_payment_flow.py` | `FixedPoint` and the Issued write cases removed; `ac13` now asserts no action writes `rev_payment` and that a Pending read and an Issued read give an identical recompute; `test_no_action_writes_rev_payment_on_any_input` over every status, final, date and application status; Cancelled and undated report tests kept; new `SourceOfRule` (below). 47 tests, 1 skipped |
+| `src/tests/solutions/CapturePayment.Tests.ps1` | Two writes and only two; no `rev_payment` write; `rev_paymentstatus` still in the trigger filter; order grant then application. 26 pass |
+| `config/revitalise-grant-automation-pipeline.yml` | DEV session step now "A-CP-1 to A-CP-7" and expects one run, the payment reading Pending until the rule exists; the rule step carries the maker steps; TST/ACC step names AC-12 to AC-14 |
+
+### §10 changes, and risks
+
+- **A-CP-7 narrowed, A-CP-8 WITHDRAWN, A-CP-9 reworked to six checks**: rows in section 3 above.
+- **A-R102 (architect's row), note:** closed by design on Microsoft Learn's word and on no observation. Until `A-CP-9` checks 1 and 2 pass in DEV, **nothing refuses an undated final payment**: the rule does not exist, so the flow's report ("final payment has no date", starts no clock) is the only defence. That is the state of this build.
+- **A-R104 (architect's row), note (as built before the rule was exported; the rule is in source from 2026-10-20 and unobserved):** until the rule exists on the platform, a final, dated payment **reads Pending**. The grant date, grant status and application status do not depend on it (identical recompute, asserted by `ac13`), so the retention clock is right; finance sees Pending and may set Issued by hand.
+
+### WI-0136, deferred, and why the build does not wait for it
+
+The rule is a designer artefact (ADR-081 item 8: authored in DEV and exported, never hand-written XAML). **No headless route exists, so it is not written.** The build passes without it: the flow carries no reference to it, and `SourceOfRule` skips cleanly while no exported file exists in `Workflows/` (a skip is not a pass of the rule; the rule is unverified). The rule follows as its own import.
+
+**Maker steps (DEV, REV solution, as in the pipeline step):** Tables, Payment, Business rules, New; **Scope = Entity**. Condition 1: Final payment equals Yes **and** Payment Date contains no data; then Show error message on Payment Date, "A payment date is required when the payment is marked final." Else-if condition 2: Final payment equals Yes **and** Payment Status equals Pending; then Set column value, Payment Status = Issued. Nothing else: no set-requirement-level action (form-only), no form-scope rule. Validate, Activate, add it to the solution, export unmanaged, unpack, hand the file(s) back; development-agent copies them in **unedited**, then `A-CP-9` checks 1 to 6 are run in DEV and again in TST/ACC after the managed import. **Reviewer decision still open and not blocking:** the architect offered a one-line Cancelled exclusion on branch a; not applied.
+
+`SourceOfRule` asserts only what a source read can show once the file exists: the three column names. Entity scope and the Active state it does **not** assert, because the exported file's scope element is a shape this repository has not seen; those are `A-CP-9` check 6, on the platform.
+
+### Verification level
+
+Unchanged: **V2** for the flow's decisions (in-memory execution of the shipped JSON), nothing run on the platform. The rule is **V0**: not authored. `NoTriggerLoop` and the narrative suite results are in the gate output.
+
+
+## Revision: the payment rule is in source (WI-0136, 2026-10-20, wbs:8.6)
+
+The reviewer authored the table-scope business rule in the DEV maker designer ("Ok business rule is created"). It was read back from DEV and exported, not changed in DEV.
+
+**Read from the DEV export (read-only; `pac solution export`, unmanaged, unpacked to a scratch folder):** workflow `Rev-Payment-Issued`, id `02ac658e-9bcc-f111-a05c-7ced8d43e1b4`, Category 2 (business rule), PrimaryEntity `rev_payment`, `ProcessTriggerScope` 2 (Entity; Microsoft Learn `workflow` table reference: 1 Form, 2 Entity), StateCode 1 / StatusCode 2 (Activated), no form id. It is a root component (type 29) of `RevitaliseGrantAutomation` in DEV. Platform-owned `Scope` 4 is the security scope (organisation), not the rule scope.
+
+**Copied into source unedited** (byte-identical, `cmp` on the .xaml; the .data.xml copied the same way): `Workflows/Rev-Payment-Issued-02AC658E-9BCC-F111-A05C-7CED8D43E1B4.xaml` and `.xaml.data.xml`. Registered in `Other/Solution.xml` as the export has it (`<RootComponent type="29" id="{02ac658e-...}" behavior="0" />`). Nothing else was taken from the export.
+
+**Differences from the design, reported not corrected:**
+1. Branch b is a separate condition, not an else-if: a Final = Yes, undated, Pending row satisfies both. On the form it shows the error and also turns status to Issued; the error stops the save, so nothing is stored. Server-side result is the same as the design.
+2. Error text is "A payment date is required to set the value of "Final Payment" to Yes."; the design said "A payment date is required when the payment is marked final."
+3. Rule name is `Rev-Payment-Issued` (design: "REV Payment: date required and Issued mark"); description "Click to add description".
+4. Branch b tests status = option 1 (Pending) and sets option 2 (Issued): as designed. No set-requirement-level action; no other attribute written.
+
+**Source gates that rejected the shape (the exported file was not touched):** `verify-source-parses.py --expect-flows manifest` and `PlatformLimits.test_every_flow_is_within_the_documented_limits` counted every type-29 root as a flow; the rule is type 29 with no JSON. Both now exclude roots whose own `.xaml.data.xml` says Category 2.
+
+**Payment main form (source):** `Entities/rev_payment/FormXml/main/{f3000000-0000-4000-8000-00000000fa01}.xml` carries `rev_isfinalpayment`, `rev_paymentdate` and `rev_paymentstatus`. The DEV export's copy of the same form carries them too.
+
+**`SourceOfRule` now asserts** (5 tests, no skip): the file pair is present once and registered in `Solution.xml`; Category 2, ProcessTriggerScope 2, PrimaryEntity `rev_payment`, Activated; branch a (Final = Yes, date Null, error on `rev_paymentdate`); branch b (status Pending, set Issued, the only attribute written is `rev_paymentstatus`, no Cleared or Cancelled value); no requirement-level action and no form id.
+
+**Verification level: V1 for the rule** (source shape read from an export of DEV). Not run on the platform. `A-CP-9` checks 1 to 6 stay OPEN. Tests: `test_capture_payment_flow.py` 51 OK; narrative suite 206 OK; `CapturePayment.Tests.ps1` 26 passed; Pester `BuildGates`, `VerifySolutionComponents` and `src/tests/solutions` 677 passed; `run-source-gates.py` 19 of 19 (83 of 102 build steps not covered by it).
+
+**WI-0136** moved to built. **WI-0135** moved to built on clauses 1 and 2 (flow tests) and clauses 0 and 3 at source level through the rule; clause 3's text still describes the withdrawn flow write (ADR-081 item 7 before amendment c), so the evidence for it is the test that no action writes `rev_payment`. The wording is pm-agent's to amend.
+
+### 9. Defect fix: turn-on refused in DEV, `runAfter` named an action outside its own collection (2026-10-20, `IMP-1179`)
+
+**Report (reviewer, DEV turn-on, via lead-agent):** `TemplateValidationError`, *the 'runAfter' property of template action 'Set_failure_detail_from_a_leaf' … the action 'Find_the_failed_action' must belong to same level*. The flow had reached DEV in build `revitalise-grant-automation-20261020-6`.
+
+**Cause.** Two failure-description defaults were authored with a `runAfter` pointing at the query that decides which case runs. In each, that query lives one level up, so the default's own collection had no such sibling. Pack, import, every source gate and the 31 tests passed it; only the platform's template validation at turn-on refuses it. The first action in a Switch default has an empty `runAfter`.
+
+**Fix.** [`Set_failure_detail_from_a_leaf`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L874) and [`Set_failure_detail_from_an_apply_leaf`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L857) now have `runAfter: {}`. The platform named only the first; the second was the same defect one level down.
+
+**Regression test.** `FinaliseDecisions.Tests.ps1`, "every runAfter key names a sibling in the same actions collection": walks every actions collection (scope, If, else, Switch case, default). **Red before the fix, naming both actions; green after (32 of 32).** The same walk, read-only, over all 13 flows in `Workflows/`: no other hit.
+
+**What this does not close.** A-FD-10's second half (turn-on after import) is still unmeasured beyond this: the flow imported, and turn-on refused it for this reason only as far as the platform reports the first error. No flow state is claimed. `WI-0129` stays `built`; the changed lines are in the failure branch, none cited by its evidence.
+
+### 10. Code review (runAfter defect fix, `IMP-1179`)
+
+**Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `Approved` (verbatim, recorded by lead-agent and relayed to development-agent). No feedback, no revision requested; no source changed after approval. `IMP-1179` carries `fixed_in_flight` and stays open for its review. Turn-on in DEV after the redeploy is not yet observed. `WI-0129` is `built`.
+
+### 11. Defect fix: the Flow menu delivered an empty row, because the trigger schema declared no column (2026-10-20, `IMP-1182`; build -7 in DEV)
+
+**Report (reviewer, DEV, via lead-agent).** Turn-on works (`IMP-1179` fixed live). Run from the Flow menu twice with rows selected, the flow hit its own alert, "The trigger did not deliver the selected review's id". The raw body was `{"entity":{"entity":{}}}`.
+
+**Cause.** The designer stores, under `rows.items.entity.properties`, only the columns an action references. Section 3's fixture came from a scratch flow whose only action was a Compose of a constant, so its `entity` schema was empty, and flow #7 copied it. An empty schema gives an empty row. Lead-agent's earlier theory (started from the portal) was wrong. My `A-FD-10` row said the id path was unmeasured and promised a loud stop; the stop worked, the guess about the *schema* was the miss.
+
+**Ground truth, read from DEV by export** (`pac env fetch`, same profile, read-only). The reviewer's second scratch flow *Run a flow for selected rows* (`cecb708b-b7cc-f111-a05c-7ced8d43e87d`, unmanaged, outside the solution) has a Compose reading `@triggerBody()?['entity']['rev_name']`, and the designer stored `rev_name {title "Review Reference", type string}` in the entity schema. Run with one review selected it delivered `{"entity":{"@odata.etag":…,"rev_reviewid":"c11014a4-…","rev_name":"REV-R-01004"}}` (the reviewer's run, E1). The fixture [`record-selected-trigger.json`](../../src/tests/fixtures/dev-export/record-selected-trigger.json) is replaced by this export, with its provenance. **The export's Compose references `rev_name`, not `rev_reviewid`**; the id arrived in the run's body, and its stored schema entry is not in any export I could read.
+
+**Fix.** [`rev_reviewid` declared](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L53) in the trigger schema (title "Review", type string, by analogy with the exported `rev_name` entry); `rev_name` kept as exported. [`Compose_review_id`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L106) reads `@triggerBody()?['entity']?['rev_reviewid']`, the designer's form, replacing the two-candidate guess. The missing-id alert stays.
+
+**Test, red then green.** New: "declares every trigger column it reads under rows.items.entity.properties, rev_reviewid at least". It reads the flow's own text for every `['entity']['<col>']` and requires each to be declared. **Red on the previous file** (and the export comparison went red on the new fixture), **green after: 33 of 33.** The export test now requires every column the export declares to match exactly, with `rev_reviewid` allowed on top.
+
+**§10 register, changes (the last row naming an id is current).**
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FD-10 | A-FD-10 remains OPEN, narrowed. **Measured:** trigger shape and id path (export plus the reviewer's run, E1). **Still guessed:** the stored entry for `rev_reviewid` is `{title "Review", type string}` by analogy with `rev_name`; the flow works if the platform ignores the title, and the run shows whether the id arrives | `src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json` (trigger schema, `Compose_review_id`) | The export for `rev_name`; the reviewer's run body for the id | No run of this build | One Flow-menu press in DEV on the redeployed flow: a Compose-free check is the run itself reaching `Get_the_review` | OPEN |
+
+**Reviewer actions.** Leave `cecb708b-…` until the A-FD-10 run, then delete it (`C-TECH-056`); it is theirs. The first scratch flow `ff876020-…` was already deleted.
+
+**Verification.** V3 for the trigger shape and body (DEV export and the reviewer's run); V1 for the corrected flow. Redeploy and one Flow-menu run are the next evidence. `WI-0129` returns to `built` on new evidence.
+
+### 12. Revision at the reviewer's request: read the review first, with a Get a row by ID (2026-10-20, not an approval)
+
+**Request (reviewer, verbatim).** "I have a better plan.. Why not run the get a row by id action straight after the trigger. than there is full context of the record. see the test flow in dev".
+
+**Re-export (read-only, `pac env fetch`).** The scratch flow *Run a flow for selected rows* (`cecb708b-b7cc-f111-a05c-7ced8d43e87d`) now stores in its trigger schema `rev_name {title "Review Reference", type string}` and **`rev_reviewid {title "Review", type string, format "guid"}`**; section 11's guess left out `format: guid`. It has a *Get a row by ID* action: `operationId` `GetItem`, `parameters.entityName` `rev_reviews`, `recordId` `@triggerBody()?['entity']['rev_reviewid']`, no `$select` or `$expand`, `runAfter` empty; its Compose runs after it. The fixture [`record-selected-trigger.json`](../../src/tests/fixtures/dev-export/record-selected-trigger.json) is replaced by this export, with its provenance.
+
+**What changed in [flow #7](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json).**
+- Trigger schema copied exactly ([L57](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L57)); the guessed entry is gone.
+- [`Get_the_review`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L107) (`GetItem`, L115) is the first action after the trigger, keyed on the trigger's id the way the export does it. It adds this solution's `authentication` and retry, and a `$select` of the columns the flow needs.
+- `Compose_review_id` and `Check_the_review_id_arrived` are gone. The scope's `Compose_review` ([L186](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L186)) takes the row from the read; verdicts, outcome, finalised stamp and application lookup all work from it. The only trigger field read anywhere is the id (also for the stamp's `recordId` and the alert's reference).
+
+**Failure handling kept intact.** The read now sits outside `Finalise_this_review`. Its own branch ([`Alert_review_not_read`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L130), then a Failed terminate) catches both cases the old guard caught (no id, or no such review) and a read that fails for any other reason; nothing has been written by then, so nothing needs undoing. The apply scope waits for the read (`runAfter` Get_the_review and the run link) and keeps its check-7 descent. The orphan-`runAfter` walk finds no hit.
+
+**Tests, red then green.** The export test now requires an **exact** match of type, kind, split-on, operation, parameters, schema and host; a new test requires the first non-variable action after the trigger to be the row read, keyed on `triggerBody()?['entity']?['rev_reviewid']`; a third covers the read's failure branch; the "reads the trigger for the id and nothing else" test now asserts the only trigger column read is `rev_reviewid`. **Red on the previous flow against the new fixture and tests (4 failed), green after: 34 of 34.**
+
+**§10 register (the last row naming an id is current).**
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FD-10 | The trigger's stored shape and the id's path | `src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json` | The DEV export now shows `rev_reviewid` stored by the designer, and the reviewer's run body delivered it (E1). Flow #7's trigger equals the export | n/a | n/a | CLOSED — measured by export and a run |
+| A-FD-4 | The connector returns a choice as a number and a multi-select as `"1,2"`; a date-only column round-trips as a string; **and a `GetItem` returns the row's columns directly under `body` and accepts `$select` under that name** | same file (`Get_the_review`, `Get_the_application`, `Select_condition_areas`, `Check_there_is_something_to_apply`) | The export's `GetItem` has neither a `$select` nor a read of its output; its Compose reads a trigger field | No run of this build | One Flow-menu press in DEV: a read that fails on `$select`, or an empty `Compose_review`, shows at once | OPEN |
+
+**Reviewer actions.** Leave scratch flow `cecb708b-…` until the DEV run, then delete it (`C-TECH-056`).
+
+**Verification.** V3 for the trigger shape and id delivery (export and the reviewer's run); V1 for the rebuilt flow. Redeploy and one Flow-menu press are next.
+
+### 13. Code review (Get-a-row-first revision, `IMP-1185`)
+
+**Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `Approved` (verbatim, recorded by lead-agent and relayed to development-agent). No feedback, no revision requested; no source changed after approval. `A-FD-4` stays OPEN pending the DEV run. Scratch flow `cecb708b-…` stays until that run. `WI-0129` is `built`.
+
+### 14. Revision: the designer shows one chain, not two branches from the trigger (2026-10-21, WI-0129 reopened a third time, `IMP-1187`)
+
+**Report (reviewer, DEV, build -8, verbatim via lead-agent).** "The workflow works but the designer looks not right. See the print screen". Dispatched at strategic tier (WI-0129 reopens: 3).
+
+**Summary.** The run was right; the drawing was not. Section 12 gave `Get_the_review` an empty `runAfter`, so it started beside `Initialise_failure_detail`, and gave the alert and the apply scope two predecessors each (the read and `Compose_run_link`). The designer draws every `runAfter` key as a line, so it showed two branches from the trigger and crossing lines. Now the top level is one chain. Three `runAfter` blocks and one description changed; the trigger and everything inside `Finalise_this_review` are unchanged (compared against a pre-edit copy). V1: nothing has run.
+
+**What changed in [flow #7](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json).**
+
+| Action | Waits on, before | Waits on, now |
+|---|---|---|
+| [`Get_the_review`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L107) | nothing (parallel to the variable) | `Compose_run_link` succeeded |
+| [`Alert_review_not_read`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L134) | read failed or timed out, and `Compose_run_link` | read failed or timed out |
+| [`Finalise_this_review`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.json#L175) | read succeeded, and `Compose_run_link` | read succeeded |
+
+So: trigger, `Initialise_failure_detail`, `Compose_run_link`, `Get_the_review`; success to `Finalise_this_review`, failure to `Alert_review_not_read` then `Stop_review_not_read`. The alert still reads `outputs('Compose_run_link')`: an action may read any earlier action in its chain without naming it. The read is still the first action that touches data, keyed on `@triggerBody()?['entity']?['rev_reviewid']`; the two before it read only `workflow()`. The `Get_the_review` description now says "the first action that touches data".
+
+**No Scope around the read.** A try/catch Scope would add a box and still fork success from failure. The plain fork from the read matches the one the flow already has below `Finalise_this_review` (failure branch and run summary), so the designer reads the same way twice.
+
+**Tests, red then green.** [`FinaliseDecisions.Tests.ps1`](../../src/tests/solutions/FinaliseDecisions.Tests.ps1):
+- [L56](../../src/tests/solutions/FinaliseDecisions.Tests.ps1#L56) rewritten: walks the chain from the single root; only `Initialise_failure_detail` and `Compose_run_link` may precede the read, and a Compose there may read no action output or trigger field.
+- [L89](../../src/tests/solutions/FinaliseDecisions.Tests.ps1#L89) new: only the variable init has an empty `runAfter`.
+- [L95](../../src/tests/solutions/FinaliseDecisions.Tests.ps1#L95) new: no top-level action has more than one `runAfter` key; the read's success and failure successors are pinned exactly.
+
+**On the build -8 file: 33 passed, 3 failed** (the three above: "Expected 1, but got 2"; roots `Initialise_failure_detail, Get_the_review`; joins `Alert_review_not_read <- Get_the_review, Compose_run_link` and `Finalise_this_review <- Get_the_review, Compose_run_link`). **After: 36 of 36.** The orphan-`runAfter` walk (section 9) still passes. Whole `src/tests/solutions` suite: 545 passed.
+
+**[notes.md](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.notes.md).** New paragraph on the chain ([L20](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.notes.md#L20)). The run-only share ([L45](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalFinaliseDecisions-8F1C2A44-1012-4B7A-9E21-0A1B2C3D4E12.notes.md#L45)) no longer names `REV-PP-GrantApplications-Admins-<env>`; it names the TAD §12.8 groups: DEV `REV-PP-GrantApplications-DEV`, TST/ACC `REV-PP-GrantApplications-Admins-ACC`, PRD `REV-PP-GrantApplications-Admins-PRD`.
+
+**Seen on the way, not changed.** A read-only count over the 13 flows: every flow has one top-level root, and 8 still have one or two top-level joins. Out of WI-0129's scope; recorded in `IMP-1187` for improvement-agent to decide whether a gate is wanted.
+
+**§10.** No row changes. `A-FD-4` stays OPEN (the run has not been read back for `$select`). No new guess: `runAfter` ordering is the documented workflow-definition contract, and the platform already accepted a single-predecessor chain in this flow.
+
+**§11.** V1 for this revision. The designer view is V4 and only the reviewer can see it after the next DEV deploy.
+
+**Items.** `WI-0129` moved `reopened` to `built` with new evidence (clauses 0 to 5 traced to the current lines, including the chain at L110; Pester, `run-source-gates.py` and `verify-flow-definition-language.py` green on 2026-10-21). Components unchanged: `deploy`.
+
+**Hours proposal (for `commercial-agent`, not a booking).** wbs:6.6, 0.6 h: the runAfter change, three tests, notes and this section.
+
+**Constraint check.**
+
+```
+CONSTRAINT CHECK
+Domain HARD: no violations (C-DOM-004: alert still names an id and a step only, no value)
+Tech   HARD: no violations (C-TECH-045 Dataverse only; C-TECH-047 no environment values; C-TECH-052 no new guess, A-FD-4 marker unchanged; C-TECH-053 V1 stated; C-TECH-060 description 183 of 256; C-TECH-079 WI-0129 built)
+Tech   SOFT: none
+Overall: PASS
+```
+
+### 15. Code review (single top-level chain revision, `IMP-1187`)
+
+**Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-21  **Response:** `Approved` (verbatim, recorded by lead-agent and relayed to development-agent). No feedback, no revision requested; no source changed after approval. `A-FD-4` stays OPEN pending a DEV run; the designer view (V4) is the reviewer's after the next DEV deploy. `WI-0129` is `built`.
+
+### 16. Dependency fix: vite 7.3.6 to 7.3.7 (`IMP-1188`, wbs:6.1-6.4)
+
+**Change.** `vite` exact pin raised from 7.3.6 to 7.3.7 in both [trustee-review-portal/package.json](../../src/code-apps/trustee-review-portal/package.json#L46) and [trustee-review-portal-cards/package.json](../../src/code-apps/trustee-review-portal-cards/package.json#L46). 7.3.7 is the lowest version on the registry above 7.3.6 and the one `npm audit` names as the fix. Lockfile change per app: `vite` 7.3.6 to 7.3.7 (resolved URL and integrity) and nothing else. No other package changed. The two lockfiles remain byte-identical (parity gate).
+
+**Advisories cleared.** HIGH, vite 7.0.0-7.3.6 via launch-editor: GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw, GHSA-587h-7wmj-h5pm. Build 20261021-1 had halted at `code-app-audit` (C-TECH-074).
+
+**Evidence (each app, exit code 0).** `npm audit --audit-level=high` ("found 0 vulnerabilities"), `npm run typecheck`, `npm run build`, `verify-code-app-bundle-budget.py` (PASS), `npm run coverage` (45 files / 790 tests; cards 49 files / 888 tests, all passed). Bundle sizes are identical to build -8: JS 1,210.18 kB / CSS 77.64 kB, and cards JS 845.81 kB / CSS 148.64 kB. Verification level V1 (local build and tests; not deployed).
+
+**Not touched.** Flow #7's layout revision and the untracked Rev-Payment-Issued files (wbs:8.6).
+
+### 17. Code review (vite 7.3.7 dependency fix, `IMP-1188`)
+
+**Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-21  **Response:** `Approved` (verbatim, recorded by lead-agent and relayed to development-agent). No feedback.

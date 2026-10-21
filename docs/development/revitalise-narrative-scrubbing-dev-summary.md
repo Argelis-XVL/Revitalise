@@ -17,6 +17,8 @@
 | 10 — TAD rev 23 (`ADR-076`): the rewrite rules move to four `rev_setting` rows, which are also checks P2 and P3; create-only seed; 97 actions; rules v0.6; **the two prompts exported from DEV and copied in (`A-NS-31` closed)** | 2026-10-16 | `wbs:5.6`, `5.3` | **Awaiting code review** — [jump to Iteration 10](#iteration-10--the-rewrite-rules-move-to-settings-tad-rev-23-2026-10-16) |
 | 11 — DEV synthetic run of 2026-10-19: a hyphenated surname fragment leaked; name spans widened and a P3 name-fragment check; *Dr* kept outside the label; name rules reordered with the writer's own name; a punctuation fidelity hold; rules v0.7; 100 actions | 2026-10-19 | `wbs:5.3`, `5.6` | **APPROVED 2026-10-19** (*"Approved to build."*, with Iteration 12) — [jump to Iteration 11](#iteration-11--name-fragments-name-rules-and-punctuation-2026-10-19) |
 | 12 — TAD rev 25 (`ADR-078`): the flow never releases; every scrubbed record is flagged and carded; `RedactionAutoRelease` retired; threshold seeded create-only at 0.85; SDD A-11: the writer's own name does not count as another person; rules v0.8; 97 actions | 2026-10-19 | `wbs:5.3`, `5.4`, `5.6` | **APPROVED 2026-10-19** (*"Approved to build."*, with Iteration 11); **12.9 fix after the DEV designer refused to save: APPROVED 2026-10-20** (*"Approved"*) — [jump to Iteration 12](#iteration-12--the-process-owner-releases-every-record-tad-rev-25-2026-10-19) |
+| 13 — TAD rev 29 (`ADR-075` item 2, "Decided: label"): a GP practice the extractor misses is labelled from its capitalised suffix; rules v0.9; 100 actions | 2026-10-20 | `wbs:5.3`, `5.6` | **Awaiting code review** — [jump to Iteration 13](#iteration-13--a-gp-practice-the-extractor-misses-is-labelled-tad-rev-29-2026-10-20) |
+| 14 — TAD rev 30 (`ADR-082`): one extractor call per batch of columns, one prompt that rewrites and corrects spelling (declared near-spelling pairs), action ceiling 125; rules v1.0; 109 actions | 2026-10-21 | `wbs:5.3`, `5.6` | **Awaiting code review** — [jump to Iteration 14](#iteration-14--one-extractor-call-per-batch-one-prompt-for-rewrite-and-spelling-tad-rev-30-2026-10-21) |
 
 > **Iteration 1 is kept as approved.** Where it says the flow and the `TD-008` columns are not built, Iteration 2
 > below supersedes it: both are built.
@@ -2285,3 +2287,356 @@ itself (V4). **Hours:** 5.3, 0.5 h (fix, check, test).
 **Approval (addendum 12.9): APPROVED 2026-10-20.** Reviewer, Xander Lykopoulos, verbatim, relayed by lead-agent:
 *"Approved"*. This also accepts the SOFT warning `C-TECH-067` again (pre-existing provisioning-test literals; none in this
 change). Still open: the designer open-and-save (V4) after the next build and DEV import.
+
+
+## 12.10 Addendum — DEV re-run of build 20261020-1: a missed GP practice, and the self-name rule (2026-10-20)
+
+**WBS:** `wbs:5.3`, `wbs:5.6` · **Status:** awaiting code review · Synthetic seeded records only; no write to DEV.
+Reviewer asked to start both (relayed by lead-agent).
+
+### 1. "Moorside Medical Centre" was written, flagged, not labelled — the extractor, not the flow
+
+**The flow labels the practice when the extractor returns it** — [`test_td13_the_gp_practice_is_labelled_beside_dr_name`](../../src/tests/narrative/test_scrub_flow_definition.py#L648).
+The shipped flow, run on TD-13's own text with a PersonName (`Dr Adeyemi` or `Adeyemi`) and an Organization
+`Moorside Medical Centre`, gives *"… Dr [NAME] at [GP PRACTICE] reviews my medication every three months."* under both
+string semantics, with no reason. The Iteration 11 fields (`trim`, `fwd`, `back`, [`Select_spans`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1084)) apply to
+PersonName spans only, and the two spans do not touch.
+
+**The DEV text is reproduced only when the extractor does not return the practice** — [`test_td13_an_extractor_that_misses_the_practice_is_flagged`](../../src/tests/narrative/test_scrub_flow_definition.py#L667).
+No Organization, a truncated one (`Moorside Medical`) or an over-long one (`Moorside Medical Centre reviews`) each give
+exactly the DEV result: the practice is written, and `residual-practice-word` flags the column. A `Location` type would also
+add `unmapped-entity-type`, which the DEV card did not show. So the extractor answered the same text differently from the
+day before. This is inferred, not measured: the extractor's answer is secured in run history.
+
+**Nothing reached a trustee.** The record is review-required and the process owner releases every record (`ADR-078`). But a
+practice name sits in a written counterpart with only a flag on it. Decision 2 below proposes the safeguard.
+
+### 2. The self-name rule covers "Fenella is the name my friends use for me"
+
+[`_self_name`](../../src/tests/narrative/redaction_reference.py#L1655), [the test](../../src/tests/narrative/test_neutral_terms.py#L258),
+[seed](../../provisioning/deploymentSettings/dev-scoring-settings.json#L317).
+Line 1 of `RedactionNameRules` is the reviewer's wording, in all three settings files. The expected-output model now also
+keeps `[NAME]` in *"[NAME] is the name …"*, *"[NAME] is what … call me"* and *"… call(s) me [NAME]"*. *"Pat is the name of
+my carer"* is still a third person. **TAD `ADR-076`'s quoted seed needs the same erratum (architect-agent).** Lead-agent
+writes the DEV row after you confirm the wording; nothing was written to DEV here.
+
+### Outside this change: a new flow fails the narrative suite
+
+`test_solution_flows.NoTriggerLoop` (3 tests) fails on `REVFinanceCapturePayment`, a flow written today at 15:24 by
+another dispatch: it is on a self-trigger loop. It is not narrative work and this addendum does not touch it; its owner
+needs to know before the next build, because the narrative suite is in the HARD `unit-tests` step.
+
+### Verification
+
+Narrative suite: 206 tests, every narrative-scrubbing test OK; the 3 failures are the trigger-loop tests above. Pester
+`DeploymentSettings` and `DataverseScripts`: 135 passed, 0 failed, 1 skipped. 19 of 19 source gates; field-length limits,
+assumption markers and register, build config exit 0. **Not verified:** the extractor's live answer for this column, and how
+the live model applies the new line 1. **Hours:** 5.3, 0.5 h (reproduction, tests); 5.6, 0.25 h (line 1, model, test).
+
+## 12.11 What you need to decide
+
+**1. Confirm line 1 of `RedactionNameRules`, so lead-agent can write the DEV row**
+
+**Problem** — DEV still reads *"they is the name my friends use for me"*.
+**Suggested fix** — confirm this exact seven-line value; lead-agent writes it to DEV.
+**What happens if you don't** — the DEV prompt keeps turning the writer's own name into *they* in sentences like this one.
+[seed value](../../provisioning/deploymentSettings/dev-scoring-settings.json#L317)
+
+```text
+When [NAME] is the writer's own name, keep [NAME]. This includes "I am [NAME]", "I'm [NAME]", "my name is [NAME]" and any sentence where the writer says [NAME] is what they are called, such as "[NAME] is the name my friends use for me".
+Keep [NAME] after Dr: "Dr [NAME] reviews my medication" stays as it is.
+When [NAME] comes straight after a relationship word, remove it and keep the neutral word, even when the text names other people: "my husband [NAME]" becomes "my partner", and "our son [NAME], who is [AGE 35 to 44]," becomes "our child, who is [AGE 35 to 44],".
+Otherwise, keep [NAME] when the text names two or more different people other than the writer.
+If the text is about one named person, write they, them or their in place of [NAME], as the sentence needs, and make the verb agree: "[NAME] visits me." becomes "They visit me."
+A name inside the name of a GP practice is part of [GP PRACTICE].
+Mum or Dad used as a name, as in "Mum helps me", becomes "my parent".
+```
+
+---
+
+**2. Choose a safeguard for a GP practice the extractor misses**
+
+**Problem** — when the extractor misses a practice, its name is written into the counterpart with only a flag.
+**Suggested fix** — (b): do not write the column when a capitalised practice suffix (*Surgery*, *Medical Centre*, *Health Centre*, *Medical Practice*, *Group Practice*, *Family Practice*) is left in the final text, with the new reason `practice-name-survived:<column>`. That is about one action, matched case-sensitively, so *"had surgery"* and *"the practice nurse"* still write. The alternative (a) labels the capitalised phrase before such a suffix as `[GP PRACTICE]`: more useful text, about three to four actions. Either needs architect-agent to record it in `ADR-075`.
+**What happens if you don't** — the practice name stays in the written counterpart until the process owner removes it during her review of every record; nothing reaches a trustee unreviewed.
+[the flagged case](../../src/tests/narrative/test_scrub_flow_definition.py#L667)
+
+---
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1170](../../logs/improvement-log.jsonl) | `extractor-misses-gp-practice-written-with-flag-only` | rework | A practice name the extractor misses is written with only a flag; a capitalised practice suffix left in the text should stop the write or be labelled |
+| [IMP-1171](../../logs/improvement-log.jsonl) | `self-name-rule-too-narrow` | rework | State a prompt rule as the rule, give phrasings as examples, and mirror the wider rule in the oracle |
+
+**Approval (addendum 12.10): APPROVED 2026-10-20.** Reviewer, Xander Lykopoulos, verbatim, relayed by lead-agent:
+*"Approved"*. This also accepts the SOFT warning `C-TECH-067` again (pre-existing provisioning-test literals; none in this
+change).
+
+**Decision 12.11-1 is done.** At your confirmation (*"Confirm the wording"*), lead-agent wrote the seven-line
+`RedactionNameRules` value of section 12.11 to the DEV `rev_setting` row with a `pac power-fx run` `Patch` at
+2026-10-20 15:21 local, and verified it by read-back. Nothing else in DEV was changed.
+
+**Decision 12.11-2: you chose to label the capitalised phrase before a practice suffix as `[GP PRACTICE]`.** Lead-agent
+relayed this as "option B". In section 12.11 that labelling route is the one written second, as "(a)"; the "(b)" there was
+not-written. **What is recorded here is the labelling route, as you described it.** Architect-agent records it in
+`ADR-075` first, and it is **not implemented yet**: it waits for that record and a new dispatch. Until then, a missed
+practice is written and flagged (`residual-practice-word`), and the process owner reviews every record.
+
+
+---
+
+# Iteration 13 — a GP practice the extractor misses is labelled (TAD rev 29, 2026-10-20)
+
+**WBS:** `wbs:5.3` (the flow), `wbs:5.6` (the practice-words row) · **Date:** 2026-10-20 · **Author:** development-agent ·
+**Status:** awaiting code review · **Items:** none carried · Nothing built, deployed or committed; no call to any
+environment. **Design:** TAD rev 29, `ADR-075` item 2 *"Decided: label"* (`IMP-1170`), approved by the reviewer, verbatim:
+*"LAbel the name and approved for development"*. It answers decision 12.11-2.
+
+## 13.1 Summary
+
+A GP practice name is now labelled before the rewrite even when the extractor misses it. That was the DEV case of TD-13,
+where *Moorside Medical Centre* was written with only a flag. The flow finds each capitalised practice suffix and walks
+back over the name before it. It is at **100 actions, the ceiling**: three Selects added, nothing raised. No new reason
+code, no setting added.
+
+## 13.2 What has been built
+
+1. **The suffix list is one place, including the process owner's extra words** — [`Compose_settings.practiceSuffixes`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L838).
+   The six built-in suffixes, plus each valid `RedactionPracticeWordsExtra` entry with each word capitalised (*walk in
+   clinic* becomes *Walk In Clinic*). An invalid extra row gives the six only, as P3's list already does.
+2. **Each suffix occurrence is found case-sensitively** — [`Select_practice_suffix_hits`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1335).
+   Positions come from splitting the column on the suffix, and each one is confirmed with `replace()`, which is
+   case-sensitive (`A-NS-35`). So *had surgery* never matches, whichever way the platform's `split()` treats case. There must be
+   a space or the start before, and a non-letter or the end after. At most 25 occurrences of one suffix per column are
+   labelled; a later one stays flagged by `residual-practice-word`.
+3. **The name before it is walked back** — [`Select_practice_words`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1363), [`Select_practice_spans`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1397).
+   The walk goes back over up to four words while each is *St*, *St.* or a capitalised name word (letters with an internal
+   apostrophe or hyphen allowed), and stops at a lower-case word, a digit, other punctuation or the start. Zero words
+   gives no span. Each span is `[GP PRACTICE]` with no score, so the record's confidence is still the extractor's alone,
+   and no P1 value.
+4. **The spans join the extractor's, after them** — [`Filter_labelled_spans`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1446). The existing containment and
+   overlap rules apply unchanged: *Dr Patel's Surgery* contains the extractor's *Patel*, which is dropped; an equal
+   extractor Organization is kept once; a partial overlap holds the column.
+5. **The reference model and the tests say the same** — [`practice_spans`](../../src/tests/narrative/redaction_reference.py#L808),
+   [`PracticeNamesTheExtractorMisses`](../../src/tests/narrative/test_scrub_flow_definition.py#L824),
+   [TD-13 with the Organization missing, truncated or over-long](../../src/tests/narrative/test_scrub_flow_definition.py#L968).
+   The tests cover the TAD's five worked examples, the negatives (*had surgery*, *the practice nurse*, *a health centre*,
+   a sentence-initial *Surgery*, *the Surgery*), the stops, the four-word cap, a partial overlap, an equal Organization and
+   an extra-row suffix. TD-13's disability column now reads *"… Dr [NAME] at [GP PRACTICE] reviews …"* with no reason,
+   whatever the extractor did with the practice. Iteration 12.10's test that pinned the old flag-only behaviour is replaced.
+   Rules: [§6c.2](revitalise-redaction-rules.md#L534), v0.9.
+
+## 13.3 Elements
+
+| Element | Change | WBS |
+|---|---|---|
+| Flow | 97 → **100 actions**: `Select_practice_suffix_hits`, `Select_practice_words`, `Select_practice_spans`; `Compose_settings.practiceSuffixes`; `Filter_labelled_spans` reads both span lists; `Filter_unmapped_entities` runs after the new Selects | 5.3 |
+| Reference | `PRACTICE_SUFFIXES`, `capitalise_words`, `practice_name_word`, `practice_spans`; `label_spans` takes the suffix list; `RunContext.practice_suffixes` | 5.3, 5.6 |
+| Tests | 7 flow tests added, 1 replaced | 5.3 |
+| Notes, rules | Flow notes; rules v0.9 §6c.2 | 5.3, 5.6 |
+
+Every new expression is under the 8,192-character limit (longest 1,742). The new actions secure inputs and outputs; none
+of them is a Compose.
+
+## 13.4 What is still open
+
+**No new platform assumption.** `split`, `take`, `join`, `skip`, `div` and `mod` are already used in this flow. Case is
+confirmed with `replace()` (`A-NS-35`), and positions do not depend on `split()`'s case semantics. `A-NS-40` still covers
+`first()`/`last()`.
+
+**The simulator is slower:** the narrative suite takes about 70 seconds, up from 25, because each column now runs about
+150 extra items in Python. On the platform that is 150 items per column, small next to the existing per-character Selects.
+
+## 13.5 Verification Evidence
+
+| Component | Level reached | Evidence |
+|---|---|---|
+| Flow logic | V1, simulator | Narrative suite **212 tests OK**, both string semantics. Without the other workstream's trigger-loop tests the result is the same (they pass now: 3 of 212) |
+| The tests can fail | Executed | 4 flow mutations, each caught: practice spans not joined (24 failures), the four-word cap ignored (2), the capital-letter test removed (13), the after-boundary check off (2). One equivalent mutation was discarded |
+| Gates | V1 | 19 of 19 source gates; field-length limits; flow-definition self-tests; assumption markers and register; build config: all exit 0 |
+| Pester | Executed | `NarrativeRedaction`, `BuildGates`: 133 passed, 0 failed |
+| Pack | **V2** | Unmanaged pack exit 0, no warning |
+
+**Not verified:** import, designer save and a DEV run of this flow version (V3 to V5).
+
+## 13.6 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.3 | 2.0 h | Three Selects within the expression and action limits, the reference model, 7 tests, 4 mutations |
+| 5.6 | 0.25 h | Extra-row suffixes, rules v0.9 |
+| system | 0.25 h | One finding |
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1176](../../logs/improvement-log.jsonl) | `empty-createarray-in-flow-expression` | friction | In a flow expression an empty array is `json('[]')`, never `createArray()` with no argument |
+
+
+# Iteration 14 — one extractor call per batch, one prompt for rewrite and spelling (TAD rev 30, 2026-10-21)
+
+**WBS:** `wbs:5.3` (the flow), `wbs:5.6` (spelling, `CO-009`, approved unbilled) · **Date:** 2026-10-21 · **Author:**
+development-agent · **Status:** awaiting code review · **Items:** none carried · Nothing built, deployed, exported or
+committed; no call to any environment. **Design:** TAD rev 30, [`ADR-082`](../architecture/revitalise-grant-automation-architecture.md) (approved by the reviewer 2026-10-21,
+verbatim *"Approved"*, relayed by lead-agent), on his decisions D1 to D3. Sub-agent fan-out not performed: the flow, its
+reference model, its tests and the two documents change one contract together, so splitting them would have meant passing the
+whole contract between agents twice.
+
+## 14.1 Summary
+
+The flow now asks the extractor once per batch of columns instead of once per column, and one prompt both rewrites and
+corrects spelling. A typical application is one extractor call where there were about five, and the spelling call is gone.
+The flow is **109 actions, 6 levels deep**; the ceiling is **125**. **Waiting on you:** after the new flow is in DEV, apply the
+new prompt wording (R1d) yourself, in that order; the exact text is in the prompt document.
+
+## 14.2 What has been built
+
+1. **The extractor is called once per batch of columns, up to 5,000 characters** — [`For_each_plan_column`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L921), [`For_each_batch`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L968), [`Extract_entities_from_the_batch`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1064).
+   The chosen columns are packed in their fixed order (a column joins the open batch when the batch, the two-line-feed
+   separator and the column total at most 5,000; otherwise it opens the next). The plan is a fourth variable holding column
+   names and numbers only ([`Initialise_batch_plan`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L163)). With no column chosen the loop runs zero times and no call is made. Both numbers are in
+   [`Compose_constants`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L251).
+2. **Each entity goes back to its column by offset, and anything that straddles two columns holds both** — [`Select_batch_layout`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1038), [`Filter_column_entities`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1147), [`Select_column_entities`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1164), [`Select_overlap_trials`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1467).
+   An entity belongs to every column it touches, rebased to it; one inside the separator belongs to none. A labelled entity that
+   runs across a boundary gives `overlapping-identifiers` and no write in each column it touches. It does so even where a
+   larger span in that column contains it (fail closed); that is slightly stricter than the ADR's wording and costs nothing but
+   a held column.
+3. **A failed call marks every column of its batch `ai-error`** — [`Compose_batch_entities`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1098) is null, and each column then reaches the existing
+   `ai-error` branch. Other batches go on.
+4. **One prompt rewrites and corrects spelling; the spelling call is gone** — [`Compose_rewrite`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1576), [`Compose_final_text`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1599). The answer is
+   split at the first `###CORRECTIONS###`: the text before it is the rewrite, the lines after it are the corrections the model
+   declares. `Run_the_spelling_prompt`, `Compose_spelling` and `Select_spelling_words` are removed. The template wording is in
+   [the prompt document, section 1](revitalise-redaction-prompt.md#L20), with your steps in [R1d](revitalise-redaction-prompt.md#L129).
+5. **Check P2 accepts a corrected word only as a declared, validated near-spelling pair** — [`Select_valid_corrections`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1644), [`Filter_added_words`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1686).
+   A pair is valid when the wrong word is an input word as written there and starts lower case, the right word starts with the
+   same letter, the lengths differ by at most two, both are letters, the wrong word is not a closed-list word and the right word
+   is not a gendered word. A word the model changes without declaring it, or beyond that, stops the column being written.
+   **Lost, as `ADR-082` says:** the old rule proved *where* a corrected word sat; this one cannot.
+6. **The reference model and the tests say the same** — [`plan_batches`](../../src/tests/narrative/redaction_reference.py#L1215), [`map_entities`](../../src/tests/narrative/redaction_reference.py#L1240), [`split_answer`](../../src/tests/narrative/redaction_reference.py#L1257), [`valid_corrections`](../../src/tests/narrative/redaction_reference.py#L1282),
+   [`SpellingDeclaredPairs`](../../src/tests/narrative/test_scrub_flow_definition.py#L304), [`BatchedExtraction`](../../src/tests/narrative/test_scrub_flow_definition.py#L420), [the size and depth test](../../src/tests/narrative/test_scrub_flow_definition.py#L1223). The old word-by-word spelling
+   tests and `accept_spelling` are replaced, not kept. Rules [v1.0](revitalise-redaction-rules.md#L17) and [section 4.4a](revitalise-redaction-rules.md#L342); the flow [notes](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.notes.md) describe the new parts.
+
+## 14.3 Elements
+
+| Element | Change | WBS |
+|---|---|---|
+| Flow | 100 → **109 actions**, nesting 5 → 6: +`Initialise_batch_plan`; +`For_each_plan_column`, `Compose_batch_step`, `Append_batch_plan`; +`For_each_batch`, `Filter_batch_columns`, `Select_batch_texts`, `Compose_batch_joined`, `Select_batch_layout`; the extractor call and its answer move up a level and are renamed; +`Filter_column_entities`, `Select_column_entities`; +`Select_valid_corrections`; −`Run_the_spelling_prompt`, `Compose_spelling`, `Select_spelling_words`. `Compose_constants` gains `batchLimit`, `separator`, `correctionsMark`; `Compose_check_texts` gains `inputCase`. The two nested loops are sequential | 5.3 |
+| Reference | `plan_batches`, `batch_layout`, `map_entities`, `split_answer`, `valid_corrections`, `input_case_words`; `scrub_column` and `flow_scrub_record` take no spelling prompt; `accept_spelling`, `take_correction` removed | 5.3, 5.6 |
+| Tests | 7 spelling tests replaced by 11 (`SpellingDeclaredPairs`), 12 new (`BatchedExtraction`), size and depth 125 and 6, an 8,192-character check on every expression, 4 variables, prompt-component tests for the rev 30 template | 5.3, 5.6 |
+| Prompt document | Section 1 now holds the rev 30 template and the R1d steps; the rev 23 template is kept in 1.2 (the solution still exports it); section 2 marked retired | 5.6 |
+| Rules, notes | Rules v1.0; flow notes | 5.1, 5.3 |
+| Not touched | `Other/Customizations.xml` and `Other/Solution.xml` (the spelling component stays until you delete it in DEV); the solution's pipeline and build configuration; the settings rows | — |
+
+Every expression is under the 8,192-character limit (the longest new one is the pair rule, [`Select_valid_corrections`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json#L1644)). Every
+description is within the designer's 256 characters. All new actions that carry narrative text secure their inputs and outputs
+(`Compose` actions secure inputs only).
+
+## 14.4 What is still open
+
+**Deployment order matters, and only in DEV.** Import the flow first, apply R1d second. The new flow with the old prompt writes
+the rewrite with no spelling correction and no blackout. The new prompt with the old flow holds every column. TST/ACC and PRD
+receive both in one solution.
+
+**Two small departures from `ADR-082`'s wording, for you to accept or reverse.** (a) The valid corrections are carried to P2 as
+the output of `Select_valid_corrections`, not as a property of `Compose_check_texts`: the pair rule needs the case-kept input
+text that `Compose_check_texts` computes, so the Select has to run after it. (b) The rewrite is trimmed at both ends, where the
+ADR says trailing white space; there is no trailing-only trim in the language, and a leading blank is not narrative.
+
+**The cost of merging the prompts is unmeasured.** A correction the model makes that the pair rule refuses now stops that
+column, where two calls left the slip as written. The `wbs:5.7` scoring run counts it (`A-NS-43`).
+
+**Not designed, as `ADR-082` says:** where the AI Builder event table keeps the text of every call (`A-NS-45`). Batching neither
+fixes nor worsens it. No dispatched agent puts real applicant text through DEV before you decide.
+
+**The change-scoped build does not shrink here yet.** `run-build.py --plan --changed-since last-green` plans 101 of 102 steps
+now, because the working tree also holds uncommitted work from other items (Capture Payment, the code apps' package files,
+four build manifests). Scoping will help once those are committed.
+
+## 14.5 Unvalidated Assumptions Register (C-TECH-052)
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| A-NS-41 | The extractor's `startIndex` and `length` count UTF-16 characters of the whole joined text, the separators and a CRLF inside a column included and unmodified, so `substring(joined, start, length)` is the column's own text. If they did not, labels would land on the wrong characters; P1 still fails closed (`identifier-survived`, not written) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 (`A-NS-2` held for one column, E1); the simulator counts the same way | No DEV run of this flow version | DEV, synthetic text only: join two or three columns, one with CRLF, a name at a known offset in each; compare every entity's value with the substring at its offset | OPEN |
+| A-NS-42 | A cloud flow with a `Foreach` inside a `Foreach` saves in the designer when an inner action reads an action of the enclosing iteration, and `take(range(0, max(n, 1)), n)` is accepted as the outer array. If refused: `CASCADE: ARCH_GAP` (fallback: closed-form batching, no nesting) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 (check 12's measured refusal of 2026-10-09 is for a reference from outside a loop) | No import | Import into DEV and open and save the flow once (V4) | OPEN |
+| A-NS-43 | One call to the rewrite prompt returns `finishReason` `stop`, the corrected text and, when it corrected anything, a `###CORRECTIONS###` line and `wrong=>right` lines, often enough that `rewrite-invalid` from an undeclared or refused correction is rare. If it does not, a measured rate goes to you | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E3 (the form is untried; `A-NS-8`, `A-NS-33` are the same call's other contracts) | R1d not applied | The `wbs:5.7` scoring run on the synthetic corpus: count those `rewrite-invalid` and the share of seeded misspellings corrected | OPEN |
+| A-NS-44 | A joined call is billed 20 credits per started 1,000 characters of the whole text, separators included. If it were billed per column, batching would save nothing | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E1 (one column, `IMP-1189`); E2 (rate table) | No batch call yet | After the first DEV batch call, read `msdyn_aievent.msdyn_creditconsumed` and compare with 20 × ceil(length / 1,000) | OPEN |
+| A-NS-45 | `msdyn_aievent` keeps the raw input of every AI Builder call, so applicant text persists in a Dataverse table (`IMP-1190`, TAD `A-R105`): who can read it and for how long is unknown | `src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json` | E1 (measured in DEV) | Open, not designed | Read the table's role scope and retention in DEV; decide retention and a PRD bulk delete as its own decision | OPEN |
+
+Re-stated, not changed: `A-NS-8`, `A-NS-33`, `A-NS-34` now sit on `Compose_rewrite` and `Compose_batch_entities`; `A-NS-35` (`replace()` is case-sensitive) now carries the pair rule's two case tests as well as the title check; `A-NS-12`, `A-NS-13`, `A-NS-16`, `A-NS-5` sit on the batch call; `A-NS-31` stays closed (the id and inputs are unchanged).
+
+## 14.6 Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Evidence |
+|---|---|---|
+| Flow logic | V1, simulator | Narrative suite **232 tests OK**, both string semantics; the flow and the reference model agree on writes, reasons and decision for every case, including batches, the straddle, a CRLF and a failed batch |
+| The tests can fail | Executed | 7 flow mutations, each caught: crosses never set (2 failures), P2 ignoring declared pairs (10), first letter not compared (2), wrong word need not be an input word (2), gendered right word allowed (1), batch limit 5,001 (3), separator not counted in the offsets (5). One equivalent mutation discarded |
+| Gates | V1 | 19 of 19 source gates (field-length limits, flow-definition-language checks 1 to 18 incl. 12 and 18, assumption gates); build configuration verifier |
+| Pester | Executed | `NarrativeRedaction`: 2 passed, 0 failed (it runs the whole narrative suite) |
+
+**Not verified:** import, designer save and a DEV run of this flow version (V3 to V5), the live model's use of the new template, the extractor's offsets over a joined text and the billing of a joined call.
+
+## 14.7 Hours proposal (for commercial-agent, behind `APPROVE TIMESHEET`; not a booking)
+
+| WBS | Proposed | Evidence |
+|---|---|---|
+| 5.3 | 6.0 h | Batch plan, nested loop, offset mapping, merged answer and pair rule in a 109-action flow within the expression and description limits; reference model; 26 tests; 7 mutations |
+| 5.6 | 1.25 h | Merged template and R1d steps, rules v1.0, prompt-component tests |
+| system | 0.25 h | One finding |
+
+## 14.8 What you need to decide
+
+**1. Apply the new prompt wording in DEV (R1d), after the new flow is imported**
+
+**Problem** — the prompt must also correct spelling and reply in the form the flow reads, and only you can edit it in DEV.
+**Suggested fix** — import the new flow into **REV-GrantApplications-DEV**, then follow [R1d](revitalise-redaction-prompt.md#L129): paste the first template in [section 1](revitalise-redaction-prompt.md#L20) into **REV Narrative Rewrite Prompt**, keep the five inputs and the settings, run the synthetic test text there, and tell development-agent.
+**What happens if you don't** — the flow still works, but writes the rewrite without spelling correction. **If you do it before the flow is in DEV**, every column is held until the flow arrives.
+
+**2. Delete REV Narrative Spelling Prompt in DEV, later**
+
+**Problem** — the component is no longer called but is still in the solution source.
+**Suggested fix** — do nothing now. After R1d and the refreshed export, development-agent tells you when its source reference can go in the same commit, and you delete it in DEV.
+**What happens if you don't** — nothing breaks; it stays as an unused component.
+
+**3. Accept or reverse the two small departures in 14.4**
+
+**Problem** — the valid corrections reach P2 from `Select_valid_corrections` rather than from `Compose_check_texts`, and the rewrite is trimmed at both ends.
+**Suggested fix** — accept both; neither changes what is written or held.
+**What happens if you don't** — architect-agent amends `ADR-082` item 6 and this flow follows.
+
+---
+
+Verification: 232 narrative tests OK, 7 of 7 flow mutations caught, 19 of 19 source gates. **Not verified:** any import, designer save or run of this flow version, or the live model on the new template.
+
+## 14.9 Addendum: sort() over mixed Integer and Float (IMP-1198; wbs:5.3)
+
+**What failed.** DEV run of build 20261021-3 on application 1086: four of five columns processed; one failed at `Compose_column_outcome` with InvalidTemplate, "`sort` expects the sortBy parameter of an object array to reference a parameter that is the same type for each object".
+
+**Confirmed from the definition** (run history is secured; column content was not inspected). `Compose_column_outcome.scores` sorts `body('Filter_labelled_spans')` by `score`. Extractor spans take `float(...)` in `Select_entities`; the practice-suffix spans in `Select_practice_spans` took the integer literal `2` (TAD rev 29). A column holding both therefore mixed Float and Integer. It fits the symptom (one column in five) and is consistent with the evidence; the failing column's content was not read, so this is the diagnosis the definition supports, not an observation of that run.
+
+**Fix.** `Select_practice_spans` score `2` becomes `"@float(2)"`. One line. Every span in `Filter_labelled_spans` now carries a Float score.
+
+**Other sort/min/max checked, no change needed.** The other `sort` is on `start` (all integers: `max(sub(...))`, `int(...)`). `min(union(variables('scores'), createArray(2)))` in `Filter_record_reasons` and `Compose_decision` is `min` over a plain number array, which the platform accepts mixed; it is not the object-array rule.
+
+**Why 232 tests passed.** `wdl_sim.f_sort` used Python `sorted()`, which compares int and float freely. It now raises `WdlError` when the sortBy values are not one type, as the platform does.
+
+**Tests.** `test_iteration_14_an_extractor_span_and_a_practice_span_in_one_column_sort_on_one_type` (a PersonName the extractor found plus a practice suffix it did not, one column) and `test_iteration_14_the_sim_rejects_a_sort_over_mixed_integer_and_float`. With the fix reverted, `PracticeNamesTheExtractorMisses` reports 8 failures across 4 tests (the new case and three earlier tests that had been passing over the defect); with the fix, OK.
+
+**Verification.** 234 narrative tests OK; `run-source-gates.py` 19 source gates run; assumption-markers and assumption-register PASS. **Not verified:** any import or run of the corrected flow, and `sort()` on the platform with a Float `2.0` in a real run (`A-NS-15` stays OPEN).
+
+**For you to do.** Rebuild and re-import to DEV, then re-run application 1086. Finding: IMP-1198 (diagnosis), IMP-1199 (simulator gap, `fixes: IMP-1198`).
+
+### Addendum: the rewrite prompt keeps full stops (IMP-1202, 2026-10-21)
+
+The rewrite model dropped sentence full stops (`msdyn_aievent` shows it since 2026-10-19, same with the rev 23 and rev 30 templates). The reviewer replaced *"do not add punctuation,"* in the closing paragraph with *"; keep every punctuation mark exactly where it is, including the full stop at the end of every sentence and after a label; do not add punctuation;"* in DEV and confirmed it on application 1086.
+
+**Changed here (document and test only; no build, deploy or commit).** Section 1 of [the prompt document](revitalise-redaction-prompt.md) carries the new sentence and a source-of-truth note; `test_the_rev30_template_is_the_exported_one_plus_exactly_the_spelling_changes` now allows exactly this sentence as a fourth edit and asserts it is present. Section 6's R1c note is superseded in substance by this wording.
+
+**Source of truth.** DEV is the source of truth for the prompt until the next export. **The reviewer re-exports `REV Narrative Rewrite Prompt` from DEV before the ACC promotion build**; `Other/Customizations.xml` holds the older template until then, and the export test moves to section 1 at that point.
+
+**Corpus or unit assertion: not added.** Full-stop loss happens inside the model; the simulator and unit tests replay canned answers, so an assertion on written columns would test the fixture, not the prompt. The flow's existing guard (`rewrite-dropped-punctuation`, more than 10% fewer marks, held for the process owner) already counts punctuation on real output; the only real check is the `wbs:5.7` scoring run, which should report the punctuation-count flag rate.
+
+## Findings Logged (Iteration 14)
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| [IMP-1193](../../logs/improvement-log.jsonl) | `scoped-build-plan-covers-the-whole-dirty-tree` | friction | Before promising a fast DEV-only build, read the `--plan` count: unrelated uncommitted work widens a change-scoped plan to nearly every step |
+

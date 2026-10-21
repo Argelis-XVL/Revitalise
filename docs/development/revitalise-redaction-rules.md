@@ -1,7 +1,7 @@
 # Free-Text Redaction Rules — v0.5 (direct identifiers, the client's neutral terms, and the rev 22 checks)
 
 **Automation #5, Narrative Scrubbing · `wbs:5.1` (rules), `wbs:5.2` (corpus and harness), `wbs:5.3` (the flow), `wbs:5.6` (the client's rules)**
-**Version:** 0.8 · **Date:** 2026-10-19 · **Author:** development-agent · **Status:** v0.8 for review (TAD rev 25 `ADR-078`, Dev Summary Iteration 12); v0.7 for review (Dev Summary Iteration 11, recorded in TAD rev 25); v0.6 for review (TAD rev 23 `ADR-076`); v0.5 (TAD rev 22 `ADR-075`, SDD Amendment A-09,
+**Version:** 1.0 · **Date:** 2026-10-21 · **Author:** development-agent · **Status:** v1.0 for review (TAD rev 30, Dev Summary Iteration 14); v0.9 for review (TAD rev 29, Dev Summary Iteration 13); v0.8 approved with Iteration 12; v0.7 for review (Dev Summary Iteration 11, recorded in TAD rev 25); v0.6 for review (TAD rev 23 `ADR-076`); v0.5 (TAD rev 22 `ADR-075`, SDD Amendment A-09,
 both approved 2026-10-16) code-reviewed and approved; v0.1 APPROVED 2026-10-06 with decisions D-1 to D-3 as drafted (section 12); v0.2 to v0.4 are kept where
 v0.5 does not say otherwise, and each superseded section says so at its top.
 **Executable form:** [`src/tests/narrative/redaction_reference.py`](../../src/tests/narrative/redaction_reference.py). Its first
@@ -13,6 +13,25 @@ through [`NarrativeRedaction.Tests.ps1`](../../src/tests/narrative/NarrativeReda
 [`wdl_sim.py`](../../src/tests/narrative/wdl_sim.py) with stand-in prompts, compared with the model) and
 [`test_neutral_terms.py`](../../src/tests/narrative/test_neutral_terms.py) (section 10.1).
 Where this document and the code disagree, the tests decide and this document is wrong.
+
+### What changed in v1.0 (TAD rev 30, `ADR-082`; Dev Summary Iteration 14; 2026-10-21)
+
+Reviewer decisions D1 to D3 of 2026-10-21 and his *"Approved"* of the same day. Cost and size, not a new rule about what is
+hidden.
+
+- **One extractor call per batch of columns** (section 4.4a), not per column: the chosen columns, in order, are joined by two
+  line feeds into calls of at most 5,000 characters, and each entity goes back to its column by offset. A column over 5,000
+  characters is still `too-long`. An entity that **straddles** two columns holds both (`overlapping-identifiers`); a failed
+  call is `ai-error` for every column in its batch.
+- **One prompt rewrites and corrects spelling** (section 7b). The spelling prompt is no longer called. The model declares each
+  correction after a `###CORRECTIONS###` line, and check P2 accepts a corrected word only as a declared near-spelling pair.
+- **The flow may be 125 actions and 6 levels deep** (it is 109 and 6). No new reason code, no setting.
+
+### What changed in v0.9 (TAD rev 29, `ADR-075` item 2 "Decided: label"; Dev Summary Iteration 13; 2026-10-20)
+
+Reviewer, verbatim: *"LAbel the name and approved for development"*. A GP practice the extractor misses is labelled
+`[GP PRACTICE]` before the rewrite, from its capitalised suffix (section 6c.2). No new reason code;
+`residual-practice-word` still flags a practice name the walk cannot bound (written in lower case).
 
 ### What changed in v0.8 (TAD rev 25, `ADR-078`; Dev Summary Iteration 12; 2026-10-19)
 
@@ -60,7 +79,7 @@ Reviewer, 2026-10-19, verbatim: *"Yes please, process the suggested changes"*.
 
 - **The flow no longer detects UK phones, postcodes or family members itself, and no longer rebuilds the text on its own.**
   The extractor labels what it finds (section 4.4); the **rewrite prompt** applies the client's key, turns names into *They*,
-  fixes the grammar and labels anything identifying the extractor missed; the **spelling prompt** corrects slips. Three fixed
+  fixes the grammar and labels anything identifying the extractor missed; the **spelling prompt** corrects slips (*v1.0: the same prompt does both*). Three fixed
   checks decide what is written (section 7b): **P1** no value the extractor found survives, **P2** the rewrite added no word,
   **P3** the residue checks (section 6b, plus a gendered word).
 - **Names become *They*** (FR-095), except: two or more different people keep `[NAME]`; a name after *Dr* keeps it; and,
@@ -320,6 +339,24 @@ how many records reach review, and the residue checks still stop a UK phone or p
 | `[EMAIL]` | Extractor `Email` | — | `residual-at-sign` |
 | `[AGE <band>]` | Extractor `Age` + band (6c) | — | `residual-age-phrase` (figures only: "ninety-one years old" is the extractor's alone) |
 
+### 4.4a How the extractor is called, v1.0 (TAD rev 30, `ADR-082`)
+
+The extractor reads one text per call, at most **5,000 characters** (Microsoft Learn, *Entity extraction prebuilt model*,
+read 2026-10-21) and is billed **20 credits per started 1,000 characters, per call** (`IMP-1189`). So the flow does not call
+it once per column (about five calls for 1,200 characters, each paying a whole 1,000-character block).
+
+1. **Batches.** The columns to scrub are taken in their fixed order. A column joins the open batch when the batch's length plus
+   two characters (the separator) plus its length is at most 5,000; otherwise it opens the next batch. No column is split and
+   none is moved (*next fit*). A typical application is **one call**. No column to scrub: **no call**.
+2. **The text sent** is each column exactly as stored, not trimmed, joined by **two line feeds**.
+3. **By offset.** A column's `start` is the length of the earlier columns joined plus one separator, its `end` is `start` plus its
+   length. An entity belongs to every column it touches, rebased to it. An entity wholly inside a separator belongs to none.
+   **An entity that runs across two columns holds both**: `overlapping-identifiers`, neither written, because a value that
+   straddles two answers cannot be labelled in either.
+4. **A failed call** (refused, no credits, unreadable) is `ai-error` for every column in its batch; other batches go on.
+
+Executable form: `plan_batches()`, `batch_layout()` and `map_entities()`, tested in `BatchedExtraction`.
+
 ---
 
 ## 5. The logic — merge, refine, replace
@@ -327,7 +364,7 @@ how many records reach review, and the residue checks still stop a UK phone or p
 > **v0.5: this section is the v0.1 specification, kept as approved.** The rev 22 flow does less, on purpose: a span inside
 > another is dropped and two that overlap without nesting hold the column (`overlapping-identifiers`, not written); there is
 > no kinship refinement (5.1 items 1-2), no merging of touching address parts, and no windows (5.4): a column over 5,000
-> characters is `too-long`. Replacement by offset from the end (5.3) is how the flow builds the **labelled text** the
+> characters is `too-long` (v1.0, section 4.4a: columns share a call up to that limit). Replacement by offset from the end (5.3) is how the flow builds the **labelled text** the
 > rewrite prompt receives.
 
 These are the rules the reviewer asked to have proven. Each has a named test in [`test_redaction_reference.py`](../../src/tests/narrative/test_redaction_reference.py).
@@ -450,7 +487,7 @@ Details the TAD leaves to this document:
 
 ### 6b. Residue checks — check P3 on what the flow is about to write (`ADR-071` item 6, `ADR-075` item 7)
 
-The flow checks the final text (the rewrite with the accepted spelling corrections). A hit never changes the text: the
+The flow checks the final text (since v1.0 the rewrite itself, with its spelling already corrected). A hit never changes the text: the
 column **is written** and the record is flagged with `residual-<kind>:<column>`, a hint on the process owner's card (v0.8; every record waits for her release anyway). The checks read the final text with **every
 label replaced by a bar**, so a label never trips a check (`[GP PRACTICE]` contains *practice*).
 
@@ -493,6 +530,28 @@ Applied to every `PersonName` span before labelling, deterministically, letters 
 One fragment per side. A second (*Smith-Jones-Brown*) stays outside the label and is flagged by `name-fragment` (6b). P1 still
 searches the extractor's own value; the fragment cannot come back, because P2 refuses a word that is not in the labelled
 input. Flow: `Select_entity_ages` (`trim`, `fwd`, `back`), `Select_spans`; reference: `all_spans`.
+
+### 6c.2 A GP practice the extractor missed (v0.9, TAD rev 29)
+
+On the raw column, before labelling. **The suffixes:** *Surgery*, *Medical Centre*, *Health Centre*, *Medical Practice*,
+*Group Practice*, *Family Practice*, and each `RedactionPracticeWordsExtra` entry with each word's first letter upper-cased,
+matched **case-sensitively**, with a space or the start before and a non-letter or the end after. At most 25 occurrences of
+one suffix per column are labelled; a later one is left to `residual-practice-word`. **The start:** walk back word by word
+(single spaces) while the word is *St* or *St.*, or begins with A–Z and is letters with optional internal apostrophes or
+hyphens; at most four words. A lower-case word, a digit, other punctuation (a full stop ending the previous sentence) or
+the start stops it. **Zero words: no span** (*the Surgery*, a sentence-initial *Surgery*). **Ambiguity labels more:**
+*Yesterday Moorside Surgery* is labelled with *Yesterday*.
+
+| Text | Labelled |
+|---|---|
+| Dr Adeyemi at Moorside Medical Centre | Dr [NAME] at [GP PRACTICE] |
+| The Old Mill Surgery / St John's Health Centre / St. John's Surgery | [GP PRACTICE] |
+| Dr Patel's Surgery (the extractor found *Patel*) | [GP PRACTICE] |
+| had surgery / the practice nurse / a health centre / Surgery was cancelled | unchanged |
+
+The spans join the extractor's after them: a span inside another is dropped (an equal one kept once, the extractor's), and
+a partial overlap holds the column, not written (`overlapping-identifiers`). A practice span carries no score and no P1
+value. Flow: `Select_practice_suffix_hits`, `Select_practice_words`, `Select_practice_spans`; reference: `practice_spans`.
 
 ### 6c. Refinement in the flow (`ADR-071` item 4)
 
@@ -545,11 +604,11 @@ The hints are computed **once per application**, over all twelve columns togethe
 | **`prompt-config-invalid`** (v0.3) | The prompt stage is on and there is no category row, or a category row is empty or has a key the flow does not know. The stage does not run | `ADR-074` item 4 |
 | **`postcode-register-unavailable`** (v0.3) | The register read failed or returned fewer than 3,000 rows | `ADR-073` item 2: the seed did not run there |
 | **`redaction-setting-invalid:<key>`** (v0.3) | A word-list row is present but empty, or has a line that is not 2 to 40 characters of a–z, space, hyphen and apostrophe with at least one letter. The row is ignored; the floor applies | `ADR-074` item 4 |
-| **`too-long:<column>`** (v0.5) | The raw text is over 5,000 characters: not scrubbed, not written | `ADR-075` item 1: one extractor call per column |
-| **`overlapping-identifiers:<column>`** (v0.5) | Two extractor spans overlap without one containing the other: not written | `ADR-075` item 2 |
+| **`too-long:<column>`** (v0.5) | The raw text is over 5,000 characters: not scrubbed, not written | `ADR-075` item 1, `ADR-082`: a column must fit one extractor call, 5,000 characters (E2) |
+| **`overlapping-identifiers:<column>`** (v0.5) | Two extractor spans overlap without one containing the other: not written. *v1.0:* also an entity that runs across two columns of one batched call, in each column it touches | `ADR-075` item 2, `ADR-082` item 2 |
 | **`prompt-error:<column>`** (v0.5, redefined) | The rewrite call failed, or did not finish with a normal stop and some text: not written. *Previously read: the detector prompt's failure* | `ADR-075` item 9 |
 | **`identifier-survived:<column>`** (v0.5) | Check P1: a value the extractor found is still in the final text: not written | `ADR-075` item 5 |
-| **`rewrite-invalid:<column>`** (v0.5) | Check P2: the rewrite contains a word that is not in its input and not on the closed list: not written | `ADR-075` item 6 |
+| **`rewrite-invalid:<column>`** (v0.5) | Check P2: the rewrite contains a word that is not in its input, not on the closed list, not a plural form and (v1.0) not the corrected half of a declared, validated correction: not written | `ADR-075` item 6, `ADR-082` item 6 |
 | **`rewrite-dropped-text:<column>`** (v0.5) | The rewrite is more than 10% shorter in words than its input, labels removed: written, flagged | `ADR-075` item 7, fidelity |
 | **`rewrite-dropped-punctuation:<column>`** (v0.7) | The rewrite has at least two fewer of `. , ; : ! ?` than its input **and** more than 10% fewer: written, flagged. One mark fewer (a title written *Mr.* removed) is not flagged | Fidelity; Dev Summary Iteration 11 |
 | **`residual-name-fragment:<column>`** (v0.7) | Section 6b: written, flagged | Dev Summary Iteration 11 |
@@ -592,19 +651,16 @@ offset, so it never receives a value the extractor found. Its second input is th
 Its fixed template is in [`revitalise-redaction-prompt.md`](revitalise-redaction-prompt.md) section 1. A usable answer has
 `finishReason` `stop` and some text; anything else is `prompt-error` and the column is not written.
 
-**The spelling prompt** receives only the rewrite. Its answer is accepted **word by word**: both texts are split on single
-spaces; a different word count discards the correction; otherwise a corrected word is taken only when the original starts with
-a lower-case letter, the correction keeps that first letter and the original's end punctuation, the length changes by at most
-two, neither word is part of a label, the original is not a closed-list word, and the correction is not a gendered word (so
-*sun* never becomes *son*, FR-100). A failed or refused spelling answer is not a safety event: the rewrite is written as it is.
+**Spelling, v1.0 (`ADR-082` items 4 to 6).** *The separate spelling prompt and its word-by-word acceptance are retired; the text of v0.5 to v0.9 read: "The spelling prompt receives only the rewrite. Its answer is accepted word by word: both texts are split on single spaces; a different word count discards the correction; otherwise a corrected word is taken only when the original starts with a lower-case letter, the correction keeps that first letter and the original's end punctuation, the length changes by at most two, neither word is part of a label, the original is not a closed-list word, and the correction is not a gendered word (so sun never becomes son, FR-100). A failed or refused spelling answer is not a safety event."* **Now** the rewrite prompt corrects spelling first (so a misspelt key word such as *husbnd* is still neutralised) and answers with the rewritten text, then, only if a word was corrected, a line `###CORRECTIONS###` and one `wrong=>right` line per correction. The flow splits at the first delimiter; no delimiter means no corrections; a line that is not `word=>word` is ignored. A declared correction is **valid** when `wrong` is a word of the labelled input as written there and starts with a lower-case letter, `right` starts with the same letter, their lengths differ by at most two, both are letters (an inner hyphen or apostrophe allowed), `wrong` is not a closed-list word and `right` is not a gendered word (so *sun* never becomes *son*, FR-100). P2 allows a word outside the input only as the right half of a valid pair, which is at most a two-letter change to a lower-case word already in the text. A word changed without being declared, or beyond this rule, is `rewrite-invalid`. **Lost:** the old rule proved *where* a corrected word sat; this one cannot, so a valid corrected word may appear anywhere, more than once. **A cost, stated plainly:** a slip the pair rule refuses now stops the column being written, where two calls left it as written; the `wbs:5.7` run measures how often.
 
 **Check P1:** every extractor value, normalised (lower case; punctuation, apostrophes and brackets to spaces), is searched for
 as whole words in the final text. A hit: `identifier-survived`, not written. *Note:* it is case-blind, so a name that is also
 a common word ("Will") found once by the extractor also stops a column where the word appears as a verb; that column goes to
 Emily by hand. That is the safe direction and `ADR-075` item 5's rule as written.
 
-**Check P2:** every word of the rewrite, labels removed, must be a word of the labelled input, a **closed-list** word, or a
-plural form of an input word with its ending removed (*rely* when *relies* is in the input). The closed list is: *they, them,
+**Check P2:** every word of the rewrite, labels removed, must be a word of the labelled input, a **closed-list** word, a
+plural form of an input word with its ending removed (*rely* when *relies* is in the input), or (v1.0) the corrected half of a
+valid declared correction. The closed list is: *they, them,
 their, theirs, themself, themselves, they're, they've, they'd, they'll*; the neutral nouns *parent(s), sibling(s), child(ren),
 partner(s), person, people, grandparent(s), grandchild(ren), stepchild(ren), stepparent(s), relative(s)*; the agreed forms
 *are, were, have, do, go* and their *-n't* forms; *my*, *a* and *an*; the words of every label; and the neutral words of a
@@ -612,9 +668,9 @@ valid `RedactionNeutralTermsExtra` row. *a* and *an* are an addition to `ADR-075
 become "a relative"; neither can identify anyone. A miss: `rewrite-invalid`, not written. This is the proof that the model
 cannot add an identifier: whatever it writes was in the text it was given after labelling, or is on a list the flow holds.
 
-Executable form: `validate_rewrite()`, `accept_spelling()`, `surviving_identifiers()` and `residue_kinds()`, tested against
+Executable form: `validate_rewrite()`, `valid_corrections()`, `split_answer()`, `surviving_identifiers()` and `residue_kinds()`, tested against
 bad stand-in models in `test_scrub_flow_definition.py` (`P2TheRewriteAddsNoWord`, `P1NoFoundIdentifierSurvives`,
-`SpellingAcceptedWordByWord`).
+`SpellingDeclaredPairs`, `BatchedExtraction`).
 
 ### 7c. Word lists the process owner may extend (v0.3, `ADR-074` items 3–4)
 

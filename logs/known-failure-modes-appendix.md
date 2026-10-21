@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1164 entries)
-Generated: 2026-10-20
+Source: `logs/improvement-log.jsonl` (1198 entries)
+Generated: 2026-10-21
 
 ## What this file is, and who reads it
 
@@ -23,41 +23,44 @@ every dispatch; it is not a judgement that what it hides is settled.
 
 The digest shows the 6 most recent ids per class. These are all of them, oldest first.
 
-- **`platform-contract-guessed-not-groundtruthed`** (×94): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026, IMP-1064, IMP-1071, IMP-1092, IMP-1095, IMP-1096, IMP-1098, IMP-1099, IMP-1100, IMP-1105, IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159
-- **`gate-cannot-fail`** (×60): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055, IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153
+- **`platform-contract-guessed-not-groundtruthed`** (×96): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026, IMP-1064, IMP-1071, IMP-1092, IMP-1095, IMP-1096, IMP-1098, IMP-1099, IMP-1100, IMP-1105, IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1176, IMP-1180
+- **`gate-cannot-fail`** (×61): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055, IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153, IMP-1179
 - **`hand-maintained-count-drifts-from-source`** (×50): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925, IMP-1045, IMP-1048, IMP-1083, IMP-1127, IMP-1151
 - **`approved-document-internally-inconsistent`** (×45): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163
+- **`platform-fact-groundtruthed`** (×44): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016, IMP-1085, IMP-1087, IMP-1107, IMP-1167, IMP-1184, IMP-1185
 - **`declared-policy-not-mechanically-enforced`** (×42): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160
-- **`platform-fact-groundtruthed`** (×42): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016, IMP-1085, IMP-1087, IMP-1107, IMP-1167
+- **`gate-scope-mismatch`** (×39): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054, IMP-1132, IMP-1154, IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194
+- **`gate-reassures-wrongly`** (×38): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798, IMP-1130, IMP-1134, IMP-1195
 - **`no-assertion-on-shipped-content`** (×38): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049, IMP-1133
-- **`gate-reassures-wrongly`** (×37): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798, IMP-1130, IMP-1134
 - **`stale-claim-contradicting-rechecked-source`** (×36): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015, IMP-1056, IMP-1069, IMP-1075, IMP-1114, IMP-1115, IMP-1117, IMP-1120, IMP-1143, IMP-1150, IMP-1158
-- **`gate-scope-mismatch`** (×35): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054, IMP-1132, IMP-1154, IMP-1155
-- **`finding-diagnosis-unverified`** (×34): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959
+- **`finding-diagnosis-unverified`** (×35): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959, IMP-1182
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
 - **`untriaged-tool-warning`** (×24): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957, IMP-0961, IMP-0962, IMP-1006, IMP-1089, IMP-1090, IMP-1091
 - **`two-invocation-paths-disagree`** (×21): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053, IMP-1093
 - **`gate-fires-on-nothing`** (×17): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825, IMP-1039, IMP-1128
 - **`harness-blocks-destructive-call`** (×17): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828, IMP-1135
 - **`platform-state-divergence`** (×17): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857
+- **`dispatch-brief-asserts-unverified-fact`** (×15): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720, IMP-0803, IMP-0844, IMP-0887, IMP-0905, IMP-0936, IMP-0950, IMP-1068, IMP-1183, IMP-1186, IMP-1196
 - **`exit-zero-does-not-mean-created`** (×14): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148, IMP-1034
 - **`output-shape-defeats-the-reader`** (×13): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554, IMP-0865, IMP-1084
 - **`wrong-artefact-cited-as-evidence`** (×13): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675, IMP-0784, IMP-0788, IMP-0910, IMP-1050, IMP-1067, IMP-1097
-- **`dispatch-brief-asserts-unverified-fact`** (×12): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720, IMP-0803, IMP-0844, IMP-0887, IMP-0905, IMP-0936, IMP-0950, IMP-1068
+- **`stale-deferral-uncaught-across-sessions`** (×12): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764, IMP-0780, IMP-1009, IMP-1040, IMP-1138, IMP-1157, IMP-1197
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
-- **`stale-deferral-uncaught-across-sessions`** (×11): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764, IMP-0780, IMP-1009, IMP-1040, IMP-1138, IMP-1157
 - **`agent-instructions-describe-a-topology-that-changed`** (×9): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757, IMP-1129
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
 - **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
 - **`finding-premise-fails-re-measurement`** (×7): IMP-0632, IMP-0869, IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952
+- **`gate-fired`** (×7): IMP-1072, IMP-1074, IMP-1079, IMP-1081, IMP-1082, IMP-1169, IMP-1188
 - **`hard-gate-has-no-scoped-override-path`** (×7): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795
 - **`test-asserts-the-defect`** (×7): IMP-0111, IMP-0138, IMP-0871, IMP-0872, IMP-0888, IMP-0890, IMP-0926
 
 
 ## Before you execute a build config — capped lessons
 
-*121 lesson(s) the digest does not render, in the same order it ranked them.*
+*126 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- A HARD constraint whose rule text is still a placeholder always PASSES and is therefore a gate that cannot fail. C-DOM-030 and C-DOM-031 are placeholders; report them as UNEVALUABLE rather than PASS, and note that skills/how-to-apply-constraints.md has no status for that outcome.  
+  <sub>IMP-0035 · `gate-cannot-fail`</sub>
 - In a YAML `>` folded scalar, keep every line at the SAME indentation and put `&&`/`||` at line END — a more-indented line keeps its newline and yields a shell syntax error. Preflight now runs `bash -n` on every step command.  
   <sub>IMP-0025 · `gate-cannot-fail`</sub>
 - The `! grep ... && echo` gate pattern turns EVERY grep failure — including 'target does not exist' (exit 2) — into a PASS. Verify the target path exists before trusting any such gate.  
@@ -66,6 +69,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
+- A deploy-time tool that fails on a new component type gets fixed after the first workaround, not after the fourth: the workaround hides the defect from every gate.  
+  <sub>IMP-1194 · `gate-scope-mismatch`</sub>
+- Put the app id after the dash, never inside the parenthesis; run verify-post-deploy-completeness --pending right after the last marker, not only before the stage line. IMP-1178 recurred unfixed.  
+  <sub>IMP-1181 · `gate-scope-mismatch`</sub>
+- A tool that globs a directory of one component type must skip or classify a second type arriving in the same directory, and the fixture set must include it.  
+  <sub>IMP-1178 · `gate-scope-mismatch`</sub>
+- A change-order id extractor must accept the id followed by prose in the same cell, or the change-order template must forbid prose there; and the fixture set must include both shapes.  
+  <sub>IMP-1177 · `gate-scope-mismatch`</sub>
 - A live-definition DIFFERS after a deploy may be source drift past the build, not a deploy defect: diff the artifact's flow json against src before reading it as one. Live 11/11 matched the artifact's flow json.  
   <sub>IMP-1155 · `gate-scope-mismatch`</sub>
 - A dated deferral whose clearing decision (change order) is not yet taken will expire again; either record the commercial decision or extend with a warning visible at dispatch  
@@ -309,7 +320,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*84 lesson(s) the digest does not render, in the same order it ranked them.*
+*88 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - Fluent v9's createLightTheme does not guarantee AA: colorBrandBackground and colorBrandBackgroundStatic are brand[80] behind a hard-coded white, so a brand whose shade 80 is under 4.5:1 against white ships a failing primary button. Compute white-on-brand[80] before adopting any ramp, and if it is under 4.5:1 move BOTH rest tokens to brand[70] and shift Hover/Pressed/Selected one step too (brand[60]/[30]/[50]), or rest and hover become the same colour and the button loses all hover feedback. Never accept a general statement that a palette 'is accessible' — compute each pair, including pairs a human told you were fine.  
   <sub>IMP-0352 · `platform-contract-guessed-not-groundtruthed`</sub>
@@ -342,6 +353,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0006 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
+- For a Dataverse When a row is selected flow: declare rev_<table>id in the trigger schema (title, type string, format guid, as the designer stores it), make Get a row by ID the first action keyed on triggerBody()?['entity']['<id column>'], and work from its output. A failed read is the single missing-id and not-found failure.  
+  <sub>IMP-1185 · `platform-fact-groundtruthed`</sub>
+- For a row-selected trigger, declare every column the flow reads under rows.items.entity.properties (rev_reviewid at least) and read it as triggerBody()?['entity']?['<col>']. An empty entity schema means an empty row from the Flow menu. When exporting a scratch flow as ground truth, make an action reference every column you will need, or the export shows an empty schema.  
+  <sub>IMP-1184 · `platform-fact-groundtruthed`</sub>
+- Before naming an Entra group or Dataverse team for an environment, read it from provisioning/deploymentSettings/<env>-settings.json; DEV's admin team is REV-PP-GrantApplications-DEV and does not follow the -Admins-<ENV> pattern.  
+  <sub>IMP-1180 · `platform-contract-guessed-not-groundtruthed`</sub>
+- In a flow expression write an empty array as json('[]'), never createArray() with no argument.  
+  <sub>IMP-1176 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A flow's definition can be read from DEV without a credential gate: write a fetch xml file (no top attribute) selecting clientdata from workflow by workflowid and run pac env fetch --xmlFile. Trigger shape for RecordSelected: type Request, kind ApiConnection, operationId RecordSelected, parameters.entityName, splitOn @triggerBody()['rows']. A scratch flow with no runs has no flowrun row, so trigger OUTPUTS still need one run.  
   <sub>IMP-1167 · `platform-fact-groundtruthed`</sub>
 - Before dispatching a deploy, check routing/dev logs for defect fixes approved after the artifact's pack time in the same solution; a Compose's secureData cannot be changed in the designer (no Secure outputs toggle, code view read-only) — only a re-import fixes it.  
@@ -742,7 +761,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*653 lesson(s), in the order the digest would have ranked them.*
+*678 lesson(s), in the order the digest would have ranked them.*
 
 - Never trust an extractor span as a word boundary: widen a name span over a directly joined hyphen/apostrophe fragment before labelling, and hold any label still joined to letters (P3 name-fragment), on the input and on the output.  
   <sub>IMP-1139 · `privacy-check-blind-spot`</sub>
@@ -946,6 +965,56 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Tell a rewrite prompt explicitly to keep every punctuation mark where it is, and measure punctuation survival per column in the corpus rather than only flagging large losses.  
+  <sub>IMP-1202 · `rewrite-prompt-drops-punctuation`</sub>
+- For a reviewer-scoped DEV fix of one flow, pack an unmanaged carrier solution with only that workflow, import it, delete the container, and diff every workflow's modifiedon before and after; call the stage PARTIAL because the declared post_deploy steps are skipped.  
+  <sub>IMP-1201 · `targeted-single-flow-deploy`</sub>
+- A derived not_started is a claim about a name, not about the work; verify against the folder before reporting it to the client  
+  <sub>IMP-1200 · `evidence-rule-names-a-component-that-was-renamed-at-build`</sub>
+- A simulator function that is stricter on the platform than in Python must be made as strict, and the test must put both operand types in one input  
+  <sub>IMP-1199 · `wdl-sort-mixed-number-types`</sub>
+- Give every number that meets in one WDL sort(), min() or max() the same type: write float literals as float(2), and make the simulator reject a sort over mixed Integer and Float.  
+  <sub>IMP-1198 · `wdl-sort-mixed-number-types`</sub>
+- A dated declaration is only safe in a file some gate reads; list every dated register entry across the repository before trusting that none has expired.  
+  <sub>IMP-1197 · `stale-deferral-uncaught-across-sessions`</sub>
+- Before dispatching a post-deploy batch, find the open batch with the census NOTE that names it, and write the tier from config/models.yml.  
+  <sub>IMP-1196 · `dispatch-brief-asserts-unverified-fact`</sub>
+- A reviewed_in stamp is only true if the named document names the entry. A NEW entry with no deferred_reason whose stamped document does not contain its id is unread, whatever the census says.  
+  <sub>IMP-1195 · `gate-reassures-wrongly`</sub>
+- Before promising a fast DEV-only build, run run-build.py --plan --changed-since last-green and read its would_run count: unrelated uncommitted work in the tree widens the plan to nearly every step, so commit or stash it first or accept a full run.  
+  <sub>IMP-1193 · `scoped-build-plan-covers-the-whole-dirty-tree`</sub>
+- Size capacity, licences and AI credits from the live intake count, not the design's volume assumption; at ~90 applications a month the scrub flow needs about 6,300 AI Builder credits a month after ADR-082, more than one Power Automate Premium licence's seeded 5,000.  
+  <sub>IMP-1192 · `volume-assumption-wrong`</sub>
+- For a low-volume AI Builder workload in Power Automate, size Copilot Credits from msdyn_aievent and compare against the 25,000-per-month pack and the 300,000 P3 minimum before recommending a purchase route; pay-as-you-go needs an Azure subscription linked by a billing policy per environment.  
+  <sub>IMP-1191 · `ai-builder-credit-cost-per-call`</sub>
+- secureData does not stop AI Builder storing inputs: check msdyn_aievent.msdyn_datainfo and its retention for any AI Builder call on personal data, and record it in the DPIA/RoPA.  
+  <sub>IMP-1190 · `secured-text-persisted-outside-run-history`</sub>
+- Read per-call AI Builder cost from the Dataverse table msdyn_aievent (msdyn_creditconsumed, msdyn_aimodelid, createdon) before estimating; entity extraction is billed per started 1,000 characters per call, so batch short texts into one call.  
+  <sub>IMP-1189 · `ai-builder-credit-cost-per-call`</sub>
+- A delivery build can be blocked overnight by a new advisory on a pinned dependency unrelated to the change; route the bump to development-agent as its own work rather than folding it into the feature's item.  
+  <sub>IMP-1188 · `gate-fired`</sub>
+- In a hand-authored cloud flow, give the top level exactly one action with an empty runAfter (the first InitializeVariable) and give every other action exactly one runAfter key. Read earlier outputs through the chain, never by adding a second predecessor. A success/failure fork from one action is fine; a join is not.  
+  <sub>IMP-1187 · `hand-authored-flow-graph-unreadable-in-designer`</sub>
+- Re-check escalate_to_strategic_when on every hop, including resumes; a work item's reopen count can cross the threshold mid-chain, and only a fresh dispatch can change tier.  
+  <sub>IMP-1186 · `dispatch-brief-asserts-unverified-fact`</sub>
+- Find the open post-deploy batch review by its header, not by today's date: a review whose header says Trigger: post-deploy batch and whose Status does not say APPLIED is the one to extend, however old it is.  
+  <sub>IMP-1183 · `dispatch-brief-asserts-unverified-fact`</sub>
+- The Origin header of a 'When a row is selected' run is make.powerautomate.com even when it is started from a model-driven app's Flow menu; do not use it to tell where a run started.  
+  <sub>IMP-1182 · `finding-diagnosis-unverified`</sub>
+- When a design change supersedes a built item's clauses, the current choice is between a false rejection and stale text; until the ledger has a supersede transition, leave the text and record the supersession in the TAD/Dev Summary.  
+  <sub>IMP-1175 · `ledger-cannot-record-a-design-change-honestly`</sub>
+- When relaying a lettered answer, quote the option's own text from the document beside the letter; and write decision options in letter order, recommended or not.  
+  <sub>IMP-1174 · `decision-relay-loses-its-referent`</sub>
+- A count derived from a component type must filter by the discriminator inside the component (Workflow Category), not by the root type alone.  
+  <sub>IMP-1173 · `gate-counts-wrong-population`</sub>
+- When a flow's write target equals its trigger table, treat the loop check as tripped before arguing a fixed point, and grep the tests for the check as well as the config steps.  
+  <sub>IMP-1172 · `adr-gate-interactions-incomplete`</sub>
+- State a prompt rule as the rule and give phrasings as examples ('This includes ...'), and mirror the wider rule in the oracle.  
+  <sub>IMP-1171 · `rule-precedence-unstated`</sub>
+- A practice name the extractor misses is written with only a flag; a capitalised practice suffix left in the final text should stop the write (or be labelled deterministically), not merely flag it.  
+  <sub>IMP-1170 · `privacy-check-blind-spot`</sub>
+- A flow added to the solution must pass test_solution_flows before it is handed to build-agent.  
+  <sub>IMP-1169 · `gate-fired`</sub>
 - Before dispatching build-agent, check git status for flow or entity files no dispatch in this session wrote; if another session is mid-build in the same solution, wait for it or agree an order before packaging.  
   <sub>IMP-1168 · `concurrent-session-same-file-write`</sub>
 - For a Dataverse row-selected (Flow menu) trigger, search the designer for 'Manual' under Microsoft Dataverse; its operationId is RecordSelected. The rest of the solution JSON (parameters, split-on, connection reference) still needs an export.  

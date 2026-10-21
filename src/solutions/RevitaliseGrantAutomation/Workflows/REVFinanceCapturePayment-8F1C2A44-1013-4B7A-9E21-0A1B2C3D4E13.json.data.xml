@@ -5,8 +5,9 @@
   Modified), scope 4, runas 3 (the flow owner).
 
   WHY THIS FLOW EXISTS: rev_grant.rev_finalpaymentdate starts the six-year retention clock and
-  nothing wrote it. This flow makes it, the application's status (Approved / Grant Paid) and the
-  payment's own status (Pending / Issued) match the payments that exist. See the .notes.md.
+  nothing wrote it. This flow makes it, the grant's status and the application's status (Approved /
+  Grant Paid) match the payments that exist. It writes nothing to rev_payment (amendment c): the
+  Payment's Issued mark belongs to a table-scope business rule (WI-0136). See the .notes.md.
 
   IMPORTS SWITCHED OFF, SAME REASON AS EVERY OTHER FLOW IN THIS SOLUTION: StateCode 0 /
   StatusCode 1 is Draft. Binding the connection reference requires interactive OAuth consent

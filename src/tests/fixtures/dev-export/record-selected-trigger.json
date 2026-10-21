@@ -1,5 +1,5 @@
 {
-  "_provenance": "Exported from REV-GrantApplications-DEV by pac env fetch (workflow.clientdata), 2026-10-20, flow 'Run a flow for selected rows' (workflowid ff876020-85cc-f111-a05c-7ced8d43e87d), a scratch flow made by the reviewer outside this solution's source. Only the trigger and the definition parameters are kept; the environment-specific connection id is dropped. TAD 12.8 A-FD-10.",
+  "_provenance": "Exported from REV-GrantApplications-DEV by pac env fetch (workflow.clientdata), 2026-10-20 night, the reviewer's scratch flow 'Run a flow for selected rows' (workflowid cecb708b-b7cc-f111-a05c-7ced8d43e87d), outside this solution, as the reviewer had changed it: the trigger now stores rev_reviewid {title Review, type string, format guid} beside rev_name, and a Get a row by ID action (GetItem, entityName rev_reviews, recordId @triggerBody()?['entity']['rev_reviewid']) runs straight after the trigger. The environment-specific connection id is dropped. Earlier exports (a flow with an empty entity schema, then a rev_name-only one) are superseded. TAD 12.8 A-FD-10.",
   "parameters": {
     "$authentication": {
       "defaultValue": {},
@@ -33,7 +33,17 @@
                 "type": "object",
                 "properties": {
                   "entity": {
-                    "properties": {},
+                    "properties": {
+                      "rev_name": {
+                        "title": "Review Reference",
+                        "type": "string"
+                      },
+                      "rev_reviewid": {
+                        "title": "Review",
+                        "type": "string",
+                        "format": "guid"
+                      }
+                    },
                     "type": "object",
                     "required": []
                   }
@@ -49,6 +59,32 @@
           "connection": {
             "name": "@parameters('$connections')['shared_commondataserviceforapps']['connectionId']"
           }
+        }
+      }
+    }
+  },
+  "actions": {
+    "Compose": {
+      "runAfter": {
+        "Get_a_row_by_ID": [
+          "Succeeded"
+        ]
+      },
+      "type": "Compose",
+      "inputs": "@triggerBody()?['entity']['rev_name']"
+    },
+    "Get_a_row_by_ID": {
+      "runAfter": {},
+      "type": "OpenApiConnection",
+      "inputs": {
+        "parameters": {
+          "entityName": "rev_reviews",
+          "recordId": "@triggerBody()?['entity']['rev_reviewid']"
+        },
+        "host": {
+          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+          "operationId": "GetItem",
+          "connectionName": "shared_commondataserviceforapps"
         }
       }
     }

@@ -33,24 +33,24 @@ A document that restates a baseline figure goes stale silently and is inherited 
 
 | Where | Says |
 |---|---|
-| `docs/plans/revitalise-grant-automation-plan.md:626` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:626` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:626` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:626` | 35–50 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:626` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:626` | 50–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:639` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:1522` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:1522` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:1843` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2402` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2402` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2402` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2402` | 35–50 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2402` | 50–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2430` | 106–160 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2462` | 133–208 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2487` | 106–160 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:630` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:630` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:630` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:630` | 35–50 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:630` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:630` | 50–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:643` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2099` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2099` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2445` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3087` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3087` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3087` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3087` | 35–50 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3087` | 50–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3131` | 106–160 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3163` | 133–208 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3188` | 106–160 hours |
 
 ## 4. D-3 compliance — fee and rate figures
 
@@ -59,7 +59,7 @@ Clean. No fee or rate figure appears in the checked paths.
 ## 5. Claimed status against evidence
 
 - **0 overclaim(s)** — a task marked complete whose deliverable is partly or wholly absent
-- **16 underclaim(s)** — a deliverable that exists against a blank status
+- **17 underclaim(s)** — a deliverable that exists against a blank status
 - 0 task(s) with no evidence rule
 
   - UNDERCLAIM `0.7` Data governance & compliance
@@ -69,6 +69,7 @@ Clean. No fee or rate figure appears in the checked paths.
   - UNDERCLAIM `2.8` Test with real data + sign-off
   - UNDERCLAIM `3.2` Build trigger flow
   - UNDERCLAIM `3.3` Configure reminders + escalation
+  - UNDERCLAIM `5.1` Define free-text redaction rules
   - UNDERCLAIM `6.1` Design the trustee Dataverse app + security role
   - UNDERCLAIM `6.2` Build applications list screen
   - UNDERCLAIM `6.3` Build application detail screen
