@@ -10,6 +10,7 @@
 #   * scripts/verify-domain-invariants.py    — C-DOM-030 / C-DOM-031 / C-DOM-032
 #   * the `no-special-category-data-in-scoring` gate in config/<slug>-build.yml,
 #     whose grep alternation must match this file exactly (the script asserts it)
+#   * scripts/verify-column-security-membership.py — the `trustee_release:` rows (G1, ADR-085)
 #
 # ── WHY A FILE AND NOT A PARAGRAPH ───────────────────────────────────────────
 # This list previously existed only as a regex alternation inside a shell one-liner
@@ -113,6 +114,23 @@ meta:
 #
 # Every row without a `gate_exception:` is barred from the automated score regardless of its
 # `secured` value. That remains the default and the overwhelmingly common case.
+#
+# ── A THIRD AXIS: `trustee_release:` (ADDED 2026-10-22, portal TAD ADR-085, SDD A-14) ─────
+#   axis 3 — may a TRUSTEE read this column's value?               → `trustee_release:`
+#
+# A row carrying it stays `secured: required` and stays barred from the score; the block says
+# only that the reviewer released the value to trustees, read only, through the one profile
+# config/trustee-release-profile.json names. Write both keys. No gate reads their content today:
+# `no-trustee-in-column-security-profile` reads only whether the block is present.
+#
+#   trustee_release:
+#     basis:   the SDD requirement that releases it
+#     decided: who decided, and when
+#
+# The release profile must grant EXACTLY the rows that carry this block, read only —
+# `no-trustee-in-column-security-profile` fails otherwise. So widening what trustees read takes
+# two keys: the profile's permissions and a row here, which only the reviewer or
+# improvement-agent can write.
 columns:
 
   # ── Free-text health / disability narrative ────────────────────────────────
@@ -178,14 +196,23 @@ columns:
         Derive_income_flag ONLY. The column must not reach scoring output or the score
         calculation itself, and must appear in no other action of the scoring flow.
       gate: receivesbenefits-scoped-to-income-flag
+    trustee_release:
+      basis: "SDD A-14 FR-114; NFR-031: released to trustees as a value (NFR-001 amended)"
+      decided: "Xander Lykopoulos, 2026-10-22"
   - name: rev_benefitprovider
     entity: rev_application
     basis: "SDD §7.1 — benefit provider, same tier as benefit status"
     secured: required
+    trustee_release:
+      basis: "SDD A-14 FR-115; NFR-031 exception, OQ-062 (b): shown as written"
+      decided: "Xander Lykopoulos, 2026-10-22"
   - name: rev_employmentstatus
     entity: rev_application
     basis: "Art. 9 by TAD §3.1/§3.3 classification"
     secured: required
+    trustee_release:
+      basis: "SDD A-14 FR-114; NFR-031: released to trustees as a value (NFR-001 amended)"
+      decided: "Xander Lykopoulos, 2026-10-22"
 
   # ── Racial or ethnic origin ────────────────────────────────────────────────
   # ADDED 2026-09-04 by improvement review (IMP-0598, blocker). This column had been live and
