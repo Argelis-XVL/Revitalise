@@ -472,22 +472,20 @@ pending_adjudication:
   # `secured: exception` would misrepresent it as an accepted special-category exposure
   # when the design intent is that no exposure of that kind is happening.
   #
-  # WHAT WOULD REVERSE THIS: the claim "redaction makes this safe" rests entirely on
-  # Automation #5 (WBS 5.1-5.7) actually working, and Automation #5 is DEFERRED (EX-003).
-  # Today the column is empty on every row — nothing in this solution writes to it — so
-  # there is no data here to misclassify either way. The open question is not "is this
-  # column secure now" (it holds nothing) but "will the AI Builder PII model's output be
-  # reliable enough, in practice, that a human reviewer plus the RedactionConfidenceThreshold
-  # gate (rev_redactionreleased, FR-029/030) actually catches what it misses." If that
-  # turns out not to hold — a review process that rubber-stamps rather than reads, or a
-  # model that is confident and wrong — this decision should be revisited and the column
-  # added here as `secured: required` until a stronger control exists.
+  # CONFIRMED by the reviewer, 2026-10-22 (D-2 of improvement review 2026-10-21, IMP-1158):
+  # rev_narrativeredacted stays off this register. The redacted text is what trustees read
+  # to review applications in the quarterly rounds, so `secured: required` would defeat it.
+  # The control behind that is ADR-078: the process owner reviews every scrubbed record
+  # before release, and nothing is released automatically (RedactionAutoRelease retired
+  # 2026-10-19). REV | Narrative | Scrub Free-Text writes the column; it is no longer empty.
   #
-  # FLAGGED FOR REVIEWER CONFIRMATION, not settled unilaterally: whoever builds Automation
-  # #5 (5.2 redact, 5.3 release gate) should re-read this block before the first live
-  # redaction run and confirm the decision still holds, the same way the register's own
-  # "Documented security exceptions" block above asks Automation #5's builder to revisit
-  # rev_conditionprofile and its siblings.
+  # The reversal condition has been exercised once. In DEV a fragment of a hyphenated
+  # surname reached this column (IMP-1139); the span fix is in source and the process-owner
+  # review is the control that would have held it back.
+  #
+  # WHAT WOULD REVERSE THIS NOW: a scrubbed record released without the process owner's
+  # review, or an identifying fragment found in a released record. Then add the column here
+  # as `secured: required` until a stronger control exists, and tell the reviewer.
   #
   # rev_redactionreleased (bit), rev_eligibleforround (bit) and rev_reviewround (nvarchar,
   # rev_application) are NOT considered here at all: none of the three hold applicant

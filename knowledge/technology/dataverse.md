@@ -447,6 +447,13 @@ A 400 from an illegal projection reads exactly like a relationship being absent.
 everything else — but an ad-hoc verification query written by hand has no such guard, and one in
 this session read as all nine relationships being missing when every one of them existed.
 
+### pac power-fx run can write and read table rows
+
+*Added by improvement review 2026-10-21 (`IMP-1149`).* `pac power-fx run --environment <url>` can
+`Patch` a Dataverse row by logical name and read it back (DEV `rev_setting`, 2026-10-19). On a locale
+with comma decimals, separate arguments with `;`. Use it for a one-row maker edit no script covers,
+then verify with `pac env fetch`.
+
 ## Reading DATA Through the Web API — a Null Column Is OMITTED, Not Returned as Null
 
 *Verified live 2026-08-28 (`IMP-0435`, `blocker`). This is the DATA side of the section above and

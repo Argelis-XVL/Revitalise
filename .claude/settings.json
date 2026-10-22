@@ -14,7 +14,14 @@
       "Bash(python3 scripts/verify-field-length-limits.py src/solutions/RevitaliseGrantAutomation)",
       "Bash(pac solution *)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(python3 scripts/verify-improvement-log.py --check)"
+      "Bash(python3 scripts/verify-improvement-log.py --check)",
+      "Bash(echo \"check exit $?\")",
+      "Bash(python3 scripts/verify-review-document.py --only docs/improvements/2026-10-21-improvement-review.md)",
+      "Bash(echo \"review-doc exit $?\")",
+      "Bash(python3 scripts/generate-known-failure-modes.py --check)",
+      "Bash(echo \"digest-check exit $?\")",
+      "Bash(python3 scripts/generate-known-failure-modes.py)",
+      "Bash(echo \"gen exit $?\")"
     ],
     "deny": [
       "Agent(claude)",

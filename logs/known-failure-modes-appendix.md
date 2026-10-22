@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1199 entries)
-Generated: 2026-10-21
+Source: `logs/improvement-log.jsonl` (1203 entries)
+Generated: 2026-10-22
 
 ## What this file is, and who reads it
 
@@ -23,14 +23,14 @@ every dispatch; it is not a judgement that what it hides is settled.
 
 The digest shows the 6 most recent ids per class. These are all of them, oldest first.
 
-- **`platform-contract-guessed-not-groundtruthed`** (×96): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026, IMP-1064, IMP-1071, IMP-1092, IMP-1095, IMP-1096, IMP-1098, IMP-1099, IMP-1100, IMP-1105, IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1176, IMP-1180
+- **`platform-contract-guessed-not-groundtruthed`** (×95): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026, IMP-1064, IMP-1071, IMP-1092, IMP-1095, IMP-1096, IMP-1098, IMP-1099, IMP-1100, IMP-1105, IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1180
 - **`gate-cannot-fail`** (×61): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055, IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153, IMP-1179
 - **`hand-maintained-count-drifts-from-source`** (×50): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925, IMP-1045, IMP-1048, IMP-1083, IMP-1127, IMP-1151
 - **`approved-document-internally-inconsistent`** (×45): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163
 - **`platform-fact-groundtruthed`** (×44): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016, IMP-1085, IMP-1087, IMP-1107, IMP-1167, IMP-1184, IMP-1185
 - **`declared-policy-not-mechanically-enforced`** (×42): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160
+- **`gate-scope-mismatch`** (×40): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054, IMP-1132, IMP-1154, IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194, IMP-1204
 - **`gate-reassures-wrongly`** (×39): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798, IMP-1130, IMP-1134, IMP-1195, IMP-1203
-- **`gate-scope-mismatch`** (×39): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054, IMP-1132, IMP-1154, IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194
 - **`no-assertion-on-shipped-content`** (×38): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049, IMP-1133
 - **`stale-claim-contradicting-rechecked-source`** (×36): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015, IMP-1056, IMP-1069, IMP-1075, IMP-1114, IMP-1115, IMP-1117, IMP-1120, IMP-1143, IMP-1150, IMP-1158
 - **`finding-diagnosis-unverified`** (×35): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959, IMP-1182
@@ -48,8 +48,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`agent-instructions-describe-a-topology-that-changed`** (×9): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757, IMP-1129
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
+- **`finding-premise-fails-re-measurement`** (×8): IMP-0632, IMP-0869, IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952, IMP-1206
 - **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
-- **`finding-premise-fails-re-measurement`** (×7): IMP-0632, IMP-0869, IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952
 - **`gate-fired`** (×7): IMP-1072, IMP-1074, IMP-1079, IMP-1081, IMP-1082, IMP-1169, IMP-1188
 - **`hard-gate-has-no-scoped-override-path`** (×7): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795
 - **`test-asserts-the-defect`** (×7): IMP-0111, IMP-0138, IMP-0871, IMP-0872, IMP-0888, IMP-0890, IMP-0926
@@ -57,7 +57,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you execute a build config — capped lessons
 
-*126 lesson(s) the digest does not render, in the same order it ranked them.*
+*127 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - A HARD constraint whose rule text is still a placeholder always PASSES and is therefore a gate that cannot fail. C-DOM-030 and C-DOM-031 are placeholders; report them as UNEVALUABLE rather than PASS, and note that skills/how-to-apply-constraints.md has no status for that outcome.  
   <sub>IMP-0035 · `gate-cannot-fail`</sub>
@@ -75,20 +75,12 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-1181 · `gate-scope-mismatch`</sub>
 - A tool that globs a directory of one component type must skip or classify a second type arriving in the same directory, and the fixture set must include it.  
   <sub>IMP-1178 · `gate-scope-mismatch`</sub>
-- A change-order id extractor must accept the id followed by prose in the same cell, or the change-order template must forbid prose there; and the fixture set must include both shapes.  
-  <sub>IMP-1177 · `gate-scope-mismatch`</sub>
 - A live-definition DIFFERS after a deploy may be source drift past the build, not a deploy defect: diff the artifact's flow json against src before reading it as one. Live 11/11 matched the artifact's flow json.  
   <sub>IMP-1155 · `gate-scope-mismatch`</sub>
-- A dated deferral whose clearing decision (change order) is not yet taken will expire again; either record the commercial decision or extend with a warning visible at dispatch  
-  <sub>IMP-1154 · `gate-scope-mismatch`</sub>
 - When a knowledge file records a platform function that throws, the same change adds that throw to the WDL test evaluator; and never strip a character from a value that can be empty with substring(): use join(skip(split(x, sep), 1), sep).  
   <sub>IMP-1153 · `gate-cannot-fail`</sub>
-- A work-item clause that cites a docs/Import file can only be built against a test file whose NAME contains .test. or .spec. (case-sensitive): name a Pester file X.test.Tests.ps1, which Pester still discovers, until the engine pattern is widened.  
-  <sub>IMP-1152 · `gate-cannot-fail`</sub>
 - A build that can skip producers must say so in its result, and every consumer of the artifact must read that before acting on it.  
   <sub>IMP-1052 · `two-invocation-paths-disagree`</sub>
-- Run verify-tad-coverage.py (and any gate carrying dated baselines or deferrals) in the development-agent source-gate set; other baselines expire 2026-10-13 and 2026-10-14 (gate-baselines.json).  
-  <sub>IMP-1046 · `gate-scope-mismatch`</sub>
 - Do not offer an -Env value a script cannot run for; either narrow the ValidateSet to test, acc, prd or give DEV an intake block, so the DEV pipeline never appears to have a probe it lacks.  
   <sub>IMP-1018 · `gate-cannot-fail`</sub>
 - When two copies of a design drop share an inner layout, design-source-coverage's PASS cannot say which was read; cite the full path of the copy you intake'd and resolve the duplicate.  
@@ -117,6 +109,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0205 · `gate-cannot-fail`</sub>
 - A path-kind evidence rule only proves a directory or file exists, never that a specific named deliverable inside it is present. When a task's own description names multiple items (e.g. three security roles: admin, finance, trustee), give it a rule that checks each by name and reports partial when any are absent, instead of accepting the directory's mere existence as complete.  
   <sub>IMP-0152 · `gate-cannot-fail`</sub>
+- A targeted push still starts from a build: run a change-scoped build for the fix, then cut the single component from that artifact with scripts/scoped-repack.py; never pack the carrier from source.  
+  <sub>IMP-1204 · `gate-scope-mismatch`</sub>
+- A change-order id extractor must accept the id followed by prose in the same cell, or the change-order template must forbid prose there; and the fixture set must include both shapes.  
+  <sub>IMP-1177 · `gate-scope-mismatch`</sub>
+- A dated deferral whose clearing decision (change order) is not yet taken will expire again; either record the commercial decision or extend with a warning visible at dispatch  
+  <sub>IMP-1154 · `gate-scope-mismatch`</sub>
+- A work-item clause that cites a docs/Import file can only be built against a test file whose NAME contains .test. or .spec. (case-sensitive): name a Pester file X.test.Tests.ps1, which Pester still discovers, until the engine pattern is widened.  
+  <sub>IMP-1152 · `gate-cannot-fail`</sub>
 - Before dispatching a scoped DEV deploy from a build artifact, run verify-artifact-provenance.py --env dev; a DEV scoped push is otherwise a source push with 'build none'  
   <sub>IMP-1132 · `gate-scope-mismatch`</sub>
 - A length-only shape scan matches exported JSON by coincidence; exclude characters no GUID can contain (a double quote) rather than the content  
@@ -139,6 +139,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-1053 · `two-invocation-paths-disagree`</sub>
 - A generated file that is classified contract in code-app-variant-parity needs the generator to write every copy.  
   <sub>IMP-1047 · `gate-scope-mismatch`</sub>
+- Run verify-tad-coverage.py (and any gate carrying dated baselines or deferrals) in the development-agent source-gate set; other baselines expire 2026-10-13 and 2026-10-14 (gate-baselines.json).  
+  <sub>IMP-1046 · `gate-scope-mismatch`</sub>
 - A review is approved when any entry it processed gained a deferred_reason or a closure; count reviewer-accepted deferrals as evidence of the keyword, not only APPLIED and REJECTED.  
   <sub>IMP-1039 · `gate-fires-on-nothing`</sub>
 - Run a new gate against the DEFECTIVE version of the corpus (git archive of the pre-fix commit), not only the fixed one: here only that run showed Rule B could not fail. Measured candidate: counting only flow write payloads gives 5 findings on HEAD, all true, and 0 on the working tree.  
@@ -320,7 +322,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*88 lesson(s) the digest does not render, in the same order it ranked them.*
+*87 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - Fluent v9's createLightTheme does not guarantee AA: colorBrandBackground and colorBrandBackgroundStatic are brand[80] behind a hard-coded white, so a brand whose shade 80 is under 4.5:1 against white ships a failing primary button. Compute white-on-brand[80] before adopting any ramp, and if it is under 4.5:1 move BOTH rest tokens to brand[70] and shift Hover/Pressed/Selected one step too (brand[60]/[30]/[50]), or rest and hover become the same colour and the button loses all hover feedback. Never accept a general statement that a palette 'is accessible' — compute each pair, including pairs a human told you were fine.  
   <sub>IMP-0352 · `platform-contract-guessed-not-groundtruthed`</sub>
@@ -353,16 +355,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0006 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
-- For a Dataverse When a row is selected flow: declare rev_<table>id in the trigger schema (title, type string, format guid, as the designer stores it), make Get a row by ID the first action keyed on triggerBody()?['entity']['<id column>'], and work from its output. A failed read is the single missing-id and not-found failure.  
-  <sub>IMP-1185 · `platform-fact-groundtruthed`</sub>
-- For a row-selected trigger, declare every column the flow reads under rows.items.entity.properties (rev_reviewid at least) and read it as triggerBody()?['entity']?['<col>']. An empty entity schema means an empty row from the Flow menu. When exporting a scratch flow as ground truth, make an action reference every column you will need, or the export shows an empty schema.  
-  <sub>IMP-1184 · `platform-fact-groundtruthed`</sub>
-- Before naming an Entra group or Dataverse team for an environment, read it from provisioning/deploymentSettings/<env>-settings.json; DEV's admin team is REV-PP-GrantApplications-DEV and does not follow the -Admins-<ENV> pattern.  
-  <sub>IMP-1180 · `platform-contract-guessed-not-groundtruthed`</sub>
-- In a flow expression write an empty array as json('[]'), never createArray() with no argument.  
-  <sub>IMP-1176 · `platform-contract-guessed-not-groundtruthed`</sub>
-- A flow's definition can be read from DEV without a credential gate: write a fetch xml file (no top attribute) selecting clientdata from workflow by workflowid and run pac env fetch --xmlFile. Trigger shape for RecordSelected: type Request, kind ApiConnection, operationId RecordSelected, parameters.entityName, splitOn @triggerBody()['rows']. A scratch flow with no runs has no flowrun row, so trigger OUTPUTS still need one run.  
-  <sub>IMP-1167 · `platform-fact-groundtruthed`</sub>
 - Before dispatching a deploy, check routing/dev logs for defect fixes approved after the artifact's pack time in the same solution; a Compose's secureData cannot be changed in the designer (no Secure outputs toggle, code view read-only) — only a re-import fixes it.  
   <sub>IMP-1159 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Recurrence schedule keys are frequency-bound: weekDays only with Week; hours and minutes only with Day or Week (documented). Turn a Recurrence-triggered flow on after its first import before calling it deployed.  
@@ -429,6 +421,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0255 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A table's OwnershipType determines which privileges Dataverse will ever create for it: OrganizationOwned tables get no Assign/Share privilege at all, full stop. Before writing or copying a role's privilege block for a custom table, check that table's own OwnershipType first (rev_anonymisedstatistic in this same solution is the worked correct example). Separately: ensure-schema.ps1's "privilege does not exist" error message assumes exactly one cause (table not yet created) and should be broadened, since it produced a misleading remedy here.  
   <sub>IMP-0254 · `platform-contract-guessed-not-groundtruthed`</sub>
+- For a Dataverse When a row is selected flow: declare rev_<table>id in the trigger schema (title, type string, format guid, as the designer stores it), make Get a row by ID the first action keyed on triggerBody()?['entity']['<id column>'], and work from its output. A failed read is the single missing-id and not-found failure.  
+  <sub>IMP-1185 · `platform-fact-groundtruthed`</sub>
+- For a row-selected trigger, declare every column the flow reads under rows.items.entity.properties (rev_reviewid at least) and read it as triggerBody()?['entity']?['<col>']. An empty entity schema means an empty row from the Flow menu. When exporting a scratch flow as ground truth, make an action reference every column you will need, or the export shows an empty schema.  
+  <sub>IMP-1184 · `platform-fact-groundtruthed`</sub>
+- Before naming an Entra group or Dataverse team for an environment, read it from provisioning/deploymentSettings/<env>-settings.json; DEV's admin team is REV-PP-GrantApplications-DEV and does not follow the -Admins-<ENV> pattern.  
+  <sub>IMP-1180 · `platform-contract-guessed-not-groundtruthed`</sub>
+- A flow's definition can be read from DEV without a credential gate: write a fetch xml file (no top attribute) selecting clientdata from workflow by workflowid and run pac env fetch --xmlFile. Trigger shape for RecordSelected: type Request, kind ApiConnection, operationId RecordSelected, parameters.entityName, splitOn @triggerBody()['rows']. A scratch flow with no runs has no flowrun row, so trigger OUTPUTS still need one run.  
+  <sub>IMP-1167 · `platform-fact-groundtruthed`</sub>
 - For a create-only Dataverse write, POST to the entity set (it can only create, and the alternate key refuses a duplicate); do not rely on If-None-Match on an alternate-key PATCH. A mocked Web API proves branching, never the server's answer  
   <sub>IMP-1131 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A Recurrence trigger with frequency Day and hours/minutes only, no weekDays, activates after import. Do not ship weekDays on a Day trigger.  
@@ -761,10 +761,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*679 lesson(s), in the order the digest would have ranked them.*
+*682 lesson(s), in the order the digest would have ranked them.*
 
-- Never trust an extractor span as a word boundary: widen a name span over a directly joined hyphen/apostrophe fragment before labelling, and hold any label still joined to letters (P3 name-fragment), on the input and on the output.  
-  <sub>IMP-1139 · `privacy-check-blind-spot`</sub>
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0855`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -818,6 +816,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0270 · `platform-state-divergence`</sub>
 - Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. The positive-control identity and the trustee (negative-control) identity must be verified as two different systemuserids before every V4 attempt, not just the first.  
   <sub>IMP-0228 · `platform-state-divergence`</sub>
+- Never trust an extractor span as a word boundary: widen a name span over a directly joined hyphen/apostrophe fragment before labelling, and hold any label still joined to letters (P3 name-fragment), on the input and on the output.  
+  <sub>IMP-1139 · `privacy-check-blind-spot`</sub>
 - A build that halts mid-chain leaves every later step unobserved; the first run to reach the end can surface an unrelated defect. Run the Pester suite (or the contract test file) against the edited form before handing off.  
   <sub>IMP-1082 · `gate-fired`</sub>
 - A fix for one npm-audit advisory set is not evidence the audit is green for the next. Rerun the audit step after the fix. concurrently is used only by the dev script, so a shell-quote override to >=1.11.0 or a dated known-exception are the candidates for development-agent; the cards app shares the lockfile so both apps change together.  
@@ -965,96 +965,26 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
-- Before trusting a green batch-trigger line, count the awaiting-approval entries whose review names them; hollow stamps hide a batch that is due.  
-  <sub>IMP-1203 · `gate-reassures-wrongly`</sub>
+- Read-only diagnostics use git diff, git status and git show only; a stash moves every modified file in the tree, including another session's.  
+  <sub>IMP-1207 · `concurrent-session-same-file-write`</sub>
+- For a proposed check, run a scratch implementation over the real corpus at draft time and put the count it printed in the change row; for a planned closure, dump the entry first. A status word in this repository's review headers can be struck through and kept, so a header test strips ~~...~~ before reading the word.  
+  <sub>IMP-1206 · `finding-premise-fails-re-measurement`</sub>
 - Tell a rewrite prompt explicitly to keep every punctuation mark where it is, and measure punctuation survival per column in the corpus rather than only flagging large losses.  
   <sub>IMP-1202 · `rewrite-prompt-drops-punctuation`</sub>
-- For a reviewer-scoped DEV fix of one flow, pack an unmanaged carrier solution with only that workflow, import it, delete the container, and diff every workflow's modifiedon before and after; call the stage PARTIAL because the declared post_deploy steps are skipped.  
-  <sub>IMP-1201 · `targeted-single-flow-deploy`</sub>
 - A derived not_started is a claim about a name, not about the work; verify against the folder before reporting it to the client  
   <sub>IMP-1200 · `evidence-rule-names-a-component-that-was-renamed-at-build`</sub>
-- A simulator function that is stricter on the platform than in Python must be made as strict, and the test must put both operand types in one input  
-  <sub>IMP-1199 · `wdl-sort-mixed-number-types`</sub>
-- Give every number that meets in one WDL sort(), min() or max() the same type: write float literals as float(2), and make the simulator reject a sort over mixed Integer and Float.  
-  <sub>IMP-1198 · `wdl-sort-mixed-number-types`</sub>
-- A dated declaration is only safe in a file some gate reads; list every dated register entry across the repository before trusting that none has expired.  
-  <sub>IMP-1197 · `stale-deferral-uncaught-across-sessions`</sub>
-- Before dispatching a post-deploy batch, find the open batch with the census NOTE that names it, and write the tier from config/models.yml.  
-  <sub>IMP-1196 · `dispatch-brief-asserts-unverified-fact`</sub>
-- A reviewed_in stamp is only true if the named document names the entry. A NEW entry with no deferred_reason whose stamped document does not contain its id is unread, whatever the census says.  
-  <sub>IMP-1195 · `gate-reassures-wrongly`</sub>
-- Before promising a fast DEV-only build, run run-build.py --plan --changed-since last-green and read its would_run count: unrelated uncommitted work in the tree widens the plan to nearly every step, so commit or stash it first or accept a full run.  
-  <sub>IMP-1193 · `scoped-build-plan-covers-the-whole-dirty-tree`</sub>
-- Size capacity, licences and AI credits from the live intake count, not the design's volume assumption; at ~90 applications a month the scrub flow needs about 6,300 AI Builder credits a month after ADR-082, more than one Power Automate Premium licence's seeded 5,000.  
-  <sub>IMP-1192 · `volume-assumption-wrong`</sub>
-- For a low-volume AI Builder workload in Power Automate, size Copilot Credits from msdyn_aievent and compare against the 25,000-per-month pack and the 300,000 P3 minimum before recommending a purchase route; pay-as-you-go needs an Azure subscription linked by a billing policy per environment.  
-  <sub>IMP-1191 · `ai-builder-credit-cost-per-call`</sub>
 - secureData does not stop AI Builder storing inputs: check msdyn_aievent.msdyn_datainfo and its retention for any AI Builder call on personal data, and record it in the DPIA/RoPA.  
   <sub>IMP-1190 · `secured-text-persisted-outside-run-history`</sub>
 - Read per-call AI Builder cost from the Dataverse table msdyn_aievent (msdyn_creditconsumed, msdyn_aimodelid, createdon) before estimating; entity extraction is billed per started 1,000 characters per call, so batch short texts into one call.  
   <sub>IMP-1189 · `ai-builder-credit-cost-per-call`</sub>
-- A delivery build can be blocked overnight by a new advisory on a pinned dependency unrelated to the change; route the bump to development-agent as its own work rather than folding it into the feature's item.  
-  <sub>IMP-1188 · `gate-fired`</sub>
-- In a hand-authored cloud flow, give the top level exactly one action with an empty runAfter (the first InitializeVariable) and give every other action exactly one runAfter key. Read earlier outputs through the chain, never by adding a second predecessor. A success/failure fork from one action is fine; a join is not.  
-  <sub>IMP-1187 · `hand-authored-flow-graph-unreadable-in-designer`</sub>
-- Re-check escalate_to_strategic_when on every hop, including resumes; a work item's reopen count can cross the threshold mid-chain, and only a fresh dispatch can change tier.  
-  <sub>IMP-1186 · `dispatch-brief-asserts-unverified-fact`</sub>
-- Find the open post-deploy batch review by its header, not by today's date: a review whose header says Trigger: post-deploy batch and whose Status does not say APPLIED is the one to extend, however old it is.  
-  <sub>IMP-1183 · `dispatch-brief-asserts-unverified-fact`</sub>
-- The Origin header of a 'When a row is selected' run is make.powerautomate.com even when it is started from a model-driven app's Flow menu; do not use it to tell where a run started.  
-  <sub>IMP-1182 · `finding-diagnosis-unverified`</sub>
 - When a design change supersedes a built item's clauses, the current choice is between a false rejection and stale text; until the ledger has a supersede transition, leave the text and record the supersession in the TAD/Dev Summary.  
   <sub>IMP-1175 · `ledger-cannot-record-a-design-change-honestly`</sub>
-- When relaying a lettered answer, quote the option's own text from the document beside the letter; and write decision options in letter order, recommended or not.  
-  <sub>IMP-1174 · `decision-relay-loses-its-referent`</sub>
-- A count derived from a component type must filter by the discriminator inside the component (Workflow Category), not by the root type alone.  
-  <sub>IMP-1173 · `gate-counts-wrong-population`</sub>
-- When a flow's write target equals its trigger table, treat the loop check as tripped before arguing a fixed point, and grep the tests for the check as well as the config steps.  
-  <sub>IMP-1172 · `adr-gate-interactions-incomplete`</sub>
 - State a prompt rule as the rule and give phrasings as examples ('This includes ...'), and mirror the wider rule in the oracle.  
   <sub>IMP-1171 · `rule-precedence-unstated`</sub>
-- A practice name the extractor misses is written with only a flag; a capitalised practice suffix left in the final text should stop the write (or be labelled deterministically), not merely flag it.  
-  <sub>IMP-1170 · `privacy-check-blind-spot`</sub>
-- A flow added to the solution must pass test_solution_flows before it is handed to build-agent.  
-  <sub>IMP-1169 · `gate-fired`</sub>
-- Before dispatching build-agent, check git status for flow or entity files no dispatch in this session wrote; if another session is mid-build in the same solution, wait for it or agree an order before packaging.  
-  <sub>IMP-1168 · `concurrent-session-same-file-write`</sub>
-- For a Dataverse row-selected (Flow menu) trigger, search the designer for 'Manual' under Microsoft Dataverse; its operationId is RecordSelected. The rest of the solution JSON (parameters, split-on, connection reference) still needs an export.  
-  <sub>IMP-1166 · `platform-contract-established`</sub>
 - One log-line.py call per marker: never put the ATTEMPTED of one write and the BEGUN of the next in the same heredoc, because the tool joins them into a single line.  
   <sub>IMP-1165 · `log-marker-lost-to-tool-behaviour`</sub>
-- Before editing a shared design document, check logs/routing.log for an open ROUTED_TO:architect-agent on the same feature and compare the file's mtime twice a minute apart; if it moves, wait for it to be quiet for two minutes, then allocate rev, ADR, risk and section ids at the moment of the write, never earlier.  
-  <sub>IMP-1164 · `concurrent-dispatches-one-document`</sub>
-- When an ADR reverses a behaviour, git grep its retired words over the whole TAD, diagrams included, and list the section 2 diagram lines in the 'Words this retires' table.  
-  <sub>IMP-1163 · `approved-document-internally-inconsistent`</sub>
-- For a manually-started flow, confirm the TAD names the screen and table the user starts it from before dispatching development; a flow with no named surface will default to a Power Automate button.  
-  <sub>IMP-1162 · `approved-spec-silent-on-client-requirement`</sub>
-- Before building a flow from a TAD paragraph that says it 'resolves', 'applies' or 'triggers', open the option sets it names and the target flow's trigger in source, and list every gap as an OPEN row; do not settle a business rule in an expression without a row asking the process owner.  
-  <sub>IMP-1161 · `approved-document-internally-inconsistent`</sub>
-- A work item's component label is not free text. Check each one against deploy, operation:<name> and script:<file> in the pipeline config before moving the item to built; a flow's display name is never a component label.  
-  <sub>IMP-1160 · `declared-policy-not-mechanically-enforced`</sub>
-- A register comment that justifies an exclusion by naming a mechanism goes stale when an ADR changes that mechanism; grep registers for the mechanism's setting name, not only the retired words, when an ADR retires or demotes a control.  
-  <sub>IMP-1158 · `stale-claim-contradicting-rechecked-source`</sub>
-- When a reviewer approves a change that a later review will draft, record approved_in plus an evidence_grep naming text the change will put in its target, never a deferred_reason: the first fails until the work lands, the second reads as settled forever.  
-  <sub>IMP-1157 · `stale-deferral-uncaught-across-sessions`</sub>
-- Append new rev_setting rows at the END of settingRows in all three settings files, never in the middle: prd-settings.json's _unresolved paths are array indexes (settingRows[2] to [5], [33], [34]) and an insert shifts them.  
-  <sub>IMP-1151 · `hand-maintained-count-drifts-from-source`</sub>
-- A gate warning that predicts a later failure should name the trigger that produces it; an unconditional prediction that does not come true teaches agents to discount the warning.  
-  <sub>IMP-1150 · `stale-claim-contradicting-rechecked-source`</sub>
-- pac power-fx run --environment <url> can Patch and read Dataverse table rows by logical name (rev_setting); on a locale with comma decimals separate arguments with ';'. Use it for a one-row maker edit the repo has no script for, then verify with a read-back pac env fetch.  
-  <sub>IMP-1149 · `capability-established`</sub>
 - When a TAD adds or names a rev_setting row the process owner may edit, seed it createOnly and check the existing rows of the same requirement: an upserted row undoes her edit at every deploy.  
   <sub>IMP-1148 · `declared-policy-not-mechanically-enforced`</sub>
-- When a flow action is removed or a card's text changes, grep its name and the card's heading across docs/ and the open assumption registers before running gates: a readable card copy and an A-nnn marker are companions that a retired-word grep cannot find.  
-  <sub>IMP-1147 · `companion-artefact-drift`</sub>
-- When a reviewer correction adds an exception to a requirement, re-read every other sentence of that requirement for the case it now contradicts, and state the order the rules apply in; for any rule about 'a person named in the text', also state the writer's own name.  
-  <sub>IMP-1146 · `approved-spec-silent-on-client-requirement`</sub>
-- Before writing a 'never shown to persona X' requirement, list the surfaces persona X can actually open (shared apps, portal screens and queries) and cite them; a column being unsecured is not by itself an exposure. When a reviewer says one parameter should be a setting 'like the existing ones', apply it to every rule of that kind and state the default for rules whose figure the form fixes.  
-  <sub>IMP-1145 · `agent-inference-rendered-as-client-requirement`</sub>
-- Before writing a per-environment check for an external service, state how many instances of that service exist; and keep an unapproved option in one place (the ADR's Rejected or Open list), never in rows of the test contract, gate table and risk register.  
-  <sub>IMP-1144 · `assumed-environment-topology`</sub>
-- When an ADR introduces a mode that ships off and waits for a later decision, ask the reviewer in the same gate whether the mode is wanted at all, and do not add guards to it until the answer is yes.  
-  <sub>IMP-1142 · `speculative-mechanism-outlives-its-premise`</sub>
 - When an LLM rewrite must preserve form, tell it to keep what must survive (not only what not to add) and count it after the call.  
   <sub>IMP-1141 · `llm-output-fidelity-unchecked`</sub>
 - State the order of rules a prompt reads, in the row itself, and make the oracle apply them in that order; keep a title the rules depend on outside the label deterministically.  
@@ -1137,8 +1067,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0980 · `null-operand-in-ordering-comparison-throws`</sub>
 - A retry is a deploy. A dispatch that re-imports runs the same --pending check before its stage line as a full deploy does, even when the reviewer asked only for the import.  
   <sub>IMP-0971 · `pipeline-dispatch-stops-before-declared-post-deploy`</sub>
-- An item's components must be declared before packaging, because the refusal otherwise arrives only after the live deploy has run.  
-  <sub>IMP-0969 · `item-components-undeclared-at-deploy`</sub>
 - A handoff that lists an artifact's contents must be reconciled against the workflow diff, because an unlisted failure-path rewrite ships under the reviewer's approval of a different change.  
   <sub>IMP-0968 · `handoff-understates-artifact-content`</sub>
 - A gate's selftest must prove its exception path on a synthetic fixture, never on a defect the repository is expected to fix.  
@@ -1373,17 +1301,91 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0292 · `schema-fact-read-from-the-wrong-artefact`</sub>
 - When an FR or SDD field list describes a UI screen at the category level ('holiday details', 'score breakdown'), get or ask for one real example of what the business currently produces by hand and diff it field-by-field against the bound columns before treating the FR as satisfied — category-level wording hides column-level gaps indefinitely.  
   <sub>IMP-0279 · `spec-field-list-not-verified-against-implementation`</sub>
-- When a provisioning fix legitimately changes which HTTP verb performs a reconciling write (PATCH to PUT, or any future verb), re-run scripts/verify-provisioning-step-convergence.py before reporting the fix done -- its PATCH_CALLS regex is a hardcoded verb list, not a semantic check, and a new but equally valid reconciling verb reads as CREATE-ONLY until the regex is taught it. The residual note in that script's own docstring already says as much for a new CALL HELPER; the same is true for a new HTTP VERB.  
-  <sub>IMP-0274 · `gate-classifier-assumes-fixed-verb-set`</sub>
 - SECOND instance of finding-diagnosis-unverified (after IMP-0258), and the two together now justify the root_cause_verified field that review 23 deliberately deferred as a one-member class. Concretely: ensure-schema.ps1 step 2 is CREATE-ONLY, so no property of an existing non-lookup attribute converges either — do not rely on IMP-0259's claim that it does. Before writing 'X already reconciles' about a provisioning step, grep that step's own region for PATCH; the whole-directory answer is `python3 scripts/verify-provisioning-step-convergence.py .`, which prints the classification of every numbered step.  
   <sub>IMP-0266 · `finding-diagnosis-unverified`</sub>
 - The secured-column count has moved twice (39 -> 51 -> 67) and each move required hand-editing the same four claims, which is the signal that the two claims in SHIPPED artefacts should stop stating a number at all. The REV Trustee role file's header and the build handover can describe the control ('every column the profile secures') without a figure; the two historical documents (improvement review 5, the 2026-08-21 handover) are dated records and correcting them asserts something their authors never observed -- the registry already handles that distinction for the Dev Summary's live-vs-historical halves and should do the same here. Owner is whoever completes the rev_bankaccount/rev_payment field-security work, not improvement-agent: REV Trustee.xml is delivery source.  
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- Before the first write to a review document or the improvement log, re-read the review's Status line and the log's mtime; an apply in another session can start after your dispatch. An apply writes its Status as APPLYING before its first change.  
+  <sub>IMP-1205 · `concurrent-dispatches-one-document`</sub>
+- Before trusting a green batch-trigger line, count the awaiting-approval entries whose review names them; hollow stamps hide a batch that is due.  
+  <sub>IMP-1203 · `gate-reassures-wrongly`</sub>
+- For a reviewer-scoped DEV fix of one flow, pack an unmanaged carrier solution with only that workflow, import it, delete the container, and diff every workflow's modifiedon before and after; call the stage PARTIAL because the declared post_deploy steps are skipped.  
+  <sub>IMP-1201 · `targeted-single-flow-deploy`</sub>
+- A simulator function that is stricter on the platform than in Python must be made as strict, and the test must put both operand types in one input  
+  <sub>IMP-1199 · `wdl-sort-mixed-number-types`</sub>
+- Give every number that meets in one WDL sort(), min() or max() the same type: write float literals as float(2), and make the simulator reject a sort over mixed Integer and Float.  
+  <sub>IMP-1198 · `wdl-sort-mixed-number-types`</sub>
+- A dated declaration is only safe in a file some gate reads; list every dated register entry across the repository before trusting that none has expired.  
+  <sub>IMP-1197 · `stale-deferral-uncaught-across-sessions`</sub>
+- Before dispatching a post-deploy batch, find the open batch with the census NOTE that names it, and write the tier from config/models.yml.  
+  <sub>IMP-1196 · `dispatch-brief-asserts-unverified-fact`</sub>
+- A reviewed_in stamp is only true if the named document names the entry. A NEW entry with no deferred_reason whose stamped document does not contain its id is unread, whatever the census says.  
+  <sub>IMP-1195 · `gate-reassures-wrongly`</sub>
+- Before promising a fast DEV-only build, run run-build.py --plan --changed-since last-green and read its would_run count: unrelated uncommitted work in the tree widens the plan to nearly every step, so commit or stash it first or accept a full run.  
+  <sub>IMP-1193 · `scoped-build-plan-covers-the-whole-dirty-tree`</sub>
+- Size capacity, licences and AI credits from the live intake count, not the design's volume assumption; at ~90 applications a month the scrub flow needs about 6,300 AI Builder credits a month after ADR-082, more than one Power Automate Premium licence's seeded 5,000.  
+  <sub>IMP-1192 · `volume-assumption-wrong`</sub>
+- For a low-volume AI Builder workload in Power Automate, size Copilot Credits from msdyn_aievent and compare against the 25,000-per-month pack and the 300,000 P3 minimum before recommending a purchase route; pay-as-you-go needs an Azure subscription linked by a billing policy per environment.  
+  <sub>IMP-1191 · `ai-builder-credit-cost-per-call`</sub>
+- A delivery build can be blocked overnight by a new advisory on a pinned dependency unrelated to the change; route the bump to development-agent as its own work rather than folding it into the feature's item.  
+  <sub>IMP-1188 · `gate-fired`</sub>
+- In a hand-authored cloud flow, give the top level exactly one action with an empty runAfter (the first InitializeVariable) and give every other action exactly one runAfter key. Read earlier outputs through the chain, never by adding a second predecessor. A success/failure fork from one action is fine; a join is not.  
+  <sub>IMP-1187 · `hand-authored-flow-graph-unreadable-in-designer`</sub>
+- Re-check escalate_to_strategic_when on every hop, including resumes; a work item's reopen count can cross the threshold mid-chain, and only a fresh dispatch can change tier.  
+  <sub>IMP-1186 · `dispatch-brief-asserts-unverified-fact`</sub>
+- Find the open post-deploy batch review by its header, not by today's date: a review whose header says Trigger: post-deploy batch and whose Status does not say APPLIED is the one to extend, however old it is.  
+  <sub>IMP-1183 · `dispatch-brief-asserts-unverified-fact`</sub>
+- The Origin header of a 'When a row is selected' run is make.powerautomate.com even when it is started from a model-driven app's Flow menu; do not use it to tell where a run started.  
+  <sub>IMP-1182 · `finding-diagnosis-unverified`</sub>
+- When relaying a lettered answer, quote the option's own text from the document beside the letter; and write decision options in letter order, recommended or not.  
+  <sub>IMP-1174 · `decision-relay-loses-its-referent`</sub>
+- A count derived from a component type must filter by the discriminator inside the component (Workflow Category), not by the root type alone.  
+  <sub>IMP-1173 · `gate-counts-wrong-population`</sub>
+- When a flow's write target equals its trigger table, treat the loop check as tripped before arguing a fixed point, and grep the tests for the check as well as the config steps.  
+  <sub>IMP-1172 · `adr-gate-interactions-incomplete`</sub>
+- A practice name the extractor misses is written with only a flag; a capitalised practice suffix left in the final text should stop the write (or be labelled deterministically), not merely flag it.  
+  <sub>IMP-1170 · `privacy-check-blind-spot`</sub>
+- A flow added to the solution must pass test_solution_flows before it is handed to build-agent.  
+  <sub>IMP-1169 · `gate-fired`</sub>
+- Before dispatching build-agent, check git status for flow or entity files no dispatch in this session wrote; if another session is mid-build in the same solution, wait for it or agree an order before packaging.  
+  <sub>IMP-1168 · `concurrent-session-same-file-write`</sub>
+- For a Dataverse row-selected (Flow menu) trigger, search the designer for 'Manual' under Microsoft Dataverse; its operationId is RecordSelected. The rest of the solution JSON (parameters, split-on, connection reference) still needs an export.  
+  <sub>IMP-1166 · `platform-contract-established`</sub>
+- Before editing a shared design document, check logs/routing.log for an open ROUTED_TO:architect-agent on the same feature and compare the file's mtime twice a minute apart; if it moves, wait for it to be quiet for two minutes, then allocate rev, ADR, risk and section ids at the moment of the write, never earlier.  
+  <sub>IMP-1164 · `concurrent-dispatches-one-document`</sub>
+- When an ADR reverses a behaviour, git grep its retired words over the whole TAD, diagrams included, and list the section 2 diagram lines in the 'Words this retires' table.  
+  <sub>IMP-1163 · `approved-document-internally-inconsistent`</sub>
+- For a manually-started flow, confirm the TAD names the screen and table the user starts it from before dispatching development; a flow with no named surface will default to a Power Automate button.  
+  <sub>IMP-1162 · `approved-spec-silent-on-client-requirement`</sub>
+- Before building a flow from a TAD paragraph that says it 'resolves', 'applies' or 'triggers', open the option sets it names and the target flow's trigger in source, and list every gap as an OPEN row; do not settle a business rule in an expression without a row asking the process owner.  
+  <sub>IMP-1161 · `approved-document-internally-inconsistent`</sub>
+- A work item's component label is not free text. Check each one against deploy, operation:<name> and script:<file> in the pipeline config before moving the item to built; a flow's display name is never a component label.  
+  <sub>IMP-1160 · `declared-policy-not-mechanically-enforced`</sub>
+- A register comment that justifies an exclusion by naming a mechanism goes stale when an ADR changes that mechanism; grep registers for the mechanism's setting name, not only the retired words, when an ADR retires or demotes a control.  
+  <sub>IMP-1158 · `stale-claim-contradicting-rechecked-source`</sub>
+- When a reviewer approves a change that a later review will draft, record approved_in plus an evidence_grep naming text the change will put in its target, never a deferred_reason: the first fails until the work lands, the second reads as settled forever.  
+  <sub>IMP-1157 · `stale-deferral-uncaught-across-sessions`</sub>
+- Append new rev_setting rows at the END of settingRows in all three settings files, never in the middle: prd-settings.json's _unresolved paths are array indexes (settingRows[2] to [5], [33], [34]) and an insert shifts them.  
+  <sub>IMP-1151 · `hand-maintained-count-drifts-from-source`</sub>
+- A gate warning that predicts a later failure should name the trigger that produces it; an unconditional prediction that does not come true teaches agents to discount the warning.  
+  <sub>IMP-1150 · `stale-claim-contradicting-rechecked-source`</sub>
+- pac power-fx run --environment <url> can Patch and read Dataverse table rows by logical name (rev_setting); on a locale with comma decimals separate arguments with ';'. Use it for a one-row maker edit the repo has no script for, then verify with a read-back pac env fetch.  
+  <sub>IMP-1149 · `capability-established`</sub>
+- When a flow action is removed or a card's text changes, grep its name and the card's heading across docs/ and the open assumption registers before running gates: a readable card copy and an A-nnn marker are companions that a retired-word grep cannot find.  
+  <sub>IMP-1147 · `companion-artefact-drift`</sub>
+- When a reviewer correction adds an exception to a requirement, re-read every other sentence of that requirement for the case it now contradicts, and state the order the rules apply in; for any rule about 'a person named in the text', also state the writer's own name.  
+  <sub>IMP-1146 · `approved-spec-silent-on-client-requirement`</sub>
+- Before writing a 'never shown to persona X' requirement, list the surfaces persona X can actually open (shared apps, portal screens and queries) and cite them; a column being unsecured is not by itself an exposure. When a reviewer says one parameter should be a setting 'like the existing ones', apply it to every rule of that kind and state the default for rules whose figure the form fixes.  
+  <sub>IMP-1145 · `agent-inference-rendered-as-client-requirement`</sub>
+- Before writing a per-environment check for an external service, state how many instances of that service exist; and keep an unapproved option in one place (the ADR's Rejected or Open list), never in rows of the test contract, gate table and risk register.  
+  <sub>IMP-1144 · `assumed-environment-topology`</sub>
 - When a triage plan routes a rule change into a built flow, amend the parent SDD's FR in the same cycle; a rule that exists only in code and a triage table is invisible to every later amendment.  
   <sub>IMP-1143 · `stale-claim-contradicting-rechecked-source`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-1145`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
+- When an ADR introduces a mode that ships off and waits for a later decision, ask the reviewer in the same gate whether the mode is wanted at all, and do not add guards to it until the answer is yes.  
+  <sub>IMP-1142 · `speculative-mechanism-outlives-its-premise`</sub>
 - A deploy is the observation that deploy-keyed deferrals wait for; the post-deploy batch must re-measure them or they stay open after their condition is met.  
   <sub>IMP-1138 · `stale-deferral-uncaught-across-sessions`</sub>
 - Anchor structural regexes to line-start indentation and parse the result as XML before import. Also observed: flow 1011 stayed Activated after this scoped import (IMP-1102 did not recur here; 1008 went Draft on 10-09).  
@@ -1507,6 +1509,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0974 · `log-timestamp-not-taken-from-the-clock`</sub>
 - A timestamp typed by an agent is a guess, measured today at 5 to 330 minutes in the future across build.log, pipeline.log and the improvement log. Let the tool that appends the line take the time: the allocator for findings, scripts/log-line.py for the plain logs.  
   <sub>IMP-0970 · `log-timestamp-not-taken-from-the-clock`</sub>
+- An item's components must be declared before packaging, because the refusal otherwise arrives only after the live deploy has run.  
+  <sub>IMP-0969 · `item-components-undeclared-at-deploy`</sub>
 - A timestamp rule that lives in prose recurs within hours across agents. The tool that appends the line already holds a lock and a clock; it should stamp the time itself, and the validator should refuse a ts later than the moment it runs.  
   <sub>IMP-0965 · `log-timestamp-not-taken-from-the-clock`</sub>
 - When adding a scripts/verify-*.py gate, add its build-config step (or SUITE_GATE_EXEMPT reason) in the same change; build-agent cannot edit the config and must hand back BLOCKED.  
@@ -2069,6 +2073,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0280 · `escalation-trigger-conflates-request-and-document-state`</sub>
 - Before applying an approved improvement review, re-read the improvement log and check whether anything appended since the draft CORRECTS a finding the review acted on -- a 'corrects' field, or a newer entry sharing the class_instance_of. A review's own diagnosis is a hypothesis with exactly the status of the finding's (skills/how-to-log-an-improvement.md), and the interval between a gate opening and a keyword arriving is time in which delivery dispatches land live ground truth. Where a proposal is disproved, withhold that change and say so in the applied section; never apply a HARD constraint or gate whose premise you have just watched fail, and never quietly substitute different rule text for approved rule text either -- enforcement wording is what the human approved.  
   <sub>IMP-0275 · `declared-policy-not-mechanically-enforced`</sub>
+- When a provisioning fix legitimately changes which HTTP verb performs a reconciling write (PATCH to PUT, or any future verb), re-run scripts/verify-provisioning-step-convergence.py before reporting the fix done -- its PATCH_CALLS regex is a hardcoded verb list, not a semantic check, and a new but equally valid reconciling verb reads as CREATE-ONLY until the regex is taught it. The residual note in that script's own docstring already says as much for a new CALL HELPER; the same is true for a new HTTP VERB.  
+  <sub>IMP-0274 · `gate-classifier-assumes-fixed-verb-set`</sub>
 - A count derived from FieldSecurityProfiles.xml must be scoped to the FieldSecurityProfile the claim is about -- the file now holds REV_TrusteeRestricted (51 FieldPermission) and REV_FinanceOnly (16), so a file-wide pair count returns 67 and belongs to no claim anyone makes. Before correcting prose because a derived-count gate says it drifted, count the source yourself: here the prose was right and the gate was wrong, and obeying it would have overstated a privacy control in the role file that documents it.  
   <sub>IMP-0269 · `test-assumed-name-is-solution-unique`</sub>
 - Before shipping a new script under scripts/, provisioning/, or src/tests/ (source-reader-plurality's SCAN_ROOTS), run scripts/verify-source-reader-plurality.py against it before merging -- a new script can trip an already-existing HARD gate's heuristic the same day it is written. If R3 fires on a script that only compares property-NAME vocabulary against builder source-code text (never a per-instance attribute value tied to one table), that is the shape to recognise: add an in-file '# plurality-exempt: R3 <reason>' marker there, rather than broadening R3's own entity-resolution regex, which risks quietly re-admitting the six IMP-0234..0240 shapes R3 exists to catch.  
@@ -2185,8 +2191,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0831 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A Power Automate InitializeVariable action may declare exactly ONE variable: inputs.variables is an array in the schema and the platform accepts several through pack, import, publish and activate, but the designer models only the first and refuses to save the flow once anything references the rest. Declare one variable per action. Note the general shape behind this and IMP-0137 and IMP-0816: the designer's save validation is stricter than the definition schema, so a flow reaching V3 (imported, published, Activated) is not evidence it can be saved by a human -- and every flow here needs a human designer save anyway to re-register its Dataverse callback (IMP-0113/IMP-0114). Check the shape at source; do not diff the live environment after import, which is what green-looks-like even while the defect is present.  
   <sub>IMP-0821 · `platform-contract-guessed-not-groundtruthed`</sub>
-- Before authoring or reusing an action name across If/else (or Switch case) branches in a Power Automate cloud flow, ground-truth whether the platform's import-time dependency calculator treats action names as branch-scoped or flow-wide unique -- this session found it is FLOW-WIDE: reusing a name across mutually-exclusive branches throws 'An item with the same key has already been added' at import (FlattenNestedActions flattens all branches into one dictionary before computing dependencies). A pre-import source gate should grep every flow's action-name keys recursively (all actions/elseActions/case-actions/default-actions containers) and fail on any duplicate, the same way verify-requirement-id-uniqueness.py already does for FR-/NFR-/US-/OQ- ids in docs/plans/.  
-  <sub>IMP-0804 · `platform-contract-guessed-not-groundtruthed`</sub>
 - IMP-0255/IMP-0272's IsSecured convergence step (step 3b of ensure-schema.ps1) only reconciles pre-existing LOOKUP columns. It does not cover (a) a plain String/Picklist/other non-lookup attribute whose source IsSecured flag changes after the attribute already exists live in an environment, or (b) a lookup relationship created in the very same run -- the inline IsSecured on ConvertTo-RevRelationshipBody's deep-insert Lookup body has never been confirmed to actually take live. Before trusting that a newly-declared IsSecured=1 will be honoured, check which of these three paths (fresh non-lookup create, fresh lookup create, already-existing attribute of any type) the column is on -- only 'fresh non-lookup create' is currently proven correct.  
   <sub>IMP-0782 · `platform-contract-guessed-not-groundtruthed`</sub>
 - subscriptionRequest/message on the Dataverse connector's SubscribeWebhookTrigger is NOT {1 Create, 2 Update, 3 Delete}. Read live from stringmap in REV-GrantApplications-DEV 2026-08-28: 1 Added, 2 DELETED, 3 MODIFIED, 4 Added or Modified, 5 Added or Deleted, 6 Modified or Deleted, 7 Added or Modified or Deleted. For 'fires when a row is updated' the value is 3. The parameter passes straight through to callbackregistration.message, so the cheapest confirmation for any row-triggered flow is to read that column's formatted value back after turning the flow on - and note that this is the ONE thing a callbackregistration row can tell you, since its existence, createdon, scope and runas are all inadmissible as evidence that a trigger fires (C-TECH-064 clause (a)).  
@@ -2198,6 +2202,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - When a FormXml (or any split-source) shape correction lands only in the file's own content, ground-truth whether the packer derives the equivalent platform value from the FILE PATH/FOLDER NAME instead of the file's declared attribute -- confirmed here for pac solution pack's <forms type>, which is keyed to the FormXml/<foldername>/ segment. Verify a source-level fix by unzipping the actual packed artifact and checking the packed customizations.xml, not by re-running a gate that also only reads source. The fix is renaming Entities/rev_applicant/FormXml/quickview/ to Entities/rev_applicant/FormXml/quick/, which was reproduced to work by scratch pack, and every hardcoded 'quickview' path reference (IntakeContract.Tests.ps1, BuildGates.Tests.ps1's known-bad fixture path, component-shapes.yml's comment) needs updating in the same change.  
   <sub>IMP-0874 · `platform-contract-guessed-not-groundtruthed`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0875`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
+- Before authoring or reusing an action name across If/else (or Switch case) branches in a Power Automate cloud flow, ground-truth whether the platform's import-time dependency calculator treats action names as branch-scoped or flow-wide unique -- this session found it is FLOW-WIDE: reusing a name across mutually-exclusive branches throws 'An item with the same key has already been added' at import (FlattenNestedActions flattens all branches into one dictionary before computing dependencies). A pre-import source gate should grep every flow's action-name keys recursively (all actions/elseActions/case-actions/default-actions containers) and fail on any duplicate, the same way verify-requirement-id-uniqueness.py already does for FR-/NFR-/US-/OQ- ids in docs/plans/.  
+  <sub>IMP-0804 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A `pa app add data-source --table <t> -u <org-url>` success, a clean `tsc`/`eslint`, and a `git diff` showing new generated files are evidence about the PER-TABLE typed-service data source only. Before marking a 'connector fails to resolve org URL' finding APPLIED for an app, confirm which data source key the app's actual call sites use (`getClient(dataSourcesInfo)`'s argument, and which top-level key in `dataSourcesInfo.ts` carries non-empty `apis` for the operations the app calls — `ListRecords`/`GetItem`/`UpdateOnlyRecord` live only under the generic connector key here, never under a per-table key) and re-run the original V4 reproduction step against THAT key specifically. A hand-rolled generic-connector client and its app's own typed per-table services can sit in the same `dataSourcesInfo.ts` with one fixed and the other still broken, and nothing short of re-opening the app as a real user will show which is which.  
   <sub>IMP-0224 · `v3-does-not-imply-v4`</sub>
 - `pac code add-data-source -a <apiId>` takes the SHORT connector id (e.g. `shared_commondataserviceforapps`), never the full '/providers/Microsoft.PowerApps/apis/<id>' path shown by `pac connection list`'s API Id column or power.config.json's connectionReferences.<guid>.id - passing the full path 404s with a visibly malformed doubled-slash URL (.../connectors//providers/...). Also: for the REV Trustee Review Portal specifically, re-running this command is CONFIRMED a no-op against the current live connection (4fc93a683f8945699cbb364403b02296) - do not re-try it as a remedy for the org-url-null error again without new information; the next step is a Microsoft support ticket, not another local regeneration attempt.  

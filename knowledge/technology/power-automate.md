@@ -292,6 +292,27 @@ edge above is still reserved for whichever claim eventually loses.
 - Scheduled flows: store schedule configuration in a Dataverse configuration table, not hardcoded in the flow
 - The HTTP trigger's 'Who can trigger the flow?' is `triggers.<name>.inputs.triggerAuthenticationType` (IMP-1016); `All` is Anyone. It ships in source and the live re-read compares it.
 
+### Dataverse "When a row is selected" (Flow menu) trigger
+
+*Added by improvement review 2026-10-21 (`IMP-1166`, `IMP-1167`, `IMP-1182`, `IMP-1184`, `IMP-1185`),
+DEV 2026-10-20/21.*
+
+- The designer lists it as *Microsoft Dataverse — Manual*; its `operationId` is `RecordSelected`
+  (type `Request`, kind `ApiConnection`, `parameters.entityName`, `splitOn @triggerBody()['rows']`).
+  Microsoft Learn documents neither name.
+- **Declare every column the flow reads under `rows.items.entity.properties`**, at least the table's
+  id column, stored as the designer stores it (title, type string, format guid). An empty schema
+  delivers an empty row from the Flow menu: the raw body was `{"entity":{"entity":{}}}`.
+- **Make Get a row by ID the first action**, keyed on `triggerBody()?['entity']?['<id column>']`, and
+  work from its output. A failed read is then the single missing-id and not-found failure.
+- **An exported scratch flow stores only the columns its actions reference.** Make an action use every
+  column you will need before exporting, or the export shows an empty schema and copying it copies
+  the defect.
+- A flow's stored definition can be read without the provisioning credential: `pac env fetch
+  --xmlFile <file>` selecting `clientdata` from `workflow` by `workflowid` (no `top` attribute).
+- **A run's `Origin` header is `make.powerautomate.com` even when it was started from a model-driven
+  app's Flow menu**, so it says nothing about where a run started.
+
 ### Error Handling
 - Every flow must have a top-level **Scope** action with a parallel **Run After (failed/timed out/skipped)** error branch
 - Error branch must: log to `[prefix]_flowexceptionlog` table, send alert to ops channel
@@ -347,7 +368,7 @@ learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app, read 2026-
 | Action type | What `secureData` supports |
 |---|---|
 | Most triggers and connector actions | `["inputs"]`, `["outputs"]` or both |
-| Compose, Parse JSON, Response | `["inputs"]` only. Secure Outputs is unsupported, and Secure Inputs also hides their outputs |
+| Compose, Parse JSON, Response | `["inputs"]` only. Secure Outputs is unsupported, and Secure Inputs also hides their outputs. Securing `outputs` on a Compose imports, then the designer refuses to save with 0x80060467; check 18 fails the build on it (IMP-1156) |
 | If, Scope, Terminate, the variable actions | not supported |
 
 **Protection does not travel through a Compose.** An action that reads a secured Compose's output
@@ -433,6 +454,23 @@ on them.
   ships the copy, read `msdyn_aiconfiguration` (`msdyn_aimodelid`, `modifiedon`, `msdyn_type`); if a
   run configuration is newer than your export, re-export and re-copy.
 
+*Added by improvement review 2026-10-21 (`IMP-1139`, `IMP-1170`, `IMP-1189`, `IMP-1190`).*
+
+- **An extractor span is not a word boundary.** The prebuilt extractor returned *Holloway* for
+  *Holloway-Reed*. A check that searches only the extractor's values cannot see the remainder: widen a
+  name span over a directly joined hyphen or apostrophe fragment before labelling, and hold a label
+  still joined to letters (IMP-1139). The extractor also answered the same text differently on two
+  days (IMP-1170), so nothing that must always happen may rest on it alone.
+- **Prebuilt entity extraction is billed per started 1,000 characters, per call** (20 credits,
+  Microsoft Learn rate table). Measured in DEV: 460 of 626 credits on 2026-10-19/20 went to
+  extraction, against 3–7 per prompt call. Read real per-call cost from `msdyn_aievent`
+  (`msdyn_creditconsumed`, `msdyn_aimodelid`, `createdon`) before estimating, and batch short texts
+  into one call (IMP-1189).
+- **`secureData` does not stop AI Builder keeping the input.** Every prediction writes an
+  `msdyn_aievent` row whose `msdyn_datainfo` holds the full input text, whatever the calling action
+  secures. For personal data, establish that table's retention and its readers, and record it as a
+  store (IMP-1190).
+
 ### Performance
 - Flows processing > 100 rows must use **pagination** (OData `$top` + `@odata.nextLink`)
 - Flows calling external APIs must set a timeout and handle 429 / 503 with exponential back-off
@@ -485,6 +523,12 @@ section - these are the traps that bite when it is not yet available.
   inert but fails to save: `Flow save failed with code 'InvalidStaticResultName' ... cannot
   be null or empty`. If Static Results are not in use, omit the key entirely rather than
   writing a "disabled" placeholder.
+- **Give the top level one chain** (improvement review 2026-10-21, IMP-1187). One action with an
+  empty `runAfter`, every other action with exactly one `runAfter` key; read earlier outputs through
+  the chain, never by adding a second predecessor. A success/failure fork is fine; a join draws
+  crossing lines in the designer, and flow #7's layout was rejected for it although it ran. 8 of 13
+  flows still have one or two top-level joins (2026-10-21): a rule for new authoring, not a gate.
+  Check 19 enforces the related hard rule: every `runAfter` key names a sibling (IMP-1179).
 - **When guessing a flow's JSON shape is unavoidable, get ground truth instead of guessing
   twice.** The entities Power Automate flows actually depend on (connection references,
   environment variable *values* at runtime) are ordinary Dataverse records — build one
@@ -498,6 +542,11 @@ Added by improvement review 2026-10-16. Every line below is something a solution
 and the platform refused later, or a measured fact about the platform outside the definition. Each
 carries its evidence and date. Checks 12–17 of `scripts/verify-flow-definition-language.py` enforce
 the definition-shape facts (b, c, e, f, g's weekDays half, and the lookup rule above).
+
+**Every throw recorded here lands in both test evaluators in the same change** —
+`src/tests/narrative/wdl_sim.py` and `src/tests/solutions/_harness/WdlExpression.psm1`. Three times an
+evaluator accepted what the platform refuses and the tests passed over the defect (IMP-1136,
+IMP-1153, IMP-1199; improvement review 2026-10-21).
 
 - **(a) A Draft import does not template-validate.** A definition that packs, imports and reads back
   identical can still be unsavable; validation happens on designer save or activation. So the first
@@ -545,7 +594,13 @@ the definition-shape facts (b, c, e, f, g's weekDays half, and the lookup rule a
   (IMP-1121, 12,701 characters, 2026-10-16). Enforced by the narrative suite's PlatformLimits test.
 - **(l) `substring()` start must be below the string's length**, even with a length argument, and any
   substring of `''` throws (aka.ms/logicexpressions#substring; IMP-1109, first DEV run 2026-10-12).
-  `substring(raw, length(raw))` is the trap when a span ends on the last character.
+  `substring(raw, length(raw))` is the trap when a span ends on the last character. To drop a leading
+  separator from a value that can be empty, use `join(skip(split(x, sep), 1), sep)`, never
+  `substring()` (IMP-1153).
+- **(m) `sort()` over an object array needs one type in the sortBy property in every object.** An
+  integer `2` beside a Float score fails at run time: InvalidTemplate, "sort expects the sortBy
+  parameter … the same type for each object" (IMP-1198, DEV 2026-10-21). Write a literal that meets a
+  Float as `float(2)`.
 
 ## A Dataverse-Triggered Flow Is Not Live Until a `callbackregistration` Row Exists
 

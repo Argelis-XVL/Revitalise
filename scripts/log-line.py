@@ -25,7 +25,11 @@ action is one line.
 Refusals (exit 2, nothing written):
   * the target is not under `logs/` or does not end in `.log`;
   * the text already starts with a `[YYYY-MM-DD` stamp — the time is the tool's, never typed;
-  * the text is empty.
+  * the text is empty;
+  * a line after the first starts with `[<TAG>] [` — a SECOND entry. One call per entry: two
+    entries in one heredoc were joined into one line 22 times in logs/, which broke the
+    WRITE BEGUN / WRITE ATTEMPTED pairing of deploy writes (IMP-1165; improvement review
+    2026-10-21 row 3). A wrapped single entry still joins.
 
 The append is a single `os.write` on an `O_APPEND` descriptor under an exclusive advisory lock,
 so two cooperating processes on one machine cannot interleave. RESIDUAL: the lock does not
@@ -49,6 +53,7 @@ except ImportError:  # pragma: no cover — Windows; the O_APPEND write still ap
 
 STAMP_FORMAT = "%Y-%m-%d %H:%M"
 PRESTAMPED = re.compile(r"^\s*\[\d{4}-\d{2}-\d{2}")
+SECOND_ENTRY = re.compile(r"^\s*\[[A-Z][A-Z0-9_-]*\] \[")
 
 
 class Refused(Exception):
@@ -62,6 +67,10 @@ def check_target(target: Path) -> None:
 
 
 def build_line(text: str, now: datetime | None = None) -> str:
+    lines = [part for part in text.splitlines() if part.strip()]
+    if any(SECOND_ENTRY.match(part) for part in lines[1:]):
+        raise Refused("a line after the first starts a second entry ([<TAG>] [...]); one call "
+                      "per entry — joined, two entries become one line (IMP-1165)")
     joined = " ".join(part.strip() for part in text.splitlines() if part.strip())
     if not joined:
         raise Refused("empty line: nothing to write")
@@ -100,7 +109,9 @@ def _selftest() -> int:
     check("keeps backticks and $ literal", build_line("[A] ran `pac` with $HOME", fixed),
           "[2026-10-05 09:30] [A] ran `pac` with $HOME")
     for name, text in (("refuses a pre-stamped line", "[2026-10-05 09:00] [A] x"),
-                       ("refuses an empty line", "  \n ")):
+                       ("refuses an empty line", "  \n "),
+                       ("refuses two entries in one call (IMP-1165)",
+                        "[PIPELINE] [x] WRITE BEGUN y\n[PIPELINE] [x] WRITE ATTEMPTED y\n")):
         try:
             build_line(text, fixed)
             check(name, "written", "refused")
@@ -125,7 +136,7 @@ def _selftest() -> int:
         print(f"log-line: SELFTEST FAILED — {len(failures)} failure(s): {', '.join(failures)}",
               file=sys.stderr)
         return 1
-    print("log-line: SELFTEST OK — 8 fixtures")
+    print("log-line: SELFTEST OK — 9 fixtures")
     return 0
 
 

@@ -849,6 +849,84 @@ def resolved_reviews(row: dict, repo_root: Path) -> tuple[list[str], list[str]]:
     return present, missing
 
 
+# ── Hollow stamps (improvement review 2026-10-21 row 1(a), IMP-1195, IMP-1203) ─────────────
+#
+# `awaiting-approval` used to mean "reviewed_in names a document that EXISTS". Two batch drafts
+# were interrupted after stamping 54 entries with an existing review's name and before writing
+# them into it, so the queue reported all 54 as parked behind a keyword — and three critical
+# fixed-in-flight ones as "already reviewed and reviewer-deferred" — while no document named any
+# of them. A stamp is now BACKED only when the document it names contains the entry's id; a
+# hollow stamp counts as no stamp at all. Residual, stated: an id mentioned only in prose still
+# backs the stamp (0 such cases among 1,128 stamps on 2026-10-21).
+_DOC_TEXT_CACHE: dict[Path, str] = {}
+
+
+def _doc_text(path: Path) -> str:
+    if path not in _DOC_TEXT_CACHE:
+        try:
+            _DOC_TEXT_CACHE[path] = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            _DOC_TEXT_CACHE[path] = ""
+    return _DOC_TEXT_CACHE[path]
+
+
+def backed_reviews(row: dict, repo_root: Path) -> tuple[list[str], list[str]]:
+    """Split the EXISTING `reviewed_in` documents into (backed, hollow): backed names the id."""
+    present, _ = resolved_reviews(row, repo_root)
+    ident = str(row.get("id") or "").strip()
+    if not ident:
+        return present, []
+    pattern = re.compile(rf"(?<![\w-]){re.escape(ident)}(?!\d)")
+    backed, hollow = [], []
+    for rel in present:
+        (backed if pattern.search(_doc_text(repo_root / rel)) else hollow).append(rel)
+    return backed, hollow
+
+
+def check_hollow_stamps(rows: list[dict], repo_root: Path) -> list[str]:
+    """One WARNING per hollow stamp on a NEW entry no deferral discharges (row 1(a))."""
+    warnings: list[str] = []
+    for row in rows:
+        if row.get("status") != "NEW" or str(row.get("deferred_reason") or "").strip():
+            continue
+        for rel in backed_reviews(row, repo_root)[1]:
+            warnings.append(
+                f"{row.get('id')}: reviewed_in names {rel}, which does not contain "
+                f"{row.get('id')} — a HOLLOW stamp, counted as no stamp (state unread). Write "
+                f"the id into that review (a Cites: line or a change-table row) or remove the "
+                f"stamp (IMP-1195).")
+    return warnings
+
+
+# ── Open post-deploy batch review (improvement review 2026-10-21 row 1(b), IMP-1183, IMP-1196)
+# Two dispatches looked for the open batch review by today's date and missed one three days old.
+_TRIGGER_POST_DEPLOY = re.compile(r"^\*\*Trigger:\*\*\s*post-deploy", re.MULTILINE)
+_STATUS_LINE = re.compile(r"^\*\*Status:\*\*\s*(.*)$", re.MULTILINE)
+
+
+def open_batch_reviews(reviews_dir: Path) -> list[str]:
+    """Review documents whose header says post-deploy and whose Status is not APPLIED."""
+    found: list[str] = []
+    if not reviews_dir.is_dir():
+        return found
+    for doc in sorted(reviews_dir.glob(REVIEW_DOC_GLOB)):
+        head = "\n".join(_doc_text(doc).splitlines()[:20])
+        if not _TRIGGER_POST_DEPLOY.search(head):
+            continue
+        status = _STATUS_LINE.search(head)
+        # A superseded status is struck through and kept ("~~DRAFT~~ **APPLIED …**"), so the
+        # withdrawn text and the emphasis are removed before the test: measured at apply time,
+        # the literal test named two applied reviews (10-16, 10-16-2) as open.
+        word = re.sub(r"~~.*?~~", "", status.group(1)).replace("*", "").strip() if status else ""
+        if word.upper().startswith("APPLIED"):
+            continue
+        try:
+            found.append(str(doc.relative_to(reviews_dir.parent.parent)))
+        except ValueError:
+            found.append(str(doc))
+    return found
+
+
 # ── appended_by (improvement review 29 change 9, IMP-0328) ────────────────────────────────
 #
 # `reviewed_in` says "a review PROCESSED this". There was no way to say "a review WROTE this",
@@ -1600,9 +1678,9 @@ def classify(row: dict, repo_root: Path) -> tuple[str, str]:
         present, _ = resolved_reviews(row, repo_root)
         where = f"; processed into {', '.join(present)}" if present else ""
         return DEFERRED, f"revisit_when: {row.get('revisit_when') or 'NOT RECORDED'}{where}"
-    present, _ = resolved_reviews(row, repo_root)
-    if present:
-        return AWAITING, ", ".join(present)
+    backed, _ = backed_reviews(row, repo_root)   # a hollow stamp is no stamp (row 1(a))
+    if backed:
+        return AWAITING, ", ".join(backed)
     return UNREAD, ""
 
 
@@ -1655,8 +1733,9 @@ def check_triggers(rows: list[dict], repo_root: Path,
         # IMP-1130: split by whether a review has processed the entry. Only the first group counts
         # toward the batch (unreviewed_fixed, below); saying "counted toward the batch" of all of
         # them put two reviewer-deferred V4 entries into a later batch's brief as if unread.
-        in_no_review = [r for r in fixed if not resolved_reviews(r, repo_root)[0]]
-        reviewed = [r for r in fixed if resolved_reviews(r, repo_root)[0]]
+        # Row 1(a), 2026-10-21: "reviewed" means a review that NAMES the entry (IMP-1195).
+        in_no_review = [r for r in fixed if not backed_reviews(r, repo_root)[0]]
+        reviewed = [r for r in fixed if backed_reviews(r, repo_root)[0]]
         if in_no_review:
             notes.append(
                 f"verify-improvement-log: NOTE — {len(in_no_review)} blocker(s) {FIXED_IN_FLIGHT} "
@@ -1819,7 +1898,7 @@ def check_triggers(rows: list[dict], repo_root: Path,
     # environment instead. Withdrawn wording, retained: "pending = ids_in(UNREAD) +
     # ids_in(AWAITING) + ids_in(FIXED_IN_FLIGHT)" — awaiting-approval entries counted.
     unreviewed_fixed = [r for r in ids_in(FIXED_IN_FLIGHT)
-                        if not resolved_reviews(r, repo_root)[0]]
+                        if not backed_reviews(r, repo_root)[0]]
     pending = ids_in(UNREAD) + unreviewed_fixed
 
     threshold = batch_threshold()
@@ -2584,9 +2663,10 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
                 warnings.append(
                     f"{target}: corrected by {ident}, and no review has processed it — the fix "
                     f"landed and the finding's own queue entry did not move. That entry still "
-                    f"counts toward C-TECH-061's blocker and batch triggers, so the next build "
-                    f"to reach the `unit-tests` step fails on it (IMP-0285 cost one full "
-                    f"~9-minute attempt). Resolve it by PROCESSING {target} in a review, not by "
+                    f"counts toward C-TECH-061's blocker and batch triggers; a build fails on it "
+                    f"only when one of those rungs fires — a deploy-lane blocker, or the batch "
+                    f"threshold reached (IMP-1150; IMP-0285 cost one full ~9-minute attempt "
+                    f"when one did). Resolve it by PROCESSING {target} in a review, not by "
                     f"stamping a `deferred_reason` on it: a deferral is a reviewer's decision "
                     f"under C-TECH-061, and an agent writing one to clear its own build is the "
                     f"gate-cannot-fail class wearing a helpful face.")
@@ -2662,6 +2742,10 @@ def run(log_path: Path, repo_root: Path, check: bool,
         triggers, notes = check_triggers(rows, repo_root, target_env)
         rdir = reviews_dir or (repo_root / REVIEWS_DIR)
         warnings = check_citation_stamps(rows, rdir, repo_root)
+        warnings += check_hollow_stamps(rows, repo_root)
+        for doc in open_batch_reviews(rdir):
+            notes.append(f"verify-improvement-log: NOTE — open post-deploy batch review: {doc} — "
+                         f"extend it; do not open a second (IMP-1183).")
         # RETIRED 2026-08-25, improvement review 28 change 6: check_review_status_headers() used to
         # run here. It is now one of three checks in `scripts/verify-review-document.py`, which
         # reads a review document's internal consistency generally — a dangling self-reference and
@@ -2756,8 +2840,29 @@ _NON_SCOPE_PROSE_PLUS_CLAIM_BODY = _NON_SCOPE_PROSE_BODY + (
     "Cluster A's root cause is the one `IMP-9001` recorded, and this review rewrote the "
     "helper it names, so the finding is closed by the change in item 1.\n")
 
+# Row 1 (improvement review 2026-10-21): a review naming every id of the batch fixtures below,
+# so a backed stamp stays backed; and a post-deploy batch header for the open-review note.
+_BATCH_REVIEW_BODY = _REVIEW_BODY + "".join(
+    f"| {n} | a change | IMP-9{n:03d} |\n" for n in range(100, 100 + 200))
+_OPEN_BATCH_BODY = ("# fixture review\n\n**Trigger:** post-deploy batch\n**Status:** DRAFT, parked "
+                    "at its gate\n\nCites: IMP-9001\n")
+_APPLIED_BATCH_BODY = ("# fixture review\n\n**Trigger:** post-deploy batch\n**Status:** ~~DRAFT, "
+                       "parked.~~ **APPLIED 2026-10-21**\n\nCites: IMP-9001\n")
+
 _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
     # name: (rows, files, use_check, expected_rc, expected substring)
+    # Row 1(a): a stamp naming an existing review that never mentions the id is HOLLOW — the entry
+    # reads unread (so the IMP-0033 rung fires) and the hollow stamp is warned by name.
+    "hollow-stamp-reads-unread": (
+        [_entry(reviewed_in=_REVIEW)], {_REVIEW: "# fixture review\n\nnothing here\n"}, True, 1,
+        "a HOLLOW stamp"),
+    # Row 1(b): an open post-deploy batch review is named; an applied one is not.
+    "open-post-deploy-batch-is-named": (
+        [_entry(severity="friction", deferred_reason="owner: reviewer", revisit_when="x")],
+        {_REVIEW: _OPEN_BATCH_BODY}, True, 0, "open post-deploy batch review"),
+    "applied-post-deploy-batch-is-not-named": (
+        [_entry(severity="friction", deferred_reason="owner: reviewer", revisit_when="x")],
+        {_REVIEW: _APPLIED_BATCH_BODY}, True, 0, ""),
     "STATE-1-unread": (
         [_entry()], {}, True, 1, "in state 'unread'"),
     "STATE-2-awaiting-approval": (
@@ -3295,7 +3400,7 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
     "batch-trigger-du1-awaiting-entries-not-counted": (
         [_entry(id=f"IMP-9{n:03d}", severity="friction", reviewed_in=_REVIEW)
          for n in range(100, 100 + batch_threshold())],
-        {_REVIEW: _REVIEW_BODY}, True, 0, "awaiting-approval"),
+        {_REVIEW: _BATCH_REVIEW_BODY}, True, 0, "awaiting-approval"),
     # ...while fixed-in-flight entries a review HAS processed are not counted either
     # (fif-e above proves unreviewed ones still are).
     "batch-trigger-du1-reviewed-fixed-in-flight-not-counted": (
@@ -3304,7 +3409,7 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
                 evidence_grep={"file": "src/x.ts", "contains": "the fix"})
          for n in range(100, 100 + batch_threshold())],
         {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "here is the fix\n",
-         _REVIEW: _REVIEW_BODY}, True, 0, "fixed-in-flight"),
+         _REVIEW: _BATCH_REVIEW_BODY}, True, 0, "fixed-in-flight"),
 }
 
 
@@ -3339,6 +3444,8 @@ _MUST_NOT_CONTAIN: dict[str, str] = {
     # time (review 2026-10-05-3 row 4): forcing "not an entry" on every target left this
     # fixture passing until this row existed (IMP-1055).
     "corrects-as-a-list-resolves-every-target": "not an entry in this log",
+    # Row 1(b), 2026-10-21: rc is 0 either way; the note's absence is the assertion.
+    "applied-post-deploy-batch-is-not-named": "open post-deploy batch review",
 }
 
 

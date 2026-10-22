@@ -45,7 +45,7 @@ import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -68,17 +68,38 @@ def parse_ts(text: str) -> datetime:
     return datetime.strptime(text.strip(), "%m/%d/%Y %I:%M %p")
 
 
+def parse_imported_at(text: str) -> datetime:
+    """--imported-at, ISO 8601, as naive UTC. A trailing Z or an offset is accepted (row 2)."""
+    value = text.strip()
+    if value.endswith(("Z", "z")):
+        value = value[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
 def canon(obj) -> str:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"))
 
 
 def source_flows(workflows_dir: Path) -> dict[str, dict]:
-    """workflow id (lower) -> {name, properties} from each *.data.xml and its JsonFileName."""
+    """workflow id (lower) -> {name, properties} from each *.data.xml and its JsonFileName.
+
+    A *.data.xml with no JsonFileName is a classic workflow or business rule, not a cloud flow:
+    it is skipped and named. Before this, Path("") resolved to the folder itself and the read
+    crashed, and four deploys copied the flows to a scratch folder to get past it (IMP-1178,
+    IMP-1194; improvement review 2026-10-21 row 2).
+    """
     out: dict[str, dict] = {}
     for meta in sorted(workflows_dir.glob("*.data.xml")):
         root = ET.parse(meta).getroot()
         wid = root.attrib["WorkflowId"].strip("{}").lower()
-        jf = root.findtext("JsonFileName") or ""
+        jf = (root.findtext("JsonFileName") or "").strip()
+        if not jf:
+            print(f"verify-live-flow-definitions: skipped: {root.attrib.get('Name', wid)} "
+                  f"(no flow JSON; not a cloud flow)")
+            continue
         path = workflows_dir / Path(jf).name
         out[wid] = {"name": root.attrib.get("Name", wid),
                     "properties": json.loads(path.read_text(encoding="utf-8"))["properties"],
@@ -197,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
         if not source:
             raise ReadError(f"no *.data.xml under {a.workflows_dir}")
         if a.imported_at:
-            imported_at = datetime.fromisoformat(a.imported_at)
+            imported_at = parse_imported_at(a.imported_at)
         else:
             imported_at = parse_latest_import(run_fetch(import_query(a.solution), a.environment))
             if imported_at is None:
@@ -255,6 +276,33 @@ def selftest() -> int:
     ok = parse_ts("9/29/2026 12:05 AM") == datetime(2026, 9, 29, 0, 5)
     bad += not ok
     print(f"  {'ok  ' if ok else 'FAIL'} 12 AM parses as 00:xx")
+    # Row 2 (improvement review 2026-10-21): a trailing Z and an offset both give naive UTC.
+    ok = (parse_imported_at("2026-10-21T13:15:00Z") == datetime(2026, 10, 21, 13, 15)
+          and parse_imported_at("2026-10-21T15:15:00+02:00") == datetime(2026, 10, 21, 13, 15)
+          and parse_imported_at("2026-10-21T13:15:00") == datetime(2026, 10, 21, 13, 15))
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} --imported-at accepts Z and offsets as naive UTC")
+    # Row 2: a classic workflow's .xaml.data.xml (no JsonFileName) beside two flows is skipped.
+    with tempfile.TemporaryDirectory() as tmp:
+        wd = Path(tmp)
+        for n, fid in (("A", "8f1c2a44-1001-4b7a-9e21-0a1b2c3d4e01"),
+                       ("B", "8f1c2a44-1002-4b7a-9e21-0a1b2c3d4e02")):
+            (wd / f"{n}-{fid}.json").write_text(json.dumps({"properties": {"definition": {}}}),
+                                                encoding="utf-8")
+            (wd / f"{n}-{fid}.json.data.xml").write_text(
+                f'<Workflow WorkflowId="{{{fid}}}" Name="{n}"><JsonFileName>/Workflows/{n}-{fid}.json'
+                f'</JsonFileName></Workflow>', encoding="utf-8")
+        (wd / "Rule-8f1c2a44-1003-4b7a-9e21-0a1b2c3d4e03.xaml.data.xml").write_text(
+            '<Workflow WorkflowId="{8f1c2a44-1003-4b7a-9e21-0a1b2c3d4e03}" Name="Rule">'
+            '<XamlFileName>/Workflows/Rule.xaml</XamlFileName></Workflow>', encoding="utf-8")
+        try:
+            got = source_flows(wd)
+            ok = len(got) == 2
+        except (OSError, ValueError, KeyError) as e:
+            print(f"       raised {type(e).__name__}: {e}")
+            ok = False
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} a workflow file with no flow JSON is skipped, not read")
     print("selftest: " + ("FAILED" if bad else "passed"))
     return 1 if bad else 0
 
