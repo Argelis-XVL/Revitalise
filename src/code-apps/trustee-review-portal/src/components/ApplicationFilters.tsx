@@ -1,4 +1,10 @@
 /**
+ * CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.3, WI-0092):
+ * `ApplicationsList.jsx` lines 11-37 — the fields in a white card under the eyebrow "Filter the
+ * round" (ADR-062 A), in one wrapping row, controls 44px with a 12px radius and a grey-50 fill.
+ * The labels, their `htmlFor` binding, the options, "Clear filters", the filter logic and the
+ * strong control border (TAD §8.3) are unchanged.
+ *
  * Filters for the applications list — WBS 6.2, FR-034 ("sortable and filterable"),
  * FR-038 (round scoping).
  *
@@ -56,13 +62,26 @@
  * this needs no slot indirection the way `Select` does. Nothing about the label association
  * changes: still an external `<Label htmlFor>` and still no `label` prop, for the reason the
  * paragraph above gives.
+ *
+ * ## Card app, Design 2.0 Revision 3 — the two selects are NATIVE here
+ *
+ * The history above is the first app's. In this app the two selects are the kit's native
+ * `<select>` (ApplicationsList.jsx:12, :25, :28 — the browser's own chevron, `0 14px` inline
+ * padding): the card TAD's §13.1 keeps Fluent only for the Dialog, and the fidelity audit
+ * (`individual-applications-select-control`) found Fluent's chevron and inset unrecorded. The
+ * class still lands on the `<select>` itself (`className={styles.filterSelect}`), which is
+ * what the contract test `ApplicationFilters.test.tsx` asserts, and the external `Label
+ * htmlFor` pairing is unchanged. Each field is now its own wrap item (no `scoreRange`
+ * wrapper), so at 320px "Score from" and "Score to" stack as the kit's do
+ * (ApplicationsList.jsx:30-31).
  */
-import { Label, Select } from "@fluentui/react-components";
-import { Button, Input } from "./ds";
+import { Label } from "@fluentui/react-components";
+import { Button, Checkbox, Input } from "./ds";
 import { useId } from "react";
 import type { Filters } from "../domain/listView";
 import { EMPTY_FILTERS } from "../domain/listView";
 import styles from "../styles/app.module.css";
+import { Eyebrow } from "./Panel";
 
 function toNumberOrNull(value: string): number | null {
   const trimmed = value.trim();
@@ -71,16 +90,25 @@ function toNumberOrNull(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/**
+ * The awaiting-my-verdict filter's availability (SDD A-14, FR-117; portal TAD ADR-086 point 6):
+ * `available` once the review index has loaded, `disabled` while it loads or after it failed,
+ * `hidden` when the signed-in user could not be identified (the identity message stands).
+ */
+export type AwaitingFilterAvailability = "available" | "disabled" | "hidden";
+
 export function ApplicationFilters({
   filters,
   rounds,
   statuses,
   onChange,
+  awaiting = "hidden",
 }: {
   filters: Filters;
   rounds: readonly string[];
   statuses: readonly { value: number; label: string }[];
   onChange: (next: Filters) => void;
+  awaiting?: AwaitingFilterAvailability;
 }) {
   const roundId = useId();
   const statusId = useId();
@@ -89,15 +117,18 @@ export function ApplicationFilters({
   const textId = useId();
 
   return (
-    <div className={styles.toolbar} data-print="hide">
+    <div className={styles.filterCard} data-print="hide">
+      <Eyebrow tone="purple">Filter the round</Eyebrow>
+      <div className={styles.toolbar}>
       <div className={styles.filterField}>
         <Label htmlFor={roundId}>Review round</Label>
-        <Select
+        <select
           id={roundId}
-          select={{ className: styles.filterSelect }}
+          className={styles.filterSelect}
           value={filters.round ?? ""}
-          onChange={(_event, data) => {
-            onChange({ ...filters, round: data.value === "" ? null : data.value });
+          onChange={(event) => {
+            const value = event.target.value;
+            onChange({ ...filters, round: value === "" ? null : value });
           }}
         >
           <option value="">All rounds available to you</option>
@@ -106,17 +137,18 @@ export function ApplicationFilters({
               {round}
             </option>
           ))}
-        </Select>
+        </select>
       </div>
 
       <div className={styles.filterField}>
         <Label htmlFor={statusId}>Status</Label>
-        <Select
+        <select
           id={statusId}
-          select={{ className: styles.filterSelect }}
+          className={styles.filterSelect}
           value={filters.status === null ? "" : String(filters.status)}
-          onChange={(_event, data) => {
-            onChange({ ...filters, status: data.value === "" ? null : Number(data.value) });
+          onChange={(event) => {
+            const value = event.target.value;
+            onChange({ ...filters, status: value === "" ? null : Number(value) });
           }}
         >
           <option value="">All statuses</option>
@@ -125,39 +157,37 @@ export function ApplicationFilters({
               {status.label}
             </option>
           ))}
-        </Select>
+        </select>
       </div>
 
-      <div className={styles.scoreRange}>
-        <div className={styles.filterField}>
-          <Label htmlFor={minId}>Score from</Label>
-          <Input
-            id={minId}
-            type="number"
-            inputMode="numeric"
-            className={styles.filterControl}
-            value={filters.scoreMin === null ? "" : String(filters.scoreMin)}
-            onChange={(event) => {
-              onChange({ ...filters, scoreMin: toNumberOrNull(event.target.value) });
-            }}
-          />
-        </div>
-        <div className={styles.filterField}>
-          <Label htmlFor={maxId}>Score to</Label>
-          <Input
-            id={maxId}
-            type="number"
-            inputMode="numeric"
-            className={styles.filterControl}
-            value={filters.scoreMax === null ? "" : String(filters.scoreMax)}
-            onChange={(event) => {
-              onChange({ ...filters, scoreMax: toNumberOrNull(event.target.value) });
-            }}
-          />
-        </div>
+      <div className={`${styles.filterField} ${styles.filterFieldScore}`}>
+        <Label htmlFor={minId}>Score from</Label>
+        <Input
+          id={minId}
+          type="number"
+          inputMode="numeric"
+          className={styles.filterControl}
+          value={filters.scoreMin === null ? "" : String(filters.scoreMin)}
+          onChange={(event) => {
+            onChange({ ...filters, scoreMin: toNumberOrNull(event.target.value) });
+          }}
+        />
+      </div>
+      <div className={`${styles.filterField} ${styles.filterFieldScore}`}>
+        <Label htmlFor={maxId}>Score to</Label>
+        <Input
+          id={maxId}
+          type="number"
+          inputMode="numeric"
+          className={styles.filterControl}
+          value={filters.scoreMax === null ? "" : String(filters.scoreMax)}
+          onChange={(event) => {
+            onChange({ ...filters, scoreMax: toNumberOrNull(event.target.value) });
+          }}
+        />
       </div>
 
-      <div className={styles.filterField}>
+      <div className={`${styles.filterField} ${styles.filterFieldWide}`}>
         <Label htmlFor={textId}>Application reference contains</Label>
         <Input
           id={textId}
@@ -175,6 +205,20 @@ export function ApplicationFilters({
         asserted mechanically by `styles/ds-tokens.test.ts`), so the app class that used to
         supply it would now be restating a guarantee the component already makes.
       */}
+      {awaiting === "hidden" ? null : (
+        <div className={styles.filterField}>
+          {/* ds/Checkbox: the input sits inside its own <label>, 44px target (WCAG 2.5.5). */}
+          <Checkbox
+            label="Show only applications awaiting my verdict"
+            checked={filters.awaitingOnly}
+            disabled={awaiting === "disabled"}
+            onChange={(event) => {
+              onChange({ ...filters, awaitingOnly: event.target.checked });
+            }}
+          />
+        </div>
+      )}
+
       <Button
         variant="secondary"
         onClick={() => {
@@ -183,6 +227,7 @@ export function ApplicationFilters({
       >
         Clear filters
       </Button>
+      </div>
     </div>
   );
 }

@@ -32,6 +32,12 @@ export interface Filters {
   scoreMax: number | null;
   /** Free text, matched against the application reference only. */
   text: string;
+  /**
+   * SDD A-14, FR-117 (portal TAD ADR-086 point 6): keep only applications awaiting the signed-in
+   * trustee's own verdict. Applied only when `applyFilters` is given the awaiting predicate —
+   * while the review index is loading or failed there is none, and the control is disabled.
+   */
+  awaitingOnly: boolean;
 }
 
 export const EMPTY_FILTERS: Filters = {
@@ -40,6 +46,7 @@ export const EMPTY_FILTERS: Filters = {
   scoreMin: null,
   scoreMax: null,
   text: "",
+  awaitingOnly: false,
 };
 
 /**
@@ -78,9 +85,12 @@ export function deriveStatuses(
 export function applyFilters(
   rows: readonly ApplicationSummary[],
   filters: Filters,
+  isAwaiting?: (row: ApplicationSummary) => boolean,
 ): ApplicationSummary[] {
   const needle = filters.text.trim().toLowerCase();
   return rows.filter((row) => {
+    // AND with every other filter (ADR-086 point 6). No predicate, no narrowing.
+    if (filters.awaitingOnly && isAwaiting !== undefined && !isAwaiting(row)) return false;
     if (filters.round !== null && row.reviewRound !== filters.round) return false;
     if (filters.status !== null && row.status !== filters.status) return false;
     if (filters.scoreMin !== null) {
@@ -145,8 +155,9 @@ export function projectRows(
   rows: readonly ApplicationSummary[],
   filters: Filters,
   sort: SortState,
+  isAwaiting?: (row: ApplicationSummary) => boolean,
 ): ApplicationSummary[] {
-  return applySort(applyFilters(rows, filters), sort);
+  return applySort(applyFilters(rows, filters, isAwaiting), sort);
 }
 
 /** What clicking a sort header does: same key flips direction, new key starts sensibly. */

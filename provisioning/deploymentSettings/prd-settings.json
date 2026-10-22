@@ -342,6 +342,13 @@
           "REV Service Accounts",
           "REV Finance"
         ]
+      },
+      {
+        "name": "REV_TrusteeFinancialEligibility",
+        "_comment": "Portal TAD trustee-portal-design-2 Revision 4, ADR-084 (SDD A-14, FR-114, FR-115). Releases rev_receivesbenefits, rev_benefitprovider and rev_employmentstatus to trustees, READ ONLY. Its only member is the trustee group team. This is the ONLY profile a trustee-role team may be a member of, and only while it stays read-only and matches the special-category register's trustee_release rows (scripts/verify-column-security-membership.py, G1). Never add REV Trustees to REV_TrusteeRestricted.",
+        "memberTeams": [
+          "REV Trustees"
+        ]
       }
     ],
     "auditing": {
@@ -368,6 +375,16 @@
       ]
     },
     "bulkDeleteJobs": [
+      {
+        "jobKey": "paidGrantApplications",
+        "name": "REV Retention - Paid Grant Applications",
+        "entity": "rev_application",
+        "retentionValue": 72,
+        "retentionUnit": "months",
+        "recurrencePattern": "FREQ=MONTHLY;INTERVAL=1",
+        "startTimeUtc": "01:40",
+        "description": "Deletes applications at Grant Paid once the grant's rev_finalpaymentdate is older than 72 months (6 years); the cascade removes Review, Grant and Payment (C-DOM-003, ADR-004, ADR-083)."
+      },
       {
         "jobKey": "rejectedApplications",
         "name": "REV Retention - Rejected Applications",
@@ -406,6 +423,16 @@
         "recurrencePattern": "FREQ=WEEKLY;INTERVAL=1",
         "startTimeUtc": "03:00",
         "description": "Deletes error log rows once rev_occurredon is older than 90 days. Error rows contain no personal data (C-DOM-004)."
+      },
+      {
+        "jobKey": "aiEvents",
+        "name": "REV Retention - AI Events",
+        "entity": "msdyn_aievent",
+        "retentionValue": 30,
+        "retentionUnit": "days",
+        "recurrencePattern": "FREQ=DAILY;INTERVAL=1",
+        "startTimeUtc": "03:30",
+        "description": "Deletes AI Builder call records (msdyn_aievent) once createdon is older than 30 days. PRD only: they hold a copy of the narrative text sent to each call (ADR-083, A-R105)."
       }
     ],
     "_comment_pending_setting_rows": [

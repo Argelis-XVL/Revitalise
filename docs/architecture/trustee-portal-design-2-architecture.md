@@ -1,5 +1,14 @@
 # Technical Architecture Document — Trustee Portal Design 2.0: a second Code App with the card-layout design on every screen
 
+> **STATUS 2026-10-22 — the card layout was kept; this TAD is now the DETAIL-SCREEN REFERENCE.** The original
+> list-layout app (`70869c95-…`) is retired (§9.4, executed in §9.5). The card app took its folder name,
+> `src/code-apps/trustee-review-portal`, and keeps its own appId (`b0483396-…`). "Second Code App", `-cards`,
+> "side by side" and the parity gate below describe the design-phase arrangement and are history. What still
+> governs: the card layout (§5, §8, §13), **ADR-057 as the DOM-order contract** for the Pack sections, and the
+> data, security and redaction rules, which were never changed. The parent TAD
+> (`trustee-portal-visual-refresh-architecture.md`) carries a banner marking its detail-screen layout superseded
+> by this document.
+
 > **Source:** adopted from `Designsystem/Design-2.0/design_handoff_application_detail/README.md` and its
 > `tokens/` and `reference/` folders on 2026-09-30 by architect-agent (intake mode).
 > Original author: supplied design handoff, author not named in the drop. The Adoption Report is in the gate
@@ -28,7 +37,15 @@ ADR-042), the security model (its §6) — holds for the new app unchanged and i
 **Date:** 2026-09-30, revised 2026-09-30 (**Revision 2** — every other screen and the app shell; §0.4), revised
 2026-09-30 (**Revision 3** — the reviewer's answers and one new requirement; §0.5), revised 2026-10-01 (**Revision 3.2** —
 four reviewer decisions from Dev Summary Revision 3; §0.6)
-**Status:** APPROVED — **Revision 3** (with the Revision 3.1 edit recording R15 and R16). Approved by the reviewer (session account Anna Southern), 2026-09-30: "Approved for development". Every ADR in this document is `Adopted`.
+**Status:** APPROVED — **Revision 3** (with the Revision 3.1 edit recording R15 and R16). Approved by the reviewer (session account Anna Southern), 2026-09-30: "Approved for development". Every ADR up to ADR-066 is `Adopted`.
+**Revision 4 (2026-10-22, SDD Amendment A-14, FR-114 to FR-119) is APPROVED 2026-10-22** by Xander Lykopoulos
+(verbatim *"Approved."*, relayed by lead-agent), accepting the SOFT warning C-DOM-005 and answering both gate
+decisions: ADR-085's narrowing *"1. Agreed."*; EF-05 on group verdicts *"2. Yes, group defer or reject require notes
+as well. Saved to all individual applications."* —
+§0.7 and §14, ADR-084 to ADR-087 (`Proposed`). It is paired with parent-TAD **rev 32** of
+`docs/architecture/revitalise-grant-automation-architecture.md`, which records the same column-security change
+in that document's §3.1, §6, §7 and §12; the two are approved together. Revision 4 changes ADR-032 of
+`docs/architecture/trustee-portal-visual-refresh-architecture.md` in part (ADR-085), and marks it there.
 **Revision 3.2** (2026-10-01) records the reviewer's own answers R17 to R20 (§0.6) and stays APPROVED: it amends §5.3,
 §8.3, §13.2, ADR-063 and Appendix B #27, and adds §13.9. It changes one contract test in both apps (`layout.test.ts`)
 and no other file of the first app.
@@ -160,6 +177,43 @@ redoes it, or moves its files.
 `RoundStatisticsCharts.test.tsx`; WI-0053 is pinned by `DistributionChart.test.tsx`. All of them are **contract**
 files under ADR-060.
 
+### 0.7 Revision 4 — SDD Amendment A-14: three answers released to trustees, own-verdict state, group verdict (2026-10-22)
+
+**Source.** SDD Amendment A-14, APPROVED 2026-10-22 (FR-114 to FR-119; NFR-001, NFR-031, FR-078, FR-079
+amended; OQ-062 and OQ-063 resolved). Work items WI-0146 (FR-114, FR-115), WI-0147 (FR-116, FR-117), WI-0148
+(FR-118, FR-119). `wbs:6.3`, unbilled by the reviewer's 2026-09-30 Design 2.0 decision. **Surface:**
+`src/code-apps/trustee-review-portal` — the card app, which took this folder name on 2026-10-22 (§9.5). The
+dispatch brief and the three work items still name the old `-cards` folder; that path no longer exists. The
+reviewer confirmed on 2026-10-22 that the rename came from another session and is expected: *"Customer has decided
+to go with card version."*
+
+**Why this document and not a new one.** Step 1a of `agents/architect-agent.md`: this document is the approved
+reference for the only trustee app, and every surface A-14 touches (detail screen, list, group pages) is specified
+here or in its parent. So Revision 4 amends in place. The column-security half belongs to the parent TAD's
+security model, so it is recorded there as rev 32 and **only summarised** here.
+
+**The reviewer's direction this revision implements (verbatim, Xander Lykopoulos, 2026-10-22):** *"Good idea to
+add read rights to the column security profile. But currently this is not shared with trustees. Does that mean i
+need to share it with Trustees?"* The answer this revision designs: **no — not that profile.** Trustees join a
+**new** profile that releases only the three answers, read only (ADR-084). Adding them to `REV_TrusteeRestricted`
+would release all of its columns, including the raw narrative.
+
+| ADR | Decision | Status |
+|---|---|---|
+| ADR-084 | A **new read-only column security profile, `REV_TrusteeFinancialEligibility`**, releases `rev_receivesbenefits`, `rev_benefitprovider` and `rev_employmentstatus` to the trustee group team and nothing else. The columns stay `IsSecured=1`. `REV_TrusteeRestricted` keeps its permissions and its membership | `Adopted` |
+| ADR-085 | **ADR-032 is narrowed, not withdrawn.** The portal now *selects* the columns the trustee release profile grants, and keeps the field catalogue for every other secured column. The two HARD gates that forbid this are widened **by derivation from that one profile**, tied to the special-category register — never by a hand-kept list | `Adopted` |
+| ADR-086 | The existing **Record verdict** button shows the signed-in trustee's own verdict word in its own tone; the list shows **how many await the trustee's verdict** and can be narrowed to them. One review read serves the list, and the list and the dialog choose the review row with **the same function** | `Adopted` |
+| ADR-087 | A **group verdict** is planned with the same slot rule as the dialog, re-planned on confirm, and written as **one ordinary `saveVerdict` per member, one at a time**, with a per-member result. No flow, no batch request, no new privilege | `Adopted` |
+
+**What does not change.** No table, column, data type, role, privilege, connector, flow or Entra object is added.
+The verdict write path, its two columns per slot and the trustee role's `rev_review` privileges are unchanged. The
+other eighteen restricted fields stay in the catalogue. The redaction rules (parent §3.2.2) are unchanged; the
+benefit provider is the one free-text answer shown as written (FR-115, OQ-062), **outside** those rules rather than
+as an exception inside them. `EX-003` still keeps the portal in DEV with test data.
+
+**Open for the reviewer, not decided here:** whether the group page keeps its per-member verdict button (EF-43;
+plan-agent's open question). ADR-087 point 8 designs both answers.
+
 ---
 
 ## 1. Architecture Overview
@@ -281,6 +335,16 @@ first app reads, through byte-identical `src/dataverse/`, `src/generated/` and `
 | Personal data on screen | the same rows as today. The Summary hero shows **no row the Summary panel does not**: S0a, S0b, S1–S7 |
 
 `contract/tad-deferrals.json` is not touched: this document resolves no deferral.
+
+> **Revision 4 (A-14).** Still no table, column, option set, relationship or data type is added or changed. What
+> changes: (1) `rev_application`'s `rev_receivesbenefits` (Yes/No), `rev_benefitprovider` (multi-line text,
+> `ntext`, retyped under parent `ADR-053`) and `rev_employmentstatus` (choice, `rev_employmentstatus`) are now
+> **read by the detail screen**, through a new read-only field-security profile (ADR-084). They stay
+> `IsSecured=1`, Art. 9, audited, and in the special-category register with `secured: required` (`C-DOM-031`
+> holds). (2) Their `Entity.xml` descriptions gain the release and its necessity argument, as NFR-031 requires; a
+> description edit is not a type change (`C-TECH-080` does not apply). (3) `rev_review` is now also read **for the
+> list** (ADR-086) — the same columns `REVIEW_COLUMNS` already names. `contract/tad-deferrals.json` holds no entry
+> for any of these columns (grepped 2026-10-22), so no deferral is resolved.
 
 ---
 
@@ -452,6 +516,12 @@ drift during a comparison the business is making on look alone.
 **No role, privilege, field permission or Entra object changes.** Column security still decides what a trustee
 *gets*; the app still asks for no secured column, and the gate proving that runs over both apps.
 
+> **Revision 4 (A-14) — superseded in part.** One field-security profile and three field permissions are added
+> (ADR-084, §14.1), and the app now asks for exactly the three secured columns that profile releases to trustees,
+> under gates widened by derivation (ADR-085, §14.2). No role, privilege or Entra object changes. The table below
+> describes Revisions 1 to 3 and is kept as history; "No secured column is ever requested" now reads *"no secured
+> column outside the trustee release profile is ever requested"*.
+
 | Control | How it holds in the new app |
 |---|---|
 | No secured column is ever requested (FR-036, ADR-002, parent ADR-032) | `schema.ts` and the client are under parity; `no-secured-columns-in-code-app` runs over the new folder |
@@ -608,6 +678,13 @@ behaviour nobody on this project has observed (A-TR-17), in two further environm
 **Reviewer decision, 2026-09-30 (session account Anna Southern):** "Business picks one before going live". So
 the business picks one version, and the losing app is removed in DEV before the first promotion out of DEV.
 
+**The business's choice, recorded 2026-10-22.** The reviewer (session account Anna Southern) stated: "Can I also
+savely remove the old trustee Review Portal? Now that the customer has chosen for the card design?" and then "I
+removed the old portal from the solution. I can't change the name of the card portal. pick it up from here
+please." That is the reviewer's statement that the customer chose the card layout. **No client name, approver or
+date of the customer's choice was given, and none is recorded here**: this is the reviewer's report of the
+choice, not a client acceptance (`C-COM-006`), and it is the trigger for §9.4's "card layout is kept" column.
+
 ### 9.4 Retiring the app the business does not choose
 
 **The winner keeps the folder name `trustee-review-portal`.** That single rule is what makes retirement cheap,
@@ -628,6 +705,19 @@ rename keeps the app.
 | 8. Trustee links | none | **the app URL changes** (a new `appId`). Tell trustees; re-share is already in place |
 
 The only irreducible cost of the card layout winning is step 8.
+
+### 9.5 Retirement record, 2026-10-22 (card layout kept)
+
+| Step | State | Evidence |
+|---|---|---|
+| 1. Environment | reviewer removed the old app from `RevitaliseGrantAutomation` in DEV. **The app record itself still exists** (removed from a solution is not deleted): it is a member of the `Default` and `Active` system solutions only, read with `pac env fetch` on `solutioncomponent`, 2026-10-22. Deleting it is a maker-portal action, open for the reviewer | V3, read-only |
+| 2. Source | `src/code-apps/trustee-review-portal` is the former `-cards` folder; the old folder is removed | git |
+| 2. Display name | `power.config.json` `appDisplayName` is "REV Trustee Review Portal", set because the reviewer could not rename the app in the maker portal. Whether the next `pac code push` applies it to an EXISTING app is **unverified**: read `pac code list` after the push; if the name is unchanged, the reviewer asks for a Dataverse `displayname` update on the canvasapp row, which is itself untried | E4 for update, creation-time use observed |
+| 3-4. Build config, parity | every `-cards` step and `code-app-variant-parity` deleted; `config/code-app-variant-parity.json` deleted; `scripts/verify-code-app-variant-parity.py` **deleted**: kept, it fails `verify-build-config.py`'s `suite-gate-is-not-a-step` rule (a `verify-*` gate no step invokes); recoverable from git history | repo |
+| 5. Pipeline | the two `-cards` post_deploy entries deleted; the remaining push entry carries a RETIRED NOTE naming the surviving appId | repo |
+| 6. Evidence map | no change needed | `contract/evidence-map.json` rules point at `src/code-apps/trustee-review-portal`, which exists |
+| 7. Documents | this status banner; ADR-057 is the order contract; parent TAD bannered | repo |
+| 8. Trustee links | **open, reviewer action:** the card app's URL is now the trustee link; the old link is dead once the old app is deleted | — |
 
 ---
 
@@ -940,6 +1030,328 @@ output is unchanged. (2) The card app's freshness wording is pinned by its own t
 While WI-0012 is unbuilt in the first app, the two apps differ by one tile, which the business should know when
 comparing them.
 
+### ADR-084: Trustees read three answers through a new read-only column security profile
+**Status:** `Adopted` — Revision 4, approved 2026-10-22 · **Serves:** `wbs:6.3`, FR-114, FR-115, NFR-001, NFR-031 ·
+**Recorded in the parent TAD as:** rev 32 (§3.1, §6, §7, §12)
+
+**Context.** A-14 releases benefit status, benefit provider and employment status to trustees, and keeps the
+platform as the control (A-14 Finding 4; NFR-001). All three are `IsSecured=1`, Art. 9, and registered with
+`secured: required`; `C-DOM-031` (HARD) keeps them secured unless the register records an exception. Today the
+only profile that releases them is `REV_TrusteeRestricted`, which grants read, update **and** create on 51 columns,
+including the raw narrative and every identifying column, to the process owner's and the service identity's teams.
+Its own description says every trustee receives no value from it. Putting the trustee team in it is the mistake
+the HARD gate `no-trustee-in-column-security-profile` was built to catch.
+
+**The property this ADR protects.** *A trustee can read exactly the secured columns the special-category register
+releases to trustees, read only, and no other secured column. Every other persona's access is unchanged.* The
+decision below is the current way of meeting it.
+
+**Options.**
+
+| Option | Verdict |
+|---|---|
+| (a) Add the trustee team to `REV_TrusteeRestricted` | **Rejected.** Releases all 51 columns, with write rights. This is the disclosure the profile exists to prevent |
+| (b) Unsecure the three columns | **Rejected.** Breaks `C-DOM-031` without a register exception, and releases the columns to every role with table read, not only trustees. A-14 Finding 4 keeps the platform as the control |
+| (c) **A new profile: three read-only permissions, the trustee team as its only member** | **Chosen.** The reviewer's direction (*"add read rights to the column security profile"*), applied to a profile that holds nothing else |
+| (d) Copy the values into unsecured columns, written by a flow as the service identity | **Rejected.** A copy is a projection that column security cannot protect (the principle of `C-TECH-070`); it adds columns, a flow and a second place the answer lives |
+
+**Decision.**
+
+1. **A third `<FieldSecurityProfile>` in `Other/FieldSecurityProfiles.xml`, named `REV_TrusteeFinancialEligibility`,**
+   with exactly three `<FieldPermission>`s on `rev_application`: `rev_receivesbenefits`, `rev_benefitprovider`,
+   `rev_employmentstatus`, each `CanRead=4`, `CanUpdate=0`, `CanCreate=0`, `CanReadUnmasked=0`. Description:
+   *"Releases benefit status, benefit provider and employment status to trustees, read only (SDD Amendment A-14,
+   FR-114, FR-115). Grants nothing else. Its only member is the trustee group team."* The name says what it holds,
+   so widening it is a visible act.
+2. **Created per environment through the Web API** by `ensure-schema.ps1`, never by import (`C-TECH-050`); the live
+   id is read back into source (`C-TECH-051`). §12.1.
+3. **Membership: the trustee group team only**, as a third entry in `dataverse.columnSecurityProfiles` in
+   `test-settings.json` and `prd-settings.json` (`REV Trustees`, role `REV Trustee`, verified in both files'
+   `groupTeams` 2026-10-22). In DEV the member is `REV-PP-GrantApplications-Trustees-DEV` (teamid `adf27ed8-fc9d-f111-b8de-7ced8d43e87d`, Entra object id `8842eb3f-748f-49fa-8bbb-084d428a2d2f`, role `REV Trustee`; read live by lead-agent, `pac env fetch`, 2026-10-22), added to `dev-settings.json` as a `groupTeams` entry and as
+   this profile's member. ⚠️ *Corrected 2026-10-22, reviewer correction of fact, no design change and no re-approval:* *"Hang on... there is a trustees team with linked Entra ID group in DEV."* This supersedes the relayed *"There is no trustees team for DEV."*
+   Applied by `ensure-column-security-profile-members.ps1`, which needs no change.
+4. **`REV_TrusteeRestricted` keeps its permissions and its members.** Only its description changes, because it
+   would otherwise become false: *"… Every persona that is not a member of this profile receives no value for
+   these columns from it. Three of them (benefit status, benefit provider, employment status) are also released
+   read-only to trustees by REV_TrusteeFinancialEligibility (SDD A-14)."* (A-TR-21: import must apply it.)
+5. **Each column's `Entity.xml` description records the release and its necessity** (NFR-031): trustees judge
+   financial need, and the board pack already shows them this answer (A-14 Finding 1). `rev_benefitprovider`'s also
+   records that it is shown as written, with no redacted copy (OQ-062).
+6. **The special-category register marks the three rows as released to trustees** (shape in §14.2). The register is
+   under `constraints/`, so the reviewer or improvement-agent writes these three rows, not development-agent; the
+   gates of ADR-085 read them.
+
+**Consequences, in the order of the decision.**
+
+1. A trustee now reads the three values from every surface their role reaches, not only the portal. Today that is
+   the portal alone (§6.1 of the parent: no direct table access, no export privilege), so the audience is the one
+   the SDD approved. Nothing else becomes readable to a trustee: the profile holds three permissions and grants no
+   write.
+2. Per environment, the profile exists before the import that carries it. A missing schema run fails the import of
+   the profile, loudly, rather than shipping a profile with no permissions.
+3. **What a user sees when membership is missing:** the trustee team is not a member, so the platform returns no
+   value, the app's mapper reads null, and F1 to F3 render **"Not recorded"** on every application. That is a
+   blackout that looks like an unanswered question, not a fail-safe. G1 (ADR-085) fails the build when a settings
+   file declares the profile without its trustee team; R-D2-15.
+4. **The process owner sees exactly what a trustee sees.** She already reads all three through
+   `REV_TrusteeRestricted`; profile grants combine, so she sees the same values a trustee sees. The service identity
+   is unchanged. Finance holds no privilege on `rev_application`. A system administrator bypasses column security,
+   as before. So every persona that opens the portal reads the same three values.
+5. The schema descriptions now carry the necessity argument. The DPIA and RoPA entry (OQ-048, widened by A-14)
+   stays a reviewer action before the first PRD deploy.
+6. Widening the profile later needs a register edit too (ADR-085), so it takes two keys.
+
+### ADR-085: ADR-032 narrowed — the portal selects the columns the trustee release profile grants; the gates are widened by derivation
+**Status:** `Adopted` — Revision 4, approved 2026-10-22 · **Serves:** `wbs:6.3`, FR-078 (amended), FR-114, FR-115, NFR-003 ·
+**Amends:** ADR-032 of `docs/architecture/trustee-portal-visual-refresh-architecture.md`, in part
+
+**Context.** ADR-032 rendered FR-078's restricted state from a build-time catalogue so the app **never selects a
+secured column**. It gave two reasons, and both are still right for the columns they were about: (1) the process
+owner, who opens the same app, is in `REV_TrusteeRestricted`, so a query for a column trustees cannot read would
+show *her* real values on an anonymous screen; (2) the HARD gate `no-secured-columns-in-code-app` forbids it. For
+the three A-14 columns, reason 1 no longer holds: after ADR-084, every persona that opens the portal reads them.
+The gate's own docstring gives the same two reasons. The disagreeing artefacts here are **checks** (the gates)
+following a **decision** (the SDD amendment), so the checks are corrected and the design follows the SDD
+(`agents/architect-agent.md`, *classify the artefact that disagrees*).
+
+**The property, restated so a new kind of column is an extension and not a reversal.** *Every value the portal shows
+is readable by every persona the portal is shared with. A secured column that some of those personas cannot read
+is never selected; its restricted state comes from the catalogue.* Two mechanisms now meet it:
+(i) the **catalogue**, for the 18 secured fields only `REV_TrusteeRestricted` releases;
+(ii) the **`$select`**, for the columns the trustee release profile grants — today exactly three.
+
+**ADR-032's reviewer decisions, kept or reversed.** ADR-032 quotes no reviewer decision; it was approved with
+Revision 3 of its document on A-05. Kept: the catalogue mechanism, its build-time derivation, its 18 remaining
+fields, and *no hand-typed list*. **Reversed in part:** *"No `$select` anywhere in the app names a secured column"*
+becomes *"… names a secured column outside the trustee release profile"*. That is a narrowing of an approved
+security guarantee, and the gate output lists it as a decision.
+
+**Decision — the gate changes.** One new config file names the profile, so no gate carries the name as a literal:
+`config/trustee-release-profile.json` → `{"profile": "REV_TrusteeFinancialEligibility"}`. The register marks
+each released column:
+
+```yaml
+  - name: rev_benefitprovider
+    entity: rev_application
+    basis: "SDD §7.1 — benefit provider, same tier as benefit status"
+    secured: required
+    trustee_release:
+      basis: "SDD A-14 FR-115; NFR-031 exception, OQ-062 (b): shown as written"
+      decided: "Xander Lykopoulos, 2026-10-22"
+```
+
+1. **G1 — `no-trustee-in-column-security-profile` (`scripts/verify-column-security-membership.py`), amended.** Gains
+   two arguments, the profile XML and the register. A trustee-role team may be a member of a profile **only** if
+   that profile is the one `config/trustee-release-profile.json` names **and** in `FieldSecurityProfiles.xml` it
+   grants `CanRead=4`, `CanUpdate=0`, `CanCreate=0` on a set of columns **equal** to the register's
+   `trustee_release` rows. Anything else still FAILS as today — so a trustee team in `REV_TrusteeRestricted` still
+   fails, with today's message. **And completeness:** every settings file that declares a trustee-role team must
+   declare the release profile with every such team as a member; a file that declares no trustee-role team
+   declares no entry for it (closes R-D2-15 at build time wherever trustees exist).
+2. **G2 — `no-secured-columns-in-code-app`.** The engine script `.engine/scripts/verify-code-app-column-bindings.py`
+   gains `--released-profile <name>`: the columns that profile grants are removed from the forbidden set, **only if
+   every permission in it is read-only**; a named profile that is absent, empty or grants update or create FAILS.
+   The instance wrapper `scripts/verify-code-app-column-bindings.py` reads the name from the config file and passes
+   it. Without the flag, the gate behaves exactly as today. This is generic Code App knowledge, so it is an engine
+   change: an engine commit and a submodule pointer bump, as in the 2026-10-17 review.
+3. **G3 — the in-app test `src/dataverse/schema.test.ts` ("no secured column is named anywhere in this app").** It
+   derives its forbidden set from `IsSecured=1` in `Entity.xml`; it gains the same subtraction, reading the
+   profile's columns from `FieldSecurityProfiles.xml` and the name from the config file, with a positive control
+   that the subtracted set is non-empty and has exactly the columns the profile grants.
+4. **G4 — `trustee-field-catalogue` (`scripts/generate-trustee-field-catalogue.py`).** A manifest field whose column
+   the release profile grants FAILS (a field cannot be both shown and "restricted"). The manifest
+   `config/trustee-restricted-field-catalogue.json` drops the three rows and the now-empty `"Financial eligibility"`
+   entry of `group_order`. The generator logic is otherwise unchanged; the generated file loses lines 19 to 21 and
+   the brief's request that "its generator drop them" is met by the manifest, not by generator code.
+
+**Why this is not the deny-list improvement review 7 retired.** That review removed `--exclude-profile` because a
+human had to decide, for every new profile, whether to exclude it, and forgetting was unsafe. Here: with no flag,
+nothing is permitted; the flag names one profile from one file; the profile must be read-only; and G1 ties it to
+the register, which only the reviewer or improvement-agent can write. Forgetting fails the build, it never opens
+a gap.
+
+**Gate interactions — every build step over these artefacts** (`config/revitalise-grant-automation-build.yml`
+`steps:`, and the test suites they run; grepped 2026-10-22):
+
+| Step / suite | Effect of Revision 4 |
+|---|---|
+| `field-security-coverage` | passes — it takes the union of every profile, and the three columns were already covered |
+| `no-trustee-in-column-security-profile` | **would fail on the new membership** — amended to G1 |
+| `domain-invariants` | passes on `secured: required`; **may fail on the new `trustee_release` key** if the register loader rejects unknown keys — measure; any loader change goes with the register rows to improvement-agent |
+| `trustee-field-catalogue` | passes once the manifest drops the three rows; G4 added |
+| `no-secured-columns-in-code-app` | **fails as soon as `schema.ts` names the columns** — amended to G2 |
+| `code-app-unit-tests` | `schema.test.ts` fails → G3. `fieldCatalogue.test.ts` and the detail-layout tests that pin F1 to F3 as restricted must change with them; the other restricted keys stay as the positive control (WI-0146) |
+| `assumption-markers` | the Dev Summary §10 rows A-TR-18 to A-TR-21 need markers at their source points |
+| `src/tests/provisioning/EnsureSchema.Tests.ps1` | **fails:** it expects one permission call per secured column; with three columns in two profiles it must count `<FieldPermission>` elements instead |
+| `src/tests/provisioning/DeploymentSettings.Tests.ps1` | passes (the `REV_TrusteeRestricted` and `REV_FinanceOnly` membership tests are untouched); add one test for the new profile's membership |
+| `src/tests/build/BuildGates.Tests.ps1` | add known-bad fixtures: release profile with update rights; with a column the register does not release; trustee team in `REV_TrusteeRestricted` still red |
+| `derived-counts` (`scripts/derived-counts-registry.json`) | two rows count every `<FieldPermission>` pair across the whole file; the count rises by 3. Their claims in `docs/development/revitalise-grant-automation-dev-summary.md` describe secured columns, so the right fix is to scope those two rows to `REV_TrusteeRestricted` and `REV_FinanceOnly`, not to restate a number |
+| `verify-pipeline-config.py` check 14 | already satisfied — every environment section runs the schema script |
+
+**The retired decision's words, repository-wide** (`git grep --recurse-submodules`, 2026-10-22):
+
+| Hit | Disposition |
+|---|---|
+| parent TAD, rev 3 entry: *"the trustee portal never selects a secured column at all"* | history, kept; rev 32 entry supersedes |
+| parent TAD §3.1, the `rev_receivesbenefits, rev_benefitprovider, rev_employmentstatus` row: *"the app selects none of them"* | **rewrite** — done in rev 32 |
+| parent TAD §7, NFR-003 row: *"never selects a secured column at all"* | **rewrite** — rev 32 note on that row |
+| this TAD §6: *"the app still asks for no secured column"* | **rewrite** — Revision 4 note under it |
+| visual-refresh TAD ADR-032 heading and Decision | **rewrite** — Revision 4 note on ADR-032; its text kept as history |
+| `docs/development/trustee-portal-visual-refresh-dev-summary.md` (contract-test row) | history, kept |
+| `docs/improvements/2026-08-23-improvement-review-7.md` | history, kept |
+| `src/code-apps/trustee-review-portal/src/dataverse/schema.ts` (comment above `APPLICATION_DETAIL_EXTRA_COLUMNS`) | **rewrite** — development-agent, with the code |
+| `src/code-apps/trustee-review-portal/src/dataverse/schema.test.ts` (file header) | **rewrite** — development-agent, with G3 |
+| `src/code-apps/trustee-review-portal/src/dataverse/types.ts` (the "eleven secured Group B columns" comment) | **rewrite** — development-agent |
+| `src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml` (`REV_TrusteeRestricted` description) | **rewrite** — ADR-084 point 4 |
+| `config/revitalise-grant-automation-build.yml` (the comments above the two gate steps) | **rewrite** — with G1 and G2 |
+
+**Consequences.** (1) FR-078 still governs the 18 remaining fields exactly as before. (2) The process owner's screen
+equals a trustee's for every row (ADR-084 consequence 4), which is the property ADR-032 bought and this keeps.
+(3) G1 now has a positive case, so it is no longer *"no trustee team in any profile"*; its message must say which
+rule failed. (4) Two keys widen the release: the profile (development) and the register (reviewer). (5) The
+engine change is generic and serves any instance with a read-only audience profile.
+
+### ADR-086: The existing verdict button shows the trustee's own verdict; the list counts what awaits it
+**Status:** `Adopted` — Revision 4, approved 2026-10-22 · **Serves:** `wbs:6.3`, FR-116, FR-117, US-012 AC-11, US-013 AC-3
+
+**Context.** The list and group tables render one **Record verdict** button per row
+(`components/ApplicationsTable.tsx`). Today the list reads `rev_application` only; the review row is read per
+application when the dialog opens (`useReview` → `getReviewForApplication`, newest `rev_paneldate` first). A review
+is N:1 against an application (`rev_review` has no alternate key), so "the review" means "the newest one". The slot
+rule — which of `rev_verdict1`/`rev_verdict2` is the signed-in trustee's — lives in one function,
+`domain/slots.ts` `resolveSlot`. FR-116 was revised at approval to a colour-and-text change on the **existing**
+button.
+
+**Decision.**
+
+1. **One review read for a list of applications.** `repository.listReviewsForApplications(ids)`: `rev_review`,
+   `REVIEW_COLUMNS` unchanged, `$filter` `_rev_applicationid_value eq <id> or …` in chunks of **25** ids (a URL-size
+   bound, a constant), `MAX_ROWS` truncation honoured per chunk. Chunks run one after another. A-TR-19.
+2. **One function chooses the review for an application,** `currentReviewFor(applicationId, rows)`: newest
+   `rev_paneldate`, a null date ranked oldest, ties broken by `rev_reviewid`. `getReviewForApplication` is changed
+   to read its rows and call the same function, so the list and the dialog can never pick different rows.
+3. **One function states the trustee's own verdict,** `domain/ownVerdict.ts` → `ownVerdictState(review, user)`,
+   built on `resolveSlot`, returning `decided` (with the verdict and whether the round is finalised), `awaiting`
+   (writable, own slot empty), or `none` (no review row, not one of the two trustees, or user unknown). The other
+   trustee's slot is never read by it.
+4. **The button.** `ApplicationsTable` receives a `verdictStateFor(row)` callback. `decided`: the button's text is
+   the verdict word — **Approved**, **Deferred**, **Rejected** (a new presentation map `VERDICT_STATE_LABELS`, kept
+   beside `VERDICT_LABELS`, which stays the option-set label pinned against `rev_reviewverdict.xml`) — in that
+   verdict's tone, and its `aria-label` is *"Approved — your verdict on REV-…. Open to view or change it"* (*"… to
+   view it"* when the round is finalised), which contains the visible word (WCAG 2.5.3). Every other state:
+   **Record verdict**, primary, as today. The button opens the same dialog in every case. An option value outside
+   1 to 3 shows its option label, or the number, in the neutral secondary style.
+5. **The tones** (new tokens in `src/styles/ds-tokens.css`, white text on a solid fill, measured on white):
+
+   | Verdict | Token | Fill | Contrast |
+   |---|---|---|---|
+   | Approved | `--verdict-approved` | `#2f7044` | 5.96:1 with white text |
+   | Deferred | `--verdict-deferred` | `#8a5600` | 6.16:1 with white text |
+   | Rejected | `--verdict-rejected` | `#49345b` | 10.91:1 with white text |
+
+   Approved is the design system's `--success`, and Deferred its `--warning`, each darkened until white text passes,
+   as ADR-037 did for other failing tokens: as supplied, white text on them measures 4.25:1 and 3.43:1 and fails.
+   Rejected is the design system's purple, already in `CARD_MARK_PALETTE`. The design system has no red, and the primary button is already brand pink, so Rejected takes the purple rather
+   than a colour from outside the system. Hover and active shades are darker steps of each fill, and a unit test
+   computes every text/fill pair from the token file (≥ 4.5:1), the way `theme.test.ts` does today. The fill-to-
+   page boundary is ≥ 3:1 for all three (WCAG 1.4.11). Verdict word always present (WCAG 1.4.1).
+6. **The awaiting count and filter (FR-117), on the applications list.** Above the table, a status line
+   (`role="status"`, polite): *"3 awaiting your verdict"*, or *"None awaiting your verdict"*, counted over **every
+   row the list loaded**, before the trustee's own filters. In `ApplicationFilters`, a checkbox *"Show only
+   applications awaiting my verdict"*; `Filters` gains `awaitingOnly`, and `applyFilters` takes the predicate. It
+   combines with the other filters (AND), and the existing "N of M shown" sentence reports the result.
+7. **Cache.** A query key for the review index; `useSaveVerdict` invalidates both the per-application review and
+   the index, so the button and the count change as soon as a save succeeds.
+
+**What the trustee sees in each state** (traced to the return value, per the default-specification rule):
+
+| State | Button | Count line | Filter |
+|---|---|---|---|
+| Reviews still loading | **Record verdict**, as today | *"Counting your verdicts…"* | disabled |
+| Review read failed | **Record verdict**, as today (the dialog does its own read) | *"Your verdict status could not be loaded."* — never a number | disabled |
+| User could not be identified | **Record verdict**; `resolveSlot` returns `unknown-user`, so `none` | not shown; the existing identity message stands | not shown |
+| Own slot holds a verdict | verdict word, its tone | not counted | excluded |
+| Writable, own slot empty | **Record verdict** | counted | included |
+| No review row, or not one of the two trustees | **Record verdict** (the dialog explains why it is read-only) | not counted | excluded |
+| Other trustee has decided, own slot empty | **Record verdict** | counted if writable | included |
+
+**Consequences.** (1) The list makes at most ⌈n/25⌉ extra reads — four at about 90 applications a month.
+(2) The applications list and the group members table get the same marking, because both render `ApplicationsTable`.
+(3) Existing verdicts show their word with no data change, as the reviewer expected. (4) A finalised verdict still
+shows its word, and the dialog shows it read-only, as today.
+
+### ADR-087: A group verdict is one ordinary save per member, planned with the dialog's own slot rule
+**Status:** `Adopted` — Revision 4, approved 2026-10-22 · **Serves:** `wbs:6.3`, FR-118, FR-119, US-012 AC-12
+
+**Context.** A group is the set of loaded applications sharing a `rev_grouplinkage` value (`domain/groups.ts`,
+EF-43). FR-118 records one verdict in the trustee's own slot on every member the trustee can record on, and
+nowhere else; it skips three cases and shows them before anything is written. FR-119 reports each member's
+outcome and never reports a write that did not happen. OQ-063: groups are only processed as groups, so no merging
+with earlier per-member verdicts is needed. A trustee can be trustee 1 on one member's review and trustee 2 on
+another's. The trustee role already writes `rev_review`; the platform does not decide which slot is whose, the app
+does (`slots.ts`).
+
+**Decision.**
+
+1. **Entry point.** On the group detail page, above the members table, a button **"Record a verdict for the whole
+   group"**, opening a new `GroupVerdictDialog`. Disabled, with the existing identity explanation, when the user
+   cannot be identified.
+2. **Choose.** Approve, Defer or Reject, and notes. **Notes follow the single dialog's EF-05 rule**: required for
+   Defer and Reject, optional for Approve, capped at `VERDICT_NOTES_MAX_LENGTH`. **Decided by the reviewer,
+   2026-10-22:** *"Yes, group defer or reject require notes as well. Saved to all individual applications."* The
+   notes are written to each member's own notes column on its own review row, the same text on every member.
+   FR-118's *"with optional notes"* wording goes back to plan-agent to align. Validation runs before anything is
+   written, so a missing note records nothing.
+3. **Preview.** `domain/groupVerdict.ts` → `planGroupVerdict(members, reviewIndex, user)`, calling
+   `currentReviewFor` and `resolveSlot` per member, returns the members to write (each with its review id and **its
+   own** slot) and the members skipped, with reasons in plain words: *"you are not one of the two trustees on
+   REV-…"*, *"there is no review record for REV-… yet"*, *"the round for REV-… has been finalised"*. The dialog
+   shows *"Approve will be recorded on 3 of 4 applications. 1 skipped: you are not one of the two trustees on
+   REV-A-00123."* The confirm button reads *"Record Approve on 3 applications"* and is disabled at zero. Cancel
+   writes nothing.
+4. **Confirm re-plans.** The member reviews are read again, fresh, not from cache, and planned again. The write set
+   is the preview's targets **that are still writable**. A member that dropped out is reported skipped with its new
+   reason. A member that became writable after the preview is **not** written, because the trustee did not confirm
+   it; it is reported *"not included when you confirmed — run the group verdict again to include it"*.
+5. **Write.** For each target, one after another, the existing `repository.saveVerdict` with that member's review
+   id and slot. A failure is recorded and the run continues. Each member's outcome is **recorded** (its own write
+   resolved), **skipped** (with reason) or **failed** (with the error message). The dialog cannot be dismissed while
+   writes run and shows *"Recording 2 of 3…"*.
+6. **Notes on Approve without a note.** `SaveVerdictInput.notes` becomes optional: when absent the update body
+   names only the verdict column, so a member's existing note is kept (A-TR-20). The single dialog still always
+   sends notes, so its behaviour is unchanged.
+7. **Result.** One summary sentence in FR-119's form — *"3 recorded, 1 skipped: you are not one of the two trustees
+   on REV-A-00123"* — then one line per member. Then the review index and per-application reviews are invalidated,
+   so the members' buttons show the new verdict (FR-116). Running again with another verdict records the new one
+   on the same members.
+8. **The per-member button on the group page (EF-43) — designed both ways, not decided.** *Kept:* the members table
+   renders as today, with ADR-086's button. *Removed:* `ApplicationsTable` gets a `decision="status"` mode for
+   the group page, in which the Decision column shows the same word and tone as a non-interactive label
+   (*"Approved"*, or *"Awaiting your verdict"*), and members open from their reference link. Either way the detail
+   page keeps its own verdict section, and the applications list keeps its per-row button for every application,
+   group members included — the reviewer may want that last point considered with the EF-43 answer.
+
+**Concurrency.**
+- *The other trustee.* Each write names only the signed-in trustee's own two columns for that member, and an
+  update changes only the columns it names, so two trustees recording on the same group at the same time do not
+  overwrite each other.
+- *The same trustee in two tabs.* The last write per member wins, as it does for a single save today.
+- *Finalisation during a run.* The re-plan at confirm (point 4) removes members already finalised. A finalisation
+  that lands between that read and a write is the window a single save has today, once per member; R-D2-19.
+- *Interrupted run* (tab closed, network lost). The members written so far are recorded and the rest are not.
+  Nothing is reported as recorded, and the buttons on reload show the truth.
+
+**Options rejected.** An OData `$batch` changeset: not exposed by the connector this app uses (unverified, a new
+platform contract), and all-or-nothing, which FR-119's per-member result contradicts. A flow as the service
+identity: the write would be audited as the service account rather than the trustee, and the flow would have to
+re-implement the slot rule. Parallel writes: no gain at group size, and a harder-to-read progress.
+
+**Consequences.** (1) No new privilege, column, flow or connector; every write is an ordinary audited update under
+the trustee's own identity (`C-DOM-010`). (2) A group of n members makes 1 + ⌈n/25⌉ reads and n writes. (3) The
+preview and the result come from the same function, so what was promised and what was done are comparable line by
+line. (4) Group verdicts and single verdicts are the same data, so *Finalise decisions* (FR-040) treats them alike,
+as FR-119 requires.
+
 ---
 
 ## 11. Risks & Mitigations
@@ -960,6 +1372,11 @@ comparing them.
 | R-D2-12 | The DEV seed of `RoundStatisticsHistoryPriorApplicationCount` (715) is not what TST/ACC or PRD will be seeded with, so the hero's share differs by environment | high | the bar reads the response, never a written figure; the settings notes are corrected by their owner (finding) |
 | R-D2-13 | The bars in "Exceptional circumstance cited" are drawn in SVG, and the WI-0053 test goes red in the card app | medium | ADR-063: draw them in HTML; never move the test |
 | R-D2-14 | A computed sentence prints a wrong claim for an input nobody listed | low | §13.7 lists every input case; a card-only test per sentence covers each row |
+| R-D2-15 | **Revision 4.** In some environment the trustee team is not a member of `REV_TrusteeFinancialEligibility`. Nothing is disclosed, but every trustee sees **"Not recorded"** for all three answers on every application, which reads as "the applicant did not answer" — a silent wrong state, not a fail-safe one | medium (all three environments now have a trustee team) | the amended membership gate fails the build when a settings file declares the profile without every trustee-role team as a member (§14.2, G1); `ensure-column-security-profile-members.ps1` reports FAILED for a team it cannot find; A-TR-18 is the live check |
+| R-D2-16 | **Revision 4.** A later change adds a column to the trustee release profile, and both app gates then let the app select it | low | G1 requires the profile's columns to equal the columns the special-category register marks released, and the register is writable only by the reviewer or improvement-agent (`protect-system-rules` hook). Widening needs both keys |
+| R-D2-17 | **Revision 4.** The benefit provider is free text shown as written; an applicant can type a name or a relationship into it | medium | accepted by the reviewer (OQ-062 (b), FR-115). Recorded, not mitigated in the app. The DPIA and RoPA entry (OQ-048) is due before the first PRD deploy of this release; `EX-003` keeps the portal in DEV meanwhile |
+| R-D2-18 | **Revision 4.** A group verdict reports a member as recorded when its write failed | low | each member's outcome comes only from that member's own write result (ADR-087 point 5); a test with one failing write (AC-12) |
+| R-D2-19 | **Revision 4.** The process owner finalises the round while a group verdict is running, so a verdict lands after finalisation | low | the plan is re-read at confirm (ADR-087 point 4); the residual window is one write per member, the same window a single save has today. Stated, not closed |
 
 ---
 
@@ -971,11 +1388,35 @@ comparing them.
 | Solution membership fallback | solution component | maker portal *Add existing component* | DEV | same read-back |
 | Share with trustee group team, CanView | app sharing | maker portal / admin centre; `share-apps.ps1` code branch cannot run on this Mac | DEV, per-env `post_deploy` | human V4 check of the role assignment, as for the first app |
 | Settings entry | `dataverse.apps` entry, type `code`, the new `appId`, `shareWith` the trustee group | `provisioning/deploymentSettings/dev-settings.json` | DEV | written only after the real `appId` is read back — never an invented id |
+| **Rev 4:** `REV_TrusteeFinancialEligibility` profile and its 3 field permissions (`wbs:6.3`) | Field Security Profile (type 70) | `provisioning/dataverse/ensure-schema.ps1` (already loops every profile in `FieldSecurityProfiles.xml`) — Web API, never import (`C-TECH-050`) | DEV, TST/ACC, PRD — per environment, before the import that carries it | §12.1 row below; id read back (`C-TECH-051`) |
+| **Rev 4:** trustee team as the profile's only member (`wbs:6.3`) | profile membership (not a solution component) | `provisioning/dataverse/ensure-column-security-profile-members.ps1`, from `dataverse.columnSecurityProfiles` in each `*-settings.json` | per-env `post_deploy` | G1 (§14.2) at build; the script's own FAILED line at deploy; A-TR-18 |
+| **Rev 4:** DEV trustee team in `dev-settings.json` `groupTeams` and as the profile's member | settings value | `provisioning/deploymentSettings/dev-settings.json` | DEV | `REV-PP-GrantApplications-Trustees-DEV` (teamid `adf27ed8-fc9d-f111-b8de-7ced8d43e87d`, Entra object id `8842eb3f-748f-49fa-8bbb-084d428a2d2f`, role `REV Trustee`; read live by lead-agent, `pac env fetch`, 2026-10-22). ⚠️ *Corrected 2026-10-22, reviewer correction of fact, no design change and no re-approval:* *"Hang on... there is a trustees team with linked Entra ID group in DEV."* This supersedes the relayed *"There is no trustees team for DEV."* |
 
 ### 12.1 Environment Prerequisites
 
-**None new.** The "Power Apps code apps" product feature is already on in DEV (the first app pushes there). No
-entity, option set, role or field-security profile is added (`C-TECH-050` has nothing to create).
+**None new** for Revisions 1 to 3. The "Power Apps code apps" product feature is already on in DEV (the first app
+pushes there).
+
+**Revision 4 adds one prerequisite: the new field-security profile and its three permissions** (`C-TECH-050`:
+import cannot be trusted to create a profile, nor to add a permission to an existing one). Sequence per
+environment, the same as `REV_FinanceOnly` on 2026-08-23:
+
+1. Author the `<FieldSecurityProfile name="REV_TrusteeFinancialEligibility">` element (§14.1) in
+   `Other/FieldSecurityProfiles.xml`.
+2. Run `ensure-schema.ps1 -Env <env>`. It creates the profile and the three permissions through the Web API and
+   reconciles their `canread` / `canupdate` / `cancreate` against source. Needs `PROVISION_APP_ID` and the provisioning
+   certificate, which `provisioning/common/provisioning-cert.psm1` resolves from the macOS login keychain; the
+   reviewer grants the keychain prompt when the step runs (reviewer, 2026-10-22: *"Request for the credential via
+   keychain. I will grant it."*).
+3. DEV only: read the platform-assigned id back
+   (`fieldsecurityprofiles?$filter=name eq 'REV_TrusteeFinancialEligibility'&$select=fieldsecurityprofileid`),
+   write it into the element's `fieldsecurityprofileid` and a `<RootComponent type="70">` in `Other/Solution.xml`.
+   Never a made-up id (`C-TECH-051`). TST/ACC and PRD get their own id; import reconciles a profile by name.
+4. Then import, then `post_deploy` membership. `verify-pipeline-config.py` check 14 already requires the schema
+   script in every environment whose solution declares a `<FieldPermission>`, so no pipeline change is needed for
+   the call itself.
+
+All four steps run in DEV. Step 4 adds `REV-PP-GrantApplications-Trustees-DEV` (teamid `adf27ed8-fc9d-f111-b8de-7ced8d43e87d`, Entra object id `8842eb3f-748f-49fa-8bbb-084d428a2d2f`, role `REV Trustee`; read live by lead-agent, `pac env fetch`, 2026-10-22); TST/ACC and PRD add `REV Trustees`. ⚠️ *Corrected 2026-10-22, reviewer correction of fact, no design change and no re-approval:* *"Hang on... there is a trustees team with linked Entra ID group in DEV."* This supersedes the relayed *"There is no trustees team for DEV."*
 
 ### 12.2 Platform Contract Verification Plan
 
@@ -985,6 +1426,15 @@ entity, option set, role or field-security profile is added (`C-TECH-050` has no
 | A-TR-15 | Two Code Apps in one solution | no | `pac env fetch` on `solutioncomponent` for the solution, `componenttype = 300`: expect 2 rows. The query used for this document is the method | component ids | OPEN — 1 row today (E1, 2026-09-30) |
 | A-TR-16 | CanView share of the second app to a group team | no | human check in the admin centre, as the first app's share was closed | role assignment id | OPEN |
 | A-TR-17 | Upgrade removal of a Code App downstream | no | not needed if §9.3 holds; else observe on TST/ACC | — | OPEN, avoidable |
+| A-TR-18 | **Rev 4.** A trustee who is a member of the new profile receives the three values **through the Code App's connector**; a principal in no profile that releases them receives the column omitted or null, never an error | yes (ADR-084) | in DEV after provisioning: a member of `REV-PP-GrantApplications-Trustees-DEV` opens one application and sees the three values, and the process owner sees the same; then a principal that holds table read but is in neither profile (a DEV test user given the `REV Trustee` role **directly**, permitted in DEV only, `C-TECH-040`, outside the trustee team) sees *Not recorded* — the column omitted or null, never an error — and the key set is recorded. E1 when observed. ⚠️ *Corrected 2026-10-22, reviewer correction of fact, no design change and no re-approval:* *"Hang on... there is a trustees team with linked Entra ID group in DEV."* This supersedes the relayed *"There is no trustees team for DEV."* The earlier DEV/ACC split is withdrawn; TST/ACC repeats the positive half after its own membership step | profile id | OPEN |
+| A-TR-19 | **Rev 4.** An OData `or` disjunction in `$filter` (`_rev_applicationid_value eq … or …`, up to 25 terms) passes through the generic connector's list call unchanged. No `or` filter exists in this app today | yes (ADR-086) | first DEV run of the list: log the request and the row count for a chunk of 2+ applications whose reviews are known. **Fallback if refused:** one `eq` read per application, which the list's size allows | — | OPEN |
+| A-TR-20 | **Rev 4.** An update whose body omits the notes column leaves that column's stored value unchanged (standard Web API PATCH semantics, E2), through the connector's update call | yes (ADR-087 point 6) | in DEV: write notes on one review, run a group Approve with no note, read the review back | — | OPEN |
+| A-TR-21 | **Rev 4.** Solution import updates the `description` attribute of an **existing** profile (`REV_TrusteeRestricted`) | yes (ADR-084 point 4) | after the first DEV import, read `fieldsecurityprofiles?$filter=name eq 'REV_TrusteeRestricted'&$select=description`. If not applied: PATCH it in `ensure-schema.ps1`, which today only creates | — | OPEN |
+
+No other platform contract is new in Revision 4. `ntext` columns are already read through the connector
+(`rev_narrativeredacted`, `rev_carecostsexplanationredacted`); the verdict write is today's write; the review read
+uses today's `REVIEW_COLUMNS` and `eq` filter form. Ids A-TR-18 to A-TR-21 were taken as the next free across this
+TAD, the parent TADs and both Dev Summaries (highest in use: A-TR-17).
 
 **A contradiction this read found in the repository.** `knowledge/technology/code-apps.md`, in its deployment
 section, says `pac code push --solutionName` "does not do what it says on this tenant" and that the pushed app's
@@ -1120,6 +1570,96 @@ reviewer accepted these three (c) cases as they are (R18, "Accept as-is (Recomme
 Every value CSS can reach is matched (label size and colour, a left-aligned action row). If the business keeps the
 card app and wants any of these, each is a both-apps contract change in its own dispatch.
 
+---
+
+## 14. Revision 4 — what development-agent builds for A-14 (`wbs:6.3`; WI-0146, WI-0147, WI-0148)
+
+### 14.0 How to read this section
+
+The ADRs (084 to 087) say what and why; this section says where. File paths are under
+`src/code-apps/trustee-review-portal/` unless they start with `src/solutions/`, `config/`, `scripts/`,
+`provisioning/` or `.engine/`. The parity classification of ADR-060 no longer applies: there is one app (§9.5).
+
+### 14.1 The profile, its settings entries and its sequence
+
+```xml
+<FieldSecurityProfile name="REV_TrusteeFinancialEligibility"
+    description="Releases benefit status, benefit provider and employment status to trustees, read only (SDD Amendment A-14, FR-114, FR-115). Grants nothing else. Its only member is the trustee group team."
+    fieldsecurityprofileid="{the id read back from DEV, §12.1 step 3}">
+  <FieldPermissions>
+    <FieldPermission>
+      <EntityName>rev_application</EntityName>
+      <AttributeName>rev_receivesbenefits</AttributeName>
+      <CanRead>4</CanRead>
+      <CanUpdate>0</CanUpdate>
+      <CanCreate>0</CanCreate>
+      <CanReadUnmasked>0</CanReadUnmasked>
+    </FieldPermission>
+    <!-- the same for rev_benefitprovider and rev_employmentstatus -->
+  </FieldPermissions>
+</FieldSecurityProfile>
+```
+
+Element order and casing follow the two existing profiles in the same file, which were fixed against a real export.
+
+Settings, per file, a third entry in `dataverse.columnSecurityProfiles`:
+
+| File | `memberTeams` | Note |
+|---|---|---|
+| `test-settings.json`, `prd-settings.json` | `["REV Trustees"]` | the team both files already declare with role `REV Trustee` |
+| `dev-settings.json` | `["REV-PP-GrantApplications-Trustees-DEV"]` | `REV-PP-GrantApplications-Trustees-DEV` (teamid `adf27ed8-fc9d-f111-b8de-7ced8d43e87d`, Entra object id `8842eb3f-748f-49fa-8bbb-084d428a2d2f`, role `REV Trustee`; read live by lead-agent, `pac env fetch`, 2026-10-22); add it to `dataverse.groupTeams` too. ⚠️ *Corrected 2026-10-22, reviewer correction of fact, no design change and no re-approval:* *"Hang on... there is a trustees team with linked Entra ID group in DEV."* This supersedes the relayed *"There is no trustees team for DEV."* |
+
+### 14.2 The detail screen — F1 to F3
+
+| Row | Label (unchanged) | Cell today | Cell after Revision 4 | Null (not answered) |
+|---|---|---|---|---|
+| F1 | Do you currently receive means tested benefits? | restricted, `benefit-status` | value: `formatYesNo(receivesBenefits)` | *Not recorded* |
+| F2 | Benefit Provider | restricted, `benefit-provider` | `long-text`, the answer as written, as plain text with its line breaks; **not** gated by `rev_redactionreleased` (FR-115) | *Not recorded* |
+| F3 | Are you currently working? | restricted, `employment-status` | value: `optionLabel(EMPLOYMENT_STATUS_LABELS, employmentStatus)` | *Not recorded* |
+
+`EMPLOYMENT_STATUS_LABELS` is new in `src/dataverse/schema.ts`, pinned against `OptionSets/rev_employmentstatus.xml`
+by the same `schema.test.ts` check that pins `INCOME_BAND_LABELS` today. The three columns join
+`APPLICATION_DETAIL_EXTRA_COLUMNS` only — **not** the list columns, so the list reads no Art. 9 answer it does not
+show. `ApplicationDetail` in `types.ts` gains `receivesBenefits: boolean | null` (via `asNullableBoolean`),
+`benefitProvider: string | null`, `employmentStatus: number | null`. The restricted list under the section no
+longer has a Financial eligibility group. `docs/development/trustee-portal-pack-field-map.md` rows F1 to F3 change
+with it. Print shows the values, as the board pack does.
+
+### 14.3 Files
+
+| Area | Files | ADR |
+|---|---|---|
+| Solution | `Other/FieldSecurityProfiles.xml` (new profile; `REV_TrusteeRestricted` description), `Other/Solution.xml` (RootComponent, after the id is read), `Entities/rev_application/Entity.xml` (three descriptions) | 084 |
+| Settings | `provisioning/deploymentSettings/dev-settings.json`, `test-settings.json`, `prd-settings.json` | 084 |
+| Register | `constraints/domain/special-category-register.yml`, three `trustee_release` blocks — **written by the reviewer or improvement-agent** (the hook refuses development-agent); development-agent proposes them in its Dev Summary | 084, 085 |
+| Gates | `config/trustee-release-profile.json` (new); `scripts/verify-column-security-membership.py` (G1) and its step's arguments in `config/revitalise-grant-automation-build.yml`; `.engine/scripts/verify-code-app-column-bindings.py` (`--released-profile`) and `scripts/verify-code-app-column-bindings.py`; `scripts/generate-trustee-field-catalogue.py` (G4); `config/trustee-restricted-field-catalogue.json`; `scripts/derived-counts-registry.json` (two rows scoped) | 085 |
+| Gate tests | `src/tests/build/BuildGates.Tests.ps1` and fixtures; `src/tests/provisioning/EnsureSchema.Tests.ps1`; `src/tests/provisioning/DeploymentSettings.Tests.ps1` | 085 |
+| App data | `src/dataverse/schema.ts`, `schema.test.ts` (G3), `types.ts`, `repository.ts` (`mapDetail`, `listReviewsForApplications`, `currentReviewFor`, `getReviewForApplication`, `saveVerdict` optional notes) | 084–087 |
+| App domain | `src/domain/applicationDetailLayout.ts` (F1–F3), `ownVerdict.ts` (new), `groupVerdict.ts` (new), `listView.ts` (`awaitingOnly`), `src/generated/trusteeRestrictedFieldCatalogue.ts` (regenerated, never hand-edited) | 085–087 |
+| App UI | `src/hooks/queries.ts`, `components/ApplicationsTable.tsx`, `components/ApplicationFilters.tsx`, `pages/ApplicationsListPage.tsx`, `pages/GroupDetailPage.tsx`, `components/GroupVerdictDialog.tsx` (new), `src/styles/ds-tokens.css` and the module stylesheet for the tones, the test fakes in `src/test/` | 086, 087 |
+
+### 14.4 Test contract (SDD US-012 AC-10 to AC-12)
+
+| AC | Test, at the lowest level that can see it |
+|---|---|
+| AC-10 | detail layout: F1–F3 render values for a filled application and *Not recorded* for an empty one, and none appears in the restricted list; catalogue test: the 18 other keys unchanged; G1–G4 known-bad fixtures; A-TR-18 live, as a trustee and as a non-member |
+| AC-11 | `ApplicationsTable`: one row per verdict shows its word, tone class and `aria-label`, and opens the dialog; an own-slot-empty row with the other trustee's verdict set reads **Record verdict** and is counted; list page: count, zero wording, loading and error wording, filter on and off; token test: every pair ≥ 4.5:1; axe on the row |
+| AC-12 | `groupVerdict` planner: the three skip reasons; re-plan drops a newly finalised member and does not add a newly writable one; executor with one failing write → 2 recorded, 1 failed, 1 skipped, and the failed one is not reported recorded; cancel writes nothing; per-member slot (trustee 1 on one, trustee 2 on another) writes the right columns; Approve with no note sends no notes column; EF-05 blocks Defer/Reject without a note before any write |
+
+### 14.5 Work-item clauses this revision overrides or makes stale
+
+For pm-agent to amend in one batch before development (`python3 scripts/work-items.py export --scope
+WI-0146,WI-0147,WI-0148`, read 2026-10-22):
+
+| Item | Clause | TAD row |
+|---|---|---|
+| WI-0146 | clauses 2, 3 and `source_ref` name `src/code-apps/trustee-review-portal-cards/…` | §0.7: the folder is now `src/code-apps/trustee-review-portal` (§9.5) |
+| WI-0146 | clause 3: the catalogue "no longer lists" the three keys | met through the manifest, not the generator (ADR-085 G4) — consistent |
+| WI-0147 | clause 1: *"the shape below is lead-agent's recommendation … not yet an accepted design"* | superseded by FR-116 as revised at approval; ADR-086 |
+| WI-0147 | `source_ref` names the `-cards` path | as above |
+| WI-0148 | clause 5: the batched verdict *"can be changed per application"* | still true through the detail page's own verdict section (ADR-087 point 8); FR-119's revision dropped this wording, so pm-agent may align the clause |
+| WI-0148 | (none) — FR-118's *"optional notes"* | ADR-087 point 2 applies EF-05, decided by the reviewer 2026-10-22; FR-118's wording goes to plan-agent |
+
 ## Appendix A — Requirement traceability
 
 | Requirement | Where it is met | Change |
@@ -1132,6 +1672,13 @@ card app and wants any of these, each is a both-apps contract change in its own 
 | WI-0008 (Current Circumstances as three spaced sections) | 32px between blocks | carried |
 | NFR-024 (WCAG 2.1 AA) | §8; two contrast corrections | two corrections |
 | R13 (round hero share of all applications) | card app hero; parser reads `historicApplicationsByMonth.priorApplicationCount` and `understatedTotal` in both apps (ADR-065) | **new, card app only**; first app parses and does not render |
+| FR-114 (benefit status, employment status as values), NFR-001 (amended) | ADR-084 profile; §14.2 F1, F3 | **Revision 4** |
+| FR-115 (benefit provider as written), NFR-031 / FR-079 exception | ADR-084; §14.2 F2, not gated by redaction | **Revision 4** |
+| FR-078 (amended: the other eighteen fields) | ADR-085: catalogue keeps 18; G4 | **Revision 4**, narrowed |
+| FR-116 (own verdict on the existing button) | ADR-086 points 3–5 | **Revision 4** |
+| FR-117 (awaiting count and filter) | ADR-086 point 6 | **Revision 4** |
+| FR-118 (group verdict, skips, confirm) | ADR-087 points 1–4 | **Revision 4** |
+| FR-119 (per-member result) | ADR-087 points 5, 7 | **Revision 4** |
 
 ## Appendix B — Content differences between the Revision 2 kit and the current source (none is a requirement)
 
@@ -1174,3 +1721,5 @@ Found by reading the kit's seven `.jsx` files and its README against the first a
 |---|---|---|---|
 | Reviewer | Anna Southern (session account) | 2026-09-30 | APPROVED — "Approved development" (Revision 1; 21:40 turn, relayed by lead-agent) |
 | Reviewer | Anna Southern (session account) | 2026-09-30 | APPROVED — "Approved for development" (Revision 3 and 3.1, relayed by lead-agent) |
+| Reviewer | Xander Lykopoulos | 2026-10-22 | **APPROVED** — Revision 4 (A-14), with parent-TAD rev 32, relayed by lead-agent: *"1. Agreed. 2. Yes, group defer or reject require notes as well. Saved to all individual applications. There is no trustees team for DEV. Request for the credential via keychain. I will grant it. Trustee portal changes are expected and from a different session. Customer has decided to go with card version. Approved."* Accepts the SOFT warning C-DOM-005 |
+| Reviewer | Xander Lykopoulos | 2026-10-22 | **Correction of fact, no re-approval:** *"Hang on... there is a trustees team with linked Entra ID group in DEV."* Supersedes *"There is no trustees team for DEV."* in the row above. DEV membership is `REV-PP-GrantApplications-Trustees-DEV`, and DEV verifies the trustee-side read directly (§12.1, §12.2 A-TR-18, §14.1, ADR-084 point 3, R-D2-15). The design is unchanged |

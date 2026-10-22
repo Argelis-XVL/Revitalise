@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "appId": "70869c95-92e5-442f-b5b9-44b3d3e549f6",
+  "appId": "b0483396-a875-4c1f-8580-296d433edb4a",
   "appDisplayName": "REV Trustee Review Portal",
   "region": "prod",
   "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
-  "description": "",
+  "description": "Trustee review portal: the card-layout detail screen (TAD trustee-portal-design-2). Replaced the original list-layout app, retired 2026-10-22 after the business chose this layout.",
   "buildPath": "./dist",
   "buildEntryPoint": "index.html",
   "localAppUrl": "http://localhost:3000",

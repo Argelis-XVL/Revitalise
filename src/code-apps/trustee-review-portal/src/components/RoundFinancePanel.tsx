@@ -1,4 +1,10 @@
 /**
+ * CARD APP (Design 2.0, TAD trustee-portal-design-2 §13.2, WI-0090): `RoundOverview.jsx` lines
+ * 186-200 and 275-291 — an "Entered by hand" pill before the as-at sentence (reviewer R12,
+ * ADR-066 #2: the sentence drops "are entered by hand and"), and the eight measures as two groups
+ * of money tiles under the eyebrows "This round" and "Charity-wide" (ADR-062 A). Labels, the
+ * "(charity-wide)" suffixes and every value are unchanged, read directly from `rev_roundfinance`.
+ *
  * FR-063 — the round's financial position, read DIRECTLY from `rev_roundfinance`.
  *
  * No flow in the path (ADR-028). This is the one block on the landing screen whose figures
@@ -61,55 +67,56 @@
  * recorded" would invent a gap; a null here is a real field a person has left empty, which a
  * trustee needs to see and somebody can act on.
  */
-import { Panel, StatTileRow } from "./Panel";
+import { Eyebrow, MoneyTiles, Panel } from "./Panel";
 import { formatAmount, formatCount, formatDate } from "../domain/format";
 import type { RoundFinance } from "../dataverse/types";
 import styles from "../styles/app.module.css";
 
 export function RoundFinancePanel({ round }: { round: RoundFinance }) {
   return (
-    <Panel heading="The round's financial position">
-      {/*
-        Distinct from the statistics stamp by wording ("as at" versus "computed on"), by
-        position (inside this panel, not above the region), and by class. It prints, like
-        the other stamp — FR-039.
-      */}
-      <p className={styles.freshnessManual} data-print="stamp">
+    <Panel heading="The round's financial position" eyebrow="Financial position" eyebrowTone="purple">
+      <p className={styles.handEntered} data-print="stamp">
+        <span className={styles.handEnteredPill}>Entered by hand</span>{" "}
         {round.figuresAsAt === null
-          ? "These figures are entered by hand and carry no as-at date, so how current they " +
-            "are is not known from this screen. Ask the process owner before relying on them."
-          : `These figures are entered by hand and are as at ${formatDate(round.figuresAsAt)}. ` +
+          ? "These figures carry no as-at date, so how current they are is not known from this " +
+            "screen. Ask the process owner before relying on them."
+          : `These figures are as at ${formatDate(round.figuresAsAt)}. ` +
             "The application figures above were computed just now."}
       </p>
-
-      <StatTileRow
-        items={[
-          // The round's own position.
-          { label: "Committed or spent to date", value: formatAmount(round.amountCommitted) },
-          { label: "People supported", value: formatCount(round.peopleSupported) },
-          { label: "Individuals supported", value: formatCount(round.individualsSupported) },
-          {
-            label: "People reached by group grants",
-            value: formatCount(round.peopleReachedByGroupGrants),
-          },
-          {
-            label: "Suggested maximum spend for this round",
-            value: formatAmount(round.suggestedMaximumSpend),
-          },
-          { label: "Monthly disbursement", value: formatAmount(round.monthlyDisbursement) },
-          // Charity-level rather than round-scoped, and labelled as such. Amendment A-03
-          // Finding 3 established the distinction; a trustee reading "capacity" as this
-          // round's budget would be reading the wrong number.
-          {
-            label: "Grant-giving capacity (charity-wide)",
-            value: formatAmount(round.grantGivingCapacity),
-          },
-          {
-            label: "Remaining legacy fund (charity-wide)",
-            value: formatAmount(round.remainingLegacyFund),
-          },
-        ]}
-      />
+      <div className={styles.tileGroup}>
+        <Eyebrow tone="ink">This round</Eyebrow>
+        <MoneyTiles
+          items={[
+            { label: "Committed or spent to date", value: formatAmount(round.amountCommitted) },
+            { label: "People supported", value: formatCount(round.peopleSupported) },
+            { label: "Individuals supported", value: formatCount(round.individualsSupported) },
+            {
+              label: "People reached by group grants",
+              value: formatCount(round.peopleReachedByGroupGrants),
+            },
+            {
+              label: "Suggested maximum spend for this round",
+              value: formatAmount(round.suggestedMaximumSpend),
+            },
+            { label: "Monthly disbursement", value: formatAmount(round.monthlyDisbursement) },
+          ]}
+        />
+      </div>
+      <div className={styles.tileGroup}>
+        <Eyebrow tone="ink">Charity-wide</Eyebrow>
+        <MoneyTiles
+          items={[
+            {
+              label: "Grant-giving capacity (charity-wide)",
+              value: formatAmount(round.grantGivingCapacity),
+            },
+            {
+              label: "Remaining legacy fund (charity-wide)",
+              value: formatAmount(round.remainingLegacyFund),
+            },
+          ]}
+        />
+      </div>
     </Panel>
   );
 }

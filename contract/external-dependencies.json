@@ -166,9 +166,9 @@
       "first_seen": "2026-07-04"
     },
     "Automation #5": {
-      "state": "outstanding",
+      "state": "satisfied",
       "owner": "Argelis",
-      "evidence": "no REVAnonymise workflow in the solution",
+      "evidence": "2026-10-22: anonymisation is built as REVNarrativeScrubFreeText, not a workflow named REVAnonymise (the name was a pre-build guess). Present at src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json; the evidence-map rule for wbs:5.3 names it. Level: source present, same standard as 'Automation #4' above. DEV import of flow 1011 is recorded in logs/pipeline.log 2026-10-21 (stage-corrected by lead-agent to PARTIAL, post_deploy steps deliberately not run). Not tst_acc, not prd, no client acceptance: satisfying this clears the dependency gate only. Corrected on reviewer instruction 2026-10-22 ('4. Yes.'); previous text 'no REVAnonymise workflow in the solution' was stale.",
       "internal": true,
       "first_seen": "2026-08-19"
     },

@@ -176,3 +176,29 @@ describe("nextSort and ariaSortFor", () => {
     expect(ariaSortFor({ key: "score", direction: "desc" }, "score")).toBe("descending");
   });
 });
+
+describe("awaitingOnly — SDD A-14, FR-117 (portal TAD ADR-086 point 6)", () => {
+  const awaitingIds = new Set(["a"]);
+  const all = [
+    makeSummary({ id: "a", reference: "REV-A", reviewRound: "R1" }),
+    makeSummary({ id: "b", reference: "REV-B", reviewRound: "R1" }),
+    makeSummary({ id: "c", reference: "REV-C", reviewRound: "R2" }),
+  ];
+  const isAwaiting = (row: { id: string }) => awaitingIds.has(row.id) || row.id === "c";
+
+  it("keeps only rows awaiting the trustee's verdict when on, and ANDs with the other filters", () => {
+    expect(applyFilters(all, { ...EMPTY_FILTERS, awaitingOnly: true }, isAwaiting).map((r) => r.id)).toEqual(["a", "c"]);
+    expect(
+      applyFilters(all, { ...EMPTY_FILTERS, awaitingOnly: true, round: "R1" }, isAwaiting).map((r) => r.id),
+    ).toEqual(["a"]);
+  });
+
+  it("narrows nothing when off, and nothing when no predicate is available yet", () => {
+    expect(applyFilters(all, EMPTY_FILTERS, isAwaiting)).toHaveLength(3);
+    expect(applyFilters(all, { ...EMPTY_FILTERS, awaitingOnly: true })).toHaveLength(3);
+  });
+
+  it("starts off", () => {
+    expect(EMPTY_FILTERS.awaitingOnly).toBe(false);
+  });
+});

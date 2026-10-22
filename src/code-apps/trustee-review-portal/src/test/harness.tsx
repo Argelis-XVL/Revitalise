@@ -98,6 +98,10 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     supportRecipientConditionProfile: null,
     helperDeclarationConsent: null,
     helperDeclarationConsentDate: null,
+    // SDD A-14 (portal TAD §14.2) — released read-only to trustees.
+    receivesBenefits: null,
+    benefitProvider: null,
+    employmentStatus: null,
     redactedUnableToFundExplanation: null,
     redactedOtherCondition: null,
     redactedSupportRecipientOtherCondition: null,
@@ -127,6 +131,7 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
 export function makeReview(overrides: Partial<ReviewRow> = {}): ReviewRow {
   return {
     id: REVIEW_ID,
+    applicationId: APPLICATION_ID,
     reference: "REV-R-00001",
     round: "2026-Q4",
     panelDate: "2026-10-01T00:00:00Z",
@@ -345,6 +350,10 @@ export function makeRepository(overrides: Partial<TrusteeRepository> = {}): Fake
     listApplicationsForReview: () => Promise.resolve([makeSummary()]),
     getApplication: () => Promise.resolve(makeDetail()),
     getReviewForApplication: () => Promise.resolve(makeReview()),
+    // SDD A-14 (ADR-086): by default every application has the default review, own slot empty,
+    // so the list reads "Record verdict" everywhere as it did before the review index existed.
+    listReviewsForApplications: (ids) =>
+      Promise.resolve(ids.map((id) => makeReview({ id: `review-${id}`, applicationId: id }))),
     saveVerdict: (input) => {
       saved.push(input);
       return Promise.resolve();

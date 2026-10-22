@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (1203 entries, 1180 distinct lessons)
+Source: `logs/improvement-log.jsonl` (1234 entries, 1210 distinct lessons)
 Generated: 2026-10-22
 
 <a id="kfm-how-to-use"></a>
@@ -46,16 +46,16 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x61** | `gate-cannot-fail` | — | `before-build` ×60, `Capabilities` | IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153, IMP-1179 (+55 earlier — see appendix) |
 | **x50** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | **scripts/verify-derived-counts.py — SOFT (--warn-only): it reports drift and never blocks a build. A registry entry per claim, never another script (IMP-1127)**<br>Covers: a count stated in prose that is registered in scripts/derived-counts-registry.json — among them 'the N rev_setting rows' in config/revitalise-grant-automation-pipeline.yml, re-derived as len(dataverse.settingRows) of dev-scoring-settings.json, test-settings.json and prd-settings.json (claim pipeline-rev-setting-row-count). Replayed 2026-10-16 with the pipeline text at HEAD ('36') against settings files holding 40: 2 DRIFT findings, the 2 lines IMP-1127 named<br>NOT covered: ALMOST ALL OF THIS CLASS — do not read this row as 'the class is defended'. Only the claims listed in the registry are checked, 11 of them on 2026-10-16. Unregistered counts in the same pipeline file ('the 3,394-row rev_citysettlementregister', 'the three FR-062 threshold rows') and every count in a document, test or comment outside the registry are unchecked. And the gate is SOFT, so a drift it reports lands in a build's warnings and nothing stops on it<br>Prove it green: `python3 scripts/verify-derived-counts.py` | `Unrouted` ×41, `before-build` ×9 | IMP-0925, IMP-1045, IMP-1048, IMP-1083, IMP-1127, IMP-1151 (+44 earlier — see appendix) |
 | **x45** | `approved-document-internally-inconsistent` | — | `Unrouted` ×45 | IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163 (+39 earlier — see appendix) |
-| **x44** | `platform-fact-groundtruthed` | — | `Capabilities` ×28, `before-authoring` ×16 | IMP-1085, IMP-1087, IMP-1107, IMP-1167, IMP-1184, IMP-1185 (+38 earlier — see appendix) |
-| **x42** | `declared-policy-not-mechanically-enforced` | — | `Unrouted` ×41, `Capabilities` | IMP-0913, IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160 (+36 earlier — see appendix) |
-| **x40** | `gate-scope-mismatch` | — | `before-build` ×40 | IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194, IMP-1204 (+34 earlier — see appendix) |
+| **x45** | `platform-fact-groundtruthed` | — | `Capabilities` ×28, `before-authoring` ×17 | IMP-1087, IMP-1107, IMP-1167, IMP-1184, IMP-1185, IMP-1222 (+39 earlier — see appendix) |
+| **x43** | `declared-policy-not-mechanically-enforced` | — | `Unrouted` ×42, `Capabilities` | IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160, IMP-1208 (+37 earlier — see appendix) |
+| **x41** | `gate-scope-mismatch` | — | `before-build` ×41 | IMP-1177, IMP-1178, IMP-1181, IMP-1194, IMP-1204, IMP-1236 (+35 earlier — see appendix) |
 | **x39** | `gate-reassures-wrongly` | — | `Unrouted` ×39 | IMP-0797, IMP-0798, IMP-1130, IMP-1134, IMP-1195, IMP-1203 (+33 earlier — see appendix) |
 | **x38** | `no-assertion-on-shipped-content` | — | `before-success` ×37, `Capabilities` | IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049, IMP-1133 (+32 earlier — see appendix) |
-| **x36** | `stale-claim-contradicting-rechecked-source` | — | `Unrouted` ×34, `Capabilities` ×2 | IMP-1115, IMP-1117, IMP-1120, IMP-1143, IMP-1150, IMP-1158 (+30 earlier — see appendix) |
+| **x37** | `stale-claim-contradicting-rechecked-source` | — | `Unrouted` ×35, `Capabilities` ×2 | IMP-1117, IMP-1120, IMP-1143, IMP-1150, IMP-1158, IMP-1211 (+31 earlier — see appendix) |
 | **x35** | `finding-diagnosis-unverified` | — | `Unrouted` ×35 | IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959, IMP-1182 (+29 earlier — see appendix) |
 | **x31** | `learning-substrate-destroyed` | — | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
-| **x24** | `untriaged-tool-warning` | — | `Unrouted` ×24 | IMP-0961, IMP-0962, IMP-1006, IMP-1089, IMP-1090, IMP-1091 (+18 earlier — see appendix) |
-| **x21** | `two-invocation-paths-disagree` | — | `before-build` ×21 | IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053, IMP-1093 (+15 earlier — see appendix) |
+| **x25** | `untriaged-tool-warning` | — | `Unrouted` ×25 | IMP-0962, IMP-1006, IMP-1089, IMP-1090, IMP-1091, IMP-1237 (+19 earlier — see appendix) |
+| **x22** | `two-invocation-paths-disagree` | — | `before-build` ×22 | IMP-0924, IMP-0939, IMP-1052, IMP-1053, IMP-1093, IMP-1235 (+16 earlier — see appendix) |
 | **x17** | `gate-fires-on-nothing` | — | `before-build` ×17 | IMP-0645, IMP-0682, IMP-0714, IMP-0825, IMP-1039, IMP-1128 (+11 earlier — see appendix) |
 | **x17** | `harness-blocks-destructive-call` | — | `operating` ×14, `Capabilities` ×3 | IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828, IMP-1135 (+11 earlier — see appendix) |
 | **x17** | `platform-state-divergence` | — | `Unrouted` ×17 | IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857 (+11 earlier — see appendix) |
@@ -68,6 +68,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x9** | `agent-instructions-describe-a-topology-that-changed` | — | `before-running-elsewhere` ×9 | IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757, IMP-1129 (+3 earlier — see appendix) |
 | **x9** | `config-placeholder-known-but-not-fixed` | **scripts/verify-pipeline-config.py check 11 (check_settings_content) — walks every value position by dot-path, requires a matching _unresolved declaration carrying path/owner/why/expires, and fails on a missing, unowned OR EXPIRED one**<br>Covers: an unresolved {{TOKEN}} in a value position of a deploymentSettings file THAT THE PIPELINE CONFIG REFERENCES -- measured 2026-09-18 as test-settings.json and prd-settings.json, and no other file in that directory -- with no matching entry in that file's own _unresolved block<br>NOT covered: a {PENDING-...} id in solution-source XML (IMP-0166, IMP-0243) — single braces, different files, and resolvable only by a live write, so no gate can clear it. ALSO NOT COVERED, and this is the half the property line used to over-claim (IMP-0770): any deploymentSettings file the pipeline config does NOT reference. dev-settings.json carries 3 undeclared {{...}} tokens today (dataverse.groupTeams[0..2].entraGroupObjectId) and every gate passes — tracked as IMP-0771, development-agent's fix. DO NOT PROPOSE EXTENDING CHECK 11 TO GLOB THE DIRECTORY: measured 2026-09-18 over all 11 files, a naive glob yields 55 findings and 3 true positives (5.5%) — 40 in dev-settings.example.json, a template whose entire purpose is unfilled placeholders, and 12 in pac-import-tstacc.json/pac-import-prd.json, a different schema with a different consumer (`pac solution import --settings-file`) and no _unresolved convention, whose values only exist after interactive OAuth consent. The design is rejected on that number, not on taste.<br>Prove it green: `python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml` | `before-running-elsewhere` ×9 | IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777 (+3 earlier — see appendix) |
 | **x8** | `finding-premise-fails-re-measurement` | — | `Unrouted` ×8 | IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952, IMP-1206 (+2 earlier — see appendix) |
+| **x8** | `human-correction-of-agent-output` | — | `Unrouted` ×8 | IMP-1216, IMP-1217, IMP-1221, IMP-1228, IMP-1233, IMP-1234 (+2 earlier — see appendix) |
 | **x8** | `identifier-namespace-collision-across-documents` | **scripts/verify-requirement-id-uniqueness.py — HARD, build step 19. Its check covers BOTH halves: the undeclared-document half (NO ID DECLARATION, the finding message naming the exact comment to add, including the `none` form for a document that only cites ids allocated elsewhere) and the genuine-collision half (ID ALLOCATED TWICE, grouped by the clashing document pair)**<br>Covers: an FR-/NFR-/US-/OQ- identifier declared by two documents under docs/plans/, AND a docs/plans/ document carrying no id-allocation declaration at all — read_declarations parses the `<!-- id-allocation: ... -->` comment, so an undeclared document is invisible to the collision check and is therefore failed in its own right rather than skipped<br>NOT covered: THE A-nnn ASSUMPTION-REGISTER NAMESPACE, which is where this class's remaining live instances actually are. Unvalidated Assumptions Register ids (A-FIN-nn, A-FLOW-nn, A-DS-n, A-TRM-n) live in docs/development/*-dev-summary.md, are allocated per document, and NOTHING checks them for cross-document collision: verify-assumption-markers.py resolves an OPEN row to its source marker and verify-assumption-register.py checks a row's status against its own narrative, and neither compares ids BETWEEN documents. Measured 2026-09-18: 56 distinct A-nnn ids carrying register rows, 5 appearing in more than one document, of which 3 are true collisions (A-DS-1 = DocuSign connector apiId vs muted/quiet state treatments; A-FIN-03 = REV_FinanceOnly fieldsecurityprofileid vs the rev_roundfinance Decimal classid, i.e. IMP-0703 still live as a duplicate ROW after IMP-0707 fixed only the source MARKER; A-FLOW-13 = result() on Switch/If vs unscored-application exclusion, authored 2026-09-18) and 2 are legitimate carry-forwards of the same assumption into a successor document (A-TRM-1, A-TRM-2). A naive same-id-two-documents rule therefore measures 3 true of 5 — 60% — which is below the bar for wiring, so no gate is claimed here. Tracked as IMP-0768. Also not covered: a wbs: tag resolving to no accepted task (verify-wbs-chain.py, SUITE_GATE_EXEMPT, runs at PM gates not at build).<br>Prove it green: `python3 scripts/verify-requirement-id-uniqueness.py` | `Unrouted` ×8 | IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768 (+2 earlier — see appendix) |
 | **x7** | `gate-fired` | — | `Unrouted` ×7 | IMP-1074, IMP-1079, IMP-1081, IMP-1082, IMP-1169, IMP-1188 (+1 earlier — see appendix) |
 | **x7** | `hard-gate-has-no-scoped-override-path` | — | `Unrouted` ×7 | IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795 (+1 earlier — see appendix) |
@@ -88,6 +89,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x4** | `gate-invocation-omits-required-arg` | — | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
 | **x4** | `hard-gate-red-on-pre-existing-debt` | — | `Unrouted` ×4 | IMP-0439, IMP-0477, IMP-0722, IMP-0911 |
 | **x4** | `live-verification-capability` | — | `Capabilities` ×4 | IMP-0083, IMP-0555, IMP-0556, IMP-0928 |
+| **x4** | `reality-contradicted-repo-document` | — | `Unrouted` ×4 | IMP-1057, IMP-1062, IMP-1086, IMP-1209 |
 | **x4** | `serialisation-default-invalidates-evidence-needle` | — | `Unrouted` ×4 | IMP-0664, IMP-0733, IMP-0755, IMP-1007 |
 | **x4** | `solution-source-edited-outside-dispatch` | — | `Unrouted` ×4 | IMP-0981, IMP-1038, IMP-1043, IMP-1044 |
 | **x4** | `tad-narrative-omits-an-already-existing-column` | — | `Unrouted` ×4 | IMP-0337, IMP-0338, IMP-0688, IMP-1066 |
@@ -100,7 +102,6 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x3** | `live-definition-drifts-from-source` | — | `Unrouted` ×3 | IMP-0813, IMP-1041, IMP-1088 |
 | **x3** | `pipeline-dispatch-stops-before-declared-post-deploy` | — | `Unrouted` ×3 | IMP-0879, IMP-0906, IMP-0971 |
 | **x3** | `platform-field-length-limit-unenforced` | — | `before-authoring` ×3 | IMP-0009, IMP-0931, IMP-1121 |
-| **x3** | `reality-contradicted-repo-document` | — | `Unrouted` ×3 | IMP-1057, IMP-1062, IMP-1086 |
 | **x3** | `routed-work-not-reverified-at-apply-time` | — | `Unrouted` ×3 | IMP-0517, IMP-0605, IMP-0630 |
 | **x3** | `supplied-design-asset-assumed-wcag-compliant` | — | `Unrouted` ×2, `Capabilities` | IMP-0385, IMP-0985, IMP-1001 |
 | **x3** | `two-recorded-lessons-contradict-each-other` | — | `Unrouted` ×3 | IMP-0460, IMP-0932, IMP-0983 |
@@ -115,6 +116,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `concurrent-dispatches-one-document` | — | `Unrouted` ×2 | IMP-1164, IMP-1205 |
 | **x2** | `design-values-read-from-source-not-rendering` | — | `Unrouted` ×2 | IMP-0997, IMP-1002 |
 | **x2** | `dispatched-below-required-tier` | — | `Unrouted` ×2 | IMP-0398, IMP-0835 |
+| **x2** | `doc-contradicts-reality` | — | `Unrouted` ×2 | IMP-1214, IMP-1215 |
 | **x2** | `duplicate-improvement-id-race` | — | `Unrouted` ×2 | IMP-0810, IMP-0901 |
 | **x2** | `evidence-recorded-but-not-surfaced` | — | `Unrouted` ×2 | IMP-1012, IMP-1013 |
 | **x2** | `finding-fixed-in-later-dispatch` | — | `Unrouted` ×2 | IMP-0855, IMP-0859 |
@@ -145,7 +147,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 <a id="kfm-before-build"></a>
 ## Before you execute a build config
 
-*147 lessons from 147 findings.*
+*149 lessons from 149 findings.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0511</sub>
@@ -189,10 +191,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - There is no preflight for pipeline.yml. A pipeline step can name a script that does not exist, a parameter that does not exist, or a path that does not exist, and nothing will say so until the stage runs against a live environment. Verify every script path and parameter against the script's own param block before executing a stage - and note that alternate keys are declared in Entity.xml <EntityKeys>, not created by a script switch.  
   <sub>IMP-0042</sub>
 
-> **127 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **129 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`gate-cannot-fail`** (×49): IMP-1055, IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153 (+43 earlier — see appendix)
->   · **`gate-scope-mismatch`** (×38): IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194, IMP-1204 (+32 earlier — see appendix)
->   · **`two-invocation-paths-disagree`** (×18): IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053, IMP-1093 (+12 earlier — see appendix)
+>   · **`gate-scope-mismatch`** (×39): IMP-1177, IMP-1178, IMP-1181, IMP-1194, IMP-1204, IMP-1236 (+33 earlier — see appendix)
+>   · **`two-invocation-paths-disagree`** (×19): IMP-0924, IMP-0939, IMP-1052, IMP-1053, IMP-1093, IMP-1235 (+13 earlier — see appendix)
 >   · **`gate-fires-on-nothing`** (×15): IMP-0558, IMP-0645, IMP-0714, IMP-0825, IMP-1039, IMP-1128 (+9 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×7): IMP-0039, IMP-0120, IMP-0235, IMP-0315, IMP-0416, IMP-1083 (+1 earlier — see appendix)
 
@@ -200,7 +202,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 <a id="kfm-before-authoring"></a>
 ## Before you hand-author a platform artefact
 
-*107 lessons from 107 findings.*
+*108 lessons from 108 findings.*
 
 - A Compose action's secureData.properties is ['inputs'] only: 'outputs' imports but the designer refuses to save (0x80060467). Check 18 of verify-flow-definition-language.py now fails the build on it.  
   <sub>IMP-1156</sub>
@@ -247,9 +249,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - Before authoring or reusing an action name across If/else (or Switch case) branches in a Power Automate cloud flow, ground-truth whether the platform's import-time dependency calculator treats action names as branch-scoped or flow-wide unique -- this session found it is FLOW-WIDE: reusing a name across mutually-exclusive branches throws 'An item with the same key has already been added' at import (FlattenNestedActions flattens all branches into one dictionary before computing dependencies). **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0804</sub>
 
-> **87 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **88 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`platform-contract-guessed-not-groundtruthed`** (×68): IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1159, IMP-1180 (+62 earlier — see appendix)
->   · **`platform-fact-groundtruthed`** (×15): IMP-0921, IMP-1016, IMP-1107, IMP-1167, IMP-1184, IMP-1185 (+9 earlier — see appendix)
+>   · **`platform-fact-groundtruthed`** (×16): IMP-1016, IMP-1107, IMP-1167, IMP-1184, IMP-1185, IMP-1222 (+10 earlier — see appendix)
 >   · **`platform-field-length-limit-unenforced`** (×3): IMP-0009, IMP-0931, IMP-1121
 >   · **`environment-feature-flag-undeclared`** (×1): IMP-0182
 
@@ -619,9 +621,9 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 <a id="kfm-unrouted"></a>
 ## Unrouted — no section assigned
 
-*682 lessons from 682 findings, across 246 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
+*709 lessons from 709 findings, across 261 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
 
-> These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×45), `declared-policy-not-mechanically-enforced` (×41), `hand-maintained-count-drifts-from-source` (×41), `gate-reassures-wrongly` (×39), `finding-diagnosis-unverified` (×35), `stale-claim-contradicting-rechecked-source` (×34), `untriaged-tool-warning` (×24), `platform-state-divergence` (×17).
+> These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×45), `declared-policy-not-mechanically-enforced` (×42), `hand-maintained-count-drifts-from-source` (×41), `gate-reassures-wrongly` (×39), `finding-diagnosis-unverified` (×35), `stale-claim-contradicting-rechecked-source` (×35), `untriaged-tool-warning` (×25), `platform-state-divergence` (×17).
 
 
 ---

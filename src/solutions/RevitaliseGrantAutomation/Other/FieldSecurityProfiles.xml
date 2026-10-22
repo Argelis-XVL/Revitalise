@@ -103,7 +103,12 @@
   role ids: TST/ACC/PRD get their own id when Pipelines promotes this profile there.
 -->
 <FieldSecurityProfiles xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <FieldSecurityProfile name="REV_TrusteeRestricted" description="Releases the Tier 4 identifying and special-category columns to the process owner and the service identity only. Every persona that is not a member of this profile - including every trustee - receives no value for these columns from any surface: app, view, export or API." fieldsecurityprofileid="{5fd58153-e997-f111-b8dc-7ced8d43e1b4}">
+  <!-- 2026-10-22 (portal TAD trustee-portal-design-2 ADR-084 point 4): the description below now names
+       REV_TrusteeFinancialEligibility, which re-grants three of these columns read-only to trustees.
+       A-TR-21 (OPEN): that solution import updates the description of this EXISTING profile is not yet
+       observed; ensure-schema.ps1 only creates. If the first DEV import leaves the old text, the
+       script gains a PATCH. Permissions and membership are unchanged. -->
+  <FieldSecurityProfile name="REV_TrusteeRestricted" description="Releases the Tier 4 identifying and special-category columns to the process owner and the service identity only. Every persona that is not a member of this profile receives no value for these columns from it. Three of them (benefit status, benefit provider, employment status) are also released read-only to trustees by REV_TrusteeFinancialEligibility (SDD A-14)." fieldsecurityprofileid="{5fd58153-e997-f111-b8dc-7ced8d43e1b4}">
     <FieldPermissions>
       <FieldPermission>
         <!-- The applicant's name. ADR-013 keeps the primary name column as a pseudonymised reference precisely so this column is the only place the name lives and can be secured in one move. -->
@@ -996,6 +1001,71 @@
         <CanRead>4</CanRead>
         <CanUpdate>4</CanUpdate>
         <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+    </FieldPermissions>
+  </FieldSecurityProfile>
+  <!--
+    REV_TrusteeFinancialEligibility - the third column security profile (portal TAD
+    trustee-portal-design-2 Revision 4, ADR-084; parent TAD rev 32; SDD Amendment A-14, FR-114,
+    FR-115; wbs:6.3).
+
+    WHAT IT DOES. Releases exactly three secured rev_application columns - rev_receivesbenefits,
+    rev_benefitprovider, rev_employmentstatus - READ ONLY (CanRead=4, CanUpdate=0, CanCreate=0)
+    to its members. It grants nothing else. The columns stay IsSecured=1 and stay in
+    REV_TrusteeRestricted above, whose members keep read/update/create on them; profile grants
+    combine, so the process owner sees exactly what a trustee sees for these three.
+
+    WHO IS A MEMBER. The trustee group team only (REV Trustees in TST/ACC and PRD), applied per
+    environment by provisioning/dataverse/ensure-column-security-profile-members.ps1 from
+    dataverse.columnSecurityProfiles. DEV has no trustee team (reviewer, 2026-10-22), so
+    dev-settings.json declares no entry for this profile and DEV has no members.
+
+    WHY A NEW PROFILE AND NOT THE TRUSTEE TEAM IN REV_TrusteeRestricted. That would release all of
+    REV_TrusteeRestricted's columns, with write rights, including the raw narrative - the
+    disclosure scripts/verify-column-security-membership.py exists to stop. That gate permits a
+    trustee team in THIS profile only, only while every permission here is read-only, and only
+    while the column set equals the special-category register's trustee_release rows
+    (ADR-085 G1). The profile is named by config/trustee-release-profile.json, never by a literal
+    in a gate.
+
+    THE ID (C-TECH-051) IS DEV'S REAL, LIVE ID. The reviewer ran ensure-schema.ps1 -Env dev on
+    2026-10-22, which created the profile and its three permissions through the Web API
+    (C-TECH-050). The id was read back the same day with pac env fetch on fieldsecurityprofile
+    filtered to this name (one row, three fieldpermission rows: canread Allowed, canupdate and
+    cancreate Not Allowed) and written here and into the matching <RootComponent type="70"> in
+    Other/Solution.xml (portal TAD section 12.1 steps 2-3). Until then this element carried no id,
+    and pac solution pack refused the solution ("RootComponent validation failed"). TST/ACC and PRD
+    get their own id; import reconciles a profile by name. A-TR-22 is closed on this evidence
+    (Dev Summary trustee-portal-design-2 section 10).
+  -->
+  <FieldSecurityProfile name="REV_TrusteeFinancialEligibility" description="Releases benefit status, benefit provider and employment status to trustees, read only (SDD Amendment A-14, FR-114, FR-115). Grants nothing else. Its only member is the trustee group team." fieldsecurityprofileid="{7d3e86d4-0dce-f111-a05c-7ced8d43e1b4}">
+    <FieldPermissions>
+      <FieldPermission>
+        <!-- Benefit status (Yes/No). Trustees judge financial need, and the board pack already shows them this answer (A-14 Finding 1). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_receivesbenefits</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>0</CanUpdate>
+        <CanCreate>0</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Benefit provider, shown as written with no redacted copy (FR-115, OQ-062 (b)). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_benefitprovider</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>0</CanUpdate>
+        <CanCreate>0</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Employment status (choice, rev_employmentstatus). -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_employmentstatus</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>0</CanUpdate>
+        <CanCreate>0</CanCreate>
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
     </FieldPermissions>

@@ -52,11 +52,33 @@ It also fails CLOSED in three ways, because a gate that cannot fail is worse tha
   * a profile whose `memberTeams` is missing or empty -> FAILED (a profile with no members
     makes its columns unreadable by anyone, including the process owner)
 
-Run:
-    python3 scripts/verify-column-security-membership.py provisioning/deploymentSettings
+REVISION 4 OF THE PORTAL TAD (ADR-084/ADR-085 G1, SDD A-14, 2026-10-22) - ONE POSITIVE CASE.
+Trustees now read three secured answers through a profile that releases only those, read only.
+So a trustee-role team MAY be a member of exactly one profile, and only while all of this holds:
 
-Exits 0 when the invariant holds, 1 otherwise. Wired into config/<slug>-build.yml as the
-`no-trustee-in-column-security-profile` step.
+  * the profile is the one `config/trustee-release-profile.json` names (no literal here);
+  * in FieldSecurityProfiles.xml every one of its permissions is CanRead=4, CanUpdate=0,
+    CanCreate=0, and it holds at least one;
+  * its (entity, column) set EQUALS the special-category register's rows carrying a
+    `trustee_release` block - so widening it takes a register edit too (two keys);
+  * its only members are trustee-role teams ("Its only member is the trustee group team").
+
+Anything else FAILS as before; a trustee team in REV_TrusteeRestricted still fails with the
+original message. And COMPLETENESS: every settings file that declares a trustee-role team must
+declare the release profile with every such team as a member (otherwise F1-F3 render "Not
+recorded" for every trustee - a blackout that looks like an unanswered question, R-D2-15); a file
+that declares no trustee-role team (DEV) must declare no entry for it.
+
+Each failure says which rule failed.
+
+Run:
+    python3 scripts/verify-column-security-membership.py provisioning/deploymentSettings \
+        --profiles src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml \
+        --register constraints/domain/special-category-register.yml \
+        [--release-config config/trustee-release-profile.json]
+
+Exits 0 when the invariant holds, 1 otherwise, 2 on a usage error. Wired into
+config/<slug>-build.yml as the `no-trustee-in-column-security-profile` step.
 """
 
 from __future__ import annotations
@@ -66,6 +88,12 @@ import json
 import os
 import re
 import sys
+import xml.etree.ElementTree as ET
+
+try:
+    import yaml  # PyYAML; the register is YAML
+except ImportError:  # pragma: no cover - fail closed below
+    yaml = None
 
 # A role name matching this is a persona whose access to secured columns must be prevented by
 # NON-MEMBERSHIP. Kept as a pattern rather than a fixed list so a second trustee-like persona
@@ -86,8 +114,102 @@ def load_settings(root: str) -> list[tuple[str, dict]]:
     return out
 
 
-_USAGE = "<deployment-settings-dir>"
-_EXAMPLE = "provisioning/deploymentSettings"
+def parse_args(argv: list[str]) -> dict | None:
+    """Positional settings dir, required --profiles/--register, optional --release-config."""
+    out: dict = {"release_config": _DEFAULT_RELEASE_CONFIG}
+    positional: list[str] = []
+    flags = {"--profiles": "profiles", "--register": "register", "--release-config": "release_config"}
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+        if arg in flags:
+            if i + 1 >= len(argv):
+                return None
+            out[flags[arg]] = argv[i + 1]
+            i += 2
+            continue
+        if arg.startswith("--"):
+            return None
+        positional.append(arg)
+        i += 1
+    if len(positional) != 1 or "profiles" not in out or "register" not in out:
+        return None
+    out["root"] = positional[0].rstrip("/")
+    return out
+
+
+def load_release_profile_name(path: str) -> str:
+    with open(path, encoding="utf-8") as handle:
+        name = (json.load(handle) or {}).get("profile")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError(f"{path} has no non-empty 'profile' value")
+    return name
+
+
+def load_profile_permissions(path: str) -> dict[str, list[tuple[str, str, int, int, int]]]:
+    """name -> [(entity, column, canread, canupdate, cancreate)] from FieldSecurityProfiles.xml."""
+    root = ET.parse(path).getroot()
+    profiles: dict[str, list[tuple[str, str, int, int, int]]] = {}
+    for fsp in root.iter("FieldSecurityProfile"):
+        perms = []
+        for perm in fsp.iter("FieldPermission"):
+            def num(tag: str) -> int:
+                text = (perm.findtext(tag) or "").strip()
+                return int(text) if text.lstrip("-").isdigit() else -1
+            perms.append(((perm.findtext("EntityName") or "").strip(),
+                          (perm.findtext("AttributeName") or "").strip(),
+                          num("CanRead"), num("CanUpdate"), num("CanCreate")))
+        profiles[str(fsp.get("name"))] = perms
+    return profiles
+
+
+def load_register_releases(path: str) -> set[tuple[str, str]]:
+    """Every (entity, column) the special-category register marks with a trustee_release block."""
+    if yaml is None:
+        raise ValueError("PyYAML is not installed, so the register cannot be read")
+    with open(path, encoding="utf-8") as handle:
+        doc = yaml.safe_load(handle) or {}
+    rows = doc.get("columns") if isinstance(doc, dict) else None
+    if not isinstance(rows, list):
+        raise ValueError(f"{path} has no top-level 'columns' list")
+    released: set[tuple[str, str]] = set()
+    for row in rows:
+        if isinstance(row, dict) and row.get("trustee_release"):
+            released.add((str(row.get("entity")), str(row.get("name"))))
+    return released
+
+
+def release_profile_problems(name: str, profiles: dict, released: set[tuple[str, str]]) -> list[str]:
+    """Why the named release profile may NOT have trustee members; empty when it may."""
+    if name not in profiles:
+        return [f"the release profile '{name}' named by the release config is not declared in "
+                "FieldSecurityProfiles.xml"]
+    perms = profiles[name]
+    problems: list[str] = []
+    if not perms:
+        problems.append(f"the release profile '{name}' grants no permission at all")
+    for entity, column, can_read, can_update, can_create in perms:
+        if (can_read, can_update, can_create) != (4, 0, 0):
+            problems.append(
+                f"the release profile '{name}' grants {entity}.{column} CanRead={can_read}, "
+                f"CanUpdate={can_update}, CanCreate={can_create}; a trustee release must be read "
+                "only (4/0/0)")
+    granted = {(e, c) for e, c, *_ in perms}
+    if granted != released:
+        extra = sorted(f"{e}.{c}" for e, c in granted - released)
+        missing = sorted(f"{e}.{c}" for e, c in released - granted)
+        problems.append(
+            f"the release profile '{name}' does not grant exactly the register's trustee_release "
+            f"columns: granted but not released by the register {extra or 'none'}; released by "
+            f"the register but not granted {missing or 'none'}")
+    return problems
+
+
+_USAGE = ("<deployment-settings-dir> --profiles <FieldSecurityProfiles.xml> --register <special-category-register.yml> "
+          "[--release-config <trustee-release-profile.json>]")
+_EXAMPLE = ("provisioning/deploymentSettings --profiles src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml "
+            "--register constraints/domain/special-category-register.yml")
+_DEFAULT_RELEASE_CONFIG = "config/trustee-release-profile.json"
 
 
 def _usage_error(got: int) -> int:
@@ -100,7 +222,7 @@ def _usage_error(got: int) -> int:
     output is, so every caller that keys on the code behaves identically.
     """
     name = os.path.basename(__file__)
-    print(f"{name}: USAGE ERROR — expected 1 argument(s), got {got}.", file=sys.stderr)
+    print(f"{name}: USAGE ERROR — expected 1 positional argument plus --profiles and --register; {got}.", file=sys.stderr)
     print(f"  usage:   python3 scripts/{name} {_USAGE}", file=sys.stderr)
     print(f"  example: python3 scripts/{name} {_EXAMPLE}", file=sys.stderr)
     print("  This is a usage error, NOT a finding. The rationale is this file's module docstring.",
@@ -109,13 +231,26 @@ def _usage_error(got: int) -> int:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    args = parse_args(argv)
+    if args is None:
         return _usage_error(len(argv) - 1)
-    root = argv[1].rstrip("/")
+    root = args["root"]
     if not os.path.isdir(root):
         print(f"no-trustee-in-column-security-profile: FAILED — {root} is not a directory. "
               "A gate pointed at a missing target does not fail (IMP-0007).", file=sys.stderr)
         return 1
+
+    # The release profile, its permissions and the register's release rows. Any of them
+    # unreadable FAILS: an unevaluable positive case is not a permitted one.
+    try:
+        release_name = load_release_profile_name(args["release_config"])
+        profiles = load_profile_permissions(args["profiles"])
+        released = load_register_releases(args["register"])
+    except (OSError, ValueError, json.JSONDecodeError, ET.ParseError) as exc:
+        print(f"no-trustee-in-column-security-profile: FAILED — could not read the release "
+              f"profile's inputs: {exc}", file=sys.stderr)
+        return 1
+    release_problems = release_profile_problems(release_name, profiles, released)
 
     settings = load_settings(root)
     if not settings:
@@ -126,23 +261,12 @@ def main(argv: list[str]) -> int:
     errors: list[str] = []
     profiles_checked = 0
     files_with_profiles = 0
+    release_memberships = 0
 
     for rel, doc in settings:
         dataverse = doc.get("dataverse") or {}
-        profiles = dataverse.get("columnSecurityProfiles")
-        if not profiles:
-            # A settings file need not declare profiles (a DEV-only file may not). Only the
-            # complete absence across every file is a failure, handled after the loop.
-            continue
-        files_with_profiles += 1
-
-        group_teams = dataverse.get("groupTeams")
-        if not group_teams:
-            errors.append(
-                f"{rel}: declares columnSecurityProfiles but no groupTeams, so membership "
-                "cannot be resolved to a role. Unevaluable is not satisfied — declare the "
-                "teams or remove the profiles.")
-            continue
+        declared = dataverse.get("columnSecurityProfiles")
+        group_teams = dataverse.get("groupTeams") or []
 
         trustee_teams: dict[str, str] = {}
         for team in group_teams:
@@ -151,10 +275,33 @@ def main(argv: list[str]) -> int:
                 if TRUSTEE_ROLE_PATTERN.search(role or ""):
                     trustee_teams[str(name)] = role
 
-        for profile in profiles:
+        if not declared:
+            # A settings file need not declare profiles (a DEV-only file may not). Only the
+            # complete absence across every file is a failure, handled after the loop. But a file
+            # that declares a trustee team and no release profile leaves trustees blind (R-D2-15).
+            if trustee_teams:
+                errors.append(
+                    f"{rel}: [completeness] declares trustee-role team(s) {sorted(trustee_teams)} "
+                    f"but no columnSecurityProfiles, so the release profile '{release_name}' has "
+                    "no members here and every trustee sees 'Not recorded' for the released "
+                    "answers.")
+            continue
+        files_with_profiles += 1
+
+        if not group_teams:
+            errors.append(
+                f"{rel}: declares columnSecurityProfiles but no groupTeams, so membership "
+                "cannot be resolved to a role. Unevaluable is not satisfied — declare the "
+                "teams or remove the profiles.")
+            continue
+
+        release_entry = None
+        for profile in declared:
             profiles_checked += 1
             pname = profile.get("name", "<unnamed>")
             members = profile.get("memberTeams")
+            if pname == release_name:
+                release_entry = profile
             if not members:
                 errors.append(
                     f"{rel}: profile '{pname}' has no memberTeams. A profile with no members "
@@ -163,7 +310,25 @@ def main(argv: list[str]) -> int:
                     "still a defect.")
                 continue
             for member in members:
-                if str(member) in trustee_teams:
+                is_trustee = str(member) in trustee_teams
+                if pname == release_name:
+                    if not is_trustee:
+                        errors.append(
+                            f"{rel}: [release-membership] profile '{pname}' lists member team "
+                            f"'{member}', which holds no trustee-facing role. The release "
+                            "profile's only member is the trustee group team (ADR-084).")
+                        continue
+                    if release_problems:
+                        for problem in release_problems:
+                            errors.append(
+                                f"{rel}: [release-profile] profile '{pname}' lists trustee "
+                                f"team '{member}', but {problem}. A trustee team is permitted "
+                                "in this profile only while it is read only and equals the "
+                                "register's trustee_release rows (ADR-085 G1).")
+                    else:
+                        release_memberships += 1
+                    continue
+                if is_trustee:
                     role = trustee_teams[str(member)]
                     errors.append(
                         f"{rel}: profile '{pname}' lists member team '{member}', which holds "
@@ -177,6 +342,25 @@ def main(argv: list[str]) -> int:
                         "reads as a trustee persona even though no declared groupTeam of that "
                         "name holds a trustee role. Either the team is undeclared or the name "
                         "is misleading; both need resolving before this can pass.")
+
+        # COMPLETENESS (ADR-085 G1): trustee teams here <=> the release profile, with all of them.
+        if trustee_teams:
+            listed = {str(m) for m in (release_entry or {}).get("memberTeams") or []}
+            missing = sorted(set(trustee_teams) - listed)
+            if release_entry is None:
+                errors.append(
+                    f"{rel}: [completeness] declares trustee-role team(s) {sorted(trustee_teams)} "
+                    f"but no '{release_name}' entry, so trustees would see 'Not recorded' for "
+                    "every released answer (R-D2-15).")
+            elif missing:
+                errors.append(
+                    f"{rel}: [completeness] '{release_name}' omits trustee-role team(s) "
+                    f"{missing}; every trustee team must be a member.")
+        elif release_entry is not None:
+            errors.append(
+                f"{rel}: [completeness] declares '{release_name}' but no trustee-role team, so "
+                "the entry can name no valid member. A file with no trustee team (DEV) declares "
+                "no entry for the release profile.")
 
     if not files_with_profiles:
         print("no-trustee-in-column-security-profile: FAILED — no settings file declares "
@@ -194,7 +378,9 @@ def main(argv: list[str]) -> int:
 
     print(f"no-trustee-in-column-security-profile: OK — {profiles_checked} profile "
           f"membership list(s) across {files_with_profiles} settings file(s); no team holding "
-          "a trustee-facing role is a member of any column security profile.")
+          "a trustee-facing role is a member of any column security profile except "
+          f"'{release_name}' ({release_memberships} membership(s)), which is read only and "
+          f"equals the register's {len(released)} trustee_release column(s).")
     return 0
 
 

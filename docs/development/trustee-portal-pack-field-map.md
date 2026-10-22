@@ -38,15 +38,15 @@ restricted rows were checked against `REV_TrusteeRestricted` in
 |---|---|
 | **Rows the Pack prints (pages 1–2)** | **45** |
 | Rendered in the Pack's position, with the Pack's label | 45 |
-| — read from a column a trustee can read | 42 |
+| — read from a column a trustee can read | 45 (42, plus F1-F3 since SDD A-14, 2026-10-22) |
 | — of those, withheld until the anonymised text is released (D12, D13, A4, A6, F5) | 5 |
 | — of those, filled by the grant admin by hand until the form has date pickers (S4, S5, D3, D4; WI-0010) | 4 |
-| — rendered as "Restricted": secured, never requested (F1, F2, F3) | 3 |
+| — rendered as "Restricted": secured, never requested | 0 (F1, F2, F3 until SDD A-14, 2026-10-22) |
 | **Added this pass** (the row did not exist on the screen before) | **26** |
 | Kept, moved and/or relabelled | 19 |
 | **Approved deviations** (non-Pack rows the reviewer placed inside Pack sections) | **5**: S0a, S0b, D11a, A3a, A3b (3 of them conditional) |
 | **Not shown by ruling** (WI-0011, or the 2026-09-30 personal-data ruling) | **0**: pages 1–2 print none of those fields |
-| **Gaps for you** | **3**: secured (F1, F2, F3), by design. F5's twin also needs one live schema run before it can be read (see below) |
+| **Gaps for you** | **0** secured gaps since SDD A-14 (F1, F2, F3 released read-only to trustees, 2026-10-22). F5's twin also needs one live schema run before it can be read (see below) |
 
 Columns added to the portal's read: 13 (12 existing columns plus the new twin
 `rev_carecostsexplanationredacted`). Removed: 8 (`rev_providerpreference`, `rev_scorebreakdown`,
@@ -128,9 +128,9 @@ you support:", rather than silently choosing one.
 
 | Row | Pack label (verbatim) | Dataverse column | Before this pass | Now | Action |
 |---|---|---|---|---|---|
-| F1 | Do you currently receive means tested benefits? | `rev_receivesbenefits`, **secured** (`REV_TrusteeRestricted`) | "Receives Means-Tested Benefits", restricted, 4th in the panel (L316) | [L516](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L516) | RELABEL, reorder. GAP (secured) |
-| F2 | Benefit Provider | `rev_benefitprovider`, **secured** | "Benefit Provider", restricted (L316) | [L521](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L521) | reorder. GAP (secured) |
-| F3 | Are you currently working? | `rev_employmentstatus`, **secured** | "Employment Status", restricted (L316) | [L526](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L526) | RELABEL, reorder. GAP (secured) |
+| F1 | Do you currently receive means tested benefits? | `rev_receivesbenefits`, **secured**, released read-only to trustees by `REV_TrusteeFinancialEligibility` (SDD A-14, FR-114) | "Yes" / "No" / *Not recorded* (`formatYesNo`) | [L551](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L551) | VALUE since A-14 (was restricted) |
+| F2 | Benefit Provider | `rev_benefitprovider`, **secured**, released read-only to trustees (SDD A-14, FR-115) | the answer as written, plain text with its line breaks; **not** gated by redaction (OQ-062 (b)); *Not recorded* when empty | [L556](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L556) | VALUE since A-14 (was restricted) |
+| F3 | Are you currently working? | `rev_employmentstatus`, **secured**, released read-only to trustees (SDD A-14, FR-114) | option label (`EMPLOYMENT_STATUS_LABELS`), *Not recorded* when empty | [L563](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L563) | VALUE since A-14 (was restricted) |
 | F4 | Approximate Household Income | `rev_incomeband` | "Income band", 2nd in the panel (L314) | [L531](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L531) | RELABEL, reorder |
 | F5 | If you have significant care costs, please briefly explain | `rev_carecostsexplanationredacted`, the **new** redacted twin of the secured `rev_carecostsexplanation` (reviewer 2026-09-30: "Show … as a narrativescrubbed version, like other columns. Add the column to the datamodel.") | not shown | [L537](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L537) | ADD. Withheld until released. Needs the live schema run below |
 | F6 | Do you savings over £6,000? | `rev_savingsover6000` | "Savings over £6,000" (L315) | [L545](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L545) | RELABEL (the Pack's own wording kept) |
@@ -160,7 +160,11 @@ Pack)" section is gone.
 
 ## Gaps: rows the portal cannot fill
 
-**Secured columns (3): F1, F2, F3.** Each is a secured column in `REV_TrusteeRestricted`, which no
+**Secured columns (0 since 2026-10-22).** *History:* until SDD Amendment A-14, F1, F2 and F3 were
+secured columns in `REV_TrusteeRestricted`, which no trustee is a member of, and rendered as
+restricted. A-14 (portal TAD trustee-portal-design-2 Revision 4, ADR-084) released them read-only to
+trustees through `REV_TrusteeFinancialEligibility`; they are values now (rows above). What follows
+describes the earlier state. Until then each was a secured column in `REV_TrusteeRestricted`, which no
 trustee is a member of. Each renders in its Pack position as "Restricted — this field is protected
 by column-level security and is not requested by this app." This is deliberate (ADR-032; the
 earlier board-pack comparison recorded benefit status as "never shown to trustees"). No security

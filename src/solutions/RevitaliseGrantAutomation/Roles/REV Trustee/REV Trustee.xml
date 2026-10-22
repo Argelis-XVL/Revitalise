@@ -76,6 +76,13 @@
   the "REV Trustees" group team, to that profile's membership. Confirmed present as "REV
   Admins" and "REV Service Accounts" only, and unchanged by this feature, on 2026-08-21.
 
+  AMENDED 2026-10-22 (SDD A-14; portal TAD trustee-portal-design-2 Revision 4, ADR-084). Three of
+  those secured columns - rev_application.rev_receivesbenefits, rev_benefitprovider and
+  rev_employmentstatus - are now released READ ONLY to the trustee group team by a separate profile,
+  REV_TrusteeFinancialEligibility, which grants those three and nothing else. The rule above is
+  unchanged for REV_TrusteeRestricted: the trustee team must never be its member.
+  scripts/verify-column-security-membership.py permits a trustee team in the release profile only.
+
   AMENDED 2026-08-21 (WBS 6.1) - prvReadrev_applicant ADDED, RESOLVING A TAD CONTRADICTION.
   TAD section 3.1 (the rev_applicant attribute table) marks rev_agerange and
   rev_locationarea "trustee-visible (FR-027)", both IsSecured=0 on

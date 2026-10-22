@@ -296,11 +296,11 @@ export function DistributionChart({
                   Category
                 </th>
                 {showCounts ? (
-                  <th scope="col" className={styles.plainHeaderCell}>
+                  <th scope="col" className={`${styles.plainHeaderCell} ${styles.numeric}`}>
                     {countHeading}
                   </th>
                 ) : null}
-                <th scope="col" className={styles.plainHeaderCell}>
+                <th scope="col" className={`${styles.plainHeaderCell} ${styles.numeric}`}>
                   Share of round
                 </th>
               </tr>

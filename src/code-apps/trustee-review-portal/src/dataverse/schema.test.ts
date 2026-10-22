@@ -11,10 +11,18 @@
  * from source at runtime. `IMP-0024`: a negative-test fixture for a scanner must not be
  * a literal in the scanned tree, or the scanner finds its own test.
  *
- * What this proves: no file in this app names a secured column. What it does NOT prove:
- * that the connector would refuse to return one. That control is elsewhere and is not
- * ours — `REV Trustee` is deliberately not a member of the `REV_TrusteeRestricted`
- * column-security profile, and non-membership IS the control (`IMP-0153`).
+ * What this proves: no file in this app names a secured column OUTSIDE THE TRUSTEE RELEASE
+ * PROFILE. What it does NOT prove: that the connector would refuse to return one. That control
+ * is elsewhere and is not ours — `REV Trustee` is deliberately not a member of the
+ * `REV_TrusteeRestricted` column-security profile, and non-membership IS the control
+ * (`IMP-0153`).
+ *
+ * G3, portal TAD trustee-portal-design-2 Revision 4 (ADR-085, SDD A-14, 2026-10-22): trustees now
+ * read three secured answers through ONE read-only profile, named by
+ * `config/trustee-release-profile.json`. The forbidden set is still derived from `IsSecured=1`,
+ * minus exactly the columns THAT profile grants, read from `FieldSecurityProfiles.xml` — with a
+ * positive control that the subtracted set is non-empty, read only, and exactly what the profile
+ * grants. Every other secured column stays forbidden; ADR-032's catalogue covers them.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -34,6 +42,7 @@ import {
   CARE_PROVIDED_TYPE_LABELS,
   CIRCUMSTANCE_SCORE_BAND_LABELS,
   CONDITION_PROFILE_LABELS,
+  EMPLOYMENT_STATUS_LABELS,
   ENTITY_SETS,
   EXCEPTIONAL_CIRCUMSTANCE_LABELS,
   INCOME_BAND_LABELS,
@@ -65,6 +74,60 @@ const APPLICATION_ENTITY_XML = join(
   "rev_application",
   "Entity.xml",
 );
+
+const FIELD_SECURITY_PROFILES_XML = join(
+  REPO_ROOT,
+  "src",
+  "solutions",
+  "RevitaliseGrantAutomation",
+  "Other",
+  "FieldSecurityProfiles.xml",
+);
+const RELEASE_PROFILE_CONFIG = join(REPO_ROOT, "config", "trustee-release-profile.json");
+
+interface ReleasedPermission {
+  readonly entity: string;
+  readonly column: string;
+  readonly canRead: string;
+  readonly canUpdate: string;
+  readonly canCreate: string;
+}
+
+/**
+ * The permissions of the trustee release profile (G3). Throws when the config or the profile is
+ * missing: an empty subtraction would silently forbid nothing extra, but an unreadable profile is
+ * a broken gate input, and the positive controls below must see it.
+ */
+function releaseProfilePermissions(): { profile: string; permissions: ReleasedPermission[] } {
+  const config = JSON.parse(readFileSync(RELEASE_PROFILE_CONFIG, "utf8")) as { profile?: unknown };
+  const profile = config.profile;
+  if (typeof profile !== "string" || profile.trim() === "") {
+    throw new Error(`${RELEASE_PROFILE_CONFIG} names no 'profile'.`);
+  }
+  const xml = readFileSync(FIELD_SECURITY_PROFILES_XML, "utf8");
+  const blocks = xml
+    .split("<FieldSecurityProfile ")
+    .slice(1)
+    .filter((chunk) => chunk.startsWith(`name="${profile}"`));
+  if (blocks.length !== 1) {
+    throw new Error(`The release profile ${profile} is declared ${blocks.length} time(s) in ${FIELD_SECURITY_PROFILES_XML}.`);
+  }
+  const body = (blocks[0] ?? "").split("</FieldSecurityProfile>")[0] ?? "";
+  const permissions = body
+    .split("<FieldPermission>")
+    .slice(1)
+    .map((chunk) => {
+      const tag = (name: string) => new RegExp(`<${name}>([^<]*)</${name}>`).exec(chunk)?.[1]?.trim() ?? "";
+      return {
+        entity: tag("EntityName"),
+        column: tag("AttributeName"),
+        canRead: tag("CanRead"),
+        canUpdate: tag("CanUpdate"),
+        canCreate: tag("CanCreate"),
+      };
+    });
+  return { profile, permissions };
+}
 
 const SKIP_DIRECTORIES = new Set([
   "node_modules",
@@ -117,8 +180,33 @@ function securedApplicationColumns(): string[] {
   return secured;
 }
 
-describe("no secured column is named anywhere in this app", () => {
-  const forbidden = securedApplicationColumns();
+describe("no secured column outside the trustee release profile is named anywhere in this app", () => {
+  const secured = securedApplicationColumns();
+  const release = releaseProfilePermissions();
+  const released = new Set(
+    release.permissions.filter((p) => p.entity === "rev_application").map((p) => p.column),
+  );
+  const forbidden = secured.filter((column) => !released.has(column));
+
+  it("subtracts exactly the columns the release profile grants, and only read-only ones (G3 positive control)", () => {
+    expect(release.permissions.length).toBeGreaterThan(0);
+    for (const permission of release.permissions) {
+      expect(permission.entity).toBe("rev_application");
+      expect([permission.canRead, permission.canUpdate, permission.canCreate]).toEqual(["4", "0", "0"]);
+      // Only a SECURED column is subtracted: a release of an unsecured column would be a no-op
+      // here and is a sign the profile and Entity.xml have drifted.
+      expect(secured).toContain(permission.column);
+    }
+    expect(released.size).toBe(release.permissions.length);
+    expect(secured.length - forbidden.length).toBe(released.size);
+  });
+
+  it("reads the released columns on the detail screen only, never on the list", () => {
+    for (const column of released) {
+      expect(APPLICATION_DETAIL_EXTRA_COLUMNS as readonly string[]).toContain(column);
+      expect(APPLICATION_LIST_COLUMNS as readonly string[]).not.toContain(column);
+    }
+  });
   const files = collectFiles(join(APP_ROOT, "src")).concat(
     collectFiles(APP_ROOT).filter((f) => !relative(APP_ROOT, f).includes("/")),
   );
@@ -478,6 +566,7 @@ describe("the landing screen's schema (WBS 6.9)", () => {
       ["rev_carehoursband", CARE_HOURS_BAND_LABELS],
       ["rev_incomeflag", INCOME_FLAG_LABELS],
       ["rev_incomeband", INCOME_BAND_LABELS],
+      ["rev_employmentstatus", EMPLOYMENT_STATUS_LABELS],
       ["rev_conditionprofile", CONDITION_PROFILE_LABELS],
     ] as [string, Readonly<Record<number, string>>][]) {
       expect(map).toEqual(optionSetLabels(setName));

@@ -299,7 +299,6 @@
            (A-NS-9). Its id is the platform's, read from the export, never chosen here (C-TECH-051).
            The flow's run action refers to it by this id. -->
       <RootComponent type="401" id="{122be8e0-4b6b-44cd-a9a9-d1faff162b02}" behavior="0" />
-      <RootComponent type="401" id="{763cff31-d653-416b-a52f-7e6f400bce21}" behavior="0" />
       <RootComponent type="401" id="{e853d7c8-dd36-4917-951f-50108a812fc4}" behavior="0" />
       <!--
         App sitemap (type 62) and model-driven app (type 80) ARE DECLARED BY NAME, NOT BY GUID,
@@ -332,6 +331,10 @@
            procedure as REV Trustee's role id on 2026-08-21 (IMP-0166) - see
            Other/FieldSecurityProfiles.xml's own header on this element for the full story. -->
       <RootComponent type="70" id="{93d339bc-289f-f111-b8de-7ced8d43e87d}" />
+      <!-- REV_TrusteeFinancialEligibility (portal TAD trustee-portal-design-2 ADR-084, wbs:6.3) - id is
+           DEV's real, live fieldsecurityprofileid, read back 2026-10-22 after the reviewer ran
+           ensure-schema.ps1 -Env dev (C-TECH-051). See Other/FieldSecurityProfiles.xml. -->
+      <RootComponent type="70" id="{7d3e86d4-0dce-f111-a05c-7ced8d43e1b4}" />
       <RootComponent type="80" schemaName="rev_grantadministration" />
       <!-- Environment variable definitions (type 380) -->
       <RootComponent type="380" schemaName="rev_ProcessOwnerUpn" />

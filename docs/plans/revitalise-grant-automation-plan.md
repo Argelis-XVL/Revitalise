@@ -30,9 +30,11 @@ see below** ·
 **Amendment A-09 APPROVED 2026-10-16 — Narrative Scrubbing follows the client's Anonymisation Key: gendered and relationship words become neutral ones, names become *They*, the redacted copy reads correctly and is spell-checked (`wbs:5.6`; spell-check under `CO-009`, approved unbilled); hosting in Switzerland and EU prompt processing accepted (NFR-009); OQ-054 to OQ-056 adopted at their defaults — see below** ·
 **Amendment A-10 APPROVED 2026-10-19 (revision 2, after reviewer feedback) — Auto-reject extended to three financial eligibility rules (amount over the limit for the break type without an exceptional request, £100 or £500 by type; income above the ceiling for an applicant not on means-tested benefits; savings over £6,000), every rule's parameter a setting the process owner changes, every reason that fired written for Emily, the 12-month prior-funding rule written down as built (`wbs:2.4`, `2.7`; not billable) — see below** ·
 **Amendment A-11 APPROVED 2026-10-19 — the process owner reviews and releases every redacted narrative, not only flagged ones, and nothing is released automatically; the confidence threshold becomes a flag for her attention (FR-029, FR-030, NFR-017, NFR-018, US-007 AC-4 and AC-5); the applicant's own name keeps `[NAME]` and a name right after a relationship word is dropped even when other people are named (FR-095) (`wbs:5.3`, `5.4`, `5.6`; no new ids; OQ-054 case (e) confirmed) — see below** ·
-**Amendment A-12 APPROVED 2026-10-20 — recording the final payment starts the six-year retention clock: the grant's final payment date is set and the application moves to "Grant Paid" (FR-107 to FR-112, US-026; `wbs:8.6`, change order `CO-010`, scope accepted unbilled; OQ-057 and OQ-058 answered; **reviewer-directed revision 2026-10-20: a final payment must carry a payment date, and marking it final sets its status to Issued**, with OQ-059 raised and answered *"No. payment final means final."*; **second revision 2026-10-20: the grant's own status also moves to "Paid", FR-113, with OQ-060 raised and answered *"Keep default."***) — see below**
+**Amendment A-12 APPROVED 2026-10-20 — recording the final payment starts the six-year retention clock: the grant's final payment date is set and the application moves to "Grant Paid" (FR-107 to FR-112, US-026; `wbs:8.6`, change order `CO-010`, scope accepted unbilled; OQ-057 and OQ-058 answered; **reviewer-directed revision 2026-10-20: a final payment must carry a payment date, and marking it final sets its status to Issued**, with OQ-059 raised and answered *"No. payment final means final."*; **second revision 2026-10-20: the grant's own status also moves to "Paid", FR-113, with OQ-060 raised and answered *"Keep default."***) — see below** ·
+**Amendment A-13 APPROVED 2026-10-22 — the expected volume rises from about 200 to about 1,000 applications a year, about 90 a month (NFR-021; reviewer's figure 2026-10-21, confirmed 2026-10-22; `wbs:0.1`, not billable; OQ-061 raised, then ANSWERED 2026-10-22 by the reviewer: headroom to at least 1,250 a year, and every record held for its full retention period with a planning ceiling of 7,500 records; no new FR or NFR ids) — see below** ·
+**Amendment A-14 APPROVED 2026-10-22 (with reviewer revisions) — on the card-layout trustee portal, trustees see benefit status, benefit provider and employment status as values; the existing verdict button shows the trustee's own verdict in colour and text; a trustee records one verdict on a whole group (FR-114 to FR-119; NFR-001, NFR-031, FR-078 and FR-079 amended; OQ-062 and OQ-063 raised and resolved; `wbs:6.3`, unbilled; `feature:trustee-portal-design-2`, WI-0146 to WI-0148) — see below**
 
-<!-- id-allocation: FR-001..FR-063, FR-070..FR-079, FR-080..FR-082, FR-083..FR-093, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, OQ-049..OQ-050, OQ-051..OQ-053, US-001..US-016, US-020..US-023, US-024, FR-094..FR-101, OQ-054..OQ-056, US-025, FR-102..FR-106, FR-107..FR-111, OQ-057..OQ-058, US-026, FR-112, OQ-059, FR-113, OQ-060 -->
+<!-- id-allocation: FR-001..FR-063, FR-070..FR-079, FR-080..FR-082, FR-083..FR-093, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, OQ-049..OQ-050, OQ-051..OQ-053, US-001..US-016, US-020..US-023, US-024, FR-094..FR-101, OQ-054..OQ-056, US-025, FR-102..FR-106, FR-107..FR-111, OQ-057..OQ-058, US-026, FR-112, OQ-059, FR-113, OQ-060, OQ-061, FR-114..FR-119, OQ-062..OQ-063 -->
 
 ---
 
@@ -1710,6 +1712,154 @@ see below** ·
 
 **Amendment A-12, third reviewer-directed revision, decision "4" — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `APPROVED` (verbatim: *"4"*), relayed by lead-agent. The "date required when final" rule and the "Pending becomes Issued when final" behaviour move from the form-only rule and the flow into one table-level business rule on Payment that applies to every save (form, API, flow). Wording aligned: FR-107 (no undated final payment by any route; the form-only carve-out is removed, the flow's ignore-and-report may remain as defence), FR-112 (Pending becomes Issued in the same save; Cancelled, Issued and Cleared untouched; last-modified-by shows the person who saved), AC-12 (carve-out removed), AC-13 and AC-14 (clarified). AC-15 unchanged: removing the final mark still leaves Issued. The TAD is updated separately by architect-agent. No new ids, no hours restated; gate not re-opened.
 
+
+> ## 📌 Amendment A-13 — APPROVED 2026-10-22
+
+> **Raised by:** plan-agent, 2026-10-22, standard tier, dispatched by lead-agent. **Contracted scope:** `wbs:0.1` (the
+> volume and capacity sizing the TAD rev 31 re-checks); this is a correction of a planning figure, not new work, and
+> it is not billable. **New ids:** OQ-061 only. **Amended:** NFR-021. **Annotated, not rewritten:** §1 (run rate),
+> §2 objective 1, §7.8 (DPIA action A4), OQ-007, §8 assumption 22 and the return line in §10.
+>
+> ### The reviewer's decision, verbatim
+>
+> The figure (2026-10-21, relayed by lead-agent, as recorded in `logs/routing.log`): about **1,000 applications a
+> year**. The reviewer's own count was 730 applications from 2026-02-16 to 2026-10-21. TAD rev 31 asked *"Change to
+> 1000"* and the reviewer answered *"Change to 1000"* (2026-10-22 10:26). The reviewer then confirmed this SDD
+> amendment on 2026-10-22: *"3. yes."* The decision supplies the figure. It supplies no wording and no headroom, and
+> that is what this amendment adds.
+>
+> ### What changes, at business level
+>
+> | ID | Previously read | Now reads |
+> |---|---|---|
+> | NFR-021 | About 200 applications a year, headroom to at least 250, at least 300 cumulative records | About 1,000 applications a year (about 90 a month); headroom to at least 1,250 a year, and every record held for its full retention period up to a 7,500-record planning ceiling (OQ-061, answered 2026-10-22) |
+>
+> ### Findings that shaped the text
+>
+> **1. The old figure was a planning assumption, and the run rate had already passed it.** §1 recorded 68 grants in
+> about four months against about 200 a year; the reviewer's count is 730 applications in about eight months. Note that
+> 68 counted grants and 730 counts applications, so the two are not the same measure. The new figure is a count of
+> applications, which is what NFR-021 has always named.
+>
+> **2. Most statements in this SDD do not depend on the volume.** Every requirement is stated per application or per
+> record, so none changes. What depends on volume is the sizing of licences and credits, which is the TAD's
+> (§7 NFR-021, `A-R16`), and the savings arithmetic in §1, §2 and §10, which is an estimate and not a requirement.
+>
+> **3. The savings figures are not recomputed here.** §2 objective 1 (about 330 staff hours a year) and the return line
+> in §10 were derived from about 200 grants a year. At the new volume they are understated. This amendment marks them
+> as superseded in their basis and states no replacement figure: a replacement belongs in a re-run of the estimate
+> (`skills/how-to-estimate-effort.md`), and contracted hours stay `contract/wbs.json`'s to cite (`C-COM-008`).
+>
+> **4. DPIA action A4 is answered.** A4 and OQ-007 asked for the expected application volume to be on record. The
+> reviewer's figure is that record. The role-review cadence half of A4 is unchanged.
+>
+> **5. Headroom and cumulative history had no stated basis for the new figure.** The old pair (250 and 300) was a 25 percent margin
+> and about a year and a half of records. OQ-061 holds the defaults and asks the reviewer to confirm or replace them.
+>
+> ### Open question raised
+>
+> OQ-061 in §9, with a default and an example, dated against the event that makes it load-bearing.
+>
+> ### Resolution
+>
+> **APPROVED 2026-10-22.** Xander Lykopoulos, relayed by lead-agent, verbatim: *"1. Approved"*. Approval covers the NFR-021
+> wording (about 1,000 applications a year, about 90 a month) and the annotations to §1, §2, §7.8 (A4), OQ-007, §8 and §10. The reviewer
+> did not comment on OQ-061's derived defaults (headroom 1,250 a year; at least 3,000 cumulative records), so they are **not confirmed**:
+> OQ-061 stayed open as confirm-or-replace, and NFR-021's headroom and history figures were held by it. *Follow-up, 2026-10-22: OQ-061 ANSWERED by the reviewer (headroom 1,250 confirmed; the 3,000 history figure replaced by full-retention holding with a 7,500 planning ceiling); see the OQ-061 rows at §9 and NFR-021.*
+
+
+> ## 📌 Amendment A-14 — APPROVED 2026-10-22 (with reviewer revisions)
+>
+> **Raised by:** plan-agent, 2026-10-22, strategic tier, dispatched by lead-agent
+> (`feature:trustee-portal-design-2`; work items WI-0146, WI-0147, WI-0148 under WI-0145). **Contracted
+> scope:** `wbs:6.3`, recorded unbilled by the reviewer's Design 2.0 decision of 2026-09-30. No change
+> order is raised here; billing is commercial-agent's. **Surface:** the card-layout trustee portal, the
+> one the customer chose on 2026-10-22. **New ids:** FR-114 to FR-119 (new §4 subsection M), OQ-062,
+> OQ-063. **Amended:** NFR-001, NFR-031, FR-078, FR-079, US-012 (three criteria appended), §7.1, §7.1b, OQ-048 (scope),
+> the A-09 "Not in scope" note under §4 E+. **Business level only:** how the platform releases the
+> columns, which columns the portal reads and how a group verdict is written are architect-agent's next
+> step.
+>
+> ### The reviewer's requests, verbatim (2026-10-22, Xander Lykopoulos, spoken in the session)
+>
+> 1. *"they are currently shown in the PDF that the process owner prepares for the trustees. The fields
+>    are: - Do you receive benefits - Benefit provider - Are you currently working. These fields can be
+>    shown to the Trustees."*
+> 2. *"Visibility of alreay approved applications (maybe make the verdict button other colour that fits
+>    the design system and the text "Approved") Or suggest a better solution for that visibility."*
+> 3. *"Group applications can be given a verdict on the whole group (batched verdict on all
+>    applications)"*
+>
+> ### Findings that shaped the text
+>
+> **1. The reviewer's basis is correct: the board pack shows all three answers.** The sample individual
+> pack (`docs/Import/3. Round 4 - Individual Applications.pdf`) has a *Financial Eligibility* section on
+> every application reading *"Do you currently receive means tested benefits?"*, *"Benefit Provider"* and
+> *"Are you currently working?"* with the applicant's answers. The sample group pack (`2. Group
+> Applications - Round 5.pdf`) shows the benefit provider. A-02 Finding 1 recorded the same section and
+> called it *"correctly excluded"* only because §7.1 then said benefit status was *"never shown to
+> trustees"*. No SDD requirement lists the pack's financial fields: FR-032's list predates A-05, and
+> FR-035 is the requirement that says *"the same case they receive today in the printed board pack"*.
+> So the reviewer's decision completes FR-035's stated purpose rather than widening it.
+>
+> **2. The classification does not change; the audience does.** All three columns stay Article 9
+> special-category data and stay in `constraints/domain/special-category-register.yml`. What changes is
+> that trustees join the administrator role and the service identity as readers. The lawful basis is
+> unchanged (§7.2, Application grouping: Art. 6, and Art. 9(2)(b) and 9(2)(h)), because trustees deciding
+> the grant is the purpose that basis already covers. NFR-001 said benefit status is readable *only* by
+> the administrator and the service identity, so it is amended. NFR-031 sets the rule for releasing an
+> Art. 9 column to trustees, and this amendment follows it, with the one exception Finding 3 records.
+>
+> **3. The benefit provider is free text, and the reviewer released it as written.** `rev_benefitprovider`
+> is a multi-line text column (`Entity.xml`) and row 37 of the client's own Anonymisation Key. NFR-031
+> keeps the free text behind a released Art. 9 column secured, so the proposed text showed it through a
+> redacted copy. At approval the reviewer chose the answer as written (OQ-062): *"Benefit provider is just
+> an organisation. Leave that as written. They see that currently as well."* NFR-031 and FR-079 now name
+> this one column as an exception. The 2026-10-16 ruling that row 37 gets no redacted copy stands; only
+> its "not shown to trustees" half is superseded. Previously read: *"So FR-115 shows it through a redacted
+> copy, the way every other free-text answer reaches trustees (FR-079). [...] OQ-062 asks the reviewer to
+> confirm it or to choose the raw answer instead."*
+>
+> **4. The release is by the platform, as before.** BR-R05 and NFR-003 make column security the control,
+> not the app. Trustees must receive the three values from the platform, and every other persona must
+> still receive none. How this is done is architect-agent's choice. One constraint binds it:
+> [C-DOM-031](constraints/domain/domain-constraints.md) requires every registered column to stay
+> column-secured unless the register records an exception. The reviewer's direction at approval:
+> *"Good idea to add read rights to the column security profile."*
+>
+> **5. Verdicts are per trustee, two per application, and a "final" state exists.** Each application's
+> review has two named trustee slots, each with its own verdict and notes (BR-R02, BR-R03; TAD §3.1,
+> `rev_review`). A trustee writes only their own slot. Once the process owner runs *Finalise decisions*
+> (FR-040), the round is finalised and the portal already shows the verdict read-only. That is the
+> "already final" state the work item names; no other final flag exists. A trustee also cannot record a
+> verdict where they are not one of the two trustees on the review, or where no review record exists
+> yet. FR-118 skips all three cases.
+>
+> **6. A group is the set of applications sharing one group reference.** The group pages come from
+> `docs/plans/emily-review-feedback-2026-09-plan.md` §4.3 (EF-43). A group verdict is a shortcut that
+> records the same individual verdict on each member. It is not a new group-level decision, and both
+> trustees still decide every application (BR-R03). The reviewer confirmed with the process owner that
+> group applications are only ever processed from the group perspective (OQ-063).
+>
+> **7. Request 2 left the design open; the reviewer chose a change to the existing button.** FR-116 is the
+> existing *Record verdict* button, whose colour and text follow the trustee's own verdict. Reviewer, at
+> approval: *"No secondary button for visibility.. just a colour and text change on the existing button
+> based on verdict status. Existing onces will get the colour and text automatically based on the given
+> verdict status. And it's test data, so it doesn't matter."* FR-117 (count and filter) is kept.
+> Previously read: FR-116 proposed a secondary-style control in place of the primary button.
+>
+> ### Open questions raised and resolved
+>
+> OQ-062 (raw or redacted benefit provider) and OQ-063 (what a group verdict does to the trustee's
+> existing verdicts and notes), both raised with a default and both answered by the reviewer on
+> 2026-10-22, in §9. The DPIA and RoPA entry that
+> NFR-031 requires is folded into OQ-048 and is not a new question.
+>
+> ### Resolution
+>
+> **APPROVED 2026-10-22 by Xander Lykopoulos, with the revisions recorded in Findings 3, 4, 6 and 7,
+> relayed by lead-agent.** Verbatim: *"Approved."* See the Approval section.
+
 ---
 
 ## 1. Business Context
@@ -1743,7 +1893,7 @@ The cost is concentrated in manual data handling, not in decision-making:
   grants; unreliable as volume grows across years.
 
 The current run rate is 68 grants in roughly four months, against a planning assumption of ~200
-grants per year. The process does not scale, and it carries a single-point-of-failure risk: the
+grants per year. *(⚠️ Superseded in its basis, Amendment A-13 (APPROVED 2026-10-22): the reviewer's count is 730 applications from 2026-02-16 to 2026-10-21 and the expected volume is now about 1,000 applications a year. This paragraph is the situation as first written, kept as history.)* The process does not scale, and it carries a single-point-of-failure risk: the
 master spreadsheet is effectively "Emily's laptop is the source of truth".
 
 Alongside the efficiency problem there is a compliance problem. The process handles
@@ -1759,7 +1909,7 @@ personal-data breach. A DPIA is required under UK GDPR Article 35 for this proce
 *(DERIVED — the source states outcomes and savings but does not list objectives explicitly.)*
 
 1. **Cut staff handling time per successful grant from ~4 hours to under 1 hour**, releasing
-   approximately 330 staff hours per year at ~200 grants/year.
+   approximately 330 staff hours per year at ~200 grants/year. *(⚠️ Amendment A-13: derived from ~200 grants a year, so understated at about 1,000 applications a year; not recomputed here, see A-13 finding 3.)*
 2. **Prevent incomplete applications at source** rather than chasing them afterwards, targeting a
    60–70% reduction in incomplete submissions.
 3. **Make assessment consistent and evidenced** by calculating the circumstance score
@@ -1959,7 +2109,9 @@ Finding 1). The stored original is never changed by any of them (FR-031).
 **Not in scope, by reviewer decision of 2026-10-16.** The key's rows 37, 40 and 41 (*Benefit provider*,
 *Please specify source of additional funding*, *Awaiting decision from*) get no redacted copy and are not
 shown to trustees: *"don't have to be in the trustee portal. All fields in the trustee portal right now is
-what the trustees use to make their decisions on."* FR-079 is not extended to them. The other twelve
+what the trustees use to make their decisions on."* FR-079 is not extended to them. ⚠️ **Row 37 (*Benefit
+provider*) partly superseded by Amendment A-14 (APPROVED 2026-10-22):** it still gets no redacted copy, as
+ruled here, but it is now shown to trustees as written (FR-115, OQ-062). Rows 40 and 41 are unchanged. The other twelve
 questions in the key are the twelve columns FR-079 already covers (redaction rules v0.4 §2.1a). §7.1c
 classifies the two answers that were unclassified.
 
@@ -2110,8 +2262,8 @@ this document for the per-column ground truth, and §7.1b for the classification
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-078 | The system SHALL render a field whose value is withheld from the signed-in user by column security as an explicit restricted state that names the field, rather than as an empty value or by omitting the field, SO THAT a trustee can tell the difference between an answer the applicant did not give and an answer the trustee is not permitted to see. *(Amendment A-05. Applies to the eleven `REV_TrusteeRestricted` columns listed in Finding 1, Group B. The control itself is unchanged — this requirement governs only how its effect is presented, and it is the reason binding a secured column is safe rather than merely harmless.)* | High |
-| FR-079 | The system SHALL present applicant free text in a trustee-facing view only through that column's redacted counterpart, and SHALL render the withheld state for that field until redaction has been released for the record, SO THAT extending the trustee view to further free-text columns cannot disclose unredacted text. *(Amendment A-05. Extends FR-031's treatment of `rev_narrativeraw` to `rev_unabletofundexplanation`, `rev_exceptionalfundingdetail`, `rev_otherexceptionalcircumstance`, `rev_otherconditionraw` and `rev_supportrecipientotherconditionraw` — none of which has a redacted counterpart column today. Creating those columns is new schema work for architect-agent at TAD stage, following the existing `rev_narrativeredacted` pattern; see Amendment A-05, Finding 2, including why a redacted counterpart must NOT be added to the special-category register. Until Automation #5 ships, every one of these renders withheld — `EX-003`.)* | High |
+| FR-078 | The system SHALL render a field whose value is withheld from the signed-in user by column security as an explicit restricted state that names the field, rather than as an empty value or by omitting the field, SO THAT a trustee can tell the difference between an answer the applicant did not give and an answer the trustee is not permitted to see. ⚠️ **AMENDED, Amendment A-14 (APPROVED 2026-10-22):** applies to the eight helper, referee and emergency-contact identity columns of Finding 1, Group B. Benefit status, benefit provider and employment status leave this requirement and are shown under FR-114 and FR-115. The A-05 note that follows is kept as written; its "eleven" is the count before A-14. *(Amendment A-05. Applies to the eleven `REV_TrusteeRestricted` columns listed in Finding 1, Group B. The control itself is unchanged — this requirement governs only how its effect is presented, and it is the reason binding a secured column is safe rather than merely harmless.)* | High |
+| FR-079 | The system SHALL present applicant free text in a trustee-facing view only through that column's redacted counterpart, and SHALL render the withheld state for that field until redaction has been released for the record, SO THAT extending the trustee view to further free-text columns cannot disclose unredacted text. *(Amendment A-05. Extends FR-031's treatment of `rev_narrativeraw` to `rev_unabletofundexplanation`, `rev_exceptionalfundingdetail`, `rev_otherexceptionalcircumstance`, `rev_otherconditionraw` and `rev_supportrecipientotherconditionraw` — none of which has a redacted counterpart column today. Creating those columns is new schema work for architect-agent at TAD stage, following the existing `rev_narrativeredacted` pattern; see Amendment A-05, Finding 2, including why a redacted counterpart must NOT be added to the special-category register. Until Automation #5 ships, every one of these renders withheld — `EX-003`.)* ⚠️ **Exception, Amendment A-14 (APPROVED 2026-10-22):** `rev_benefitprovider` is shown to trustees as written, with no redacted copy (FR-115, OQ-062). | High |
 
 ### K. What the intake stores from the website form (Amendment A-08, `wbs:4.1` / `4.2` / `4.3`)
 
@@ -2158,13 +2310,29 @@ re-check (FR-023's second call site, `wbs:8.5`) is **excluded** and is not in an
 | FR-112 | The system SHALL set a payment's status to Issued, at the moment the payment is saved as final and in that same save, WHEN its status is Pending, SO THAT a final payment does not need a second field updated by hand and is never seen as final and Pending. The payment's last-modified-by SHALL show the person who saved it, not a service account. This applies to every route that saves the payment (form, API, flow). It SHALL leave the status as it is WHEN it is already Issued or Cleared. A payment that is Cancelled does not count as final (FR-110): the status stays Cancelled and the case is reported under FR-111. The system SHALL NOT change the payment's status WHEN the final mark is later removed (FR-110): finance sets any status correction by hand (OQ-059). *(Added by the reviewer-directed revision of Amendment A-12, 2026-10-20; timing and last-modified-by aligned on the reviewer's decision "4", 2026-10-20. Previously read: "in the same event as FR-107", which put the change in the flow after the save.)* | High |
 | FR-113 | The system SHALL move the grant's own status to "Paid" in the same event as FR-107, WHEN finance records a payment as final and the grant's status is "Acceptance Signed", SO THAT a paid grant no longer reads as one still awaiting payment. WHEN the grant is at Awarded or Acceptance Issued, or at any other status except "Paid", the system SHALL leave the grant's status as it is and report the case under FR-111 (OQ-060), in the run where the final payment date is written or cleared; it SHALL NOT move a grant that has not been signed to "Paid". WHEN the grant is already at "Paid" and the payment is saved again, the system SHALL change nothing and report nothing (FR-109), so a repeat save of a paid grant is silent. WHEN FR-110 withdraws the last final payment on the grant and the grant is at "Paid", the system SHALL return it to "Acceptance Signed"; a grant at any other status is left as it is and reported under FR-111. This rule mirrors FR-108 but depends only on the grant's status, never on the application's. *(Added by the second reviewer-directed revision of Amendment A-12, 2026-10-20: *"Obviously the final payment should change the grant status as well."*)* *(Wording aligned 2026-10-20 to the reviewer-approved, built design (TAD §5.11); not a new decision. Previously read: "Awarded, Acceptance Issued, Paid already, or anything else" reported, which read literally reports every repeat save of a paid grant and contradicts FR-109.)* | High |
 
+### M. Trustee portal: benefit and employment answers, own-verdict visibility, group verdict (Amendment A-14 — `wbs:6.3`, `feature:trustee-portal-design-2`)
+
+⚠️ **New subsection, Amendment A-14, APPROVED 2026-10-22.** All six apply to the card-layout trustee
+portal. "Own verdict" means the verdict in the signed-in trustee's own slot on the application's review
+(Finding 5). A trustee **can record a verdict** on an application when they are one of its two trustees,
+a review record exists, and the round is not finalised; otherwise they cannot, as today.
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-114 | The system SHALL show a trustee the applicant's answers to *"Do you currently receive means-tested benefits?"* and *"Are you currently working?"* as their values in the financial-eligibility card of the application detail, and SHALL NOT mark either as restricted, WHEN a trustee opens an application, SO THAT the trustee sees the same financial-eligibility answers the board pack shows today. The platform remains the control: a person who is not a trustee, an administrator or the service identity still receives no value for either (NFR-001). Example: an applicant who answered *Yes* and *No, retired* shows *Yes* and *No, retired*. *(WI-0146.)* | High |
+| FR-115 | The system SHALL show a trustee the applicant's *"Benefit provider"* answer as written in the financial-eligibility card, and SHALL NOT mark it as restricted, WHEN a trustee opens an application, SO THAT the trustee sees which benefits the applicant receives, as the board pack shows today. No redacted copy is made and the scrubbing does not cover it: this is the one exception to the free-text rule of FR-079 and NFR-031, on the reviewer's basis that the answer names an organisation or a benefit and trustees already see it in the board pack (OQ-062). The platform remains the control: no persona other than a trustee, an administrator or the service identity receives the value (NFR-001). Example: *"Universal credit, pip dla"* shows as *"Universal credit, pip dla"*. ⚠️ **REVISED at approval, OQ-062 (b).** Previously read: shown through its redacted copy and withheld until redaction was released. *(WI-0146.)* | High |
+| FR-116 | The system SHALL change the text and colour of the existing *Record verdict* button on an application's row in the applications list and in a group's member list to the signed-in trustee's own verdict — *Approved*, *Deferred* or *Rejected*, each in its own tone from the design system — WHEN the trustee's own slot holds a verdict, and the button SHALL still open the verdict dialog, SO THAT a trustee sees which applications they have already decided without opening each one. A row whose own slot is empty keeps *Record verdict* as it is today. The other trustee's verdict never changes the button. The word is always shown, so the marking never depends on colour alone. Verdicts already recorded show this from their stored value; no data change is needed (the existing records are test data). ⚠️ **REVISED at approval, 2026-10-22.** Previously read: a secondary-style control in place of the primary button. *(WI-0147.)* | High |
+| FR-117 | The system SHALL show the number of applications awaiting the signed-in trustee's own verdict, and SHALL let the trustee narrow the applications list to those applications, WHEN the trustee opens the applications list, SO THAT a trustee can see what is left to decide and go straight to it. An application awaits the trustee's verdict when the trustee can record a verdict on it and their own slot is empty. Example: 14 applications in the round, the trustee is on 10 of the reviews and has decided 7: the list shows *3 awaiting your verdict*, and the filter shows those 3. *(WI-0147; lead-agent's proposal, kept at approval.)* | Medium |
+| FR-118 | The system SHALL let a trustee choose one verdict (Approve, Defer or Reject) on a group's detail page, with notes required for Defer and Reject, as on a single verdict (EF-05), and, after the trustee confirms, SHALL record that verdict and the same notes in the trustee's own slot on every member application's review, for every application in the group on which the trustee can record a verdict, and on no other application, WHEN the trustee confirms a group verdict, SO THAT a group, which is decided as one, is recorded in one step. Before anything is recorded, the trustee SHALL be shown how many applications the verdict will be recorded on and which members will be skipped and why (not one of the two trustees, no review record yet, round finalised). Cancelling records nothing. Running it again with another verdict records the new one on the same members. Group applications are processed only as a group (OQ-063), so no rule is needed for combining a group verdict with separate per-member verdicts. ⚠️ **CLARIFIED 2026-10-22 (reviewer, after approval):** notes are required for Defer and Reject and saved on every member. Previously read: *"with optional notes"*. ⚠️ **REVISED at approval, OQ-063.** Previously read: the confirmation also named members whose earlier own verdict would be replaced, and OQ-063's default governed earlier verdicts and notes. *(WI-0148.)* | High |
+| FR-119 | The system SHALL show the trustee, for each member of the group, whether the group verdict was recorded, skipped (with the reason) or failed, and SHALL NOT report a member as recorded when it was not, WHEN a group verdict has been run, SO THAT a trustee knows exactly which applications the verdict did not reach. Each recorded verdict is the trustee's own verdict on that application and shows as such on its detail and in the lists (FR-116); the other trustee's slot is never written; *Finalise decisions* (FR-040) treats it like any other verdict. Example: group *GP-RA*, four members, one in a review that names other trustees: the result reads *3 recorded, 1 skipped: you are not one of the two trustees on REV-A-00123*. ⚠️ **REVISED at approval, OQ-063.** Previously also read: the verdict *"can be changed there"*, per application. *(WI-0148.)* | High |
+
 ---
 
 ## 5. Non-Functional Requirements
 
 | ID | Requirement | Category |
 |---|---|---|
-| NFR-001 | Special-category fields (health and disability condition profiles, "other condition" free-text, benefit status, ethnic group where captured) SHALL be readable only by the administrator role and the service identity. | Security |
+| NFR-001 | Special-category fields (health and disability condition profiles, "other condition" free-text, benefit status, ethnic group where captured) SHALL be readable only by the administrator role and the service identity, except that benefit status (receipt of means-tested benefits), benefit provider and employment status SHALL also be readable by trustees (FR-114, FR-115). No other persona SHALL read any of them. ⚠️ **AMENDED, Amendment A-14 (APPROVED 2026-10-22),** on the reviewer's decision of the same day (*"These fields can be shown to the Trustees."*); the release follows NFR-031, with the benefit-provider exception it records. The condition profiles were already trustee-visible by design (§7.1a) before this amendment. Previously read: *"Special-category fields (health and disability condition profiles, "other condition" free-text, benefit status, ethnic group where captured) SHALL be readable only by the administrator role and the service identity."* | Security |
 | NFR-002 | Bank account and payment data SHALL be readable only by the finance role; the administrator role SHALL have no access to it (separation of duties). | Security |
 | NFR-003 | Applicant, helper and support-recipient identifying attributes SHALL never be delivered to a trustee-facing view — the control SHALL be enforced by the platform, not by manual preparation. | Security |
 | NFR-004 | Multi-factor authentication SHALL be enforced for every staff, trustee and service-identity sign-in. | Security |
@@ -2184,7 +2352,7 @@ re-check (FR-023's second call site, `wbs:8.5`) is **excluded** and is not in an
 | NFR-018 | 100% of Borderline scoring outcomes and 100% of redactions SHALL receive human review before they progress or are disclosed. ⚠️ **AMENDED, Amendment A-11 (PROPOSED 2026-10-19).** Previously read: *"100% of Borderline scoring outcomes and 100% of low-confidence redactions SHALL receive human review before they progress or are disclosed."* | Compliance |
 | NFR-019 | The process owner SHALL be able to change scoring thresholds, the income ceiling, the redaction confidence threshold, document templates and field mappings without developer involvement and without changing automation logic. | Maintainability |
 | NFR-020 | Applicant-facing guidance, labels and error messages SHALL be written for a reading age of approximately 12. | Usability |
-| NFR-021 | The solution SHALL support approximately 200 applications per year with headroom to at least 250 per year, and a cumulative grant history of at least 300 records, without redesign. | Scalability |
+| NFR-021 | The solution SHALL support approximately 1,000 applications per year (about 90 a month), with headroom to at least 1,250 per year, and SHALL hold every record for its full retention period (§7.6: paid grants 6 years from the final payment, rejected applications 12 months, withdrawn or incomplete applications 6 months) up to a planning ceiling of 7,500 records, without redesign. ⚠️ **AMENDED, Amendment A-13 (APPROVED 2026-10-22); headroom and history clause settled by OQ-061, ANSWERED 2026-10-22.** Reviewer's figure, 2026-10-21, confirmed 2026-10-22 (*"3. yes."*): about 1,000 a year. Headroom of 25 percent (1,250 a year) confirmed by the reviewer. The earlier derived default of at least 3,000 cumulative records is **removed**: the charity began as a grant-giving charity on 16 February 2026, so there is no history before that date; about 730 records exist at 2026-10-22, growing about 1,000 a year, and the store reaches steady state after about 6 years. The 7,500 ceiling is 6,000 (every application kept six years) plus the 25 percent margin. Previously read: *"The solution SHALL support approximately 200 applications per year with headroom to at least 250 per year, and a cumulative grant history of at least 300 records, without redesign."* | Scalability |
 | NFR-022 | **Performance / response-time thresholds — NOT SPECIFIED in any source document.** No page-load, flow-completion or intake-latency target is stated. See OQ-020. | Performance |
 | NFR-023 | **Availability / uptime target — NOT SPECIFIED in any source document.** See OQ-021. | Availability |
 | NFR-024 | **Accessibility standard — NOT NAMED in any source document.** No WCAG level or equivalent is committed to, despite an applicant population of disabled people and unpaid carers with low average literacy. See OQ-022. | Accessibility |
@@ -2192,7 +2360,7 @@ re-check (FR-023's second call site, `wbs:8.5`) is **excluded** and is not in an
 | NFR-026 | The trustee review portal SHALL render at the full width of the browser viewport rather than the platform's default constrained canvas, and SHALL be visually consistent with Revitalise's public brand (typography, colour, tone — `revitalise.org.uk`) SO THAT the app reads as a Revitalise product to the trustees who use it. *(Added by Amendment A-02, 2026-08-24, at the reviewer's request. The design system, component library and CSS approach that deliver this are a technology decision for architect-agent at TAD stage — see OQ-033 — not specified here.)* | Usability |
 | ~~NFR-027~~ | ~~Any round-statistic category presented on the landing screen (FR-059–FR-062) with fewer than a configured minimum number of applications SHALL be suppressed or grouped into a combined "Other/small categories" figure before display, SO THAT a rare category (e.g., an exceptional-circumstance type with a handful of applicants) cannot be used to narrow an anonymous aggregate toward an identifiable individual.~~ ⚠️ **WITHDRAWN, Amendment A-03 Resolution, 2026-08-25 — explicit reviewer risk-acceptance decision, not a silent removal.** Proposed by plan-agent (Finding 4) in response to a small-cell disclosure risk observed in the source data; the reviewer overrode it. Reviewer's exact words: *"no minimum group size. The whole point of the code app is for trustees to review items and the column security profile scrubs aways personal information."* The reviewer's own control is the app's existing field-level security profile (NFR-001/NFR-003), not aggregate suppression. Left struck through rather than deleted so the proposal and the reason it was not adopted are both on the record — see §7.1 and OQ-035 for the same decision. | Compliance |
 | NFR-030 | Every column added or reshaped by the form-field correction pass SHALL be classified against UK GDPR Art. 6 / Art. 9 in §7.1a **before** it is built. Classification determines what must be *recorded*; it does not by itself determine what must be *secured* — securing is decided per column against necessity, under the rule at §7.1a. *(Amendment A-04; was NFR-026 in the retired SDD — note that NFR-026 in this document is A-02's full-width brand rendering.)* | Compliance |
-| NFR-031 | Where an Art. 9 special-category column is deliberately released to trustees, the necessity argument SHALL be recorded in this SDD, in the column's own schema description, and in the DPIA and RoPA, and the free-text elaboration behind that column SHALL remain secured. Per **D-6** this applies to `rev_exceptionalcircumstance`. *(Amendment A-04; was NFR-027 — note that NFR-027 in this document is A-03's withdrawn minimum-cell-size rule. This requirement is in force; that one is not.)* | Compliance |
+| NFR-031 | Where an Art. 9 special-category column is deliberately released to trustees, the necessity argument SHALL be recorded in this SDD, in the column's own schema description, and in the DPIA and RoPA, and the free-text elaboration behind that column SHALL remain secured. Per **D-6** this applies to `rev_exceptionalcircumstance`. *(Amendment A-04; was NFR-027 — note that NFR-027 in this document is A-03's withdrawn minimum-cell-size rule. This requirement is in force; that one is not.)* ⚠️ **Exception, Amendment A-14 (APPROVED 2026-10-22):** benefit status and employment status are released to trustees under this requirement, and `rev_benefitprovider`, the free text behind benefit status, is the one column released as written rather than kept secured, on the reviewer's decision *"Benefit provider is just an organisation. Leave that as written. They see that currently as well."* (OQ-062, FR-115). | Compliance |
 | NFR-032 | No option-set value SHALL be renumbered or removed once any application record references it. All option-set trimming and renumbering in the correction pass SHALL complete before the first real application is created. **D-2 confirmed this was satisfiable on 2026-08-16 and the pass completed on 2026-08-17.** *(Amendment A-04; was NFR-028.)* | Compliance |
 
 > NFR-022 to NFR-025 are recorded as explicit gaps rather than invented thresholds. They must be
@@ -2351,6 +2519,9 @@ promise does not depend on me remembering.
 - Given I select an application, when the detail opens, then I see the same fields I receive today in the printed board pack — financial eligibility, condition and circumstance, and the helper, referee and emergency-contact block. → FR-035 *(Amendment A-05; appended at the end of this list, not inserted beside the FR-035 criterion above, so the existing AC numbers this document and the test report already cite are not renumbered)*
 - Given a field is one the security profile withholds from me, when the detail opens, then I see the field named and marked restricted rather than blank or absent, so I can tell it from a question the applicant did not answer. → FR-078 *(Amendment A-05)*
 - Given a field holds the applicant's own free text, when the detail opens, then I see only its redacted version, and I see a withheld state until redaction has been released for that record. → FR-079 *(Amendment A-05)*
+- Given an application whose applicant answered the benefits and working questions, when I open it, then I see both answers and the benefit provider as values, the benefit provider as written, and none of the three is marked restricted; and a colleague who is not a trustee or an administrator still sees no value for any of them. → FR-114, FR-115, NFR-001 *(Amendment A-14, APPROVED 2026-10-22; appended, AC-10)*
+- Given I have recorded a verdict on some applications and not others, and the other trustee has recorded one on an application I have not, when I open the applications list or a group, then the existing verdict button on each application I decided shows my own verdict word in that verdict's colour and still opens the dialog, every other application shows *Record verdict*, and I can see how many await my verdict and show only those. → FR-116, FR-117 *(Amendment A-14; AC-11)*
+- Given a group of four applications where I am a trustee on three reviews, when I choose Approve for the group, confirm, and one write fails, then I was told before confirming that it would be recorded on three and that one is skipped and why, and afterwards I see two recorded, one failed and one skipped; cancelling instead records nothing; and each recorded application shows Approve as my verdict. → FR-118, FR-119 *(Amendment A-14; AC-12)*
 
 ### US-013: A stripped, data-only view
 **As** Kevin, a trustee who works from the numbers, **I want** scores, region, dates and status only,
@@ -2538,7 +2709,7 @@ on Revitalise's instruction. AI Builder (redaction), DocuSign (signing) and Quic
 
 | Tier | Examples in this solution | Data subjects | Handling |
 |---|---|---|---|
-| **Special category (UK GDPR Art. 9)** | Applicant and support-recipient condition profiles; "other condition" free-text; health/disability free-text in the narrative; benefit status; employment status; exceptional-circumstance category; ethnic group where captured | Applicants; cared-for / support-recipients | Highest restriction **for the free text and for the columns held in `REV_TrusteeRestricted`** — administrator role and service identity only; no value is returned to a trustee from any surface. Free text is redacted before trustee review (FR-079). ⚠️ **CORRECTED, Amendment A-05, 2026-08-27 — the previous wording, "Never shown to trustees", was already inaccurate before this amendment and is not merely overtaken by it.** The *categorical* Art. 9 columns `rev_conditionprofile` and `rev_supportrecipientconditionprofile` carry `IsSecured=0`, are deliberately absent from `REV_TrusteeRestricted`, and are trustee-visible **by design** under the rule §7.1a states in full: *"Categorical answers are trustee-visible. Identity and free text are not."* `rev_exceptionalcircumstance` joined them by D-6. **Benefit status and employment status remain undisclosed to trustees** — they stay in the profile and A-05 does not move them — but the enforcement point is the platform's column security, not the app declining to query the column, so the field may now appear on the trustee screen in a restricted state (FR-078) with no value behind it. Per-column detail at §7.1b. |
+| **Special category (UK GDPR Art. 9)** | Applicant and support-recipient condition profiles; "other condition" free-text; health/disability free-text in the narrative; benefit status; employment status; exceptional-circumstance category; ethnic group where captured | Applicants; cared-for / support-recipients | ⚠️ **Amendment A-14 (APPROVED 2026-10-22): benefit status, employment status and the benefit provider become trustee-visible as values, the benefit provider as written under the one free-text exception NFR-031 records (FR-114, FR-115, NFR-001). Until that is built they render restricted, as below.** The sentence below that they *"remain undisclosed to trustees"* is the position before A-14. Highest restriction **for the free text and for the columns held in `REV_TrusteeRestricted`** — administrator role and service identity only; no value is returned to a trustee from any surface. Free text is redacted before trustee review (FR-079). ⚠️ **CORRECTED, Amendment A-05, 2026-08-27 — the previous wording, "Never shown to trustees", was already inaccurate before this amendment and is not merely overtaken by it.** The *categorical* Art. 9 columns `rev_conditionprofile` and `rev_supportrecipientconditionprofile` carry `IsSecured=0`, are deliberately absent from `REV_TrusteeRestricted`, and are trustee-visible **by design** under the rule §7.1a states in full: *"Categorical answers are trustee-visible. Identity and free text are not."* `rev_exceptionalcircumstance` joined them by D-6. **Benefit status and employment status remain undisclosed to trustees** — they stay in the profile and A-05 does not move them — but the enforcement point is the platform's column security, not the app declining to query the column, so the field may now appear on the trustee screen in a restricted state (FR-078) with no value behind it. Per-column detail at §7.1b. |
 | **Personal (UK GDPR Art. 6)** | Name, address, postcode, email, phone, date of birth, bank details; helper, referee, group-member and emergency-contact identity | Applicants; helpers; referees; group members; emergency contacts | Restricted. Identity attributes hidden from trustees; bank details behind the finance role only. ⚠️ **Clarified, Amendment A-05, 2026-08-27.** "Hidden from trustees" is enforced by `REV_TrusteeRestricted` returning no value — which is what FR-036 and NFR-003 already require of the platform — and not by the trustee app omitting the column from its query. From A-05 the trustee detail view requests the helper, referee and emergency-contact identity columns and renders them as a restricted state (FR-078); no value reaches the trustee. Per-column detail at §7.1b. |
 | **Pseudonymised** | Pseudonymised reference (e.g. `REV-A-00001`), age range, location area, costs, scores, redacted narrative | Applicants | Still personal data. Visible to trustees. Follows the parent record's retention clock. |
 | **Anonymised** | Snapshot statistics: age range, location area, condition areas, outcome, amount — no identifiers, never linked back | None | Not personal data. May be kept indefinitely. |
@@ -2652,9 +2823,9 @@ columns.
 | `rev_incomeflag` | Personal (Art. 6) | No | The value |
 | `rev_incomeband` | Personal (Art. 6) | No | The value |
 | `rev_savingsover6000` | Personal (Art. 6) | No | The value |
-| `rev_receivesbenefits` | **Special category (Art. 9)** — benefit status | Yes | Restricted state, no value (FR-078) |
-| `rev_benefitprovider` | **Special category (Art. 9)** — benefit status | Yes | Restricted state, no value (FR-078) |
-| `rev_employmentstatus` | **Special category (Art. 9)** — D-1, §7.1a | Yes | Restricted state, no value (FR-078) |
+| `rev_receivesbenefits` | **Special category (Art. 9)** — benefit status | Yes | **After A-14: the value (FR-114).** Today, until built: restricted state, no value (FR-078) |
+| `rev_benefitprovider` | **Special category (Art. 9)** — benefit status, free text | Yes | **After A-14: the value as written (FR-115; the NFR-031 exception, OQ-062).** Today, until built: restricted state, no value (FR-078). No redacted copy is made |
+| `rev_employmentstatus` | **Special category (Art. 9)** — D-1, §7.1a | Yes | **After A-14: the value (FR-114).** Today, until built: restricted state, no value (FR-078) |
 | `rev_unabletofundexplanation` | Personal (Art. 6) — secured financial free text. Correctly **not** in the special-category register | Yes | Withheld until redacted (FR-079); **no counterpart column exists yet** |
 | **Condition and circumstance** | | | |
 | `rev_conditionprofile` | **Special category (Art. 9)** | No — trustee-visible by design, §7.1a | The value |
@@ -2681,6 +2852,12 @@ necessary to assess and administer the grant; Art. 9(2)(b) social protection and
 social care); the support-recipient condition profile under **Support-recipient / cared-for person**;
 the helper columns under **Helper acting for an applicant**; and the referee and emergency-contact
 columns under **Referees, group members, emergency contacts**.
+
+**Amendment A-14 (APPROVED 2026-10-22) changes the audience of three rows, not their classification.**
+Benefit status, benefit provider and employment status stay Article 9, stay in the special-category
+register and keep the same lawful basis; trustees become readers of all three, the benefit provider as
+written under the exception NFR-031 now records. The release is recorded as NFR-031 requires, through OQ-048. The
+paragraph below describes A-05 and is kept as written.
 
 **Why no classification changes.** This amendment changes the *surface* on which existing data is
 presented, not the data, its security or its basis. The nine unsecured columns were already
@@ -2902,7 +3079,7 @@ basis until they are recorded.
 | **A3 / OQ-006** | Confirm that six-year retention of the health free-text on granted records is preferred over earlier minimisation | If earlier minimisation is preferred, the free-text is redacted before the six-year point — a configuration change, but it changes the retention requirement and its verification |
 
 Two further DPIA closing actions are open: **A4** — confirm expected application volume and the
-role-review cadence (process owner; OQ-007, OQ-008); and **A5** — verify UK residency and backup
+role-review cadence (process owner; OQ-007, OQ-008) *(⚠️ Amendment A-13 (APPROVED 2026-10-22): the volume half is answered, about 1,000 applications a year; the role-review cadence half is still open)*; and **A5** — verify UK residency and backup
 arrangements at environment setup (builder / Wanstor; OQ-018, OQ-019). ⚠️ **Amendment A-09:** the requirement A5 verifies is now *storage in the UK or Switzerland, AI prompts inside the EU Data Boundary, flex routing off* (NFR-009). The environments are verified as Swiss. Flex routing is off at tenant level, on the reviewer's statement of 2026-10-16 (*"Ah, the flex routing option is disabled on tenant level. Only EU handling"*), not an agent measurement. The signature and finance services are not yet verified. Previously read: *"The signature and finance services, and the flex-routing state, are not yet verified."*
 
 ### 7.9 Universal controls checklist (`skills/compliance-checklist.md` §1)
@@ -2998,7 +3175,7 @@ arrangements at environment setup (builder / Wanstor; OQ-018, OQ-019). ⚠️ **
 21. Build effort includes requirements clarification with Emily, build, client walkthrough, feedback
     processing, rework, and testing with real application data.
 22. Annual savings projections assume ~200 grants/year. The current run rate (68 grants in ~4 months)
-    suggests this is conservative.
+    suggests this is conservative. *(⚠️ Amendment A-13 (APPROVED 2026-10-22): the expected volume is now about 1,000 applications a year, so the projections are understated and are due a re-run of the estimate.)*
 
 ### Companion artefacts already produced (context, not adopted into this SDD)
 
@@ -3035,7 +3212,7 @@ team.
 | OQ-005 | **DPO decision (DPIA A2):** does automatic rejection at the threshold, with oversight and override, satisfy Revitalise's automated-decision position under the DUAA 2025? | DPO | Before the first PRD deploy of the scoring flow carrying FR-102 to FR-105 (`wbs:2.4`, `2.7`) *(re-dated by Amendment A-10; previously "Before build starts")* |
 | | ⚠️ **SCOPE WIDENED, Amendment A-10 (APPROVED 2026-10-19). Not a new question.** The decision now also covers automatic rejection on the amount requested, income for an applicant not on means-tested benefits, savings, and prior funding (FR-015, FR-102 to FR-104). None reads a disability, health or employment answer (revision 2). **Default, as the reviewer described it on 2026-10-19:** Emily checks every auto-reject with all its reasons (FR-105) and agrees or overrides it (FR-018); only an override is recorded. **Event (also in the due column):** before the first PRD deploy of the scoring flow carrying FR-102 to FR-105 (`wbs:2.4`, `2.7`). | | |
 | OQ-006 | **DPO decision (DPIA A3):** is six-year retention of the health free-text preferred over earlier minimisation? | DPO | **Before build starts** |
-| OQ-007 | Confirm the expected number of applications per round and per year, so the scale of processing is on record (DPIA §2.2 TBC) | Emily | Before DPIA sign-off |
+| OQ-007 | Confirm the expected number of applications per round and per year, so the scale of processing is on record (DPIA §2.2 TBC) *(⚠️ Amendment A-13 (APPROVED 2026-10-22): the per-year half is answered, about 1,000 applications a year, about 90 a month, by the reviewer on 2026-10-21; the per-round half is not.)* | Emily | Before DPIA sign-off |
 | OQ-008 | Confirm the role-membership review cadence — quarterly, or at the start of each panel round? | Emily / DPO | Before DPIA sign-off |
 | OQ-009 | Confirm the published DPO contact details for the RoPA | Revitalise | Before RoPA finalisation |
 | OQ-010 | Confirm the named DPO is current, that Emily is the accepted process owner, and whether a second processor (Jan) is assigned | Revitalise | Before sign-off |
@@ -3096,6 +3273,7 @@ team.
 | | ⚠️ **SCOPE WIDENED, Amendment A-05, 2026-08-27 — not re-opened, and not a new question.** The same DPIA/RoPA amendment now also has to record the widened redaction scope FR-079 introduces. The DPIA describes redaction as covering *"the free-text narrative"* — singular; FR-079 extends it to five further free-text columns. **The trustee audience and the app surface are not new to the DPIA**, which already states *"Trustees review eligible applications through a dedicated app that hides identity by field-level security, and record a verdict"* — the Code App is that app, which supports the reviewer's own framing that the process is being automated rather than newly created. Handled the way §7.1a handled OQ-004 and OQ-006: the surface changes, the question stays open, and the DPO is told rather than left to discover it. | | |
 | | ⚠️ **SCOPE WIDENED AGAIN, Amendment A-08 (APPROVED 2026-09-25). Not a new question.** The same DPIA and RoPA amendment must now also name four special-category answers the intake begins storing: the Equality Act 2010 answer and the disability description, for the applicant and for the person supported (FR-086 to FR-089). **No new Art. 9 condition is involved**, because §7.2's existing groupings cover them (§7.1c). Proposed wording is at §7.1c. **Event:** before the first PRD deploy that creates those four columns (`wbs:4.3`), because that is the first time real applicants' answers are held. | | |
 | | ⚠️ **SCOPE WIDENED A THIRD TIME, Amendment A-09 (APPROVED 2026-10-16). Not a new question.** The same DPIA and RoPA amendment must now also record three things: the solution is hosted in Switzerland, on the UK adequacy basis Revitalise's legal office confirmed, and AI prompts are processed in the EU Data Boundary (NFR-009); the redacted copy is rewritten with neutral words for people (FR-094 to FR-098); and, if `CO-009` goes ahead, its spelling is corrected by a second model step that reads only redacted text (FR-099). No new lawful basis or Art. 9 condition is involved: the text is the same Application free text, used for the same purpose. **Event:** before the first PRD deploy of the scrubbing flow that writes neutral words (`wbs:5.6`). | | |
+| | ⚠️ **SCOPE WIDENED A FOURTH TIME, Amendment A-14 (APPROVED 2026-10-22). Not a new question.** NFR-031 requires the necessity argument for releasing an Art. 9 column to trustees to be written into the DPIA and RoPA. The same amendment must now also record that trustees see benefit status and employment status as values, and the benefit provider as written, the one free-text exception to NFR-031 (FR-114, FR-115). **Necessity argument to record:** trustees judge financial need, and the client's board pack already shows these three answers to them (A-14 Finding 1), so the portal adds no new audience and no new purpose. The lawful basis is unchanged (§7.2). **Event:** before the first PRD deploy of the portal release that shows these answers to trustees (`wbs:6.3`, WI-0146). | | |
 | OQ-049 | **What numeric definition of "sudden spike or drop" gates FR-081's anomaly flag?** *(Amendment A-07, `CO-005`, `wbs:6.10`)* Neither CO-005 nor the EF-11 walkthrough states a threshold, and this is a business judgement about what a board of trustees should be alerted to, not a modelling default plan-agent or architect-agent may pick — the same standing this document already gives `k = 5` (OQ-043, *"this value is a disclosure control, not a tunable"*). **Architecturally-derived default, per this document's own standing rule (§ "Every open question is dated against an EVENT"):** until answered, FR-081 flags no month — an unflagged screen is fail-safe and matches the existing convention for an unseeded `rev_setting`-backed control. | Reviewer | **Gates FR-081 only, not the rest of `wbs:6.10`** — before `development-agent`'s `wbs:6.10` dispatch encodes a flagging rule; FR-080's recompute and FR-082's settings can build and ship independently with FR-081 rendering its fail-safe unflagged state |
 | | ✅ **RESOLVED 2026-09-19 — reviewer.** A month is flagged when it deviates from its own trailing six-month mean by more than a threshold, held as a **third, configurable `rev_setting`** (not a hardcoded literal), starting value **50%**. See FR-081 for the restated rule. **Not fully closed at architecture level:** TAD Revision 9 / ADR-049 designed FR-080's grouping mechanism and FR-082's two settings but did not design for this third setting or the mean/deviation comparison logic inside FR-080's month-by-month loop — routed back to architect-agent for a further TAD pass (naming the setting, extending §5.1.3's flow design), same division of labour as the original "Flagged for architect-agent" section above. | | |
 | OQ-050 | **What are the actual seed values for FR-082's two new settings** — the date from which this system's application record is complete, and the count of applications the charity received before that date? *(Amendment A-07, `CO-005`, `wbs:6.10`)* These are historic facts about the charity's own grant-giving history, not derivable from any source in this repository or decidable by architect-agent at TAD stage — see also Amendment A-06's own 16 February 2026 reference date, which this answer should be checked against rather than assumed to match, since CO-005's framing ("this system started later than the charity itself did") implies the charity's own history may predate that date. | Emily / Reviewer | Before the `post_deploy` seeding step of `wbs:6.10`'s first environment deploy — FR-082 SHALL render its fail-safe unseeded state until then |
@@ -3121,6 +3299,12 @@ team.
 | | ✅ **RESOLVED 2026-10-20 — default confirmed.** Xander Lykopoulos, answering "should a payment the flow set to Issued go back to Pending when Final is unticked?": *"No. payment final means final."* The payment stays Issued when the final mark is removed; finance corrects it by hand if the money did not move. FR-110 and FR-112 already say this and stand as written; no requirement wording changes. The gate is not re-opened. | | |
 | OQ-060 | **What happens when a final payment is recorded before the grant's acceptance is signed?** *(Amendment A-12 second revision, FR-113, FR-111.)* The reviewer's direction moves a grant to "Paid"; the acceptance flows set "Acceptance Issued" and "Acceptance Signed", so a payment can arrive while the grant is still at 1 or 2. **Default, applied until answered, mirroring FR-108 and following the direction of the decision (the flow never skips a step the grant has not reached):** the grant's status is left alone, the case is reported under FR-111, and the final payment date and the application's status are still handled by FR-107 and FR-108. Nothing is moved later by itself when the acceptance is signed. Example: a final payment of 1,500.00 dated 14 November 2026 is saved while the grant reads "Acceptance Issued". The grant keeps that status, finance and the process owner see "grant not at Acceptance Signed", and finance fixes the cause and saves the payment again. Confirm or replace. | Reviewer / Revitalise finance | Before development-agent's `wbs:8.6` dispatch encodes FR-113's condition |
 | | ✅ **RESOLVED 2026-10-20 — default confirmed.** Xander Lykopoulos, answering OQ-060: *"OQ-60: Keep default."* A final payment recorded before the grant is at "Acceptance Signed" leaves the grant's status alone and is reported under FR-111. Signing the acceptance later does not move the grant to "Paid" by itself; the next save of any payment on that grant does (TAD A-R103). FR-113 stands as written; no requirement wording changes. The gate is not re-opened. Previously read: *"Confirm or replace."*, due before development-agent's `wbs:8.6` dispatch encodes FR-113's condition. | | |
+| OQ-061 | **What headroom and cumulative history does NFR-021 need at about 1,000 applications a year?** *(Amendment A-13, NFR-021.)* The reviewer gave the yearly figure and said nothing on either margin. **Default, applied until answered, keeping the old margin and the retention schedule:** headroom to at least 1,250 applications a year (the same 25 percent), and a cumulative history of at least 3,000 records (about three years at the new volume, and well under the six-year retention of paid grants, §7.6). Example: in a year with 1,200 applications the solution still works with no redesign; in the fourth year the system still holds the records of the three years before it. Confirm or replace. | Reviewer / Revitalise | At the TAD `A-R18` Dataverse capacity check, before `wbs:5.7`'s first live run |
+| | ✅ **ANSWERED 2026-10-22 — headroom confirmed, history default replaced.** Xander Lykopoulos (relayed by lead-agent, `logs/routing.log` 12:55–12:57), verbatim: *"Headroom figure up to 25% is fine."* Then, on the history figure: *"history figure of 3000 is incorrect."* and *"The charity only started on the 16th of Feb as a grant giving charity. Since then 730 applications have come in."* On lead-agent's proposed wording the reviewer answered: *"Yes, recod it that way."* **Recorded:** (1) headroom to at least 1,250 applications a year, confirmed. (2) The solution holds every record for its full retention period (paid grants 6 years from the final payment, rejected 12 months, withdrawn or incomplete 6 months). There is no history before 2026-02-16; about 730 records at 2026-10-22, growing about 1,000 a year; steady state after about 6 years. (3) Planning ceiling of 7,500 records: 6,000 if every application were kept six years, plus the 25 percent margin. (4) The 3,000-record default is removed. NFR-021 is restated to match. Example: on 2026-10-22 the store holds about 730 records; at the end of year 2 about 2,500; once the oldest paid grants pass six years it stops growing, and 7,500 is the most the capacity check plans for. A clarification within approved Amendment A-13, recorded from the reviewer's own words; no new amendment and no new id. The TAD `A-R18` capacity check sizes against 7,500. | | |
+| OQ-062 | **Should trustees see the benefit provider as the applicant wrote it, or through a redacted copy?** *(Amendment A-14, FR-115.)* The answer is free text, row 37 of the client's Anonymisation Key, and NFR-031 keeps free text behind a released Art. 9 column secured. **Default, applied until answered (a):** the redacted copy, produced and released like every other free-text answer; the original stays secured; the scrub covers one more answer (`wbs:5.6`). Example: *"Universal credit, pip dla"* shows unchanged; *"Carer's allowance, paid to my wife Jane"* shows *"Carer's allowance, paid to my partner"*; before release the field shows withheld. **Alternative (b):** the answer as written, with no scrub; this needs NFR-031 amended for this one column, and a name or relationship the applicant typed reaches the trustee. Recommended: (a). Confirm or replace. | Reviewer | Before architect-agent's TAD revision for WI-0146 decides how `rev_benefitprovider` reaches trustees |
+| | ✅ **RESOLVED 2026-10-22 — option (b), not the default.** Xander Lykopoulos, at the A-14 gate: *"Benefit provider is just an organisation. Leave that as written. They see that currently as well."* Trustees see the answer as written; no redacted copy is made and FR-115 has no `wbs:5.6` scrubbing dependency. NFR-031 and FR-079 record the exception for this one column. Previously read: default (a), the redacted copy. | | |
+| OQ-063 | **When a trustee records a group verdict, what happens to verdicts and notes they have already recorded on members?** *(Amendment A-14, FR-118.)* The reviewer asked for *"a verdict on the whole group (batched verdict on all applications)"* and said nothing on either. **Default, applied until answered, following the decision's direction (all applications):** the group verdict **replaces** the trustee's own earlier verdict on every member they can record on, and the confirmation step names those members first. Notes are **never overwritten**: a group note, if typed, is written only to members where the trustee's own note is empty; an existing note is kept. Example: group *GP-RA*, four members; the trustee earlier chose Defer on member 2 and wrote a note on member 3; they now choose Approve with the note *"Strong group case"*. Confirmation reads *"Approve on 4 applications; 1 currently has your verdict Defer, which will be replaced"*. Result: all four read Approve; members 1, 2 and 4 carry *"Strong group case"*; member 3 keeps its own note. Confirm or replace. | Reviewer | Before development-agent's `wbs:6.3` dispatch for WI-0148 |
+| | ✅ **RESOLVED 2026-10-22 — the case does not arise.** Xander Lykopoulos, at the A-14 gate: *"Group applications will only be treated in group perspective. So, It's not going to happen that individual applications will be processed separately. I asked this to the process owner."* A group's members are not given separate per-member verdicts, so there is nothing to replace or merge. FR-118 and FR-119 drop that logic and keep the skip rules and the per-member result. Previously read: default, replace earlier own verdicts and never overwrite notes. | | |
 
 ---
 
@@ -3166,7 +3350,7 @@ in the accompanying WBS workbook (`Revitalise-WBS-Grant-Automation-v0.4.xlsx`, n
 - The move to the Dataverse data model is build-cost-neutral to slightly faster, so these hours
   hold; it raises the recurring licence bill, not the build.
 - Return: ~330 staff hours/year at ~200 grants/year — roughly 2.5× year-one ROI at the 133-hour
-  midpoint, rising to ~410 hours/year (3.1×) at 250 grants/year.
+  midpoint, rising to ~410 hours/year (3.1×) at 250 grants/year. *(⚠️ Amendment A-13: both lines assume volumes the reviewer has superseded; not recomputed here.)*
 
 ### Estimate risks and uncertainty
 
@@ -3343,6 +3527,12 @@ Test cases are added by the test-agent; this matrix is the coverage baseline.
 | FR-111 | US-026 AC-9, AC-10, AC-17 · `wbs:8.6` *(Amendment A-12; `CO-010`)* |
 | FR-112 | US-026 AC-13, AC-14, AC-15 · `wbs:8.6` *(Amendment A-12 revision, 2026-10-20; `CO-010`; OQ-059, resolved: "No. payment final means final.")* |
 | FR-113 | US-026 AC-16, AC-17, AC-18, AC-19 · `wbs:8.6` *(Amendment A-12 second revision, 2026-10-20; `CO-010`; OQ-060, resolved: "Keep default.")* |
+| FR-114 | US-012 AC-10 · `wbs:6.3` · WI-0146 *(Amendment A-14, APPROVED 2026-10-22)* |
+| FR-115 | US-012 AC-10 · `wbs:6.3` · WI-0146 *(Amendment A-14; OQ-062, resolved (b): as written, no `wbs:5.6` dependency)* |
+| FR-116 | US-012 AC-11, US-013 AC-3 · `wbs:6.3` · WI-0147 *(Amendment A-14)* |
+| FR-117 | US-012 AC-11 · `wbs:6.3` · WI-0147 *(Amendment A-14)* |
+| FR-118 | US-012 AC-12 · `wbs:6.3` · WI-0148 *(Amendment A-14; OQ-063, resolved)* |
+| FR-119 | US-012 AC-12 · `wbs:6.3` · WI-0148 *(Amendment A-14)* |
 
 NFR-001 to NFR-003 are additionally exercised by US-012 AC-3 and US-015 AC-1, AC-2.
 NFR-022 to NFR-025 have no acceptance criteria by design — they are recorded gaps (OQ-020 to OQ-023).
@@ -3386,3 +3576,9 @@ own session. OQ-051, OQ-052 and OQ-053 were answered in the same turn; see the A
 **Amendment A-12, wording alignment — 2026-10-20 (not a new decision; gate not re-opened).** FR-107 said a payment *"SHALL NOT be saved as final"* without a date. Only a server-side block could guarantee that, and none is in scope. The reviewer-approved design (TAD rev 28, `ADR-081`, `A-R102`) enforces it with a business rule on the Payment main form, and for API or non-form writes the flow ignores an undated final payment (no clock starts) and reports "final payment has no date" under FR-111. FR-107 and AC-12 are reworded to say exactly that; the reviewer's intent, *"Make payment date required when final payment is set"*, is kept and quoted. FR-112's Cancelled-reporting clause is unchanged. OQ-059 stays open at its default.
 
 **Amendment A-12, second reviewer-directed revision — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-20  **Response:** `APPROVED`, relayed by lead-agent. Verbatim: *"Obviously the final payment should change the grant status as well."* Approval covers FR-113 and AC-16 to AC-19. Previously read: the grant's own status was outside `CO-010` (architect-agent finding). OQ-059 is resolved (*"No. payment final means final."*); OQ-060 is raised and resolved at its default (*"Keep default."*, 2026-10-20). Previously read: "raised and open at its default." Gate not re-opened.
+
+**Amendment A-13 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-22  **Response:** `APPROVED`, relayed by lead-agent. Verbatim: *"1. Approved"*, sent as its own numbered answer. Approval covers NFR-021 as amended, and the annotations to §1, §2, §7.8 (A4), OQ-007, §8 and §10. It does not cover OQ-061's derived defaults (headroom 1,250 a year; at least 3,000 cumulative records): the reviewer did not comment on them, so OQ-061 stays open as confirm-or-replace. Earlier the same day the reviewer confirmed the figure itself (*"3. yes."*). It approves no billing and restates no hours.
+
+**Amendment A-14 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-10-22  **Response:** `APPROVED`, relayed by lead-agent (verbatim *"Approved."*), with four revisions given in the same turn and applied before this record: OQ-062 answered (b), the benefit provider as written (*"Benefit provider is just an organisation. Leave that as written. They see that currently as well."*); OQ-063 answered (*"Group applications will only be treated in group perspective. So, It's not going to happen that individual applications will be processed separately. I asked this to the process owner."*); FR-116 revised to a colour and text change on the existing button (*"No secondary button for visibility.. just a colour and text change on the existing button based on verdict status. Existing onces will get the colour and text automatically based on the given verdict status. And it's test data, so it doesn't matter."*); and the column-security direction for architect-agent (*"Good idea to add read rights to the column security profile."*). Approval covers FR-114 to FR-119 as revised, NFR-001, NFR-031, FR-078 and FR-079 as amended, US-012 AC-10 to AC-12, the §7.1 and §7.1b annotations and OQ-048's widened scope. FR-117 is kept. It approves no billing and restates no hours.
+
+**Amendment A-14, reviewer clarification — 2026-10-22 (not a new decision; gate not re-opened).** Xander Lykopoulos, relayed by lead-agent, verbatim: *"2. Yes, group defer or reject require notes as well. Saved to all individual applications."* FR-118's *"with optional notes"* becomes: notes are required for Defer and Reject, as on a single verdict (EF-05), and the same notes are saved on every member application's review. US-012 AC-12 does not restate notes and is unchanged. No new ids.

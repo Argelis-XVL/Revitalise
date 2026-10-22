@@ -11,8 +11,10 @@
  * is hidden with the control, and `role` reaches the `<input>` because that is the semantic
  * element.
  *
- * No consumer exists in the app today. It is converted because it is one of the seven components
- * ADR-033 adopts and the design system's own forms use it; `Accordion`, `Badge`, `Navbar`,
+ * Its first consumer is the applications list's "Show only applications awaiting my verdict"
+ * filter (SDD A-14, FR-117; portal TAD trustee-portal-design-2 ADR-086 point 6, 2026-10-22). It
+ * was converted earlier because it is one of the seven components ADR-033 adopts and the design
+ * system's own forms use it; `Accordion`, `Badge`, `Navbar`,
  * `Footer`, `CookieBanner` and `NewsletterForm` are deliberately NOT converted for the opposite
  * reason (§2.1.2 — dead code still has to be maintained, audited and covered).
  */

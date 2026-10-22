@@ -682,3 +682,46 @@ describe("ADR-034 — the design system stays outside src/", () => {
     expect(offenders, "these files resolve a reference into Designsystem/").toEqual([]);
   });
 });
+
+describe("verdict tones — SDD A-14, FR-116 (portal TAD trustee-portal-design-2 ADR-086 point 5)", () => {
+  const VERDICTS = ["approved", "deferred", "rejected"] as const;
+  const STATES = ["", "-hover", "-active"] as const;
+
+  it("passes normal-text contrast with the verdict text colour on every verdict fill and state", () => {
+    for (const verdict of VERDICTS) {
+      for (const state of STATES) {
+        const token = `--verdict-${verdict}${state}`;
+        expect(contrast(resolve("--verdict-text"), resolve(token)), token).toBeGreaterThanOrEqual(NORMAL_TEXT);
+      }
+    }
+  });
+
+  it("keeps each rest fill at the measured value the TAD records", () => {
+    expect(contrast(WHITE, resolve("--verdict-approved"))).toBe(5.96);
+    expect(contrast(WHITE, resolve("--verdict-deferred"))).toBe(6.16);
+    expect(contrast(WHITE, resolve("--verdict-rejected"))).toBe(10.91);
+  });
+
+  it("keeps every fill at least 3:1 against the white page, so the button's boundary is visible (WCAG 1.4.11)", () => {
+    for (const verdict of VERDICTS) {
+      expect(contrast(resolve(`--verdict-${verdict}`), WHITE), verdict).toBeGreaterThanOrEqual(
+        LARGE_TEXT_AND_UI_GRAPHICS,
+      );
+    }
+  });
+
+  it("darkens on hover and again on active, never lightens", () => {
+    for (const verdict of VERDICTS) {
+      const rest = contrast(WHITE, resolve(`--verdict-${verdict}`));
+      const hover = contrast(WHITE, resolve(`--verdict-${verdict}-hover`));
+      const active = contrast(WHITE, resolve(`--verdict-${verdict}-active`));
+      expect(hover, verdict).toBeGreaterThan(rest);
+      expect(active, verdict).toBeGreaterThan(hover);
+    }
+  });
+
+  it("does not bring back the design system's failing --success or --warning (correction 5)", () => {
+    expect(TOKENS.has("--success")).toBe(false);
+    expect(TOKENS.has("--warning")).toBe(false);
+  });
+});

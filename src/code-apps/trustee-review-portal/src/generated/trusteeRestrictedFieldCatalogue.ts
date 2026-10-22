@@ -16,9 +16,6 @@ export interface TrusteeRestrictedFieldCatalogueEntry {
 }
 
 export const TRUSTEE_RESTRICTED_FIELD_CATALOGUE: readonly TrusteeRestrictedFieldCatalogueEntry[] = [
-  { key: "benefit-status", label: "Receives Means-Tested Benefits", group: "Financial eligibility", restricted: true },
-  { key: "benefit-provider", label: "Benefit Provider", group: "Financial eligibility", restricted: true },
-  { key: "employment-status", label: "Employment Status", group: "Financial eligibility", restricted: true },
   { key: "helper-organisation", label: "Helper Organisation", group: "Helper, referee and emergency contact", restricted: true },
   { key: "helper-relationship", label: "Helper Relationship", group: "Helper, referee and emergency contact", restricted: true },
   { key: "helper-name", label: "Helper Name", group: "Helper, referee and emergency contact", restricted: true },

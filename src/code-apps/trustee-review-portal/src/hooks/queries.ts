@@ -22,6 +22,9 @@ export const queryKeys = {
   applications: ["applications"] as const,
   application: (id: string) => ["application", id] as const,
   review: (applicationId: string) => ["review", applicationId] as const,
+  /** Every key of the list-wide review index starts with this (ADR-086 point 7). */
+  reviewIndexRoot: ["review-index"] as const,
+  reviewIndex: (applicationIds: readonly string[]) => ["review-index", ...applicationIds] as const,
   currentUser: ["current-user"] as const,
   openRound: ["open-round"] as const,
   roundStatistics: ["round-statistics"] as const,
@@ -54,6 +57,23 @@ export function useReview(
     queryKey: queryKeys.review(applicationId ?? ""),
     queryFn: () => repository.getReviewForApplication(applicationId ?? ""),
     enabled: applicationId !== null,
+  });
+}
+
+/**
+ * One review read for a whole list of applications (portal TAD ADR-086 point 1), keyed by the
+ * ids so a different list reads again. Disabled for an empty list. The rows are unordered:
+ * choose per application with `currentReviewFor`.
+ */
+export function useReviewIndex(
+  applicationIds: readonly string[],
+): UseQueryResult<ReviewRow[], Error> {
+  const repository = useRepository();
+  const ids = [...applicationIds].sort();
+  return useQuery({
+    queryKey: queryKeys.reviewIndex(ids),
+    queryFn: () => repository.listReviewsForApplications(ids),
+    enabled: ids.length > 0,
   });
 }
 
@@ -130,6 +150,9 @@ export function useSaveVerdict(
       // Re-read the row rather than patching the cache: what Dataverse stored is the
       // only version that matters, and a business rule or plugin may have changed it.
       await client.invalidateQueries({ queryKey: queryKeys.review(applicationId) });
+      // ADR-086 point 7: the list's verdict buttons and its awaiting count read the index, so
+      // a save must change them as soon as it succeeds.
+      await client.invalidateQueries({ queryKey: queryKeys.reviewIndexRoot });
     },
   });
 }

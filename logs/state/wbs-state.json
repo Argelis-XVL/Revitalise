@@ -7,10 +7,10 @@
     "tasks": 61
   },
   "derived_counts": {
-    "complete": 27,
+    "complete": 31,
     "complete_pending_manual": 6,
     "manual_only": 20,
-    "not_started": 8
+    "not_started": 4
   },
   "tasks_without_a_rule": [],
   "unrecognised_claim_values": [],
@@ -85,7 +85,7 @@
       "verdict": "UNDERCLAIM",
       "missing": [],
       "found": [
-        "workflow REVAcceptance: present"
+        "workflow REVAcceptanceCreateEnvelope: present"
       ]
     },
     {
@@ -97,7 +97,19 @@
       "verdict": "UNDERCLAIM",
       "missing": [],
       "found": [
-        "workflow REVAcceptanceReminder: present"
+        "workflow REVAcceptanceRemindersEscalation: present"
+      ]
+    },
+    {
+      "id": "3.4",
+      "task": "Build completion flow",
+      "phase": "Phase 1",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "workflow REVAcceptanceCompletion: present"
       ]
     },
     {
@@ -110,6 +122,30 @@
       "missing": [],
       "found": [
         "path docs/development/revitalise-redaction-rules.md: present"
+      ]
+    },
+    {
+      "id": "5.3",
+      "task": "Build AI narrative scrubbing",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "workflow REVNarrativeScrubFreeText: present"
+      ]
+    },
+    {
+      "id": "5.4",
+      "task": "Build confidence flagging",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "grep (?i)confidence: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json"
       ]
     },
     {
@@ -174,6 +210,18 @@
       "found": [
         "path src/code-apps/trustee-review-portal/power.config.json: present",
         "path provisioning/dataverse/share-apps.ps1: present"
+      ]
+    },
+    {
+      "id": "6.6",
+      "task": "Build finalise-decisions flow",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "workflow REVPortalFinaliseDecisions: present"
       ]
     },
     {
@@ -1099,10 +1147,10 @@
         {
           "rule": {
             "kind": "workflow",
-            "value": "REVAcceptance"
+            "value": "REVAcceptanceCreateEnvelope"
           },
           "ok": true,
-          "note": "workflow REVAcceptance: present"
+          "note": "workflow REVAcceptanceCreateEnvelope: present"
         }
       ]
     },
@@ -1127,10 +1175,11 @@
         {
           "rule": {
             "kind": "workflow",
-            "value": "REVAcceptanceReminder"
+            "value": "REVAcceptanceRemindersEscalation",
+            "_note": "RENAMED 2026-10-22 (pm-agent, reviewer instruction). Was REVAcceptanceReminder, which matched no built flow. wbs:3.3 deliverable is the reminders + 14-day escalation to Emily; escalation is this flow, and the DocuSign reminder call (AddReminders) is built inside REVAcceptanceCreateEnvelope (wbs:3.2) per its notes.md (IMP-0618)."
           },
           "ok": true,
-          "note": "workflow REVAcceptanceReminder: present"
+          "note": "workflow REVAcceptanceRemindersEscalation: present"
         }
       ]
     },
@@ -1146,19 +1195,19 @@
         "3.2"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
             "kind": "workflow",
-            "value": "REVAcceptanceComplete"
+            "value": "REVAcceptanceCompletion"
           },
-          "ok": false,
-          "note": "workflow REVAcceptanceComplete: ABSENT"
+          "ok": true,
+          "note": "workflow REVAcceptanceCompletion: present"
         }
       ]
     },
@@ -1455,19 +1504,19 @@
         "0.4"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
             "kind": "workflow",
-            "value": "REVAnonymise"
+            "value": "REVNarrativeScrubFreeText"
           },
-          "ok": false,
-          "note": "workflow REVAnonymise: ABSENT"
+          "ok": true,
+          "note": "workflow REVNarrativeScrubFreeText: present"
         }
       ]
     },
@@ -1483,20 +1532,20 @@
         "5.3"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
             "kind": "grep",
-            "file": "src/solutions/*/Workflows/REVAnonymise*.json",
+            "file": "src/solutions/*/Workflows/REVNarrativeScrubFreeText*.json",
             "pattern": "(?i)confidence"
           },
-          "ok": false,
-          "note": "grep (?i)confidence: target src/solutions/*/Workflows/REVAnonymise*.json ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
+          "ok": true,
+          "note": "grep (?i)confidence: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVNarrativeScrubFreeText-8F1C2A44-1011-4B7A-9E21-0A1B2C3D4E11.json"
         }
       ]
     },
@@ -1780,19 +1829,19 @@
         "3.2"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
             "kind": "workflow",
-            "value": "REVFinaliseDecisions"
+            "value": "REVPortalFinaliseDecisions"
           },
-          "ok": false,
-          "note": "workflow REVFinaliseDecisions: ABSENT"
+          "ok": true,
+          "note": "workflow REVPortalFinaliseDecisions: present"
         }
       ]
     },
@@ -1902,7 +1951,8 @@
         {
           "rule": {
             "kind": "workflow",
-            "value": "REVDuplicatePayment"
+            "value": "REVDuplicatePayment",
+            "_note": "LEFT UNCHANGED 2026-10-22 (pm-agent, reviewer instruction to rename stale flow names): 7.2 deliverable is the duplicate-payment lookup flow (QBO match on payment create). No built flow implements it (Workflows/ holds no duplicate-check flow), so the rule is deliberately left failing rather than pointed at an unrelated flow. TAD section 4 names the intended flow REV | Duplicate | QBO Check (automation #7, Phase 4); TAD 5.11 / wbs:8.6 state the pre-issue duplicate re-check stays with wbs:8.5 and is not in REVFinanceCapturePayment."
           },
           "ok": false,
           "note": "workflow REVDuplicatePayment: ABSENT"
@@ -1958,7 +2008,8 @@
         {
           "rule": {
             "kind": "workflow",
-            "value": "REVDuplicateFallback"
+            "value": "REVDuplicateFallback",
+            "_note": "LEFT UNCHANGED 2026-10-22 (pm-agent, reviewer instruction to rename stale flow names): 7.4 deliverable is the quarterly QBO export fallback flow. No built flow implements it (Workflows/ holds no duplicate-check flow), so the rule is deliberately left failing rather than pointed at an unrelated flow. TAD section 4 names the intended flow REV | Duplicate | QBO Check (automation #7, Phase 4); TAD 5.11 / wbs:8.6 state the pre-issue duplicate re-check stays with wbs:8.5 and is not in REVFinanceCapturePayment."
           },
           "ok": false,
           "note": "workflow REVDuplicateFallback: ABSENT"

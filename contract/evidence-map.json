@@ -237,19 +237,20 @@
     "3.2": [
       {
         "kind": "workflow",
-        "value": "REVAcceptance"
+        "value": "REVAcceptanceCreateEnvelope"
       }
     ],
     "3.3": [
       {
         "kind": "workflow",
-        "value": "REVAcceptanceReminder"
+        "value": "REVAcceptanceRemindersEscalation",
+        "_note": "RENAMED 2026-10-22 (pm-agent, reviewer instruction). Was REVAcceptanceReminder, which matched no built flow. wbs:3.3 deliverable is the reminders + 14-day escalation to Emily; escalation is this flow, and the DocuSign reminder call (AddReminders) is built inside REVAcceptanceCreateEnvelope (wbs:3.2) per its notes.md (IMP-0618)."
       }
     ],
     "3.4": [
       {
         "kind": "workflow",
-        "value": "REVAcceptanceComplete"
+        "value": "REVAcceptanceCompletion"
       }
     ],
     "3.5": [
@@ -317,13 +318,13 @@
     "5.3": [
       {
         "kind": "workflow",
-        "value": "REVAnonymise"
+        "value": "REVNarrativeScrubFreeText"
       }
     ],
     "5.4": [
       {
         "kind": "grep",
-        "file": "src/solutions/*/Workflows/REVAnonymise*.json",
+        "file": "src/solutions/*/Workflows/REVNarrativeScrubFreeText*.json",
         "pattern": "(?i)confidence"
       }
     ],
@@ -400,7 +401,7 @@
     "6.6": [
       {
         "kind": "workflow",
-        "value": "REVFinaliseDecisions"
+        "value": "REVPortalFinaliseDecisions"
       }
     ],
     "6.7": [
@@ -424,7 +425,8 @@
     "7.2": [
       {
         "kind": "workflow",
-        "value": "REVDuplicatePayment"
+        "value": "REVDuplicatePayment",
+        "_note": "LEFT UNCHANGED 2026-10-22 (pm-agent, reviewer instruction to rename stale flow names): 7.2 deliverable is the duplicate-payment lookup flow (QBO match on payment create). No built flow implements it (Workflows/ holds no duplicate-check flow), so the rule is deliberately left failing rather than pointed at an unrelated flow. TAD section 4 names the intended flow REV | Duplicate | QBO Check (automation #7, Phase 4); TAD 5.11 / wbs:8.6 state the pre-issue duplicate re-check stays with wbs:8.5 and is not in REVFinanceCapturePayment."
       }
     ],
     "7.3": [
@@ -436,7 +438,8 @@
     "7.4": [
       {
         "kind": "workflow",
-        "value": "REVDuplicateFallback"
+        "value": "REVDuplicateFallback",
+        "_note": "LEFT UNCHANGED 2026-10-22 (pm-agent, reviewer instruction to rename stale flow names): 7.4 deliverable is the quarterly QBO export fallback flow. No built flow implements it (Workflows/ holds no duplicate-check flow), so the rule is deliberately left failing rather than pointed at an unrelated flow. TAD section 4 names the intended flow REV | Duplicate | QBO Check (automation #7, Phase 4); TAD 5.11 / wbs:8.6 state the pre-issue duplicate re-check stays with wbs:8.5 and is not in REVFinanceCapturePayment."
       }
     ],
     "7.5": [

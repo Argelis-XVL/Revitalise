@@ -377,3 +377,30 @@
     Roboto, Helvetica, Arial, sans-serif;
   --font-display: "Playfair Display", Georgia, Cambria, "Times New Roman", Times, serif;
 }
+
+/* ----------------------------------------------------------------------------------------- *
+ * Verdict tones — SDD A-14, FR-116 (portal TAD trustee-portal-design-2 Revision 4, ADR-086
+ * point 5; wbs:6.3). The list's verdict button shows the signed-in trustee's own verdict word on
+ * a solid fill with white text.
+ *
+ * Approved is the design system's `--success` and Deferred its `--warning`, each DARKENED until
+ * white text passes 4.5:1 — as supplied, white on them measures 4.25:1 and 3.43:1 and fails,
+ * which is why correction 5 above declares neither. These are new names, not those tokens.
+ * Rejected is the design system's purple (already in `CARD_MARK_PALETTE`); the design system has
+ * no red, and the primary button is already brand pink. Hover and active are darker steps of the
+ * same fill. Every text/fill pair is computed from this file by `ds-tokens.test.ts` (>= 4.5:1),
+ * and every fill against white is >= 3:1 (WCAG 1.4.11). The verdict WORD is always present, so
+ * colour never carries the meaning alone (WCAG 1.4.1).
+ * ----------------------------------------------------------------------------------------- */
+:root {
+  --verdict-approved: #2f7044; /* 5.96:1 with white text */
+  --verdict-approved-hover: #275e39;
+  --verdict-approved-active: #1f4b2e;
+  --verdict-deferred: #8a5600; /* 6.16:1 with white text */
+  --verdict-deferred-hover: #734800;
+  --verdict-deferred-active: #5c3a00;
+  --verdict-rejected: #49345b; /* 10.91:1 with white text */
+  --verdict-rejected-hover: #3d2b4c;
+  --verdict-rejected-active: #31233d;
+  --verdict-text: var(--white);
+}

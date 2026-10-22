@@ -12,6 +12,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ApplicationsListPage } from "./ApplicationsListPage";
 import {
   makeRepository,
+  makeReview,
   makeSummary,
   makeUser,
   renderWithProviders,
@@ -270,5 +271,122 @@ describe("ApplicationsListPage — states that are not a list", () => {
     expect(emptyFilter.textContent ?? "").not.toBe(emptyRoundText);
     expect(emptyRoundText).toMatch(/available to you/i);
     expect(emptyFilter.textContent ?? "").toMatch(/match these filters/i);
+  });
+});
+
+describe("ApplicationsListPage — own verdict and what awaits it (SDD A-14, FR-116, FR-117; ADR-086)", () => {
+  const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+  /** A: own slot (trustee 1) decided Approve. B: only the OTHER trustee has decided — awaiting. */
+  function mixedIndex() {
+    return () =>
+      Promise.resolve([
+        makeReview({ id: "11111111-0000-4000-8000-000000000001", applicationId: A, verdict1: 1 }),
+        makeReview({ id: "11111111-0000-4000-8000-000000000002", applicationId: B, verdict1: null, verdict2: 3 }),
+      ]);
+  }
+
+  it("counts the applications awaiting the trustee's verdict over every loaded row, and marks the decided one", async () => {
+    renderPage({ listReviewsForApplications: mixedIndex() });
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("1 awaiting your verdict");
+    });
+    expect(screen.getByRole("button", { name: /^Approved — your verdict on REV-2026-001/ })).toHaveTextContent("Approved");
+    // The other trustee's Reject on B is never shown as this trustee's verdict.
+    expect(screen.getByRole("button", { name: "Record verdict for REV-2026-002" })).toBeInTheDocument();
+  });
+
+  it("says 'None awaiting your verdict' when nothing awaits", async () => {
+    renderPage({
+      listReviewsForApplications: () =>
+        Promise.resolve([
+          makeReview({ id: "11111111-0000-4000-8000-000000000001", applicationId: A, verdict1: 1 }),
+          makeReview({ id: "11111111-0000-4000-8000-000000000002", applicationId: B, verdict1: 2 }),
+        ]),
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("None awaiting your verdict");
+    });
+  });
+
+  it("shows 'Counting your verdicts…' with the filter disabled while the review index loads", async () => {
+    renderPage({ listReviewsForApplications: () => new Promise(() => undefined) });
+    expect(await screen.findByRole("status")).toHaveTextContent("Counting your verdicts…");
+    expect(screen.getByRole("checkbox", { name: "Show only applications awaiting my verdict" })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: /^Record verdict for / })).toHaveLength(2);
+  });
+
+  it("never shows a number when the review index fails, keeps Record verdict, and disables the filter", async () => {
+    renderPage({ listReviewsForApplications: () => Promise.reject(new Error("boom")) });
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("Your verdict status could not be loaded.");
+    });
+    expect(screen.getByRole("status").textContent).not.toMatch(/\d/);
+    expect(screen.getByRole("checkbox", { name: "Show only applications awaiting my verdict" })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: /^Record verdict for / })).toHaveLength(2);
+  });
+
+  it("narrows to the awaiting applications with the filter on, and the caption reports it; off restores the list", async () => {
+    renderPage({ listReviewsForApplications: mixedIndex() });
+    await screen.findByText("1 awaiting your verdict");
+    const box = screen.getByRole("checkbox", { name: "Show only applications awaiting my verdict" });
+    await userEvent.click(box);
+    expect(screen.queryByRole("button", { name: "REV-2026-001, open the full case" })).toBeNull();
+    expect(screen.getByRole("button", { name: "REV-2026-002, open the full case" })).toBeInTheDocument();
+    expect(screen.getByText("1 of 2 applications shown by the current filters.")).toBeInTheDocument();
+    // The count is over every loaded row, before the trustee's own filters.
+    expect(screen.getByRole("status")).toHaveTextContent("1 awaiting your verdict");
+    await userEvent.click(box);
+    expect(screen.getByRole("button", { name: "REV-2026-001, open the full case" })).toBeInTheDocument();
+  });
+
+  it("shows no count and no filter when the user could not be identified, and makes no review read", async () => {
+    const listReviewsForApplications = vi.fn(() => Promise.resolve([]));
+    const repository = makeRepository({
+      listApplicationsForReview: () => Promise.resolve(rows()),
+      listReviewsForApplications,
+    });
+    renderWithProviders(
+      <ApplicationsListPage
+        user={makeUser({ systemUserId: null, unresolvedReason: "No match." })}
+        onOpenApplication={vi.fn()}
+      />,
+      repository,
+    );
+    await screen.findByRole("table");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: "Show only applications awaiting my verdict" })).toBeNull();
+    expect(listReviewsForApplications).not.toHaveBeenCalled();
+  });
+
+  it("changes the button and the count as soon as a save succeeds (the index is invalidated)", async () => {
+    let decided = false;
+    const repository = makeRepository({
+      listApplicationsForReview: () => Promise.resolve(rows()),
+      listReviewsForApplications: () =>
+        Promise.resolve([
+          makeReview({ id: "11111111-0000-4000-8000-000000000001", applicationId: A, verdict1: decided ? 1 : null }),
+          makeReview({ id: "11111111-0000-4000-8000-000000000002", applicationId: B, verdict1: 2 }),
+        ]),
+      getReviewForApplication: () =>
+        Promise.resolve(makeReview({ id: "11111111-0000-4000-8000-000000000001", applicationId: A, verdict1: decided ? 1 : null })),
+      saveVerdict: () => {
+        decided = true;
+        return Promise.resolve();
+      },
+    });
+    renderWithProviders(<ApplicationsListPage user={makeUser()} onOpenApplication={vi.fn()} />, repository);
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("1 awaiting your verdict");
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Record verdict for REV-2026-001" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("radio", { name: "Approve" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: /save/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("None awaiting your verdict");
+    });
+    expect(screen.getByRole("button", { name: /^Approved — your verdict on REV-2026-001/ })).toBeInTheDocument();
   });
 });

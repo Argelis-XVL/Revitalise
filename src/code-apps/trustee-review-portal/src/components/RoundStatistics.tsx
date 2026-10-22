@@ -85,7 +85,6 @@ import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import {
   formatCount,
-  formatDateTime,
   formatMoneyMeasureAmount,
   formatMoneyMeasurePercentage,
   formatPercentage,
@@ -114,9 +113,17 @@ import type {
 } from "../dataverse/types";
 import { Button } from "./ds";
 import { classNames } from "./ds/classNames";
-import { Definitions, Panel, StatTileRow } from "./Panel";
+import { Definitions, Panel, ProgressTiles } from "./Panel";
 import { DistributionChart } from "./DistributionChart";
-import { CategoryBarChart, CompositionPieChart, WellbeingComparisonChart } from "./RoundStatisticsCharts";
+import { CategoryBars } from "./CategoryBars";
+import { ColumnChart, DonutChart, GroupedColumnChart } from "../cards/charts";
+import {
+  LEVEL_OF_NEED_SENTENCE,
+  WHO_APPLIED_SENTENCE,
+  exceptionalSentence,
+  roundProgressSentence,
+} from "../cards/sentences";
+import { computedOnStamp } from "../cards/stamp";
 import styles from "../styles/app.module.css";
 
 interface Item {
@@ -156,23 +163,23 @@ function breakTypeCaption(population: number | null): string {
 function BreakTypeTable({ profile }: { profile: BreakTypeProfile }) {
   return (
     <div className={styles.tableScroll}>
-      <table className={styles.table}>
+      <table className={`${styles.table} ${styles.statTable}`}>
         <caption className={styles.tableCaption}>{breakTypeCaption(profile.population)}</caption>
         <thead>
           <tr>
             <th scope="col" className={styles.plainHeaderCell}>
               Type of break
             </th>
-            <th scope="col" className={styles.plainHeaderCell}>
+            <th scope="col" className={`${styles.plainHeaderCell} ${styles.numeric}`}>
               Applications
             </th>
-            <th scope="col" className={styles.plainHeaderCell}>
+            <th scope="col" className={`${styles.plainHeaderCell} ${styles.numeric}`}>
               Average total cost
             </th>
-            <th scope="col" className={styles.plainHeaderCell}>
+            <th scope="col" className={`${styles.plainHeaderCell} ${styles.numeric}`}>
               Average grant requested
             </th>
-            <th scope="col" className={styles.plainHeaderCell}>
+            <th scope="col" className={`${styles.plainHeaderCell} ${styles.numeric}`}>
               Grant as share of cost
             </th>
           </tr>
@@ -283,7 +290,7 @@ function WellbeingComparisonTable({ data }: { data: WellbeingComparisonData }) {
                 Response
               </th>
               {data.series.map((series) => (
-                <th key={series.key} scope="col" className={styles.plainHeaderCell}>
+                <th key={series.key} scope="col" className={`${styles.plainHeaderCell} ${styles.numeric}`}>
                   {series.heading}
                 </th>
               ))}
@@ -316,7 +323,16 @@ function WellbeingComparisonTable({ data }: { data: WellbeingComparisonData }) {
   );
 }
 
-export function RoundStatistics({ response }: { response: RoundStatisticsResponse }) {
+export function RoundStatistics({
+  response,
+  roundOpenedOn = null,
+  roundClosedOn = null,
+}: {
+  response: RoundStatisticsResponse;
+  /** The open round's dates from the direct read, for the Round progress sentence's *d* (R16). */
+  roundOpenedOn?: string | null;
+  roundClosedOn?: string | null;
+}) {
   const metrics = response.metrics;
 
   // FR-061's four delivered distributions — ethnicity joined the other three at TAD §0.11
@@ -335,17 +351,17 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
   const applicantCharts: { title: string; series: Series; visual: ReactNode }[] = [
     ...(genderSeries === null
       ? []
-      : [{ title: "Gender", series: genderSeries, visual: <CategoryBarChart series={genderSeries} /> }]),
+      : [{ title: "Gender", series: genderSeries, visual: <CategoryBars series={genderSeries} figures="share-only" /> }]),
     ...(ageSeries === null
       ? []
-      : [{ title: "Age range", series: ageSeries, visual: <CategoryBarChart series={ageSeries} /> }]),
+      : [{ title: "Age range", series: ageSeries, visual: <ColumnChart series={ageSeries} colorIndex={1} /> }]),
     ...(applicantTypeSeries === null
       ? []
       : [
           {
             title: "Applicant type",
             series: applicantTypeSeries,
-            visual: <CompositionPieChart series={applicantTypeSeries} />,
+            visual: <DonutChart series={applicantTypeSeries} />,
           },
         ]),
     // `CategoryBarChart`, not `CompositionPieChart`: six categories is past the point a pie
@@ -360,7 +376,7 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
           {
             title: "Ethnic group",
             series: ethnicGroupSeries,
-            visual: <CategoryBarChart series={ethnicGroupSeries} />,
+            visual: <CategoryBars series={ethnicGroupSeries} figures="share-only" />,
           },
         ]),
   ];
@@ -395,13 +411,8 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
       "Applications per day",
       metrics.applicationsPerDay === null ? null : formatRate(metrics.applicationsPerDay.value),
     ),
-    ...present(
-      "Days the round has been open",
-      metrics.applicationsPerDay?.days === undefined ||
-        metrics.applicationsPerDay.days === null
-        ? null
-        : formatCount(metrics.applicationsPerDay.days),
-    ),
+    // "Days the round has been open" is NOT shown in the card app (reviewer R14, WI-0012,
+    // ADR-066 decision 3); the first app keeps it until WI-0012 is built there.
   ];
 
   const exceptionalItems: Item[] = [
@@ -450,86 +461,75 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
     circumstanceScoreSeries !== null ||
     proportionItems.length > 0;
 
+  const receivedCount = metrics.applicationsReceived?.count ?? null;
+  const now = new Date();
+
   return (
     <>
-      {/*
-        The flow's own freshness statement, and it belongs to THESE figures only.
-        TAD §8.3: the FR-063 block beside this one carries its own dated statement, and one
-        "as at" line covering both would be wrong about one of them. It is text rather than
-        a tooltip, and it prints (FR-039, §8.2 — under the live design the printed pack is
-        the only durable record of what a board saw, TAD §6.4).
-      */}
-      <p className={styles.freshness} data-print="stamp">
-        Round figures computed on {formatDateTime(response.computedOn)}
-        {response.populationReceived === null
-          ? "."
-          : `, over ${formatCount(response.populationReceived)} applications received in this round.`}
-      </p>
-
+      {/* "Figures of this round" and the computedOn stamp as a white pill beside it
+          (RoundOverview.jsx lines 218-221). The stamp's wording is the card app's (R11,
+          ADR-066): "Computed on {date} at {time}". It still prints (FR-039, TAD §6.4: the
+          printed pack is the only durable record of what a board saw), and the denominator
+          stays on the page beneath it. */}
+      <div className={styles.figuresHeader}>
+        <h2 className={styles.figuresHeading}>Figures of this round</h2>
+        <p className={styles.stampPill} data-print="stamp">
+          {computedOnStamp(response.computedOn)}
+        </p>
+      </div>
+      {response.populationReceived === null ? null : (
+        <p className={styles.stampDenominator}>
+          These figures are counted over {formatCount(response.populationReceived)} applications
+          received in this round.
+        </p>
+      )}
       {progressItems.length === 0 ? null : (
-        <Panel heading="Round progress">
-          {/* Fix 3: `Round 4.pptx`'s own headline figure, "applications received", as a
-              KPI tile rather than a definition list — see this file's header. */}
-          <StatTileRow items={progressItems} />
+        <Panel
+          heading="Round progress"
+          eyebrow="Round progress"
+          sentence={roundProgressSentence(receivedCount, roundOpenedOn, roundClosedOn, now)}
+        >
+          <ProgressTiles items={progressItems} />
         </Panel>
       )}
-
       {exceptionalItems.length === 0 && exceptionalSeries === null ? null : (
-        <Panel heading="Exceptional circumstances">
-          {exceptionalItems.length === 0 ? null : <Definitions items={exceptionalItems} />}
-          {/* ADR-039, TAD §6.3.5 — the one figure in this list that can be a deliberate
-              withholding rather than an absence. Threshold-agnostic: `k` lives in
-              `rev_setting`, is read only by the flow, and never travels in the response, so
-              this screen has no number to name. */}
+        <Panel
+          heading="Exceptional circumstances"
+          eyebrow="Exceptional circumstances"
+          sentence={exceptionalSentence(
+            metrics.exceptionalFundingSummary?.anyCount ?? null,
+            metrics.exceptionalFundingSummary?.population ?? null,
+          )}
+        >
+          {exceptionalItems.length === 0 ? null : <ProgressTiles items={exceptionalItems} />}
           {metrics.exceptionalFundingSummary === null ? null : (
-            <p className={styles.hint}>
+            <p className={styles.cardNote}>
               The average exceptional funding requested is shown only where enough
               applications citing exceptional circumstances carry a figure.
             </p>
           )}
           {exceptionalSeries === null ? null : (
-            // Revision 10 (2026-09-02, wbs:6.8), reviewer item 1 — this SECTION'S table is
-            // pinned always-visible, regardless of the default-hidden disclosure state every
-            // OTHER statistics table on this screen keeps (Revision 9). See
-            // `DistributionChart.tsx`'s own Revision 10 section for the mechanism and
-            // `docs/development/trustee-portal-visual-refresh-dev-summary.md` for the naming
-            // ambiguity this call site resolves, flagged rather than silently decided.
             <DistributionChart
               title="Exceptional circumstance cited"
               series={exceptionalSeries}
               alwaysShowTable
+              visual={<CategoryBars series={exceptionalSeries} />}
             />
           )}
         </Panel>
       )}
-
       {metrics.breakTypeProfile === null ? null : (
         <Panel heading="Type of break">
           <BreakTypeTable profile={metrics.breakTypeProfile} />
         </Panel>
       )}
-
       {applicantCharts.length === 0 ? null : (
-        <Panel heading="Who applied in this round">
-          {/*
-            Revision 8 (2026-08-31, wbs:6.9) — the reviewer's two asks for this panel, and
-            they are one change: `figures="share-only"` drops each table's raw-count column
-            (and, with it, `DistributionChart`'s own count-scaled horizontal bars — see that
-            file's Revision 8 section for why the two go together), and `.applicantGrid` lays
-            the remaining visuals out two per row instead of one full-width block each.
-
-            THE DENOMINATOR SURVIVES THE COUNT COLUMN, DELIBERATELY. Every block still opens
-            with `DistributionChart`'s unconditional "Counted over N applications in this
-            round" line, which is the population these shares are taken over. TAD §3.3 point
-            1 — "a percentage whose denominator is not on the page is not auditable" — is
-            what makes a share-only table legible at all, so dropping the counts without
-            keeping that line would have been the one version of this change that is wrong.
-
-            Only this panel takes the mode. "Level of need" below keeps its counts: FR-062's
-            per-question and life-satisfaction blocks count RESPONSES, not applications, and
-            a response count is the figure that tells a trustee how many people answered at
-            all — the reviewer's instruction named this section and no other.
-          */}
+        <Panel
+          heading="Who applied in this round"
+          eyebrow="Who applied in this round"
+          eyebrowTone="purple"
+          sentence={WHO_APPLIED_SENTENCE}
+        >
           <div className={styles.applicantGrid}>
             {applicantCharts.map((chart) => (
               <DistributionChart
@@ -543,54 +543,30 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
           </div>
         </Panel>
       )}
-
       {!hasNeedContent ? null : (
-        <Panel heading="Level of need">
-          {/*
-            Revision 10 (2026-09-02, wbs:6.8), reviewer item 2 — the combined wellbeing chart
-            and the life-satisfaction chart now sit SIDE BY SIDE, one row, reusing
-            `.applicantGrid` (the same two-per-row pattern "Who applied in this round" already
-            uses) rather than inventing a second layout class for one more pair of visuals.
-            The three separate per-question `DistributionChart`s that used to render beneath
-            the comparison chart are GONE — that data is already in the combined chart, and
-            showing it a second, third and fourth time was the reviewer's own complaint this
-            round. `WellbeingComparisonTable` above is what replaces their accessible-table
-            role now that they are gone (see its own header for why that matters).
-          */}
+        <Panel heading="Level of need" eyebrow="Level of need" sentence={LEVEL_OF_NEED_SENTENCE}>
           <div className={styles.applicantGrid}>
             {wellbeingComparison === null ? null : (
               <section className={styles.chartBlock}>
                 <h3 className={styles.fieldHeading}>Wellbeing, last year (all questions)</h3>
-                <WellbeingComparisonChart data={wellbeingComparison} />
+                <GroupedColumnChart data={wellbeingComparison} />
                 <WellbeingComparisonTable data={wellbeingComparison} />
               </section>
             )}
-            {/* Revision 11 (2026-09-02, wbs:6.8), reviewer item 3 — THIS is the call site that
-                produced the "stray pink bar": it passes a `visual` AND keeps the default
-                `figures="count-and-share"`, so `DistributionChart` drew its own count-scaled
-                SVG bars underneath the Recharts chart as well. Nothing changes HERE — the fix
-                is in `DistributionChart` itself, which now withdraws its own bars whenever a
-                `visual` is supplied, in every mode. The response COUNT column stays: FR-062's
-                life-satisfaction block counts responses, and Revision 8's paragraph above says
-                why that figure is not the applicant panel's. */}
             {lifeSatisfactionSeries === null ? null : (
               <DistributionChart
                 title="Life satisfaction, 0 to 10"
                 series={lifeSatisfactionSeries}
                 countHeading="Responses"
-                visual={<CategoryBarChart series={lifeSatisfactionSeries} />}
+                visual={<ColumnChart series={lifeSatisfactionSeries} height={200} />}
               />
             )}
-            {/* EF-12 second half — circumstance score distribution, reviewer-waived
-                C-COM-002 2026-09-18, same DistributionChart/CategoryBarChart pattern as
-                life satisfaction above. Band labels: CIRCUMSTANCE_SCORE_BAND_LABELS
-                (dataverse/schema.ts); banding rationale: the flow's own notes.md. */}
             {circumstanceScoreSeries === null ? null : (
               <DistributionChart
                 title="Circumstance score, 0 to 60"
                 series={circumstanceScoreSeries}
                 countHeading="Applications"
-                visual={<CategoryBarChart series={circumstanceScoreSeries} />}
+                visual={<ColumnChart series={circumstanceScoreSeries} height={200} />}
               />
             )}
           </div>

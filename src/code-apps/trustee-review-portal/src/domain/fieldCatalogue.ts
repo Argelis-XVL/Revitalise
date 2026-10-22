@@ -18,14 +18,15 @@ export const RESTRICTED_VALUE_TEXT =
   "Restricted — this field is protected by column-level security and is not requested by this app.";
 
 /**
- * The two board-pack groups SDD §7.1b actually populates. A third, "Condition and
- * circumstance", is named in §7.1b too but carries zero Group-B (secured, non-free-text)
- * columns — every one of its secured columns is free text with a redacted counterpart
- * instead (ADR-031) — so it is deliberately absent here rather than declared with an empty
- * list nothing ever checks.
+ * The one board-pack group SDD §7.1b still populates. "Condition and circumstance" is named in
+ * §7.1b too but carries zero Group-B (secured, non-free-text) columns — every one of its secured
+ * columns is free text with a redacted counterpart instead (ADR-031). "Financial eligibility"
+ * held benefit status, benefit provider and employment status until SDD A-14 (portal TAD
+ * trustee-portal-design-2 Revision 4, ADR-085, 2026-10-22) released them to trustees, read only;
+ * they are values on the detail screen now. Both are deliberately absent here rather than
+ * declared with an empty list nothing ever checks.
  */
 export const FIELD_CATALOGUE_GROUPS = {
-  financialEligibility: "Financial eligibility",
   helperRefereeEmergencyContact: "Helper, referee and emergency contact",
 } as const;
 

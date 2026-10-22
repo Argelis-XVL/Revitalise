@@ -1,12 +1,9 @@
 /**
- * The landing screen's two freshness statements — TAD §8.3.
- *
- * Split out of `LandingPage.test.tsx` VERBATIM by ADR-066 of
- * `docs/architecture/trustee-portal-design-2-architecture.md` (Revision 3): no assertion here
- * changed in the move. The card-layout app words these two statements differently by reviewer
- * decision (R11, R12), so it carries its own copy of this file asserting its own wording and the
- * same properties, while `LandingPage.test.tsx` stays identical in both apps and keeps every
- * other Round overview assertion binding on both.
+ * The landing screen's two freshness statements — CARD APP wording (ADR-066 decision 1; reviewer
+ * R11 "Design wording", R12 "Use the pill"). The first app's copy of this file asserts its own
+ * wording; this one asserts the card app's wording AND the same four properties: two distinct
+ * elements, the denominator kept on the page, the missing as-at date said rather than implied,
+ * and both stamps marked for print. `LandingPage.freshness.test.tsx` is presentation (ADR-066).
  */
 import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
@@ -25,26 +22,21 @@ function renderLanding(overrides: Partial<TrusteeRepository> = {}) {
   );
 }
 
-describe("LandingPage — the two freshness statements (TAD §8.3)", () => {
-  it("shows the flow's computedOn stamp with its own denominator", async () => {
+describe("LandingPage — the two freshness statements (TAD §8.3, card wording ADR-066)", () => {
+  it("shows the flow's computedOn stamp as 'Computed on {date} at {time}', with its own denominator", async () => {
     renderLanding();
-    expect(
-      await screen.findByText(/round figures computed on 25 aug 2026, 13:05 utc/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/over 434 applications received in this round/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Computed on 25 Aug 2026 at 13:05 UTC")).toBeInTheDocument();
+    expect(screen.getByText(/over 434 applications\s+received in this round/i)).toBeInTheDocument();
   });
 
-  it("shows FR-063's as-at date separately, and never as one statement covering both", async () => {
+  it("shows FR-063's as-at date separately, after the 'Entered by hand' pill, never as one statement covering both", async () => {
     renderLanding();
-    const manual = await screen.findByText(/entered by hand and are as at 20 aug 2026/i);
-    const computed = screen.getByText(/round figures computed on/i);
-    // Two distinct elements with distinct wording. One "as at" line covering both would be
-    // wrong about one of them: these figures are a person's last data entry, the ones
-    // beside them are seconds old.
+    const manual = await screen.findByText(/these figures are as at 20 aug 2026/i);
+    const computed = screen.getByText(/computed on/i);
     expect(manual).not.toBe(computed);
     expect(manual.textContent).toContain("computed just now");
+    expect(manual.textContent?.startsWith("Entered by hand")).toBe(true);
+    expect(manual.textContent).not.toMatch(/are entered by hand and/i);
   });
 
   it("says the as-at date is missing rather than letting silence read as currency", async () => {
@@ -56,14 +48,10 @@ describe("LandingPage — the two freshness statements (TAD §8.3)", () => {
   });
 
   it("marks both stamps for the print stylesheet, so a printed pack carries computedOn", async () => {
-    // TAD §6.4: with nothing persisted server-side, the printed pack is the only durable
-    // record of the figures a board saw.
     const { container } = renderLanding();
-    await screen.findByText(/round figures computed on/i);
+    await screen.findByText(/computed on/i);
     const stamps = container.querySelectorAll('[data-print="stamp"]');
     expect(stamps).toHaveLength(2);
-    expect(
-      Array.from(stamps).some((stamp) => stamp.textContent?.includes("computed on")),
-    ).toBe(true);
+    expect(Array.from(stamps).some((stamp) => stamp.textContent?.includes("Computed on"))).toBe(true);
   });
 });

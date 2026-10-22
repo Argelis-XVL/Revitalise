@@ -1,0 +1,4 @@
+{
+  "_comment": "The ONE column security profile whose columns trustees may read (portal TAD trustee-portal-design-2 Revision 4, ADR-084/ADR-085; SDD A-14; wbs:6.3). Read by scripts/verify-column-security-membership.py (G1), scripts/verify-code-app-column-bindings.py (G2, passed to the engine as --released-profile), scripts/generate-trustee-field-catalogue.py (G4) and the portal's src/dataverse/schema.test.ts (G3), so no gate carries the name as a literal. Widening what trustees read takes two keys: this profile's permissions (development) and the trustee_release rows of constraints/domain/special-category-register.yml (reviewer or improvement-agent).",
+  "profile": "REV_TrusteeFinancialEligibility"
+}

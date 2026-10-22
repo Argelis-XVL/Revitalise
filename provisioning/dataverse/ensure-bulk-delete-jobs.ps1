@@ -15,16 +15,27 @@
     pattern and (where the rule has one) the retention period, so no period is ever a
     literal in this script.
 
-    Phase 1 jobs:
-      • Rejected applications          — deleted a fixed period after rev_decisiondate
-      • Withdrawn/incomplete           — a fixed period after the parent applicant's
-                                         rev_lastcontactdate
-      • Orphaned applicants            — applicants left with no application at all
-      • Error log                      — a fixed number of days after rev_occurredon
+    The six jobs (TAD section 3.4.1, ADR-083), in the order they run:
+      - Paid-grant applications   - deleted 72 months (6 years) after the grant's
+                                    rev_finalpaymentdate; the cascade removes Review,
+                                    Grant and Payment. TST/ACC and PRD.
+      - Rejected applications     - a fixed period after rev_decisiondate
+      - Withdrawn/incomplete      - a fixed period after the parent applicant's
+                                    rev_lastcontactdate
+      - Orphaned applicants       - applicants left with no application at all; runs
+                                    after every application sweep
+      - Error log                 - a fixed number of days after rev_occurredon
+      - AI events (msdyn_aievent) - AI Builder's own copy of each call's input text,
+                                    deleted 30 days after createdon, DAILY. PRD ONLY:
+                                    DEV and TST/ACC hold test text, so their settings
+                                    files carry no entry for it (ADR-083 item 2).
+    Which job runs where is decided by the entries in each environment's settings
+    file, not by this script: it creates exactly the entries it is given.
 
-    The 6-year paid-grant retention job is NOT created here: it targets the rev_grant
-    table, which arrives in a later phase. It is added to `dataverse.bulkDeleteJobs`
-    (and given its own jobKey branch below) in the release that ships that table.
+    Request shape (D-ADR083-2 / D-ADR083-3, measured in DEV 2026-10-22): every condition
+    value is a typed Microsoft.Dynamics.CRM.Object (New-Int32Value), and the existence
+    check selects only columns that bulkdeleteoperation has and reads the recurrence
+    pattern through $expand=asyncoperationid (D-ADR083-4).
 
     Idempotency (C-TECH-042): a recurring bulk-delete job leaves one
     `bulkdeleteoperation` row per past occurrence in statecode 3 (Completed) plus one
@@ -72,6 +83,25 @@ $ErrorActionPreference = 'Stop'
 $statusRejected   = 8
 $statusWithdrawn  = 9
 $statusIncomplete = 10
+$statusGrantPaid  = 11
+
+function New-Int32Value {
+    <#
+      Types one ConditionExpression value. The BulkDelete action binds `Values` as
+      Collection(Edm.Untyped) and DROPS a bare JSON number, so the condition arrives with
+      zero values and the platform refuses it (0x80040203 "requires 1 value/s, not 0",
+      D-ADR083-2). Each value is therefore sent as a typed Microsoft.Dynamics.CRM.Object;
+      this exact shape is what DEV accepted on 2026-10-22 for every option-set and
+      OlderThanX value used below (all are Int32; the string form of Value is the wire
+      format, not a mistake).
+    #>
+    param([Parameter(Mandatory)][int]$Value)
+    return @{
+        '@odata.type' = 'Microsoft.Dynamics.CRM.Object'
+        Type          = 'System.Int32'
+        Value         = [string]$Value
+    }
+}
 
 function New-RetentionQuerySet {
     <#
@@ -122,13 +152,13 @@ function New-RetentionQuerySet {
                                 '@odata.type' = 'Microsoft.Dynamics.CRM.ConditionExpression'
                                 AttributeName = 'rev_status'
                                 Operator      = 'Equal'
-                                Values        = @($statusRejected)
+                                Values        = @(New-Int32Value $statusRejected)
                             },
                             @{
                                 '@odata.type' = 'Microsoft.Dynamics.CRM.ConditionExpression'
                                 AttributeName = 'rev_decisiondate'
                                 Operator      = 'OlderThanXMonths'
-                                Values        = @($RetentionValue)
+                                Values        = @(New-Int32Value $RetentionValue)
                             }
                         )
                     }
@@ -163,7 +193,7 @@ function New-RetentionQuerySet {
                                 '@odata.type' = 'Microsoft.Dynamics.CRM.ConditionExpression'
                                 AttributeName = 'rev_status'
                                 Operator      = 'In'
-                                Values        = @($statusWithdrawn, $statusIncomplete)
+                                Values        = @((New-Int32Value $statusWithdrawn), (New-Int32Value $statusIncomplete))
                             }
                         )
                     }
@@ -189,7 +219,7 @@ function New-RetentionQuerySet {
                                         '@odata.type' = 'Microsoft.Dynamics.CRM.ConditionExpression'
                                         AttributeName = 'rev_lastcontactdate'
                                         Operator      = 'OlderThanXMonths'
-                                        Values        = @($RetentionValue)
+                                        Values        = @(New-Int32Value $RetentionValue)
                                     }
                                 )
                             }
@@ -272,7 +302,108 @@ function New-RetentionQuerySet {
                                 '@odata.type' = 'Microsoft.Dynamics.CRM.ConditionExpression'
                                 AttributeName = 'rev_occurredon'
                                 Operator      = 'OlderThanXDays'
-                                Values        = @($RetentionValue)
+                                Values        = @(New-Int32Value $RetentionValue)
+                            }
+                        )
+                    }
+                    LinkEntities  = @()
+                }
+            )
+        }
+
+        # Paid-grant applications (ADR-083 item 1): the clock is the GRANT's
+        # rev_finalpaymentdate, a column on a related row, so the query starts at the
+        # application (the row the schedule deletes: deleting the grant alone would
+        # leave the application and its narratives behind) and joins to rev_grant with
+        # the date test in LinkCriteria, the same shape as the withdrawn/incomplete
+        # branch. The cascade from Application removes Review, Grant and Payment; the
+        # orphan sweep then removes the applicant. An application at Grant Paid with no
+        # grant row, or a grant with no final payment date, matches nothing and is kept.
+        # A-RET-1: not yet run against a live environment.
+        'paidGrantApplications' {
+            return @(
+                @{
+                    '@odata.type' = 'Microsoft.Dynamics.CRM.QueryExpression'
+                    EntityName    = 'rev_application'
+                    ColumnSet     = @{
+                        '@odata.type' = 'Microsoft.Dynamics.CRM.ColumnSet'
+                        AllColumns    = $false
+                        Columns       = @('rev_applicationid')
+                    }
+                    Criteria      = @{
+                        '@odata.type'  = 'Microsoft.Dynamics.CRM.FilterExpression'
+                        FilterOperator = 'And'
+                        Conditions     = @(
+                            @{
+                                '@odata.type' = 'Microsoft.Dynamics.CRM.ConditionExpression'
+                                AttributeName = 'rev_status'
+                                Operator      = 'Equal'
+                                Values        = @(New-Int32Value $statusGrantPaid)
+                            }
+                        )
+                    }
+                    LinkEntities  = @(
+                        @{
+                            '@odata.type'         = 'Microsoft.Dynamics.CRM.LinkEntity'
+                            LinkFromEntityName    = 'rev_application'
+                            LinkFromAttributeName = 'rev_applicationid'
+                            LinkToEntityName      = 'rev_grant'
+                            LinkToAttributeName   = 'rev_applicationid'
+                            JoinOperator          = 'Inner'
+                            EntityAlias           = 'paidgrant'
+                            Columns               = @{
+                                '@odata.type' = 'Microsoft.Dynamics.CRM.ColumnSet'
+                                AllColumns    = $false
+                                Columns       = @()
+                            }
+                            LinkCriteria          = @{
+                                '@odata.type'  = 'Microsoft.Dynamics.CRM.FilterExpression'
+                                FilterOperator = 'And'
+                                Conditions     = @(
+                                    @{
+                                        '@odata.type' = 'Microsoft.Dynamics.CRM.ConditionExpression'
+                                        AttributeName = 'rev_finalpaymentdate'
+                                        Operator      = 'OlderThanXMonths'
+                                        Values        = @(New-Int32Value $RetentionValue)
+                                    }
+                                )
+                            }
+                            LinkEntities          = @()
+                        }
+                    )
+                }
+            )
+        }
+
+        # AI events (ADR-083 item 2): AI Builder writes one msdyn_aievent row per call,
+        # holding the call's input text. One condition, no status test: every row is a
+        # call's input. Daily, so a row is gone at most 31 days after it was written.
+        # A-NS-45: no application role can read these rows (verification, ADR-083 item 4).
+        # A-NS-46: whether deleting rows changes Microsoft's credit reporting is not stated.
+        # msdyn_aieventid as the primary key follows the platform's <table>id naming; it is
+        # part of A-NS-47's check (the first PRD run reports CREATED or FAILED).
+        # A-NS-47: Microsoft documents this job in the admin center wizard, not through
+        # the BulkDelete action; if the action refuses it, the job is created by hand to
+        # the same criteria and the next run of this script reports it EXISTS by name.
+        'aiEvents' {
+            return @(
+                @{
+                    '@odata.type' = 'Microsoft.Dynamics.CRM.QueryExpression'
+                    EntityName    = 'msdyn_aievent'
+                    ColumnSet     = @{
+                        '@odata.type' = 'Microsoft.Dynamics.CRM.ColumnSet'
+                        AllColumns    = $false
+                        Columns       = @('msdyn_aieventid')
+                    }
+                    Criteria      = @{
+                        '@odata.type'  = 'Microsoft.Dynamics.CRM.FilterExpression'
+                        FilterOperator = 'And'
+                        Conditions     = @(
+                            @{
+                                '@odata.type' = 'Microsoft.Dynamics.CRM.ConditionExpression'
+                                AttributeName = 'createdon'
+                                Operator      = 'OlderThanXDays'
+                                Values        = @(New-Int32Value $RetentionValue)
                             }
                         )
                     }
@@ -310,18 +441,31 @@ foreach ($jobDef in @($jobs)) {
         if ($null -ne $retentionRaw) { $retentionValue = [int]$retentionRaw }
 
         # ── Existence check — see .DESCRIPTION for why `statecode ne 3` ───────
+        # $select names only columns bulkdeleteoperation has (D-ADR083-3): it has no
+        # `recurrencepattern` (DEV refused it with 0x80060888). The pattern lives on the
+        # related asyncoperation, read through $expand=asyncoperationid(...), which DEV
+        # accepted read-only on 2026-10-22 (D-ADR083-4). The $expand's own $select is
+        # inside the parentheses and is not a second top-level $select.
         $existing = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
-            -Path ('bulkdeleteoperations?$filter=name eq ''{0}'' and statecode ne 3&$select=bulkdeleteoperationid,name,statecode,recurrencepattern' -f (ConvertTo-ODataLiteral -Value $jobName))
+            -Path ('bulkdeleteoperations?$filter=name eq ''{0}'' and statecode ne 3&$select=bulkdeleteoperationid,name,statecode,isrecurring,nextrun&$expand=asyncoperationid($select=recurrencepattern)' -f (ConvertTo-ODataLiteral -Value $jobName))
         if ($existing.value -and $existing.value.Count -gt 0) {
             $live = $existing.value[0]
-            if ($live.recurrencepattern -ne $recurrencePattern) {
-                # Schedule drift: the job exists, so this script must not create a
-                # second one, but the live recurrence no longer matches the retention
-                # schedule in settings. Surfaced in the Deployment Summary for the
-                # process owner to reconcile — the period itself is unchanged, only
-                # how often the sweep runs.
+            $livePattern = $null
+            if ($live.PSObject.Properties['asyncoperationid'] -and $live.asyncoperationid -and
+                $live.asyncoperationid.PSObject.Properties['recurrencepattern']) {
+                $livePattern = $live.asyncoperationid.recurrencepattern
+            }
+            # Schedule drift: the job exists, so this script must not create a second
+            # one, but its schedule no longer matches settings. Surfaced in the
+            # Deployment Summary for the process owner to reconcile.
+            if ($live.isrecurring -eq $false) {
                 Write-ResourceStatus -Status EXISTS -Name $label `
-                    -Detail ("⚠ recurrence drift: live '$($live.recurrencepattern)' vs settings '$recurrencePattern' — " +
+                    -Detail ('⚠ schedule drift: the live job is not recurring, settings say ' +
+                             "'$recurrencePattern' - delete the job in the maker portal and re-run this script to re-provision it")
+            }
+            elseif ($livePattern -ne $recurrencePattern) {
+                Write-ResourceStatus -Status EXISTS -Name $label `
+                    -Detail ("⚠ recurrence drift: live '$livePattern' vs settings '$recurrencePattern' - " +
                              'delete the job in the maker portal and re-run this script to re-provision it')
             }
             else {

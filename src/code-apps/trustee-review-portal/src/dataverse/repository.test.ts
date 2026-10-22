@@ -283,7 +283,78 @@ describe("getReviewForApplication", () => {
   });
 });
 
+describe("getReviewForApplication — the shared chooser (portal TAD ADR-086 point 2)", () => {
+  it("picks the newest panel date with a null date ranked oldest, whatever order the server returns", async () => {
+    listRecords.mockResolvedValue({
+      rows: [
+        { rev_reviewid: "11111111-0000-4000-8000-000000000001", _rev_applicationid_value: APPLICATION_ID, rev_paneldate: null },
+        { rev_reviewid: "11111111-0000-4000-8000-000000000002", _rev_applicationid_value: APPLICATION_ID, rev_paneldate: "2026-10-01T00:00:00Z" },
+      ],
+      truncated: false,
+    });
+    const review = await dataverseRepository.getReviewForApplication(APPLICATION_ID);
+    expect(review?.id).toBe("11111111-0000-4000-8000-000000000002");
+    expect(review?.applicationId).toBe(APPLICATION_ID);
+  });
+});
+
+describe("listReviewsForApplications (portal TAD ADR-086 point 1; A-TR-19)", () => {
+  function ids(count: number): string[] {
+    return Array.from({ length: count }, (_, index) =>
+      `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    );
+  }
+
+  it("reads rev_reviews with an `or` disjunction in chunks of 25 ids, one after another, de-duplicated", async () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    const wanted = ids(60);
+    await dataverseRepository.listReviewsForApplications([...wanted, wanted[0]!]);
+    expect(listRecords).toHaveBeenCalledTimes(3);
+    const filters = listRecords.mock.calls.map((call) => (call[0] as { filter: string }).filter);
+    expect(filters.map((f) => f.split(" or ").length)).toEqual([25, 25, 10]);
+    expect(filters[0]).toContain(`_rev_applicationid_value eq ${wanted[0]!}`);
+    for (const call of listRecords.mock.calls) {
+      const request = call[0] as { entityName: string; select: readonly string[] };
+      expect(request.entityName).toBe("rev_reviews");
+      expect(request.select).toContain("_rev_applicationid_value");
+    }
+  });
+
+  it("makes no read for an empty list", async () => {
+    expect(await dataverseRepository.listReviewsForApplications([])).toEqual([]);
+    expect(listRecords).not.toHaveBeenCalled();
+  });
+
+  it("maps each row with its application id", async () => {
+    listRecords.mockResolvedValue({
+      rows: [{ rev_reviewid: REVIEW_ID, _rev_applicationid_value: APPLICATION_ID, rev_verdict1: 2 }],
+      truncated: false,
+    });
+    const rows = await dataverseRepository.listReviewsForApplications([APPLICATION_ID]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.applicationId).toBe(APPLICATION_ID);
+    expect(rows[0]?.verdict1).toBe(2);
+  });
+
+  it("rejects a truncated chunk rather than counting a partial index", async () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: true });
+    await expect(dataverseRepository.listReviewsForApplications([APPLICATION_ID])).rejects.toThrow(/cannot be shown completely/);
+  });
+
+  it("rejects a row whose application lookup did not come back, rather than reading that application as awaiting", async () => {
+    listRecords.mockResolvedValue({ rows: [{ rev_reviewid: REVIEW_ID }], truncated: false });
+    await expect(dataverseRepository.listReviewsForApplications([APPLICATION_ID])).rejects.toThrow(/without its application/);
+  });
+});
+
 describe("saveVerdict", () => {
+  it("names ONLY the verdict column when no notes are given, so the stored note is kept (ADR-087 point 6; A-TR-20)", async () => {
+    updateRecord.mockResolvedValue(undefined);
+    await dataverseRepository.saveVerdict({ reviewId: REVIEW_ID, slot: "trustee2", verdict: VERDICT_VALUES.approve });
+    const request = updateRecord.mock.calls[0]?.[0] as { item: Record<string, unknown> };
+    expect(Object.keys(request.item)).toEqual(["rev_verdict2"]);
+  });
+
   it("writes exactly the two columns of the trustee-1 slot", async () => {
     updateRecord.mockResolvedValue(undefined);
     await dataverseRepository.saveVerdict({

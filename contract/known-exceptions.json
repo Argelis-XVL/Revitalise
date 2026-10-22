@@ -96,6 +96,18 @@
       "expires": "2026-12-31",
       "expiry_rationale": "Same horizon as EX-008 to EX-011: covers Phase 3 and the closing invoice.",
       "_risk_acceptance_note": "Commercial-agent is not blocked by code. This entry and commercial-events CE-0019 are the record commercial-agent reads; the control is that record, not a gate."
+    },
+    {
+      "id": "EX-013",
+      "gate": "none - not a gate violation. Standing record of a reviewer decision that CO-011's Retention & Erasure helper is UNBILLED; see _gate_scope_note. No gate observes it.",
+      "matches": "UNBILLED by reviewer decision - CO-011 Retention & Erasure helper (modes 1-3, children, evidence log, runbook), feature revitalise-grant-automation, wbs:0.13",
+      "reason": "Reviewer verbatim (relayed by lead-agent, 2026-10-22): \"SAR mode 3 is a change order unbilled... cause it should have been part of the work in a regulated environment.\" and \"Approve change order C0-011\". Scope accepted at 25-37h; hours are not billed.",
+      "finding": "none",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "Commercial-agent proposes no billable hours and logs no worklog session for CO-011 or task 0.13. Revisit only if the reviewer decides to bill it (then a new APPROVE CHANGE ORDER CO-011 naming billing is required first, per C-COM-002).",
+      "expires": "2026-12-31",
+      "expiry_rationale": "Same horizon as EX-008 to EX-012: covers Phase 3 and the closing invoice.",
+      "_risk_acceptance_note": "Commercial-agent is not blocked by code. This entry and commercial-events CE-0023 are the record commercial-agent reads; the control is that record, not a gate."
     }
   ],
   "_closed_exceptions": [

@@ -17,10 +17,25 @@ import {
 import { TRUSTEE_RESTRICTED_FIELD_CATALOGUE } from "../generated/trusteeRestrictedFieldCatalogue";
 
 describe("TRUSTEE_RESTRICTED_FIELD_CATALOGUE — the generated data", () => {
-  it("carries exactly twenty-one entries — Amendment A-05 Finding 1 Group B, EF-10 helper columns and the eight referee columns", () => {
+  it("carries exactly eighteen entries — the helper, referee and emergency-contact columns (SDD A-14 removed the three financial ones)", () => {
     // EF-10 (2026-09-17) reclassified two previously IsSecured=0 helper columns as IsSecured=1
     // and added them to REV_TrusteeRestricted — catalogue grows from 11 to 13; the eight referee-* columns (CO-008) take it to 21.
-    expect(TRUSTEE_RESTRICTED_FIELD_CATALOGUE).toHaveLength(21);
+    // SDD A-14 (2026-10-22, ADR-085): benefit status, benefit provider and employment status are
+    // released to trustees read only and left the catalogue — 21 to 18.
+    expect(TRUSTEE_RESTRICTED_FIELD_CATALOGUE).toHaveLength(18);
+  });
+
+  it("keeps the other eighteen keys unchanged, and drops exactly the three released ones (WI-0146 positive control)", () => {
+    expect(TRUSTEE_RESTRICTED_FIELD_CATALOGUE.map((entry) => entry.key)).toEqual([
+      "helper-organisation", "helper-relationship", "helper-name", "helper-email", "helper-phone",
+      "referee-name", "referee-email", "referee-phone", "referee-first-name", "referee-last-name",
+      "referee-title", "referee-job-title", "referee-company", "referee-address",
+      "referee-town-city", "referee-postcode", "emergency-contact-name", "emergency-contact-phone",
+    ]);
+    const keys = new Set(TRUSTEE_RESTRICTED_FIELD_CATALOGUE.map((entry) => entry.key));
+    for (const released of ["benefit-status", "benefit-provider", "employment-status"]) {
+      expect(keys.has(released)).toBe(false);
+    }
   });
 
   it("marks every entry restricted, always", () => {
@@ -36,7 +51,7 @@ describe("TRUSTEE_RESTRICTED_FIELD_CATALOGUE — the generated data", () => {
     }
   });
 
-  it("uses no group other than the two SDD §7.1b actually populates", () => {
+  it("uses no group other than the one SDD §7.1b still populates", () => {
     const groups: Set<string> = new Set(Object.values(FIELD_CATALOGUE_GROUPS));
     for (const entry of TRUSTEE_RESTRICTED_FIELD_CATALOGUE) {
       expect(groups.has(entry.group)).toBe(true);
@@ -52,9 +67,8 @@ describe("TRUSTEE_RESTRICTED_FIELD_CATALOGUE — the generated data", () => {
 });
 
 describe("restrictedFieldsForGroup", () => {
-  it("returns three entries for Financial eligibility", () => {
-    const items = restrictedFieldsForGroup(FIELD_CATALOGUE_GROUPS.financialEligibility);
-    expect(items).toHaveLength(3);
+  it("returns nothing for Financial eligibility since SDD A-14 released its three answers", () => {
+    expect(restrictedFieldsForGroup("Financial eligibility")).toEqual([]);
   });
 
   it("returns eighteen entries for Helper, referee and emergency contact — EF-10 added two, CO-008 eight", () => {
@@ -76,7 +90,8 @@ describe("restrictedFieldsForGroup", () => {
   });
 
   it("gives every row the same value text — FR-078's named restricted state", () => {
-    const items = restrictedFieldsForGroup(FIELD_CATALOGUE_GROUPS.financialEligibility);
+    const items = restrictedFieldsForGroup(FIELD_CATALOGUE_GROUPS.helperRefereeEmergencyContact);
+    expect(items.length).toBeGreaterThan(0);
     for (const item of items) {
       expect(item.value).toBe(RESTRICTED_VALUE_TEXT);
       expect(item.label.length).toBeGreaterThan(0);

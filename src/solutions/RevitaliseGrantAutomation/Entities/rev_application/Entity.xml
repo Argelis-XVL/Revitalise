@@ -251,7 +251,7 @@
             <displayname description="Receives Means-Tested Benefits" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="Whether the applicant receives any means-tested benefits. Raw export column 106. No default value, so 'not answered' stays distinguishable from 'No'. SECURED: SDD section 7.1 classifies benefit status at the highest restriction tier alongside health data." languagecode="1033" />
+            <Description description="Whether the applicant receives any means-tested benefits. Raw export column 106. No default value, so 'not answered' stays distinguishable from 'No'. SECURED: SDD section 7.1 classifies benefit status at the highest restriction tier alongside health data. RELEASED READ-ONLY TO TRUSTEES (SDD A-14, FR-114; NFR-031): REV_TrusteeFinancialEligibility grants trustees read access, because trustees judge financial need and the board pack already shows them this answer (A-14 Finding 1). Still secured; no other persona gains access." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_benefitprovider">
@@ -267,7 +267,7 @@
             <displayname description="Benefit Provider" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="Which body pays the applicant's benefits, or which benefits they receive. Raw export column 107. SECURED for the same reason as rev_receivesbenefits - naming a specific disability benefit reveals health information." languagecode="1033" />
+            <Description description="Which body pays the applicant's benefits, or which benefits they receive. Raw export column 107. SECURED for the same reason as rev_receivesbenefits - naming a specific disability benefit reveals health information. RELEASED READ-ONLY TO TRUSTEES (SDD A-14, FR-114, FR-115; NFR-031): REV_TrusteeFinancialEligibility grants trustees read access, because trustees judge financial need and the board pack already shows them this answer (A-14 Finding 1). Still secured; no other persona gains access. Shown to trustees as written, with no redacted copy (OQ-062 (b))." languagecode="1033" />
           </Descriptions>
         </attribute>
         <!--
@@ -303,7 +303,7 @@
             <displayname description="Employment Status" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The applicant's employment status - one of five options, confirmed against the live form 2026-08-17 (D-3). Raw export column 108. SECURED: 'unable to work due to disability/health/caring responsibilities' is a disability disclosure - see this attribute's own comment for why this differs from its unsecured financial neighbours." languagecode="1033" />
+            <Description description="The applicant's employment status - one of five options, confirmed against the live form 2026-08-17 (D-3). Raw export column 108. SECURED: 'unable to work due to disability/health/caring responsibilities' is a disability disclosure - see this attribute's own comment for why this differs from its unsecured financial neighbours. RELEASED READ-ONLY TO TRUSTEES (SDD A-14, FR-114; NFR-031): REV_TrusteeFinancialEligibility grants trustees read access, because trustees judge financial need and the board pack already shows them this answer (A-14 Finding 1). Still secured; no other persona gains access." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_significantcarecosts">

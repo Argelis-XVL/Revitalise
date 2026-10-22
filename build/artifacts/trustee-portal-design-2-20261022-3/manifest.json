@@ -1,0 +1,104 @@
+{
+  "feature": "trustee-portal-design-2",
+  "wbs": [
+    "6.3"
+  ],
+  "items": [
+    "WI-0146",
+    "WI-0147",
+    "WI-0148"
+  ],
+  "build_date": "2026-10-22",
+  "build_number": 3,
+  "artifact_path": "build/artifacts/trustee-portal-design-2-20261022-3/",
+  "source_commit": "11500bb26f7067c286d15f9c1cc622630490b5b9",
+  "source_commit_at_pack_time": "11500bb26f7067c286d15f9c1cc622630490b5b9",
+  "source_tree_dirty_paths": 262,
+  "source_commit_note": "Packed from a dirty tree: 262 uncommitted paths under src/, provisioning/, config/ at manifest time.",
+  "build_tool": "pac 2.4.1 via scripts/run-build.py; Vite 7.3.7; Pester 5.7.1",
+  "build_os": "Darwin 27.0.0 (macOS, local)",
+  "constraint_check": "PASS",
+  "preflight": "PASS - 89 steps, 70 gates, all with negative-test coverage per preflight-build-config",
+  "verification_level": "V2 - packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "component-shape",
+    "component-shape-packed",
+    "guid-syntax",
+    "flow-definition-language",
+    "shipped-content",
+    "code-app-bundle-budget"
+  ],
+  "unit_tests": "Pester 1500 total, 1499 passed, 0 failed, 1 skipped; command coverage 76.23% (measured, not gated); coverage-threshold step exit 0. code-app-visual-tests 23 passed. code-app-audit: found 0 vulnerabilities.",
+  "warnings": {
+    "total": 3,
+    "resolved": 0,
+    "accepted": 3,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: index js 857,730 bytes, css 150,250 bytes, equal to the figures the row states; code-app-bundle-budget PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L394"
+    },
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: [figures compared: 21 Type= lines (10 EnvironmentVariableDefinition, 9 EntityRelationship, 2 AIModel), equal to the row's 21; build 20261021-3 had 22; no new line]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L398"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: [figures compared: 21 Type= lines, identical to pack-managed]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L398"
+    },
+    {
+      "step": "lint",
+      "signature": "Solution Checker: Critical 0, High 0, Medium 1, Low 0, Informational 0 [rule flow-avoid-recursive-loop on Set_the_completion_date_and_owner, read from the SARIF by development-agent for build -2's zip; this run's rule not re-read, counts equal]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L400"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 133,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 326,
+    "dispatch-share": 0,
+    "open-questions": 3,
+    "document-status-consistency": 1,
+    "derived-counts": 3,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 55,
+    "constraint-verifiers": 1
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context",
+      "level_not_established": "V3",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "skipped_unchanged": [],
+  "build_config_sha256": "4228c32bcf0fa38ac026437554041d3da65fb14d0b9c378f3c801eb413747059",
+  "improvement_log_at_start": "1233 entries, 0 deploy-open, 0 governance",
+  "improvement_log_at_manifest": "re-checked with --warn-only: 1233 entries, 0 deploy-open, 0 governance; drift 0",
+  "improvement_log_entries": [
+    "IMP-1235",
+    "IMP-1236",
+    "IMP-1237"
+  ],
+  "status": "SUCCESS",
+  "supersedes": "build/artifacts/trustee-portal-design-2-20261022-2 (packed green, held at C-TECH-055; row since added at L400) and -1 (FAILED at unit-tests, IMP-1235)",
+  "base_ref": "495dd5b6241a181a05f4a1e89511c3e9effe57b0",
+  "full_run_reason": "config/revitalise-grant-automation-build.yml, .engine changed - step definitions or their implementations moved",
+  "scoped": false
+}

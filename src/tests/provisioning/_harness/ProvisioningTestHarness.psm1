@@ -212,6 +212,73 @@ function Register-FakeDataverseResponse {
     })
 }
 
+# Columns of bulkdeleteoperation that DEV's metadata lists and a read has used
+# (2026-10-22). `recurrencepattern` is deliberately NOT here: it is on asyncoperation and
+# DEV refused it with 0x80060888 (D-ADR083-3).
+$script:BulkDeleteOperationColumns = @(
+    'bulkdeleteoperationid', 'name', 'statecode', 'statuscode', 'isrecurring', 'nextrun',
+    'createdon', 'successcount', 'failurecount'
+)
+
+function Assert-FakeBulkDeleteBody {
+    <#
+      Refuses what DEV refused: a ConditionExpression whose Values are bare JSON numbers
+      or strings. BulkDelete binds only typed Microsoft.Dynamics.CRM.Object values and
+      drops a bare one, so the condition then has zero values (0x80040203, D-ADR083-2).
+      A fake that accepts any body let 89 tests pass over that defect.
+    #>
+    param([Parameter(Mandatory)]$Body)
+    $walk = $null
+    $walk = {
+        param($filter, $where)
+        if ($null -eq $filter) { return }
+        foreach ($c in @($filter.Conditions)) {
+            if ($null -eq $c.PSObject.Properties['Values']) { continue }   # Null/NotNull carry no values
+            foreach ($v in @($c.Values)) {
+                $ok = ($v -is [pscustomobject]) -and
+                      ($v.'@odata.type' -eq 'Microsoft.Dynamics.CRM.Object') -and
+                      $v.Type -and ($null -ne $v.Value)
+                if (-not $ok) {
+                    throw ("0x80040203 (fake): ConditionOperator.$($c.Operator) requires 1 value/s, not 0. " +
+                           "Parameter Name: $($c.AttributeName). Values must be typed Microsoft.Dynamics.CRM.Object ($where).")
+                }
+            }
+        }
+    }
+    foreach ($q in @($Body.QuerySet)) {
+        & $walk $q.Criteria "$($q.EntityName) criteria"
+        foreach ($l in @($q.LinkEntities)) { & $walk $l.LinkCriteria "$($l.LinkToEntityName) link criteria" }
+    }
+}
+
+function Assert-FakeBulkDeleteSelect {
+    <# Refuses a $select on bulkdeleteoperations that names a column the entity lacks (0x80060888). #>
+    param([Parameter(Mandatory)][string]$Uri)
+    # The $expand carries its own nested $select, so it is taken out first: the top-level
+    # $select is then checked on its own, and the expand is checked separately.
+    $expand = $null
+    if ($Uri -match '\$expand=([^&]+)') { $expand = $Matches[1] }
+    $top = $Uri -replace '\$expand=[^&]+', ''
+    if ($top -match '\$select=([^&]+)') {
+        foreach ($col in ($Matches[1] -split ',')) {
+            if ($script:BulkDeleteOperationColumns -notcontains $col) {
+                throw "0x80060888 (fake): Could not find a property named '$col' on type bulkdeleteoperation."
+            }
+        }
+    }
+    if ($expand) {
+        # Only the asyncoperationid navigation exists, and recurrencepattern is read through it.
+        if ($expand -notmatch '^asyncoperationid\(\$select=([a-z_,]+)\)$') {
+            throw "0x80060888 (fake): Could not find a navigation property for `$expand=$expand on type bulkdeleteoperation."
+        }
+        foreach ($col in ($Matches[1] -split ',')) {
+            if (@('recurrencepattern', 'asyncoperationid', 'statecode') -notcontains $col) {
+                throw "0x80060888 (fake): Could not find a property named '$col' on type asyncoperation."
+            }
+        }
+    }
+}
+
 function Invoke-FakeDataverse {
     <#
       Stand-in for Invoke-RestMethod. Records the call, then answers from the first
@@ -237,6 +304,14 @@ function Invoke-FakeDataverse {
         Body    = $parsedBody
     }
     $script:FakeCalls.Add($call)
+
+    # Shape checks that mirror what a real org refuses (D-ADR083-2, D-ADR083-3).
+    if ($Method -eq 'POST' -and $Uri -match '/BulkDelete$' -and $parsedBody -is [pscustomobject]) {
+        Assert-FakeBulkDeleteBody -Body $parsedBody
+    }
+    if ($Method -eq 'GET' -and $Uri -match '/bulkdeleteoperations\?') {
+        Assert-FakeBulkDeleteSelect -Uri $Uri
+    }
 
     foreach ($route in $script:FakeRoutes) {
         if ($route.Method -ne $Method) { continue }
@@ -389,12 +464,24 @@ function New-SettingsFixture {
                 auditRetentionDays       = 2192
                 auditedTables            = @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog')
             }
-            # All four jobs, mirroring the real settings files. The fixture carries the full
+            # All six jobs (ADR-083). The fixture is a superset of TST/ACC (five jobs) and
+            # PRD (six, adding aiEvents): the real settings files differ by environment and
+            # this fixture does not. The fixture carries the full
             # set on purpose: New-RetentionQuerySet in ensure-bulk-delete-jobs.ps1 has a
             # branch per jobKey and each builds a different QueryExpression, so a fixture
-            # with one job would leave three query builders — the most intricate code in
+            # with one job would leave five query builders — the most intricate code in
             # provisioning/ — completely unexercised.
             bulkDeleteJobs = @(
+                @{
+                    jobKey            = 'paidGrantApplications'
+                    name              = 'REV Retention - Paid Grant Applications'
+                    entity            = 'rev_application'
+                    retentionValue    = 72
+                    retentionUnit     = 'months'
+                    recurrencePattern = 'FREQ=MONTHLY;INTERVAL=1'
+                    startTimeUtc      = '01:40'
+                    description       = 'fixture job'
+                },
                 @{
                     jobKey            = 'rejectedApplications'
                     name              = 'REV Retention - Rejected Applications'
@@ -431,6 +518,16 @@ function New-SettingsFixture {
                     retentionUnit     = 'days'
                     recurrencePattern = 'FREQ=WEEKLY;INTERVAL=1'
                     startTimeUtc      = '03:00'
+                    description       = 'fixture job'
+                },
+                @{
+                    jobKey            = 'aiEvents'
+                    name              = 'REV Retention - AI Events'
+                    entity            = 'msdyn_aievent'
+                    retentionValue    = 30
+                    retentionUnit     = 'days'
+                    recurrencePattern = 'FREQ=DAILY;INTERVAL=1'
+                    startTimeUtc      = '03:30'
                     description       = 'fixture job'
                 }
             )
@@ -473,6 +570,7 @@ function Get-ProvisioningScriptPath {
 Export-ModuleMember -Function @(
     'Get-FakeModuleMap', 'Get-FakeParameterNames', 'New-FakeModuleTree', 'Remove-FakeModuleTree',
     'Reset-FakeDataverse', 'Register-FakeDataverseResponse', 'Invoke-FakeDataverse',
+    'Assert-FakeBulkDeleteBody', 'Assert-FakeBulkDeleteSelect',
     'New-FakeHttpError', 'Get-FakeDataverseCalls',
     'Get-RepoRoot', 'New-SettingsFixture', 'Remove-SettingsFixture', 'Get-ProvisioningScriptPath'
 )

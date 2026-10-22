@@ -1,4 +1,9 @@
 /**
+ * CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.5, WI-0097/WI-0098):
+ * `GroupScreens.jsx` lines 53-66 — the group hero (`cards/GroupHero.tsx`), the eyebrow
+ * "Applications in this group", then the same members table, unsorted, with the verdict dialog
+ * in place. "Group summary" stays the hero's accessible heading.
+ *
  * The group detail page (EF-43) — opened by clicking a row of `GroupsTable`.
  *
  * `docs/plans/emily-review-feedback-2026-09-plan.md` §4.3 settles this page's content in
@@ -41,9 +46,26 @@
  * into the `detail` view's new `fromGroup` field, which `ApplicationDetailPage` reads to offer
  * the "Back to group …" button. Recorded here so a reader of THIS file's `onOpenApplication`
  * prop is not left wondering why a fix that sounds like it belongs here left no diff.
+ *
+ * ## SDD A-14, FR-116 — the members table shows the trustee's own verdict (ADR-086)
+ *
+ * The same `ApplicationsTable`, so the same marking as the applications list: one review read for
+ * the members (`useReviewIndex`), each member's review chosen by `currentReviewFor`, the button
+ * from `ownVerdictState`. The per-member verdict button STAYS (EF-43, reviewer 2026-10-22: "No,
+ * leave it for now." — ADR-087 point 8's "kept" design).
+ *
+ * ## SDD A-14, FR-118/FR-119 — one verdict for the whole group (ADR-087)
+ *
+ * Above the members table, **Record a verdict for the whole group** opens `GroupVerdictDialog`
+ * with the members and the review index. Disabled, with the existing identity explanation, when
+ * the user cannot be identified; disabled while the review index loads; and when the index could
+ * not be read the page says so instead of planning from nothing.
  */
-import { useState } from "react";
-import { formatAmount, formatDateRange } from "../domain/format";
+import { useId, useMemo, useState } from "react";
+import { currentReviewFor } from "../dataverse/currentReview";
+import { ownVerdictState } from "../domain/ownVerdict";
+import type { OwnVerdictState } from "../domain/ownVerdict";
+import { useReviewIndex } from "../hooks/queries";
 import type { GroupSummary } from "../domain/groups";
 import { DEFAULT_SORT } from "../domain/listView";
 import { ApplicationsTable } from "../components/ApplicationsTable";
@@ -51,7 +73,11 @@ import { VerdictDialog } from "../components/VerdictDialog";
 import { useToast } from "../app/toast";
 import type { ApplicationSummary, CurrentUser } from "../dataverse/types";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { Definitions, Panel } from "../components/Panel";
+import { Eyebrow } from "../components/Panel";
+import { GroupHero } from "../cards/GroupHero";
+import { GroupVerdictDialog } from "../components/GroupVerdictDialog";
+import { Button } from "../components/ds";
+import styles from "../styles/app.module.css";
 
 export function GroupDetailPage({
   group,
@@ -65,6 +91,18 @@ export function GroupDetailPage({
   usePageTitle(`Group ${group.code}`);
   const toast = useToast();
   const [verdictFor, setVerdictFor] = useState<ApplicationSummary | null>(null);
+  const [groupVerdictOpen, setGroupVerdictOpen] = useState(false);
+  const identityNoteId = useId();
+  const userKnown = user.systemUserId !== null;
+  const memberIds = useMemo(
+    () => (userKnown ? group.members.map((member) => member.id) : []),
+    [group.members, userKnown],
+  );
+  const reviewIndex = useReviewIndex(memberIds);
+  const verdictStateFor = (row: ApplicationSummary): OwnVerdictState =>
+    reviewIndex.data === undefined
+      ? { kind: "none" }
+      : ownVerdictState(currentReviewFor(row.id, reviewIndex.data), user);
 
   return (
     <>
@@ -76,30 +114,43 @@ export function GroupDetailPage({
           (`components/Panel.tsx`), reused rather than hand-rolled so this page's one new
           heading follows the same landmark pattern every other panel in the app already
           uses. */}
-      <Panel heading="Group summary">
-        <Definitions
-          items={[
-            { label: "Group code", value: group.code },
-            { label: "Members", value: String(group.memberCount) },
-            { label: "Group total requested", value: formatAmount(group.totalRequested) },
-            { label: "Shared dates", value: formatDateRange(group.sharedStart, group.sharedEnd) },
-          ]}
-        />
-      </Panel>
-
-      {/* The member list — `ApplicationsTable` reused whole, so a member row opens the same
-          application detail page and offers the same "Record verdict" control the flat
-          applications list gives. Deliberately no circumstance-score BREAKDOWN panel here —
-          see this file's header. */}
+      <GroupHero group={group} />
+      {/* ADR-087 point 1: the group verdict entry point, above the members table. */}
+      <div className={styles.actionRow} data-print="hide">
+        <Button
+          variant="primary"
+          disabled={!userKnown || reviewIndex.data === undefined}
+          aria-describedby={userKnown ? undefined : identityNoteId}
+          onClick={() => {
+            setGroupVerdictOpen(true);
+          }}
+        >
+          Record a verdict for the whole group
+        </Button>
+        {userKnown ? null : (
+          <p id={identityNoteId} className={styles.hint}>
+            {user.unresolvedReason ?? "The portal could not confirm which trustee you are signed in as."}
+          </p>
+        )}
+        {userKnown && reviewIndex.isError ? (
+          <p role="alert" className={styles.hint}>
+            Your verdict status for this group could not be loaded, so a group verdict cannot be planned.
+          </p>
+        ) : null}
+      </div>
+      {/* GroupScreens.jsx:61 — decorative, above the members table. */}
+      <Eyebrow tone="purple">Applications in this group</Eyebrow>
       <ApplicationsTable
         rows={group.members}
         sort={DEFAULT_SORT}
         // No sort control is offered for a group's small, fixed member set (see header
-        // comment) — clicking a header re-applies the same fixed order rather than doing
-        // nothing silently.
+        // comment): the rows keep DEFAULT_SORT's order, and the headers are plain text with no
+        // arrow, as the kit's group table passes no sort (GroupScreens.jsx:62).
+        sortable={false}
         onSort={() => undefined}
         caption={`${group.memberCount} application${group.memberCount === 1 ? "" : "s"} in group ${group.code}.`}
         onOpen={onOpenApplication}
+        verdictStateFor={verdictStateFor}
         onRecordVerdict={(application) => {
           if (user.systemUserId === null) {
             toast.showError(
@@ -111,6 +162,18 @@ export function GroupDetailPage({
           setVerdictFor(application);
         }}
       />
+
+      {groupVerdictOpen && reviewIndex.data !== undefined ? (
+        <GroupVerdictDialog
+          groupCode={group.code}
+          members={group.members}
+          reviewRows={reviewIndex.data}
+          user={user}
+          onClose={() => {
+            setGroupVerdictOpen(false);
+          }}
+        />
+      ) : null}
 
       {verdictFor === null ? null : (
         <VerdictDialog

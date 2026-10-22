@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KNOWN-BAD / control fixture for no-trustee-in-column-security-profile (G1, portal TAD ADR-085). Never copy into the solution. -->
+<FieldSecurityProfiles>
+  <FieldSecurityProfile name="REV_TrusteeRestricted" description="fixture">
+    <FieldPermissions>
+      <FieldPermission>
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_narrativeraw</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_receivesbenefits</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_benefitprovider</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_employmentstatus</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+    </FieldPermissions>
+  </FieldSecurityProfile>
+  <FieldSecurityProfile name="REV_TrusteeFinancialEligibility" description="fixture">
+    <FieldPermissions>
+      <FieldPermission>
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_receivesbenefits</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>0</CanUpdate>
+        <CanCreate>0</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_benefitprovider</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>0</CanUpdate>
+        <CanCreate>0</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_employmentstatus</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>0</CanUpdate>
+        <CanCreate>0</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+    </FieldPermissions>
+  </FieldSecurityProfile>
+</FieldSecurityProfiles>

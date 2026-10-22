@@ -34,9 +34,11 @@ import {
   ENTITY_SETS,
   PRIMARY_KEYS,
   REVIEW_COLUMNS,
+  REVIEW_INDEX_CHUNK_SIZE,
   ROUND_FINANCE_COLUMNS,
   VERDICT_NOTES_MAX_LENGTH,
 } from "./schema";
+import { currentReviewFor } from "./currentReview";
 import { slotColumns } from "../domain/slots";
 import { visibleForReview } from "../domain/visibility";
 import type {
@@ -132,6 +134,13 @@ function mapDetail(
     supportRecipientConditionProfile: asNumberArray(row.rev_supportrecipientconditionprofile),
     helperDeclarationConsent: asNullableBoolean(row.rev_helperdeclarationconsent),
     helperDeclarationConsentDate: asString(row.rev_helperdeclarationconsentdate),
+    // SDD A-14 (ADR-084) — released read-only to trustees by REV_TrusteeFinancialEligibility.
+    // A-TR-18 (OPEN): a principal outside every releasing profile gets these omitted or null,
+    // and null is what the screen shows as "Not recorded". Benefit provider is shown as written
+    // and is NOT gated by redactionReleased (FR-115).
+    receivesBenefits: asNullableBoolean(row.rev_receivesbenefits),
+    benefitProvider: asString(row.rev_benefitprovider),
+    employmentStatus: asNumber(row.rev_employmentstatus),
     // Amendment A-05 / ADR-031 (TAD §3.2.2, FR-079) — gated by redactionReleased, exactly
     // like the three redacted care-support columns above. See domain/visibility.ts.
     redactedUnableToFundExplanation: asString(row.rev_unabletofundexplanationredacted),
@@ -201,6 +210,7 @@ function mapReview(row: RawRow): ReviewRow | null {
   if (id === null) return null;
   return {
     id,
+    applicationId: asGuid(row._rev_applicationid_value),
     reference: asString(row.rev_name),
     round: asString(row.rev_round),
     panelDate: asString(row.rev_paneldate),
@@ -300,28 +310,77 @@ export const dataverseRepository: TrusteeRepository = {
       filter,
       orderBy: "rev_paneldate desc",
     });
-    const first = rows[0];
-    if (first === undefined) return null;
-    return mapReview(first);
+    // Portal TAD ADR-086 point 2: the SAME chooser the list's review index uses, so the
+    // dialog and the list's verdict button can never pick different rows. The server order is
+    // kept (it is harmless), but the answer does not depend on how it ranks null dates.
+    // Every row here was filtered server-side to THIS application, so a row whose lookup value
+    // did not come back (A-TR-7) is still this application's: stamp it rather than drop it.
+    const mapped = rows
+      .map((row) => mapReview(row))
+      .filter((row): row is ReviewRow => row !== null)
+      .map((row) => (row.applicationId === null ? { ...row, applicationId } : row));
+    return currentReviewFor(applicationId, mapped);
+  },
+
+  async listReviewsForApplications(applicationIds: readonly string[]): Promise<ReviewRow[]> {
+    // Portal TAD ADR-086 point 1. One read per chunk of REVIEW_INDEX_CHUNK_SIZE ids, one after
+    // another, REVIEW_COLUMNS unchanged. A-TR-19 (OPEN): an OData `or` disjunction through the
+    // connector's list call is not yet observed live; the fallback is one `eq` read per id.
+    const unique = [...new Set(applicationIds)];
+    const out: ReviewRow[] = [];
+    for (let start = 0; start < unique.length; start += REVIEW_INDEX_CHUNK_SIZE) {
+      const chunk = unique.slice(start, start + REVIEW_INDEX_CHUNK_SIZE);
+      const filter = chunk.map((id) => `_rev_applicationid_value eq ${odataGuid(id)}`).join(" or ");
+      const { rows, truncated } = await listRecords({
+        entityName: ENTITY_SETS.review,
+        select: REVIEW_COLUMNS,
+        filter,
+      });
+      // A truncated chunk cannot be counted honestly: some application's review is missing,
+      // and the list would call it "awaiting". Fail the index; the list says so.
+      if (truncated) {
+        throw new Error(
+          "More review records came back than this screen reads at once, so your verdict status " +
+            "cannot be shown completely.",
+        );
+      }
+      for (const row of rows) {
+        const mapped = mapReview(row);
+        if (mapped === null) continue;
+        // A row whose application lookup did not come back (A-TR-7) cannot be assigned to an
+        // application, and dropping it would make that application read "awaiting" — a wrong
+        // number. Fail the index instead; the list then says the status could not be loaded.
+        if (mapped.applicationId === null) {
+          throw new Error(
+            "A review record came back without its application, so your verdict status cannot " +
+              "be matched to the applications.",
+          );
+        }
+        out.push(mapped);
+      }
+    }
+    return out;
   },
 
   async saveVerdict(input: SaveVerdictInput): Promise<void> {
     const columns = slotColumns(input.slot);
-    const notes = input.notes.trim();
-    if (notes.length > VERDICT_NOTES_MAX_LENGTH) {
+    const notes = input.notes === undefined ? undefined : input.notes.trim();
+    if (notes !== undefined && notes.length > VERDICT_NOTES_MAX_LENGTH) {
       throw new Error(
         `Notes are limited to ${String(VERDICT_NOTES_MAX_LENGTH)} characters.`,
       );
     }
-    // Exactly two columns, chosen by the slot. Nothing else on the row is written —
-    // TAD §3.1: "Trustees write verdict and notes only".
+    // At most two columns, chosen by the slot. Nothing else on the row is written —
+    // TAD §3.1: "Trustees write verdict and notes only". With no notes given (a group Approve
+    // with no note, portal TAD ADR-087 point 6) the body names ONLY the verdict column, so the
+    // stored note is kept. A-TR-20 (OPEN): that an update omitting a column leaves it unchanged
+    // through the connector is standard Web API PATCH semantics, not yet observed here.
+    const item: Record<string, unknown> = { [columns.verdict]: input.verdict };
+    if (notes !== undefined) item[columns.notes] = notes.length > 0 ? notes : null;
     await updateRecord({
       entityName: ENTITY_SETS.review,
       recordId: odataGuid(input.reviewId),
-      item: {
-        [columns.verdict]: input.verdict,
-        [columns.notes]: notes.length > 0 ? notes : null,
-      },
+      item,
     });
   },
 

@@ -160,6 +160,29 @@ BeforeAll {
     }
     $script:ExpectedReleasedSecuredColumnCount = $script:ExpectedSecuredColumnCount - $script:BaselinedFieldSecurityColumns.Count
 
+    # ── PERMISSIONS, NOT COLUMNS (portal TAD trustee-portal-design-2 Revision 4, ADR-085) ─────
+    # Until 2026-10-22 every secured column had exactly one <FieldPermission>, so "one permission
+    # call per released secured column" and "one call per <FieldPermission>" were the same number.
+    # REV_TrusteeFinancialEligibility re-grants three of those columns, read only (0/4/0), to
+    # trustees, so ensure-schema.ps1 now issues three more permission calls than there are released
+    # secured columns. The call-count assertions below count <FieldPermission> elements, read from
+    # the same parser ensure-schema.ps1 uses, and compare each call's levels with its source row.
+    $script:SourceFieldPermissions = @(
+        @(Get-RevFieldSecurityProfileDefinition -RepoRoot $script:RepoRoot) | ForEach-Object {
+            $profileName = $_.Name
+            $_.Permissions | ForEach-Object {
+                [pscustomobject]@{
+                    Profile = $profileName; EntityName = $_.EntityName; Attribute = $_.AttributeLogicalName
+                    CanCreate = $_.CanCreate; CanRead = $_.CanRead; CanUpdate = $_.CanUpdate
+                }
+            }
+        }
+    )
+    $script:ExpectedPermissionCount = $script:SourceFieldPermissions.Count
+    # "<attribute>:<create>/<read>/<update>" per source permission, for multiset comparison.
+    $script:SourcePermissionSignatures = @($script:SourceFieldPermissions |
+            ForEach-Object { '{0}.{1}:{2}/{3}/{4}' -f $_.EntityName, $_.Attribute, $_.CanCreate, $_.CanRead, $_.CanUpdate } | Sort-Object)
+
     # Every <EntityKey><Name> across every Entity.xml on disk — used by
     # Register-RevEverythingPresent below to fake "this alternate key already exists" for
     # EVERY entity's key-expand GET without hand-typing the schema names. GENERALISED —
@@ -295,10 +318,27 @@ BeforeAll {
             }
             return [pscustomobject]@{ value = @() }
         }
-        Register-FakeDataverseResponse -Method GET -UriPattern 'fieldsecurityprofiles\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ fieldsecurityprofileid = 'fsp-1'; name = 'REV_TrusteeRestricted' }) })
-        # Every one of the 39 field permissions in the source XML wants cancreate=canread=canupdate=4 (Allowed),
-        # so one stub already at that level satisfies the EXISTS branch for all of them.
-        Register-FakeDataverseResponse -Method GET -UriPattern 'fieldpermissions\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ fieldpermissionid = 'fp-1'; cancreate = 4; canread = 4; canupdate = 4 }) })
+        # One id per profile, so each permission lookup below can be answered for ITS profile.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'fieldsecurityprofiles\?' -Response { param($call)
+            if ($call.Uri -match "name eq '([^']+)'") {
+                return [pscustomobject]@{ value = @([pscustomobject]@{ fieldsecurityprofileid = "fsp-$($Matches[1])"; name = $Matches[1] }) }
+            }
+            return [pscustomobject]@{ value = @() }
+        }
+        # Each permission already at its source level. Until 2026-10-22 every permission wanted
+        # 4/4/4 and one canned row served them all; REV_TrusteeFinancialEligibility's read-only
+        # (0/4/0) rows mean the answer must come from the source row for that profile + column.
+        $sourcePermissions = $script:SourceFieldPermissions
+        Register-FakeDataverseResponse -Method GET -UriPattern 'fieldpermissions\?' -Response { param($call)
+            if ($call.Uri -match "_fieldsecurityprofileid_value eq fsp-([^ ]+) and entityname eq '([^']+)' and attributelogicalname eq '([^']+)'") {
+                $profileName = $Matches[1]; $entityName = $Matches[2]; $attribute = $Matches[3]
+                $match = $sourcePermissions | Where-Object { $_.Profile -eq $profileName -and $_.EntityName -eq $entityName -and $_.Attribute -eq $attribute } | Select-Object -First 1
+                if ($match) {
+                    return [pscustomobject]@{ value = @([pscustomobject]@{ fieldpermissionid = "fp-$profileName-$attribute"; cancreate = $match.CanCreate; canread = $match.CanRead; canupdate = $match.CanUpdate }) }
+                }
+            }
+            return [pscustomobject]@{ value = @() }
+        }.GetNewClosure()
         Register-FakeDataverseResponse -Method POST -UriPattern 'PublishAllXml' -Response $null
     }
 }
@@ -455,8 +495,10 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # WBS 0.4 remainder. Aggregate across ALL of them: the invariant this test checks
             # is "every secured column is covered by SOME profile", not "by the first one".
             $profiles = @(Get-RevFieldSecurityProfileDefinition -RepoRoot $script:RepoRoot)
+            # Unique: since 2026-10-22 three columns are granted by two profiles (REV_TrusteeRestricted
+            # and the read-only REV_TrusteeFinancialEligibility), and the invariant is about columns.
             $profiledColumns = @($profiles | ForEach-Object { $_.Permissions } |
-                    ForEach-Object { "$($_.EntityName).$($_.AttributeLogicalName)" })
+                    ForEach-Object { "$($_.EntityName).$($_.AttributeLogicalName)" } | Sort-Object -Unique)
 
             # 39 -> 51 on 2026-08-18 (WBS 0.4-R): rev_grant ships twelve secured columns.
             # 51 -> 69 on 2026-08-23 (WBS 0.4 remainder): rev_bankaccount (8) + rev_payment (10)
@@ -894,7 +936,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         $global.Body.Privileges[0].Depth | Should -Be 'Global'
     }
 
-    It 'creates every field security profile before any of its field permissions, and every permission is Allowed (4/4/4) as the XML declares' {
+    It 'creates every field security profile before any of its field permissions, and every permission carries the levels the XML declares' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $permissionCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'fieldpermissions$')
         # 51 -> 69, 2026-08-23 (IMP-0238 fix): ensure-schema.ps1 now loops over EVERY profile
@@ -920,11 +962,15 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         # accounts for in BeforeAll (rev_grant.rev_escalatedon's permission is temporarily
         # withheld for the phase-1 two-import workaround). Comparing against the DECLARED count
         # asserted a number ensure-schema.ps1 was never going to produce while that baseline holds.
-        $permissionCalls.Count | Should -Be $script:ExpectedReleasedSecuredColumnCount
+        # FIXED 2026-10-22 (portal TAD trustee-portal-design-2 ADR-085): one call per <FieldPermission>,
+        # not per released secured column - see $script:ExpectedPermissionCount in BeforeAll. Each
+        # call's levels are compared with its source row as a multiset, because the release
+        # profile's three rows are read only (0/4/0) and the other profiles' are Allowed (4/4/4).
+        $permissionCalls.Count | Should -Be $script:ExpectedPermissionCount
+        $callSignatures = @($permissionCalls | ForEach-Object {
+                '{0}.{1}:{2}/{3}/{4}' -f $_.Body.entityname, $_.Body.attributelogicalname, $_.Body.cancreate, $_.Body.canread, $_.Body.canupdate } | Sort-Object)
+        (Compare-Object -ReferenceObject $script:SourcePermissionSignatures -DifferenceObject $callSignatures) | Should -BeNullOrEmpty
         foreach ($call in $permissionCalls) {
-            $call.Body.cancreate | Should -Be 4
-            $call.Body.canread | Should -Be 4
-            $call.Body.canupdate | Should -Be 4
             $call.Body.'fieldsecurityprofileid@odata.bind' | Should -Be '/fieldsecurityprofiles(fsp-new)'
         }
     }
@@ -1124,7 +1170,12 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         # currently declares — the RELEASED count, not the DECLARED one. Those two differ right
         # now for the same dated, owned config/gate-baselines.json reason as the two assertions
         # above ($script:ExpectedReleasedSecuredColumnCount in BeforeAll).
-        $patches.Count | Should -Be $script:ExpectedReleasedSecuredColumnCount -Because 'the stub answers every permission lookup the same way, so every RELEASED secured column across both profiles is seen as drifted'
+        # FIXED 2026-10-22 (portal TAD trustee-portal-design-2 ADR-085): the canned fp-drift row is
+        # 0/4/0, which is exactly the read-only release profile's level, so those rows are NOT drifted
+        # and are not PATCHed. Expected: every source permission whose levels differ from 0/4/0.
+        $expectedDrifted = @($script:SourceFieldPermissions | Where-Object { -not ($_.CanCreate -eq 0 -and $_.CanRead -eq 4 -and $_.CanUpdate -eq 0) })
+        $expectedDrifted.Count | Should -BeLessThan $script:ExpectedPermissionCount -Because 'the release profile contributes read-only rows the stub already matches'
+        $patches.Count | Should -Be $expectedDrifted.Count -Because 'the stub answers every permission lookup the same way, so every permission whose source level differs from the canned one is seen as drifted'
         foreach ($patch in $patches) {
             $patch.Body.cancreate | Should -Be 4
             $patch.Body.canread | Should -Be 4

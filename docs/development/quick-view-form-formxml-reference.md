@@ -9,7 +9,7 @@ EF-36 (assumption-register rows A-LOC-1, A-ATYPE-1, A-AGE-1 in
 
 The handoff suggested `pac power-fx run`. **That does not work for this.** `pac power-fx run`
 is a standalone Power Fx formula REPL (Abs/Filter/Sort/etc.) — it is not connected to Dataverse
-tables even with an active `pac auth` profile selected; `SystemForms` is not a recognised name in
+tables (form metadata such as `SystemForms`, and row data alike) even with an active `pac auth` profile selected; `SystemForms` is not a recognised name in
 it, and there is no `Connect-DataverseTable`-style command to add one. Confirmed live:
 `CountRows(SystemForms)` → `'SystemForms' isn't recognized`.
 

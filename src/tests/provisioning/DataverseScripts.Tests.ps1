@@ -52,6 +52,14 @@ BeforeAll {
     $script:SeedStatsResult   = Get-ProvisioningScriptPath -RelativePath 'dataverse/seed-round-statistics-result.ps1'
     $script:SeedStatsTestData = Get-ProvisioningScriptPath -RelativePath 'dataverse/seed-round-statistics-test-data.ps1'
 
+    # A typed ConditionExpression value ({@odata.type: ...Object, Type, Value}) -> its integer.
+    # Throws on a bare number: the script must never send one (D-ADR083-2).
+    function Get-Int32Value($v) {
+        $v.'@odata.type' | Should -Be 'Microsoft.Dynamics.CRM.Object'
+        $v.Type          | Should -Be 'System.Int32'
+        return [int]$v.Value
+    }
+
     # Pester forbids a BeforeEach directly in the container, so the shared fake-API setup
     # lives here and is DOT-SOURCED into each Describe's BeforeEach — dot-sourcing runs it
     # in that scope, which is what Pester's Mock registration needs.
@@ -795,23 +803,23 @@ Describe 'verify-role-bindings.ps1 — the C-TECH-040 assertion, read-only' {
 Describe 'ensure-bulk-delete-jobs.ps1 — the retention schedule (C-DOM-003 / FR-048 / ADR-004)' {
     BeforeEach { . $script:InitFakeApi }
 
-    It 'creates all four jobs when none exists, with the recurrence pattern from settings' {
+    It 'creates all six jobs of the fixture when none exists, with the recurrence pattern from settings' {
         Register-FakeDataverseResponse -Method GET  -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{ value = @() })
         Register-FakeDataverseResponse -Method POST -UriPattern '/BulkDelete$' -Response ([pscustomobject]@{ JobId = 'job-1' })
 
         $output = & $script:BulkDelete -Env acc
         $LASTEXITCODE | Should -Be 0
-        @($output | Where-Object { $_ -match '^CREATED — Bulk-delete job' }).Count | Should -Be 4
+        @($output | Where-Object { $_ -match '^CREATED — Bulk-delete job' }).Count | Should -Be 6
 
         $posts = @(Get-FakeDataverseCalls -Method POST -UriPattern '/BulkDelete$')
-        $posts.Count | Should -Be 4
+        $posts.Count | Should -Be 6
         foreach ($post in $posts) {
             $post.Body.SendEmailNotification | Should -BeFalse -Because 'failures surface through rev_errorlog and the Failure Alert flow, not mail'
             @($post.Body.ToRecipients).Count | Should -Be 0
             # Asserted against the RAW body: ConvertFrom-Json turns an ISO-8601 string into a
             # DateTime, so the parsed value would not show the wire format the API receives.
             $post.RawBody | Should -Match '"StartDateTime":\s*"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"'
-            $post.Body.RecurrencePattern | Should -Match '^FREQ=(MONTHLY|WEEKLY);INTERVAL=1$'
+            $post.Body.RecurrencePattern | Should -Match '^FREQ=(MONTHLY|WEEKLY|DAILY);INTERVAL=1$'
         }
     }
 
@@ -849,7 +857,7 @@ Describe 'ensure-bulk-delete-jobs.ps1 — the retention schedule (C-DOM-003 / FR
         @($conditions | Where-Object { $_.AttributeName -eq 'rev_status' -and $_.Operator -eq 'Equal' }).Count | Should -Be 1
         $dateCondition = @($conditions | Where-Object { $_.AttributeName -eq 'rev_decisiondate' })[0]
         $dateCondition.Operator  | Should -Be 'OlderThanXMonths'
-        @($dateCondition.Values)[0] | Should -Be 12 -Because 'the period comes from settings, not from the script'
+        (Get-Int32Value $dateCondition.Values[0]) | Should -Be 12 -Because 'the period comes from settings, not from the script'
         # Only the primary key is selected — a bulk delete needs no other column.
         @($query.ColumnSet.Columns) | Should -Be @('rev_applicationid')
     }
@@ -864,13 +872,14 @@ Describe 'ensure-bulk-delete-jobs.ps1 — the retention schedule (C-DOM-003 / FR
         $query = $job.Body.QuerySet[0]
         @($query.Criteria.Conditions)[0].Operator | Should -Be 'In'
         @(@($query.Criteria.Conditions)[0].Values).Count | Should -Be 2 -Because 'Withdrawn and Incomplete are two statuses'
+        @(@($query.Criteria.Conditions)[0].Values | ForEach-Object { Get-Int32Value $_ }) | Should -Be @(9, 10)
 
         $link = @($query.LinkEntities)[0]
         $link.LinkToEntityName | Should -Be 'rev_applicant'
         $link.JoinOperator     | Should -Be 'Inner'
         @($link.LinkCriteria.Conditions)[0].AttributeName | Should -Be 'rev_lastcontactdate'
         @($link.LinkCriteria.Conditions)[0].Operator      | Should -Be 'OlderThanXMonths'
-        @(@($link.LinkCriteria.Conditions)[0].Values)[0]  | Should -Be 6
+        (Get-Int32Value @($link.LinkCriteria.Conditions)[0].Values[0]) | Should -Be 6
     }
 
     It 'finds orphaned applicants with a LEFT OUTER join and a null test on the aliased child' {
@@ -896,6 +905,56 @@ Describe 'ensure-bulk-delete-jobs.ps1 — the retention schedule (C-DOM-003 / FR
         $condition.AttributeName | Should -Be 'rev_applicationid'
     }
 
+    It 'builds the paid-grant query as status Grant Paid joined to the GRANT, final payment date older than 72 months (ADR-083 item 1)' {
+        Register-FakeDataverseResponse -Method GET  -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{ value = @() })
+        Register-FakeDataverseResponse -Method POST -UriPattern '/BulkDelete$' -Response ([pscustomobject]@{ JobId = 'j' })
+        & $script:BulkDelete -Env acc | Out-Null
+
+        $job = @(Get-FakeDataverseCalls -Method POST -UriPattern '/BulkDelete$' |
+            Where-Object { $_.Body.JobName -match 'Paid Grant Applications' })[0]
+        $job.Body.RecurrencePattern | Should -Be 'FREQ=MONTHLY;INTERVAL=1'
+        $query = $job.Body.QuerySet[0]
+        # The row deleted is the APPLICATION: deleting the grant would leave the narratives behind.
+        $query.EntityName | Should -Be 'rev_application'
+        @($query.ColumnSet.Columns) | Should -Be @('rev_applicationid')
+        $status = @($query.Criteria.Conditions)[0]
+        $status.AttributeName | Should -Be 'rev_status'
+        $status.Operator      | Should -Be 'Equal'
+        (Get-Int32Value @($status.Values)[0]) | Should -Be 11 -Because 'Grant Paid'
+
+        $link = @($query.LinkEntities)[0]
+        $link.LinkFromEntityName    | Should -Be 'rev_application'
+        $link.LinkFromAttributeName | Should -Be 'rev_applicationid'
+        $link.LinkToEntityName      | Should -Be 'rev_grant'
+        $link.LinkToAttributeName   | Should -Be 'rev_applicationid'
+        $link.JoinOperator          | Should -Be 'Inner' -Because 'an application with no grant row must match nothing'
+        $date = @($link.LinkCriteria.Conditions)[0]
+        $date.AttributeName | Should -Be 'rev_finalpaymentdate'
+        $date.Operator      | Should -Be 'OlderThanXMonths'
+        (Get-Int32Value @($date.Values)[0]) | Should -Be 72 -Because 'six years, from settings'
+    }
+
+    It 'builds the AI-event query as createdon older than 30 days on msdyn_aievent, with no status test, run DAILY (ADR-083 item 2)' {
+        Register-FakeDataverseResponse -Method GET  -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{ value = @() })
+        Register-FakeDataverseResponse -Method POST -UriPattern '/BulkDelete$' -Response ([pscustomobject]@{ JobId = 'j' })
+        & $script:BulkDelete -Env acc | Out-Null
+
+        $job = @(Get-FakeDataverseCalls -Method POST -UriPattern '/BulkDelete$' |
+            Where-Object { $_.Body.JobName -match 'AI Events' })[0]
+        $job.Body.RecurrencePattern | Should -Be 'FREQ=DAILY;INTERVAL=1'
+        $query = $job.Body.QuerySet[0]
+        $query.EntityName | Should -Be 'msdyn_aievent'
+        @($query.LinkEntities).Count | Should -Be 0
+        $conditions = @($query.Criteria.Conditions)
+        $conditions.Count | Should -Be 1 -Because 'every row is a call input: no status test'
+        $conditions[0].AttributeName | Should -Be 'createdon'
+        $conditions[0].Operator      | Should -Be 'OlderThanXDays'
+        (Get-Int32Value @($conditions[0].Values)[0]) | Should -Be 30
+        # ADR-083 D-ADR083-1: the one selected column is the table's primary key, which
+        # follows the platform's <table>id naming and was confirmed by a read on DEV.
+        @($query.ColumnSet.Columns) | Should -Be @('msdyn_aieventid')
+    }
+
     It 'measures the error log in DAYS, not months' {
         Register-FakeDataverseResponse -Method GET  -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{ value = @() })
         Register-FakeDataverseResponse -Method POST -UriPattern '/BulkDelete$' -Response ([pscustomobject]@{ JobId = 'j' })
@@ -906,34 +965,109 @@ Describe 'ensure-bulk-delete-jobs.ps1 — the retention schedule (C-DOM-003 / FR
         $condition = @($job.Body.QuerySet[0].Criteria.Conditions)[0]
         $condition.AttributeName | Should -Be 'rev_occurredon'
         $condition.Operator      | Should -Be 'OlderThanXDays'
-        @($condition.Values)[0]  | Should -Be 90
+        (Get-Int32Value @($condition.Values)[0]) | Should -Be 90
     }
 
     It 'reports EXISTS and creates nothing when the jobs are already provisioned (C-TECH-042)' {
         Register-FakeDataverseResponse -Method GET -UriPattern 'bulkdeleteoperations' -Response { param($call)
-            $pattern = if ($call.Uri -match 'Error Log') { 'FREQ=WEEKLY;INTERVAL=1' } else { 'FREQ=MONTHLY;INTERVAL=1' }
+            $pattern = if ($call.Uri -match 'Error Log') { 'FREQ=WEEKLY;INTERVAL=1' } elseif ($call.Uri -match 'AI Events') { 'FREQ=DAILY;INTERVAL=1' } else { 'FREQ=MONTHLY;INTERVAL=1' }
             return [pscustomobject]@{ value = @([pscustomobject]@{
-                bulkdeleteoperationid = 'op-1'; name = 'x'; statecode = 0; recurrencepattern = $pattern }) }
+                bulkdeleteoperationid = 'op-1'; name = 'x'; statecode = 0; isrecurring = $true; nextrun = '2026-11-01T01:40:00Z'; asyncoperationid = [pscustomobject]@{ recurrencepattern = $pattern } }) }
         }
 
         $output = & $script:BulkDelete -Env acc
         $LASTEXITCODE | Should -Be 0
-        @($output | Where-Object { $_ -match '^EXISTS — Bulk-delete job' }).Count | Should -Be 4
+        @($output | Where-Object { $_ -match '^EXISTS — Bulk-delete job' }).Count | Should -Be 6
         @(Get-FakeDataverseCalls -Method POST).Count | Should -Be 0
     }
 
-    It 'WARNS about recurrence drift instead of silently accepting a job that runs on the wrong schedule' {
+    It 'WARNS about recurrence drift when the live pattern differs from settings (D-ADR083-4)' {
         Register-FakeDataverseResponse -Method GET -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{
-            value = @([pscustomobject]@{ bulkdeleteoperationid = 'op-1'; name = 'x'; statecode = 0; recurrencepattern = 'FREQ=YEARLY;INTERVAL=1' })
+            value = @([pscustomobject]@{ bulkdeleteoperationid = 'op-1'; name = 'x'; statecode = 0; isrecurring = $true
+                nextrun = '2026-11-01T01:40:00Z'; asyncoperationid = [pscustomobject]@{ recurrencepattern = 'FREQ=YEARLY;INTERVAL=1' } })
+        })
+        $output = & $script:BulkDelete -Env acc
+        ($output -join "`n") | Should -Match "recurrence drift: live 'FREQ=YEARLY;INTERVAL=1' vs settings"
+        ($output -join "`n") | Should -Match 'delete the job in the maker portal and re-run'
+        @($output | Where-Object { $_ -match '^EXISTS' }).Count | Should -Be 6
+        @(Get-FakeDataverseCalls -Method POST).Count | Should -Be 0
+        $LASTEXITCODE | Should -Be 0
+    }
+
+    It 'reports a plain EXISTS, with no drift warning, when the live pattern matches settings' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'bulkdeleteoperations' -Response { param($call)
+            $pattern = if ($call.Uri -match 'Error Log') { 'FREQ=WEEKLY;INTERVAL=1' } elseif ($call.Uri -match 'AI Events') { 'FREQ=DAILY;INTERVAL=1' } else { 'FREQ=MONTHLY;INTERVAL=1' }
+            return [pscustomobject]@{ value = @([pscustomobject]@{ bulkdeleteoperationid = 'op-1'; name = 'x'; statecode = 0; isrecurring = $true
+                nextrun = '2026-11-01T01:40:00Z'; asyncoperationid = [pscustomobject]@{ recurrencepattern = $pattern } }) }
+        }
+        $output = & $script:BulkDelete -Env acc
+        ($output -join "`n") | Should -Not -Match 'drift'
+        @($output | Where-Object { $_ -match '^EXISTS' }).Count | Should -Be 6
+    }
+
+    It 'the existence check reads the pattern through $expand=asyncoperationid, and the fake refuses recurrencepattern selected directly' {
+        Register-FakeDataverseResponse -Method GET  -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{ value = @() })
+        Register-FakeDataverseResponse -Method POST -UriPattern '/BulkDelete$' -Response ([pscustomobject]@{ JobId = 'j' })
+        & $script:BulkDelete -Env acc | Out-Null
+        foreach ($call in @(Get-FakeDataverseCalls -Method GET -UriPattern 'bulkdeleteoperations')) {
+            $call.Uri | Should -Match '\$expand=asyncoperationid\(\$select=recurrencepattern\)'
+        }
+        { Assert-FakeBulkDeleteSelect -Uri 'bulkdeleteoperations?$select=name,recurrencepattern' } | Should -Throw '*0x80060888*'
+        { Assert-FakeBulkDeleteSelect -Uri 'bulkdeleteoperations?$select=name&$expand=asyncoperationid($select=recurrencepattern)' } | Should -Not -Throw
+        { Assert-FakeBulkDeleteSelect -Uri 'bulkdeleteoperations?$select=name&$expand=asyncoperationid($select=nosuchcolumn)' } | Should -Throw '*0x80060888*'
+    }
+
+    It 'WARNS about schedule drift when the live job is not recurring, instead of silently accepting it' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{
+            value = @([pscustomobject]@{ bulkdeleteoperationid = 'op-1'; name = 'x'; statecode = 0; isrecurring = $false; nextrun = $null })
         })
 
         $output = & $script:BulkDelete -Env acc
-        ($output -join "`n") | Should -Match 'recurrence drift: live .FREQ=YEARLY;INTERVAL=1. vs settings'
+        ($output -join "`n") | Should -Match 'schedule drift: the live job is not recurring'
         ($output -join "`n") | Should -Match 'delete the job in the maker portal and re-run'
         # Still EXISTS, not FAILED: the job does exist, and silently re-creating it would
         # leave two jobs deleting the same rows.
-        @($output | Where-Object { $_ -match '^EXISTS' }).Count | Should -Be 4
+        @($output | Where-Object { $_ -match '^EXISTS' }).Count | Should -Be 6
         $LASTEXITCODE | Should -Be 0
+    }
+
+    It 'the fake Dataverse REFUSES untyped condition values, so the D-ADR083-2 shape cannot pass again' {
+        $bare = '{"QuerySet":[{"EntityName":"rev_application","Criteria":{"Conditions":[{"AttributeName":"rev_status","Operator":"Equal","Values":[11]}]},"LinkEntities":[]}]}'
+        { Assert-FakeBulkDeleteBody -Body ($bare | ConvertFrom-Json) } | Should -Throw '*0x80040203*'
+        $viaLink = '{"QuerySet":[{"EntityName":"a","Criteria":{"Conditions":[]},"LinkEntities":[{"LinkToEntityName":"rev_grant","LinkCriteria":{"Conditions":[{"AttributeName":"d","Operator":"OlderThanXMonths","Values":[72]}]}}]}]}'
+        { Assert-FakeBulkDeleteBody -Body ($viaLink | ConvertFrom-Json) } | Should -Throw '*0x80040203*'
+    }
+
+    It 'the fake Dataverse REFUSES an unknown bulkdeleteoperation $select column, so the D-ADR083-3 shape cannot pass again' {
+        { Assert-FakeBulkDeleteSelect -Uri 'bulkdeleteoperations?$select=bulkdeleteoperationid,recurrencepattern' } | Should -Throw '*0x80060888*recurrencepattern*'
+        { Assert-FakeBulkDeleteSelect -Uri 'bulkdeleteoperations?$select=bulkdeleteoperationid,name,statecode,isrecurring,nextrun' } | Should -Not -Throw
+    }
+
+    It 'every condition value the script sends is a typed Int32 object, in all six jobs' {
+        Register-FakeDataverseResponse -Method GET  -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{ value = @() })
+        Register-FakeDataverseResponse -Method POST -UriPattern '/BulkDelete$' -Response ([pscustomobject]@{ JobId = 'j' })
+        & $script:BulkDelete -Env acc | Out-Null
+        foreach ($post in @(Get-FakeDataverseCalls -Method POST -UriPattern '/BulkDelete$')) {
+            $q = $post.Body.QuerySet[0]
+            $filters = @($q.Criteria) + @(@($q.LinkEntities) | ForEach-Object { $_.LinkCriteria })
+            foreach ($c in @($filters | ForEach-Object { $_.Conditions })) {
+                if ($null -eq $c.PSObject.Properties['Values']) { continue }
+                foreach ($v in @($c.Values)) {
+                    $v.'@odata.type' | Should -Be 'Microsoft.Dynamics.CRM.Object' -Because "$($post.Body.JobName) / $($c.AttributeName)"
+                    $v.Type          | Should -Be 'System.Int32' -Because "$($post.Body.JobName) / $($c.AttributeName)"
+                }
+            }
+        }
+    }
+
+    It 'the existence check selects only real bulkdeleteoperation columns and never recurrencepattern directly' {
+        Register-FakeDataverseResponse -Method GET  -UriPattern 'bulkdeleteoperations' -Response ([pscustomobject]@{ value = @() })
+        Register-FakeDataverseResponse -Method POST -UriPattern '/BulkDelete$' -Response ([pscustomobject]@{ JobId = 'j' })
+        & $script:BulkDelete -Env acc | Out-Null
+        foreach ($call in @(Get-FakeDataverseCalls -Method GET -UriPattern 'bulkdeleteoperations')) {
+            ($call.Uri -replace '\$expand=[^&]+', '') | Should -Not -Match 'recurrencepattern' -Because 'only the $expand may name it'
+            $call.Uri | Should -Match 'statecode ne 3'
+        }
     }
 
     It 'excludes completed jobs from the existence check, so a finished run does not block re-provisioning' {

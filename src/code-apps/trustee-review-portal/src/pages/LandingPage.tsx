@@ -2,6 +2,17 @@
  * The landing screen — FR-056 (the navigation shell) and FR-057..FR-063 (its content).
  * WBS 6.1 and 6.9.
  *
+ * ## CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.2; WI-0080..WI-0090)
+ *
+ * Presentation from `ui_kits/trustee-review-portal/RoundOverview.jsx`, content and behaviour
+ * from this file as the first app has it (ADR-061). What changes here: the title and its
+ * intro paragraph are one 8px group, both action buttons sit in ONE `ActionRow` (flex, wrap,
+ * 12px), and "This round" is the round hero (`cards/RoundHero.tsx`: badge, the §13.7 sentence,
+ * Opened/Closed and the ADR-065 application-share bar). What does NOT change, and is held by
+ * the first app's `LandingPage.test.tsx` (contract): the `<h1>`, the FR-057 sentence, the
+ * "Portal sections" nav, the Refresh control's unchanging name and its place outside the
+ * live region, the live region itself, and every diagnostic state.
+ *
  * ## What it does, in three steps — TAD §5.4
  *
  *   1. Reads `rev_roundfinance` with `rev_isopen eq true`, `top 2`, on the trustee's own
@@ -73,8 +84,9 @@ import { Spinner } from "@fluentui/react-components";
 import { Button } from "../components/ds";
 import { RoundFinancePanel } from "../components/RoundFinancePanel";
 import { RoundStatistics } from "../components/RoundStatistics";
-import { Definitions, Panel, StateMessage } from "../components/Panel";
-import { formatDate, formatDateTime } from "../domain/format";
+import { StateMessage } from "../components/Panel";
+import { RoundHero } from "../cards/RoundHero";
+import { formatDateTime } from "../domain/format";
 import { deriveLandingView } from "../domain/landing";
 import type { QueryPhase } from "../domain/landing";
 import { useOpenRound, useRoundStatistics } from "../hooks/queries";
@@ -98,12 +110,6 @@ function phaseOf(query: { isPending: boolean; isError: boolean }): QueryPhase {
 export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
   const round = useOpenRound();
   const statistics = useRoundStatistics();
-
-  // Not memoised, on purpose. `deriveLandingView` is a pure switch over two small objects
-  // and it allocates the diagnostic strings it chooses; memoising it would mean listing
-  // both whole query objects as dependencies, which changes identity on every render
-  // anyway. `ApplicationsListPage` memoises because it sorts and filters a 500-row list;
-  // there is nothing of that shape here.
   const view = deriveLandingView(
     {
       phase: phaseOf(round),
@@ -116,72 +122,13 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
       ...(statistics.error === null ? {} : { errorMessage: statistics.error.message }),
     },
   );
-
   const title =
     view.roundName === null ? "Round overview" : `Round overview — ${view.roundName}`;
   usePageTitle(title);
-
   const busy = statistics.isFetching;
-
-  /**
-   * A refresh running over content that is ALREADY on screen.
-   *
-   * This is the state neither full-panel Spinner below covers. Both render only while
-   * their own half has nothing to show — `kind === "loading"`, which is React Query's
-   * `isPending`, and `isPending` is false for the rest of the session once a first load
-   * has succeeded. **Refresh figures** therefore sets `isFetching` and nothing else, and
-   * before this the screen went completely silent for the whole round trip.
-   *
-   * Keyed on `kind !== "loading"` rather than on `!isPending` so the invariant is the one
-   * that actually matters: this indicator appears exactly when the corresponding panel
-   * Spinner does not, so one read never draws two spinners. It consequently also covers a
-   * refresh over a DIAGNOSTIC panel — a retry after a failed call, which was equally
-   * silent and is the state the **Refresh figures** wording in every §5.3 diagnostic
-   * invites a trustee to act on.
-   */
   const refreshing =
     (round.isFetching && view.finance.kind !== "loading") ||
     (statistics.isFetching && view.statistics.kind !== "loading");
-
-  /**
-   * What the live region says. Four states, not three.
-   *
-   * `view.statistics.kind` is a statement about what is ON SCREEN, so during a re-fetch
-   * over existing figures it stays `"figures"` and this region went on asserting "have
-   * loaded" for the whole round trip: true about the figures being displayed, false about
-   * whether they are being replaced, which is the half a trustee pressed the button to
-   * learn.
-   *
-   * Two deliberate choices. `"loading"` is tested FIRST, so a genuine first load still
-   * says "Loading" rather than "Refreshing". And the new branch keys on `busy`
-   * (`statistics.isFetching`) rather than on `refreshing` above, because this text is the
-   * statistics region's own and must not speak for the round record's separate read — it
-   * is the same value as this region's `aria-busy`, so the text and the attribute can
-   * never disagree.
-   *
-   * `aria-busy="true"` lets assistive technology defer presenting a live-region change
-   * until it is false, so the "Refreshing…" wording is not relied on to interrupt: its job
-   * is that a trustee reading the region mid-refresh — or hearing it batched on
-   * completion — is never told the figures are settled while they are not.
-   *
-   * ## Revision 5 (ADR-038, TAD §8.3) — the arrival announcement states the STAMP, not the
-   * action, and this is the one screen-level change Revision 5 requires
-   *
-   * Inside the freshness window (§5.3.1) **Refresh figures** legitimately returns without
-   * recomputing anything: `fetchRoundStatistics` finds a document younger than
-   * `staleAfterSeconds` and renders it, writing nothing and triggering nothing. So this
-   * region cannot say *"Figures refreshed"* — it would be **false in the common case** once
-   * `staleAfterSeconds` is seeded, and a trustee acting on it would believe a stale-but-valid
-   * figure had just been recomputed. The one wording this screen must not use is any phrase
-   * implying the button always causes work.
-   *
-   * It says *"Figures are current as at <stamp>."* instead, which is true whether the button
-   * caused a computation, found a fresh one somebody else caused, or was never pressed at
-   * all. The stamp is `computedOn` — the same value the visible freshness line and the
-   * printed pack carry (§3.3 property 5), through the same `formatDateTime`, so the
-   * announcement and the text on screen can never disagree about when. A trustee who wants
-   * to know whether anything *changed* reads that stamp; that is why §3.3 keeps it on screen.
-   */
   const liveStatus =
     view.statistics.kind === "loading"
       ? "Loading the round's figures."
@@ -190,71 +137,49 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
         : view.statistics.kind === "figures"
           ? `Figures are current as at ${formatDateTime(view.statistics.response.computedOn)}.`
           : "The round's figures are not available.";
+  const figures = view.statistics.kind === "figures" ? view.statistics.response : null;
+  const openRound = view.finance.kind === "figures" ? view.finance.round : null;
 
   return (
     <>
-      <h1>{title}</h1>
-
-      {/* FR-057, stated rather than implied. A trustee who expects a round selector should
-          learn from the screen why there is none, not conclude one is missing. */}
-      <p className={styles.hint}>
-        This portal shows the one grant round currently open for review. There is no round
-        to choose.
-      </p>
-
-      {/* Chrome, not content: a navigation control is interactive and prints as a dead
-          grey box, so it is hidden on paper like the list's own action bar (FR-039). */}
-      <nav aria-label="Portal sections" className={styles.landingNav} data-print="hide">
-        <Button variant="primary" onClick={onOpenList}>
-          Open the applications list
-        </Button>
-      </nav>
-
-      {/*
-        Outside the live region on purpose: a control that re-renders inside a `role="status"`
-        region gets its own changes announced, which is noise rather than information. Its
-        accessible name is "Refresh figures" in every state — a name that changed to
-        "Refreshing…" would be a different control to a screen reader every time it was used.
-        Not disabled while in flight, because disabling a focused button drops focus.
-      */}
-      <div className={styles.refreshBar} data-print="hide">
-        <Button
-          variant="secondary"
-          onClick={() => {
-            void round.refetch();
-            void statistics.refetch();
-          }}
-        >
-          Refresh figures
-        </Button>
-
-        {/*
-          The inline idiom `VerdictSection.tsx:42` already establishes — a `size="tiny"`
-          labelled Spinner — and not a new visual pattern: no overlay, no skeleton, and
-          nothing that replaces the button, so the control the trustee just pressed does
-          not move or vanish under the pointer while they are still on it.
-
-          It sits inside `.refreshBar`, which means OUTSIDE the live region for the same
-          reason the button is: it re-renders on its own schedule, and a spinner mounting
-          and unmounting inside `role="status"` is announced as noise. `data-print="hide"`
-          on the bar already covers it on paper.
-
-          Its label repeats the button's own wording rather than naming which of the two
-          reads is in flight (WCAG 3.2.4): the trustee pressed one control and is owed one
-          answer about it, not a running commentary on a direct read and a flow call.
-        */}
-        {refreshing ? (
-          <Spinner
-            size="tiny"
-            label="Refreshing the round's figures…"
-            labelPosition="after"
-          />
-        ) : null}
+      {/* PageTitle + intro, 8px apart (RoundOverview.jsx lines 207-210). */}
+      <div className={styles.titleGroup}>
+        <h1>{title}</h1>
+        <p className={styles.titleIntro}>
+          This portal shows the one grant round currently open for review. There is no round
+          to choose.
+        </p>
       </div>
 
-      {/* The direct read's own outcome — the round's identity and calendar (FR-057,
-          FR-058's open date). One diagnostic covers this block and the financial position
-          block below it, because both come from the same single row. */}
+      {/* One ActionRow for both buttons (lines 211-214). The "Portal sections" nav and the
+          refresh bar stay two elements: the nav is a landmark the contract tests find by name,
+          and the refresh control must stay OUTSIDE the live region below. */}
+      <div className={styles.landingActions} data-print="hide">
+        <nav aria-label="Portal sections" className={styles.landingNav}>
+          <Button variant="primary" onClick={onOpenList}>
+            Open the applications list
+          </Button>
+        </nav>
+        <div className={styles.refreshBar}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              void round.refetch();
+              void statistics.refetch();
+            }}
+          >
+            Refresh figures
+          </Button>
+          {refreshing ? (
+            <Spinner
+              size="tiny"
+              label="Refreshing the round's figures…"
+              labelPosition="after"
+            />
+          ) : null}
+        </div>
+      </div>
+
       {view.finance.kind === "loading" ? (
         <Spinner label="Loading the round record…" labelPosition="below" />
       ) : view.finance.kind === "diagnostic" ? (
@@ -263,25 +188,13 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
           explanation={view.finance.message.explanation}
         />
       ) : (
-        <Panel heading="This round">
-          <Definitions
-            items={[
-              { label: "Round", value: view.finance.round.roundKey ?? "Not recorded" },
-              { label: "Opened", value: formatDate(view.finance.round.roundOpenedOn) },
-              ...(view.finance.round.roundClosedOn === null
-                ? []
-                : [{ label: "Closed", value: formatDate(view.finance.round.roundClosedOn) }]),
-            ]}
-          />
-        </Panel>
+        <RoundHero
+          round={view.finance.round}
+          received={figures?.metrics.applicationsReceived?.count ?? null}
+          history={figures?.metrics.historicApplicationsByMonth ?? null}
+        />
       )}
 
-      {/*
-        TAD §8.3: the statistics region is a live region, so a screen-reader trustee is told
-        when the figures are loading and told again when they arrive. A visual skeleton
-        announces nothing on its own. `aria-busy` covers the in-flight state including an
-        explicit refresh, whose result is therefore announced through this same region.
-      */}
       <div
         className={styles.statisticsRegion}
         role="status"
@@ -289,7 +202,6 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
         data-print="block"
       >
         <p className={styles.srOnly}>{liveStatus}</p>
-
         {view.statistics.kind === "loading" ? (
           <Spinner label="Computing the round's figures…" labelPosition="below" />
         ) : view.statistics.kind === "diagnostic" ? (
@@ -298,26 +210,13 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
             explanation={view.statistics.message.explanation}
           />
         ) : (
-          <>
-            {/*
-              §0.10.2 (Revision 7, IMP-0510) — a section header for the "figures" branch
-              only, one level above `Round progress` / `Exceptional circumstances` etc.
-              (§8.3's existing `<h2>` rank for this screen's sections). Nothing occupies this
-              position today, so this ADDS a heading rather than replacing one — and it is
-              distinct from `RoundStatistics`'s own `.freshness` "Round figures computed on…"
-              line, which is unconditionally the FIRST thing `RoundStatistics` itself renders,
-              immediately beneath this. The two stay visually and structurally separate
-              exactly as TAD §8.3 already requires of the two freshness statements elsewhere
-              on this screen (this one and FR-063's `.freshnessManual`, below). Typeset with
-              the same `--font-display`/`--text-heading` rule as every other `<h2>` here
-              (ADR-042) — no new type rule for one heading.
-            */}
-            <h2>Figures of this round</h2>
-            <RoundStatistics response={view.statistics.response} />
-          </>
+          <RoundStatistics
+            response={view.statistics.response}
+            roundOpenedOn={openRound?.roundOpenedOn ?? null}
+            roundClosedOn={openRound?.roundClosedOn ?? null}
+          />
         )}
       </div>
-
       {view.finance.kind === "figures" ? (
         <RoundFinancePanel round={view.finance.round} />
       ) : null}

@@ -1,4 +1,8 @@
 /**
+ * CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.4, WI-0095):
+ * `GroupScreens.jsx` lines 8-14 — the "Round {name}" eyebrow over the title (TAD §13.7), the
+ * same filters card as the list, the print action row, then the groups table or its state.
+ *
  * The group applications screen — EF-43 Δ5.
  * (`docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50, "today" column, 2026-09-25)
  *
@@ -49,6 +53,8 @@ import { StateMessage } from "../components/Panel";
 import { useApplications } from "../hooks/queries";
 import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "../styles/app.module.css";
+import { Eyebrow } from "../components/Panel";
+import { roundEyebrow } from "../cards/sentences";
 
 export function GroupsListPage({
   onOpenGroup,
@@ -128,9 +134,15 @@ export function GroupsListPage({
     );
   }
 
+  const eyebrow = roundEyebrow(filters.round ?? "", allRows);
   return (
     <>
-      {heading}
+      {/* The "Round {name}" eyebrow above the title (ADR-062, TAD §13.7), from the filter or the
+          loaded rows — no new query. */}
+      <div className={styles.titleGroup}>
+        {eyebrow === null ? null : <Eyebrow>{eyebrow}</Eyebrow>}
+        {heading}
+      </div>
 
       <ApplicationFilters
         filters={filters}

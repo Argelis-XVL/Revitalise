@@ -1269,29 +1269,85 @@ Describe 'Build gate: workflow-syntax (C-TECH-063)' {
 # asks for any of them. The first exists because IMP-0153 — a `blocker` — was caught by a
 # person reading carefully and by nothing else in this repository.
 Describe 'Build gate: no-trustee-in-column-security-profile' {
-    It "'no-trustee-in-column-security-profile' fails when a team holding a trustee role is a profile MEMBER (IMP-0153)" {
-        Invoke-Python 'verify-column-security-membership.py' @(
-            (Join-Path $script:Fixtures 'no-trustee-in-column-security-profile')
-        ) | Should -Not -Be 0
+    # Portal TAD trustee-portal-design-2 Revision 4 (ADR-085 G1, 2026-10-22): the gate gained a
+    # positive case - a trustee team may be a member of the ONE release profile named by
+    # config/trustee-release-profile.json, only while it is read only and equals the register's
+    # trustee_release rows - and a completeness rule. The fixtures under release/ carry their own
+    # profiles XML and register so each rule is exercised independently of the real register.
+    BeforeAll {
+        $script:CsmFixture = Join-Path $script:Fixtures 'no-trustee-in-column-security-profile'
+        $script:CsmRelease = Join-Path $script:CsmFixture 'release'
+        $script:CsmFixtureArgs = @(
+            '--register', (Join-Path $script:CsmRelease 'register.yml'),
+            '--release-config', (Join-Path $script:CsmRelease 'release-profile.json')
+        )
+        $script:CsmReadOnly = @('--profiles', (Join-Path $script:CsmRelease 'profiles-read-only.xml'))
     }
-    It "'no-trustee-in-column-security-profile' passes against the real deployment settings" {
+    It "'no-trustee-in-column-security-profile' fails when a team holding a trustee role is a MEMBER of REV_TrusteeRestricted (IMP-0153), even with a valid release profile beside it" {
+        Invoke-Python 'verify-column-security-membership.py' (@($script:CsmFixture) + $script:CsmReadOnly + $script:CsmFixtureArgs) | Should -Be 1
+    }
+    It "'no-trustee-in-column-security-profile' passes the control: the trustee team in a read-only release profile equal to the register's trustee_release rows" {
+        Invoke-Python 'verify-column-security-membership.py' (@((Join-Path $script:CsmRelease 'good')) + $script:CsmReadOnly + $script:CsmFixtureArgs) | Should -Be 0
+    }
+    It "'no-trustee-in-column-security-profile' fails when the release profile grants update rights (ADR-085 G1)" {
+        Invoke-Python 'verify-column-security-membership.py' (@((Join-Path $script:CsmRelease 'good'),
+            '--profiles', (Join-Path $script:CsmRelease 'profiles-update-rights.xml')) + $script:CsmFixtureArgs) | Should -Be 1
+    }
+    It "'no-trustee-in-column-security-profile' fails when the release profile grants a column the register does not release (ADR-085 G1)" {
+        Invoke-Python 'verify-column-security-membership.py' (@((Join-Path $script:CsmRelease 'good'),
+            '--profiles', (Join-Path $script:CsmRelease 'profiles-unreleased-column.xml')) + $script:CsmFixtureArgs) | Should -Be 1
+    }
+    It "'no-trustee-in-column-security-profile' fails when a settings file with a trustee team omits the release profile (completeness, R-D2-15)" {
+        Invoke-Python 'verify-column-security-membership.py' (@((Join-Path $script:CsmRelease 'missing-release-entry')) + $script:CsmReadOnly + $script:CsmFixtureArgs) | Should -Be 1
+    }
+    It "'no-trustee-in-column-security-profile' fails when a settings file with no trustee team (DEV) declares the release profile" {
+        Invoke-Python 'verify-column-security-membership.py' (@((Join-Path $script:CsmRelease 'release-entry-without-trustee-team')) + $script:CsmReadOnly + $script:CsmFixtureArgs) | Should -Be 1
+    }
+    It "'no-trustee-in-column-security-profile' fails when the release profile has a non-trustee member" {
+        Invoke-Python 'verify-column-security-membership.py' (@((Join-Path $script:CsmRelease 'release-non-trustee-member')) + $script:CsmReadOnly + $script:CsmFixtureArgs) | Should -Be 1
+    }
+    It "'no-trustee-in-column-security-profile' passes against the real deployment settings, profiles and register" {
+        # Red until constraints/domain/special-category-register.yml carries the three
+        # trustee_release rows (written by improvement-agent or the reviewer, never by
+        # development-agent - portal TAD section 14.3). That is the gate doing its job: the
+        # release profile has trustee members and the register does not yet release its columns.
+        Invoke-Python 'verify-column-security-membership.py' @(
+            (Join-Path $script:RepoRoot 'provisioning/deploymentSettings'),
+            '--profiles', (Join-Path $script:Solution 'Other/FieldSecurityProfiles.xml'),
+            '--register', (Join-Path $script:RepoRoot 'constraints/domain/special-category-register.yml')
+        ) | Should -Be 0
+    }
+    It "'no-trustee-in-column-security-profile' is a usage error (2), not a pass, without --profiles and --register" {
         Invoke-Python 'verify-column-security-membership.py' @(
             (Join-Path $script:RepoRoot 'provisioning/deploymentSettings')
-        ) | Should -Be 0
+        ) | Should -Be 2
     }
     It "'no-trustee-in-column-security-profile' fails on a directory holding no settings file rather than passing over nothing (IMP-0007)" {
         $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('csm-' + [guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $tmp -Force | Out-Null
         try {
-            Invoke-Python 'verify-column-security-membership.py' @($tmp) | Should -Not -Be 0
+            Invoke-Python 'verify-column-security-membership.py' (@($tmp) + $script:CsmReadOnly + $script:CsmFixtureArgs) | Should -Be 1
         } finally {
             Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
     It "'no-trustee-in-column-security-profile' fails on a target directory that does not exist (IMP-0007)" {
-        Invoke-Python 'verify-column-security-membership.py' @(
-            (Join-Path $script:Fixtures 'no-such-settings-dir')
-        ) | Should -Not -Be 0
+        Invoke-Python 'verify-column-security-membership.py' (@(
+            (Join-Path $script:Fixtures 'no-such-settings-dir')) + $script:CsmReadOnly + $script:CsmFixtureArgs) | Should -Be 1
+    }
+}
+
+Describe 'Build gate: trustee-field-catalogue (G4, portal TAD trustee-portal-design-2 ADR-085)' {
+    It "'trustee-field-catalogue' fails when the manifest names a column the trustee release profile grants" {
+        Invoke-Python 'generate-trustee-field-catalogue.py' @(
+            '--check', '--manifest', (Join-Path $script:Fixtures 'trustee-field-catalogue/manifest-released-column.json')
+        ) | Should -Be 1
+    }
+    It "'trustee-field-catalogue' passes against the committed manifest and generated file" {
+        Invoke-Python 'generate-trustee-field-catalogue.py' @('--check') | Should -Be 0
+    }
+    It "'trustee-field-catalogue' self-test passes (engine cases, G4, every app copy checked)" {
+        Invoke-Python 'generate-trustee-field-catalogue.py' @('--selftest') | Should -Be 0
     }
 }
 
@@ -1364,26 +1420,6 @@ Describe 'Build gate: no-secured-columns-in-code-app' {
         Invoke-Python 'verify-code-app-column-bindings.py' @(
             (Join-Path $script:Fixtures 'no-such-code-app'), $script:FsProfile
         ) | Should -Not -Be 0
-    }
-}
-
-# ── no-secured-columns-in-code-app-cards (TAD trustee-portal-design-2 §5.1, wbs:6.3 unbilled) ─────
-# The SAME script as the step above, over the card-layout app. Registered by its own step name so
-# the duplicate is proven able to fail on its own, and proven to pass over the real second app.
-Describe 'Build gate: no-secured-columns-in-code-app-cards' {
-    BeforeAll {
-        $script:FsProfileCards = Join-Path $script:Solution 'Other/FieldSecurityProfiles.xml'
-        $script:CodeAppCards   = Join-Path $script:RepoRoot 'src/code-apps/trustee-review-portal-cards'
-    }
-    It "'no-secured-columns-in-code-app-cards' fails when the app names a column security hides (FR-036, ADR-002)" {
-        Invoke-Python 'verify-code-app-column-bindings.py' @(
-            (Join-Path $script:Fixtures 'no-secured-columns-in-code-app'), $script:FsProfileCards
-        ) | Should -Not -Be 0
-    }
-    It "'no-secured-columns-in-code-app-cards' passes against the real card-layout app source" {
-        Invoke-Python 'verify-code-app-column-bindings.py' @(
-            $script:CodeAppCards, $script:FsProfileCards
-        ) | Should -Be 0
     }
 }
 

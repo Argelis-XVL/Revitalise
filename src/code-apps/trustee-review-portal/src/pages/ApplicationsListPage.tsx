@@ -1,4 +1,8 @@
 /**
+ * CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.3, WI-0091):
+ * `ApplicationsList.jsx` lines 92-111 — eyebrow and title, the filters card, the print action
+ * row, then the table or the state message; "Record verdict" opens the dialog in place.
+ *
  * The applications summary list — WBS 6.2.
  *
  * FR-034, SDD US-012 AC-1, US-013 AC-1/AC-2/AC-3/AC-4. A trustee who prefers a
@@ -58,6 +62,18 @@
  * another table". The group table now has its own screen, `pages/GroupsListPage.tsx`, reached
  * from the nav bar's own "Group applications" tab (`App.tsx`'s "EF-43 Δ5" header) — this page
  * no longer has any route to it at all, which is the fix rather than a regression.
+ *
+ * ## SDD A-14, FR-116/FR-117 — own verdict on the button, and what awaits it (ADR-086)
+ *
+ * One review read serves the whole list (`useReviewIndex`, chunks of 25 ids), and each row's
+ * review is chosen by `currentReviewFor` — the same function the dialog's own read uses. The
+ * button shows the trustee's own verdict (`ApplicationsTable`). Above the table a polite status
+ * line counts the applications awaiting the trustee's verdict over EVERY row loaded, before the
+ * trustee's own filters; the "Show only applications awaiting my verdict" filter ANDs with the
+ * others and the existing "N of M shown" caption reports the result. Loading: "Counting your
+ * verdicts…", filter disabled. Failed: "Your verdict status could not be loaded." — never a
+ * number — filter disabled, and every button reads Record verdict (the dialog does its own
+ * read). User not identified: no line, no filter; the identity message stands.
  */
 import { Spinner } from "@fluentui/react-components";
 import { Button, Notice } from "../components/ds";
@@ -76,9 +92,15 @@ import { ApplicationFilters } from "../components/ApplicationFilters";
 import { ApplicationsTable } from "../components/ApplicationsTable";
 import { StateMessage } from "../components/Panel";
 import { VerdictDialog } from "../components/VerdictDialog";
-import { useApplications } from "../hooks/queries";
+import { useApplications, useReviewIndex } from "../hooks/queries";
+import { currentReviewFor } from "../dataverse/currentReview";
+import { countAwaiting, ownVerdictState } from "../domain/ownVerdict";
+import type { OwnVerdictState } from "../domain/ownVerdict";
+import type { AwaitingFilterAvailability } from "../components/ApplicationFilters";
 import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "../styles/app.module.css";
+import { Eyebrow } from "../components/Panel";
+import { roundEyebrow } from "../cards/sentences";
 
 export function ApplicationsListPage({
   user,
@@ -100,7 +122,39 @@ export function ApplicationsListPage({
   const allRows = useMemo(() => applications.data ?? [], [applications.data]);
   const rounds = useMemo(() => deriveRounds(allRows), [allRows]);
   const statuses = useMemo(() => deriveStatuses(allRows), [allRows]);
-  const rows = useMemo(() => projectRows(allRows, filters, sort), [allRows, filters, sort]);
+
+  // ADR-086: one review read for every loaded row; the trustee's own verdict per row from it.
+  const userKnown = user.systemUserId !== null;
+  const applicationIds = useMemo(() => (userKnown ? allRows.map((row) => row.id) : []), [allRows, userKnown]);
+  const reviewIndex = useReviewIndex(applicationIds);
+  const stateById = useMemo(() => {
+    const map = new Map<string, OwnVerdictState>();
+    if (reviewIndex.data === undefined) return null;
+    for (const row of allRows) {
+      map.set(row.id, ownVerdictState(currentReviewFor(row.id, reviewIndex.data), user));
+    }
+    return map;
+  }, [allRows, reviewIndex.data, user]);
+  const verdictStateFor = (row: ApplicationSummary): OwnVerdictState =>
+    stateById?.get(row.id) ?? { kind: "none" };
+  const isAwaiting = useMemo(
+    () =>
+      stateById === null
+        ? undefined
+        : (row: ApplicationSummary) => stateById.get(row.id)?.kind === "awaiting",
+    [stateById],
+  );
+  const awaitingCount = stateById === null ? null : countAwaiting([...stateById.values()]);
+  const awaitingAvailability: AwaitingFilterAvailability = !userKnown
+    ? "hidden"
+    : stateById === null
+      ? "disabled"
+      : "available";
+
+  const rows = useMemo(
+    () => projectRows(allRows, filters, sort, isAwaiting),
+    [allRows, filters, sort, isAwaiting],
+  );
 
   // Revision 10 (2026-09-02, wbs:6.8), reviewer item 6 — this screen's own `<h1>`, moved here
   // from the shell's `<header>` (`App.tsx`). It now sits under the persistent nav bar, in the
@@ -166,16 +220,38 @@ export function ApplicationsListPage({
       ? `${String(allRows.length)} applications under review.`
       : `${String(rows.length)} of ${String(allRows.length)} applications shown by the current filters.`;
 
+  const eyebrow = roundEyebrow(filters.round ?? "", allRows);
   return (
     <>
-      {heading}
+      {/* The "Round {name}" eyebrow above the title (ADR-062, TAD §13.7), from the filter or the
+          loaded rows — no new query. */}
+      <div className={styles.titleGroup}>
+        {eyebrow === null ? null : <Eyebrow>{eyebrow}</Eyebrow>}
+        {heading}
+      </div>
 
       <ApplicationFilters
         filters={filters}
         rounds={rounds}
         statuses={statuses}
         onChange={setFilters}
+        awaiting={awaitingAvailability}
       />
+
+      {/* FR-117: counted over every row loaded, before the trustee's own filters. Polite, so a
+          count that changes after a save is announced without interrupting. Never a number
+          when the index could not be read. */}
+      {!userKnown ? null : (
+        <p role="status" aria-live="polite" className={styles.awaitingStatus}>
+          {reviewIndex.isError
+            ? "Your verdict status could not be loaded."
+            : awaitingCount === null
+              ? "Counting your verdicts…"
+              : awaitingCount === 0
+                ? "None awaiting your verdict"
+                : `${String(awaitingCount)} awaiting your verdict`}
+        </p>
+      )}
 
       {/* Announced, not just drawn: a filter change that silently reduces the list is
           invisible to a screen-reader user (WCAG 4.1.3). Worded differently from the
@@ -214,6 +290,7 @@ export function ApplicationsListPage({
             setSort((current) => nextSort(current, key));
           }}
           onOpen={onOpenApplication}
+          verdictStateFor={verdictStateFor}
           onRecordVerdict={(application) => {
             if (user.systemUserId === null) {
               toast.showError(

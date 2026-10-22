@@ -52,7 +52,7 @@ export type Display =
 
 /**
  * Row id → display, from the README's mapping table (lines 35-41). Rows absent from this map are
- * facts: S0b, S1, S2, S4-S7 (hero chips), D1-D4, D11, A1, A2, A5, A7, F4, F6 (fact tiles).
+ * facts: S0b, S1, S2, S4-S7 (hero chips), D1-D4, D11, A1, A2, A5, A7, F1-F4, F6 (fact tiles).
  */
 export const ROW_DISPLAY: Readonly<Record<string, Display>> = {
   // Summary — the hero.
@@ -87,10 +87,8 @@ export const ROW_DISPLAY: Readonly<Record<string, Display>> = {
   C10: "likert",
   C11: "likert",
   C12: "likert",
-  // Financial Eligibility.
-  F1: "restricted",
-  F2: "restricted",
-  F3: "restricted",
+  // Financial Eligibility. F1-F3 are facts since SDD A-14 (portal TAD §14.2): released to
+  // trustees read only, so they render as tiles, not restricted rows.
   F5: "answer",
 };
 

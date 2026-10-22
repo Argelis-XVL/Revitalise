@@ -1,14 +1,11 @@
 {
-  "_comment": "SDD docs/plans/revitalise-grant-automation-plan.md §7.1b, Amendment A-05 Finding 1. 'column' (the Dataverse logical name) is used ONLY to cross-check ground truth in the generator; it is NEVER written to the generated output.",
+  "_comment": "SDD docs/plans/revitalise-grant-automation-plan.md §7.1b, Amendment A-05 Finding 1. 'column' (the Dataverse logical name) is used ONLY to cross-check ground truth in the generator; it is NEVER written to the generated output. Portal TAD trustee-portal-design-2 Revision 4 (ADR-085, SDD A-14, 2026-10-22): benefit-status, benefit-provider and employment-status left this manifest, with the then-empty 'Financial eligibility' group, because trustees now read those three columns through the release profile config/trustee-release-profile.json names; G4 in scripts/generate-trustee-field-catalogue.py fails a field whose column that profile grants.",
   "profile_name": "REV_TrusteeRestricted",
   "entity": "rev_application",
   "export_const_name": "TRUSTEE_RESTRICTED_FIELD_CATALOGUE",
   "export_interface_name": "TrusteeRestrictedFieldCatalogueEntry",
-  "group_order": ["Financial eligibility", "Helper, referee and emergency contact"],
+  "group_order": ["Helper, referee and emergency contact"],
   "fields": [
-    ["benefit-status", "rev_receivesbenefits", "Financial eligibility"],
-    ["benefit-provider", "rev_benefitprovider", "Financial eligibility"],
-    ["employment-status", "rev_employmentstatus", "Financial eligibility"],
     ["helper-organisation", "rev_helperorganisation", "Helper, referee and emergency contact"],
     ["helper-relationship", "rev_helperrelationship", "Helper, referee and emergency contact"],
     ["helper-name", "rev_helpername", "Helper, referee and emergency contact"],

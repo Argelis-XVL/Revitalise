@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1203 entries)
+Source: `logs/improvement-log.jsonl` (1234 entries)
 Generated: 2026-10-22
 
 ## What this file is, and who reads it
@@ -27,16 +27,16 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`gate-cannot-fail`** (×61): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055, IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153, IMP-1179
 - **`hand-maintained-count-drifts-from-source`** (×50): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925, IMP-1045, IMP-1048, IMP-1083, IMP-1127, IMP-1151
 - **`approved-document-internally-inconsistent`** (×45): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163
-- **`platform-fact-groundtruthed`** (×44): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016, IMP-1085, IMP-1087, IMP-1107, IMP-1167, IMP-1184, IMP-1185
-- **`declared-policy-not-mechanically-enforced`** (×42): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160
-- **`gate-scope-mismatch`** (×40): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054, IMP-1132, IMP-1154, IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194, IMP-1204
+- **`platform-fact-groundtruthed`** (×45): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016, IMP-1085, IMP-1087, IMP-1107, IMP-1167, IMP-1184, IMP-1185, IMP-1222
+- **`declared-policy-not-mechanically-enforced`** (×43): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160, IMP-1208
+- **`gate-scope-mismatch`** (×41): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054, IMP-1132, IMP-1154, IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194, IMP-1204, IMP-1236
 - **`gate-reassures-wrongly`** (×39): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798, IMP-1130, IMP-1134, IMP-1195, IMP-1203
 - **`no-assertion-on-shipped-content`** (×38): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049, IMP-1133
-- **`stale-claim-contradicting-rechecked-source`** (×36): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015, IMP-1056, IMP-1069, IMP-1075, IMP-1114, IMP-1115, IMP-1117, IMP-1120, IMP-1143, IMP-1150, IMP-1158
+- **`stale-claim-contradicting-rechecked-source`** (×37): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947, IMP-0995, IMP-1015, IMP-1056, IMP-1069, IMP-1075, IMP-1114, IMP-1115, IMP-1117, IMP-1120, IMP-1143, IMP-1150, IMP-1158, IMP-1211
 - **`finding-diagnosis-unverified`** (×35): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959, IMP-1182
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
-- **`untriaged-tool-warning`** (×24): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957, IMP-0961, IMP-0962, IMP-1006, IMP-1089, IMP-1090, IMP-1091
-- **`two-invocation-paths-disagree`** (×21): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053, IMP-1093
+- **`untriaged-tool-warning`** (×25): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957, IMP-0961, IMP-0962, IMP-1006, IMP-1089, IMP-1090, IMP-1091, IMP-1237
+- **`two-invocation-paths-disagree`** (×22): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939, IMP-1052, IMP-1053, IMP-1093, IMP-1235
 - **`gate-fires-on-nothing`** (×17): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825, IMP-1039, IMP-1128
 - **`harness-blocks-destructive-call`** (×17): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828, IMP-1135
 - **`platform-state-divergence`** (×17): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857
@@ -49,6 +49,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`agent-instructions-describe-a-topology-that-changed`** (×9): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757, IMP-1129
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
 - **`finding-premise-fails-re-measurement`** (×8): IMP-0632, IMP-0869, IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952, IMP-1206
+- **`human-correction-of-agent-output`** (×8): IMP-1031, IMP-1213, IMP-1216, IMP-1217, IMP-1221, IMP-1228, IMP-1233, IMP-1234
 - **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
 - **`gate-fired`** (×7): IMP-1072, IMP-1074, IMP-1079, IMP-1081, IMP-1082, IMP-1169, IMP-1188
 - **`hard-gate-has-no-scoped-override-path`** (×7): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795
@@ -57,7 +58,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you execute a build config — capped lessons
 
-*127 lesson(s) the digest does not render, in the same order it ranked them.*
+*129 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - A HARD constraint whose rule text is still a placeholder always PASSES and is therefore a gate that cannot fail. C-DOM-030 and C-DOM-031 are placeholders; report them as UNEVALUABLE rather than PASS, and note that skills/how-to-apply-constraints.md has no status for that outcome.  
   <sub>IMP-0035 · `gate-cannot-fail`</sub>
@@ -69,6 +70,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
+- A folder rename or replacement needs a step that lists the work-item evidence citing the old path.  
+  <sub>IMP-1236 · `gate-scope-mismatch`</sub>
+- A Pester container that mocks a function it does not define must dot-source the file that defines it in its own BeforeAll; a fixture written into the shared tree makes two concurrent test runs disagree.  
+  <sub>IMP-1235 · `two-invocation-paths-disagree`</sub>
 - A deploy-time tool that fails on a new component type gets fixed after the first workaround, not after the fourth: the workaround hides the defect from every gate.  
   <sub>IMP-1194 · `gate-scope-mismatch`</sub>
 - Put the app id after the dash, never inside the parenthesis; run verify-post-deploy-completeness --pending right after the last marker, not only before the stage line. IMP-1178 recurred unfixed.  
@@ -322,7 +327,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*87 lesson(s) the digest does not render, in the same order it ranked them.*
+*88 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - Fluent v9's createLightTheme does not guarantee AA: colorBrandBackground and colorBrandBackgroundStatic are brand[80] behind a hard-coded white, so a brand whose shade 80 is under 4.5:1 against white ships a failing primary button. Compute white-on-brand[80] before adopting any ramp, and if it is under 4.5:1 move BOTH rest tokens to brand[70] and shift Hover/Pressed/Selected one step too (brand[60]/[30]/[50]), or rest and hover become the same colour and the button loses all hover feedback. Never accept a general statement that a palette 'is accessible' — compute each pair, including pairs a human told you were fine.  
   <sub>IMP-0352 · `platform-contract-guessed-not-groundtruthed`</sub>
@@ -355,6 +360,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0006 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Before authoring a NEW field security profile, plan the live ensure-schema run and the id read-back as the first build prerequisite: pac solution pack refuses a profile element with no fieldsecurityprofileid, so no build can run between authoring and read-back.  
+  <sub>IMP-1222 · `platform-fact-groundtruthed`</sub>
 - Before dispatching a deploy, check routing/dev logs for defect fixes approved after the artifact's pack time in the same solution; a Compose's secureData cannot be changed in the designer (no Secure outputs toggle, code view read-only) — only a re-import fixes it.  
   <sub>IMP-1159 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Recurrence schedule keys are frequency-bound: weekDays only with Week; hours and minutes only with Day or Week (documented). Turn a Recurrence-triggered flow on after its first import before calling it deployed.  
@@ -761,7 +768,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*682 lesson(s), in the order the digest would have ranked them.*
+*709 lesson(s), in the order the digest would have ranked them.*
 
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
@@ -816,6 +823,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0270 · `platform-state-divergence`</sub>
 - Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. The positive-control identity and the trustee (negative-control) identity must be verified as two different systemuserids before every V4 attempt, not just the first.  
   <sub>IMP-0228 · `platform-state-divergence`</sub>
+- Historic created/link events must be checked for source_ref existence only at write time, or the fold must check the source_ref of the item's CURRENT folded state, not each superseded event.  
+  <sub>IMP-1227 · `work-item-source-ref-dangling-after-rename`</sub>
 - Never trust an extractor span as a word boundary: widen a name span over a directly joined hyphen/apostrophe fragment before labelling, and hold any label still joined to letters (P3 name-fragment), on the input and on the output.  
   <sub>IMP-1139 · `privacy-check-blind-spot`</sub>
 - A build that halts mid-chain leaves every later step unobserved; the first run to reach the end can surface an unrelated defect. Run the Pester suite (or the contract test file) against the edited form before handing off.  
@@ -965,6 +974,58 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Check linked component labels against the declared label set at link time, not at the deploy transition. A prerequisite script that an item owes needs a label or the link must be dropped.  
+  <sub>IMP-1238 · `gate-checks-too-late`</sub>
+- Steps that need a network or credential cannot be run by development-agent, so their warnings must be carried into the new feature's table from the previous build manifest's warnings_detail before dispatch.  
+  <sub>IMP-1237 · `untriaged-tool-warning`</sub>
+- Express a guard on a destructive action in the status the process owner already uses as final; offer an intermediate-state trigger only as an alternative.  
+  <sub>IMP-1234 · `human-correction-of-agent-output`</sub>
+- Before building on a statement that a team, group or record does or does not exist in an environment, run the one read-only query that answers it (pac env fetch on team with teamroles) and record the result, even when the statement comes from the reviewer.  
+  <sub>IMP-1233 · `human-correction-of-agent-output`</sub>
+- When writing synthetic rows to an environment with live flows, send MSCRM.SuppressCallbackRegistrationExpanderJob: true on every create, update and delete, and confirm with a flowrun count before and after.  
+  <sub>IMP-1232 · `synthetic-write-fired-live-flows`</sub>
+- Before trusting a Web API action body or $select built by hand, send it once to a live org (synthetic rows, one-off, constrained); for QueryExpression conditions in the Web API, type every value as Microsoft.Dynamics.CRM.Object with Type and Value, and select only columns the table's metadata lists.  
+  <sub>IMP-1231 · `fake-dataverse-accepts-what-the-platform-rejects`</sub>
+- When an ADR adds a component that overlaps an unbuilt, diagram-only design, re-read that design in the same revision and mark each step kept, moved or impossible.  
+  <sub>IMP-1230 · `diagram-level-design-carried-unverified-across-revisions`</sub>
+- When a TAD or SDD places a built flow under a task whose contracted description names only documents or configuration, raise the change-order question at first design, not when the flow grows.  
+  <sub>IMP-1229 · `scope-gap-found-at-design`</sub>
+- When a confidentiality property forces a process to need more than one person per occurrence, present the single-handler alternative with its residual risk as an explicit reviewer choice; do not resolve it silently in favour of the split.  
+  <sub>IMP-1228 · `human-correction-of-agent-output`</sub>
+- Before naming a test tool in a TAD test contract or a work-item clause, check the app's package.json; if it is absent, the contract either adds it as a decision or names the assertions instead.  
+  <sub>IMP-1225 · `test-contract-names-absent-tool`</sub>
+- When another session is drafting files a gate reads, measure that gate also against HEAD (git show HEAD:<file> into the scratchpad) and report both results; a green run against an unapproved draft is provisional evidence.  
+  <sub>IMP-1224 · `gate-result-depends-on-unapproved-draft`</sub>
+- When a dispatch includes a live provisioning step, check PROVISION_APP_ID before starting work and hand over the exact command and its verification query early, so the reviewer can run it in parallel with the source work.  
+  <sub>IMP-1223 · `credential-absent-in-dispatched-session`</sub>
+- When a reviewer approves 'that design', re-read the exact proposal he was shown before acting on any paraphrase of his answer; 'manual' in a reply about a flow mode names the trigger unless he says there is no flow.  
+  <sub>IMP-1221 · `human-correction-of-agent-output`</sub>
+- Write FetchXML attributes with single quotes when passing it to pac env fetch --xml.  
+  <sub>IMP-1220 · `cli-argument-quoting`</sub>
+- When a design rests on 'no person can read it', measure the owning identity's accessmode and roles, not its name.  
+  <sub>IMP-1219 · `design-premise-about-identity-type-unmeasured`</sub>
+- A personal-data store inventory covers both directions: copies made from the record and the source the record was copied from.  
+  <sub>IMP-1218 · `store-of-personal-data-missing-from-inventory`</sub>
+- For every store an erasure path names, state who deletes it and with what write access; a read-only connection cannot be an erasure route.  
+  <sub>IMP-1217 · `human-correction-of-agent-output`</sub>
+- An absent settings entry means 'unknown', not 'exists with an unknown name'; ask which it is before a design depends on it.  
+  <sub>IMP-1216 · `human-correction-of-agent-output`</sub>
+- Write a control rule as the property it protects, with the current mechanism beneath it.  
+  <sub>IMP-1215 · `doc-contradicts-reality`</sub>
+- When a requirement batches an existing action, list the single action's validation rules and state for each whether the batch keeps it.  
+  <sub>IMP-1214 · `doc-contradicts-reality`</sub>
+- When the reviewer's decision cites an artefact as its basis ('as shown in the PDF'), take the default from what that artefact actually shows, not from a general rule the artefact already departs from; and for workflow-shape questions, ask how the process owner works before designing edge-case rules.  
+  <sub>IMP-1213 · `human-correction-of-agent-output`</sub>
+- Before removing a variant app, grep the repo for its folder name and run verify-build-config.py, verify-assumption-markers.py and the field-catalogue --check; a gate script no step invokes cannot be kept, delete it with the step that ran it.  
+  <sub>IMP-1212 · `retirement-checklist-incomplete`</sub>
+- Before relying on a knowledge-file non-negotiable about who sees what, check it against SDD §7.1a/§7.1b and NFR-031, which are the current rule.  
+  <sub>IMP-1211 · `stale-claim-contradicting-rechecked-source`</sub>
+- When recording a TAD approval, update the status line, the revision entry and the Approval section in the same edit; and treat 'scripted' retention jobs as unverified until a deployment record shows CREATED.  
+  <sub>IMP-1210 · `approval-recorded-in-one-place-only`</sub>
+- After R1d, compare the exported template with section 1 before anything else moves; a truncated closing clause is the label-protection rule, which the flow's own checks do not backstop.  
+  <sub>IMP-1209 · `reality-contradicted-repo-document`</sub>
+- Write the routing tag from the Task call's model parameter, not from the decision; a tier:strategic line with no override is a standard dispatch.  
+  <sub>IMP-1208 · `declared-policy-not-mechanically-enforced`</sub>
 - Read-only diagnostics use git diff, git status and git show only; a stash moves every modified file in the tree, including another session's.  
   <sub>IMP-1207 · `concurrent-session-same-file-write`</sub>
 - For a proposed check, run a scratch implementation over the real corpus at draft time and put the count it printed in the change row; for a planned closure, dump the entry first. A status word in this repository's review headers can be struck through and kept, so a header test strips ~~...~~ before reading the word.  

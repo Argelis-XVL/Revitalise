@@ -194,14 +194,23 @@ export const APPLICATION_LIST_COLUMNS = [
  *   - the five further `…redacted` counterparts ADR-031 adds (TAD §3.2.2, FR-079), gated by
  *     `rev_redactionreleased` exactly like the three above — see `domain/visibility.ts`.
  *
- * Amendment A-05's remaining eleven "Group B" columns (benefit status, employment status,
- * and the helper/referee/emergency-contact IDENTITY columns) are deliberately ABSENT from
- * this list and from every other list in this file: they are `IsSecured=1` and inside
- * `REV_TrusteeRestricted`, and ADR-032's whole point is that this app never asks for them —
- * FR-078's restricted state comes from the build-derived field catalogue instead
- * (`src/generated/trusteeRestrictedFieldCatalogue.ts`, `domain/fieldCatalogue.ts`), never
- * from a `$select`. Binding any of them here would fail `no-secured-columns-in-code-app`
- * (HARD) — correctly.
+ * Amendment A-05's remaining "Group B" columns (the helper/referee/emergency-contact IDENTITY
+ * columns) are deliberately ABSENT from this list and from every other list in this file: they
+ * are `IsSecured=1` and inside `REV_TrusteeRestricted` only, and ADR-032's point is that this app
+ * never asks for them — FR-078's restricted state comes from the build-derived field catalogue
+ * instead (`src/generated/trusteeRestrictedFieldCatalogue.ts`, `domain/fieldCatalogue.ts`), never
+ * from a `$select`. Binding any of them here would fail `no-secured-columns-in-code-app` (HARD) —
+ * correctly.
+ *
+ * SDD Amendment A-14 (portal TAD trustee-portal-design-2 Revision 4, ADR-084/ADR-085, wbs:6.3,
+ * 2026-10-22) NARROWS that rule: no `$select` names a secured column OUTSIDE THE TRUSTEE RELEASE
+ * PROFILE. Three Group B columns — benefit status, benefit provider, employment status — are
+ * now released read-only to trustees by `REV_TrusteeFinancialEligibility`, so every persona that
+ * opens the portal reads them (the process owner through `REV_TrusteeRestricted` as well), and
+ * they are selected below, on the DETAIL screen only. They stay `IsSecured=1`. The gates derive
+ * the exception from that one profile (`config/trustee-release-profile.json`), never from a list.
+ * A-TR-18 (OPEN): a principal in no profile that releases them gets the column omitted or null —
+ * which the mapper reads as null and F1-F3 render as "Not recorded" — never an error.
  */
 export const APPLICATION_DETAIL_EXTRA_COLUMNS = [
   "rev_narrativeredacted",
@@ -229,6 +238,12 @@ export const APPLICATION_DETAIL_EXTRA_COLUMNS = [
   // — the same discipline as Group B above. Their names are not written here.
   "rev_helperdeclarationconsent",
   "rev_helperdeclarationconsentdate",
+  // SDD A-14 (ADR-084) — released read-only to trustees by REV_TrusteeFinancialEligibility.
+  // IsSecured=1. Detail screen only: the list reads no Art. 9 answer it does not show.
+  // A-TR-18 (OPEN): a non-member receives these omitted or null, never an error.
+  "rev_receivesbenefits",
+  "rev_benefitprovider",
+  "rev_employmentstatus",
   // Amendment A-05 / ADR-031 (TAD §3.2.2, FR-079) — the five further redacted counterparts.
   "rev_unabletofundexplanationredacted",
   "rev_otherconditionredacted",
@@ -482,6 +497,26 @@ export const VERDICT_LABELS: Readonly<Record<number, string>> = {
 };
 
 /**
+ * The verdict as a STATE, for the list's verdict button (SDD A-14, FR-116; portal TAD
+ * trustee-portal-design-2 ADR-086 point 4). A presentation map kept beside `VERDICT_LABELS`,
+ * which stays the option-set label pinned against `rev_reviewverdict.xml`: the button says what
+ * has been decided ("Approved"), the form offers what can be chosen ("Approve").
+ */
+export const VERDICT_STATE_LABELS: Readonly<Record<number, string>> = {
+  [VERDICT_VALUES.approve]: "Approved",
+  [VERDICT_VALUES.defer]: "Deferred",
+  [VERDICT_VALUES.reject]: "Rejected",
+};
+
+/**
+ * How many application ids one review-index read names in its `$filter` disjunction (portal
+ * TAD ADR-086 point 1). A URL-size bound, not a platform limit: 25 GUID equality terms keep the
+ * request well inside a GET URL. A-TR-19 (OPEN): that an OData `or` disjunction passes through
+ * the connector's list call unchanged is not yet observed — fallback, one `eq` read per id.
+ */
+export const REVIEW_INDEX_CHUNK_SIZE = 25;
+
+/**
  * OptionSets/rev_breaktype.xml — the five break types FR-060 breaks the round down by.
  * Transcribed from solution source on 2026-08-25, same reasoning as the status labels.
  *
@@ -559,6 +594,20 @@ export const INCOME_BAND_LABELS: Readonly<Record<number, string>> = {
   2: "£15,000 to £24,999",
   3: "£25,000 to £34,999",
   4: "Over £35,000",
+};
+
+/**
+ * OptionSets/rev_employmentstatus.xml — the applicant's employment status (SDD A-14, FR-114,
+ * portal TAD trustee-portal-design-2 §14.2 F3). Five options, transcribed from solution source
+ * 2026-10-22 and pinned against that file by `schema.test.ts`. The column is `IsSecured=1` and
+ * released read-only to trustees by `REV_TrusteeFinancialEligibility` (ADR-084).
+ */
+export const EMPLOYMENT_STATUS_LABELS: Readonly<Record<number, string>> = {
+  1: "Yes, full-time",
+  2: "Yes, part-time",
+  3: "No, unable to work due to disability/health/caring responsibilities",
+  4: "No, retired",
+  5: "No, other reason",
 };
 
 /**

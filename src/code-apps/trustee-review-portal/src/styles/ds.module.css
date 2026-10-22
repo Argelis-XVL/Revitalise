@@ -50,156 +50,107 @@
  * IDENTICAL geometry and a variant change cannot shift the layout by 2px. 2px has no token.
  */
 .button {
+  /* CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.1, WI-0102). The kit's
+     button is the design system's Button (_ds_bundle.js components/core/Button.jsx: 700 weight,
+     pill radius, 2px transparent border, md padding 13px 28px at --text-base) wearing the kit's
+     `.rv-btn` treatment (index.html:17-22): a gradient and soft shadow on primary, white with a
+     soft shadow on secondary, and transitions on transform and shadow. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
   font-family: var(--font-body);
   font-weight: var(--weight-bold);
-  border: 2px solid transparent; /* no token for 2px */
+  border: 2px solid transparent;
   border-radius: var(--radius-pill);
   cursor: pointer;
   text-align: center;
+  /* The kit's `.rv-btn` list exactly (index.html:17): transform and box-shadow only, so a
+     background change on hover is instant, as the kit's `!important` background makes it. */
   transition:
-    background var(--duration-base) var(--ease-standard),
-    color var(--duration-base) var(--ease-standard);
-  /*
-   * WCAG 2.5.5 / §2.2.2. The app guarantees a 44x44 CSS-pixel target today via
-   * `styles.tallTarget` (`app.module.css:171`), `styles.sortButton` (`:355-356`) and
-   * `styles.rowLink` (`:209`). `min-width` lives on the base rather than the size classes
-   * because it is what protects an ICON-ONLY button, which has no text to widen it.
-   * 44px is a WCAG figure, not a spacing step, and there is deliberately no token for it.
-   */
+    transform var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard);
   min-width: 44px;
   min-height: 44px;
 }
 
-/*
- * NEVER `outline: none`. `components/forms/Input.jsx:17` sets it on its input and the
- * conversion DROPS it (ADR-037 correction 3) rather than carrying it — that is the removal of
- * the visible focus indicator, WCAG 2.4.7 outright, not a contrast miss.
- * Same shape as `app.module.css:45` and `:193-197`. `--focus-ring` is #000000 at 17.41-21.00:1
- * against all six surfaces this design system defines; the design system's own `--focus-ring`
- * (#ec4ea3) measured 2.82-3.40 and failed three of them.
- */
 .button:focus-visible {
-  outline: 2px solid var(--focus-ring);
+  /* DEVIATION (a): the kit's 3px --focus-ring (pink-500) ring — ADR-037 correction 3 keeps the
+     black ring (TAD §8.3). The 3px width and 2px offset are the kit's (index.html:22). */
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-/*
- * Sizes. §2.2.2: the design system uses `size="sm"` for the per-row Record verdict control and
- * four others, and at `--text-sm` 15px with `Button.jsx:4`'s '10px 20px' padding and the 2px
- * border the computed height lands BELOW 44px. Its visual intent for a small button is its
- * padding and its type size, and both are preserved; its ACCIDENTAL target size is not
- * inherited. `min-height: 44px` is therefore repeated on all three size classes so that no
- * later edit to one of them can drop it, and `ds-tokens.test.ts` asserts each one declares it.
- *
- * ## ADR-037 CORRECTION 5 — REVISION 8 (2026-08-31, wbs:6.9): `md` IS THE NAV BAR'S SIZE
- *
- * The reviewer measured the shipped detail screen and found its **Back to the list** /
- * **Print this case** controls "oversized vs. the nav-bar buttons and misaligned", and asked
- * for every button on every screen to match the nav bar. That is a real inconsistency and it
- * had two authors, not one: `app.module.css`'s `.viewNavButton` (ADR-040's persistent view
- * bar) is this app's OWN hand-rolled control at `--text-sm` with `8px 16px` padding, while
- * every `ds/Button` call site in this app takes the default `md` at `--text-base` with
- * `13px 28px`. Two ladders, authored in two files, neither aware of the other — so a button
- * next to a nav button was ~20% taller and ~40% wider, on every screen at once.
- *
- * `md` is re-scaled to `.viewNavButton`'s metrics rather than the reverse, because the
- * reviewer named the nav bar as the target and because it is the control that appears on
- * EVERY screen: matching the one that is always visible is what makes the page look authored.
- * `.viewNavButton` now carries a comment pointing here, and the two sets of values are
- * identical by intent — one control size for this whole app.
- *
- * `sm` is dropped below the new `md` so the ladder stays monotone. It had to move: leaving it
- * at `10px 20px` would have made "small" WIDER than "medium", which is the kind of quiet
- * incoherence that produces the next mismatch. `lg` is untouched — nothing in this app uses
- * it, and it is still unambiguously the largest.
- *
- * WHAT IS NOT GIVEN UP: `min-height: 44px` is still declared on all three (WCAG 2.5.5), and
- * `ds-tokens.test.ts`'s assertion over `.buttonSm|Md|Lg` still holds. The target size is the
- * guarantee; the padding and type size are the appearance, and only the appearance moved.
- */
 .buttonSm {
-  padding: 6px var(--space-3); /* no token for 6px; 12px is --space-3 */
+  padding: 10px 20px;
   font-size: var(--text-sm);
   min-height: 44px;
 }
 
-/* Identical, by intent, to `app.module.css`'s `.viewNavButton` — see the note above. */
 .buttonMd {
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
+  padding: 13px 28px;
+  font-size: var(--text-base);
+  line-height: normal; /* the kit's Button and input set none (Button.jsx:7-21, ApplicationsList.jsx:12) */
   min-height: 44px;
 }
 
 .buttonLg {
-  padding: var(--space-4) 36px; /* 16px is --space-4; no token for 36px */
+  padding: var(--space-4) 36px;
   font-size: var(--text-base);
   min-height: 44px;
 }
 
-/*
- * Variants. The three fills are ADR-037 correction 1: `--brand-primary` and its hover/active
- * siblings resolve to the SUPPLIED ramp's brand[70]/[60]/[30], giving white-on-fill ratios of
- * 5.47 / 7.15 / 15.15 — all PASS at normal text size. The design system's own `--pink-600`
- * would have been 4.49 and would have failed. See `ds-tokens.css`.
- */
 .buttonPrimary {
-  background: var(--brand-primary);
+  /* DEVIATION (a): the kit's gradient runs #ec1a8c to --pink-600; white on its lightest stop is
+     4.12:1. TAD §8.3 row 2: --pink-700 to --pink-800 (5.89:1 at the lightest stop). The shadow
+     is the kit's (index.html:18). */
+  background: linear-gradient(180deg, var(--pink-700) 0%, var(--pink-800) 100%);
+  border-color: transparent;
   color: var(--text-on-brand);
+  box-shadow: 0 1px 2px rgba(158, 0, 87, 0.12), 0 3px 8px rgba(230, 2, 127, 0.12);
 }
 
 .buttonPrimary:hover:not(:disabled) {
-  background: var(--brand-primary-hover);
+  /* DEVIATION (a): the kit's hover (index.html:19) shifts each stop one step darker,
+     --pink-600 to --pink-700; its first stop is white-on-#e6027f, 4.49:1, which fails 4.5:1 for
+     17px bold text. TAD §8.3 row 2 moves the resting gradient to --pink-700/--pink-800, and
+     §13.1 (Buttons row) says "hover one step darker": each stop shifted one step from THAT
+     resting gradient. The kit's scale ends at --pink-800, so the second stop is the app's
+     --brand-primary-active (#51002c) — TAD §8.3, R20 rows (8.10:1 and 15.15:1). The shadow is the kit's. No :active rule:
+     the kit has none. */
+  background: linear-gradient(180deg, var(--pink-800) 0%, var(--brand-primary-active) 100%);
+  box-shadow: 0 2px 4px rgba(158, 0, 87, 0.14), 0 6px 14px rgba(230, 2, 127, 0.16);
 }
 
-.buttonPrimary:active:not(:disabled) {
-  background: var(--brand-primary-active);
-}
-
-/*
- * `--brand-primary` as TEXT here, not as a fill. #cc0078 measures 5.47 on the page surface and
- * 4.54 at its thinnest (on `--surface-band`) — PASS on all six surfaces. The 2px border is also
- * the control's only boundary, and at 5.47:1 it clears WCAG 1.4.11's 3:1 floor several times
- * over, so this variant does not need `--border-strong`.
- */
 .buttonSecondary {
-  background: transparent;
-  color: var(--brand-primary);
-  border-color: var(--brand-primary);
+  background: var(--white);
+  /* DEVIATION (a): the kit's --brand-primary text (#e6027f, 4.49:1 at 17px) — --pink-700. The
+     2px border keeps the kit's #e6027f: a control boundary needs 3:1, which it clears. */
+  color: var(--pink-700);
+  border-color: var(--pink-600);
+  box-shadow: 0 1px 2px rgba(43, 43, 43, 0.06);
 }
 
 .buttonSecondary:hover:not(:disabled) {
-  color: var(--brand-primary-hover);
-  border-color: var(--brand-primary-hover);
+  background: var(--pink-50);
+  box-shadow: 0 2px 6px rgba(43, 43, 43, 0.08);
 }
 
-/*
- * Ghost. Underlined because colour is never the only carrier of the fact that this is a control
- * (WCAG 1.4.1) — the design system got this right (`Button.jsx:23`) and it is kept.
- * `min-height` stays 44px from the base even though the padding is small: the target is the
- * accessibility contract, the padding is the visual one.
- */
 .buttonGhost {
+  /* The kit's RowLink (Shared.jsx:137-139): no box, bold, underlined, link colour. */
   background: transparent;
-  color: var(--brand-primary);
+  color: var(--link-default);
   text-decoration: underline;
+  border: none; /* RowLink: border none — no 2px inset from .button's transparent border */
   border-radius: 0;
-  padding: var(--space-1) 2px; /* 4px is --space-1; no token for 2px */
+  padding: 0;
+  font-size: inherit;
 }
 
 .buttonGhost:hover:not(:disabled) {
-  color: var(--brand-primary-hover);
+  color: var(--link-hover);
 }
 
-/*
- * Disabled. WCAG 1.4.3 and 1.4.11 both exempt an INACTIVE control from their contrast floors,
- * which is why an opacity that would otherwise fail is defensible here — and `cursor` plus
- * `opacity` are never the only signal, because the `disabled` attribute itself is what
- * assistive technology reads.
- */
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -535,12 +486,15 @@
 .inputField {
   font-family: var(--font-body);
   font-size: var(--text-base);
-  line-height: var(--leading-snug); /* 1.3 x 17px = 22.1px; never the inherited 22px */
-  padding: var(--space-2) 14px; /* 8px is --space-2; no token for 14px */
+  line-height: normal; /* the kit's Button and input set none (Button.jsx:7-21, ApplicationsList.jsx:12) */
+  padding: 0 14px; /* the kit's controlStyle (ApplicationsList.jsx:12); min-height sets the box */
+  /* CARD APP: the kit's control (ApplicationsList.jsx:12) — 12px radius, --grey-50 fill, ink-900
+     text. DEVIATION (a): the strong 1px border stays instead of the kit's 1.5px --grey-200
+     (ADR-037 correction 4, TAD §8.3; `ds-tokens.test.ts`, contract, asserts it). */
   border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text-body);
-  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  color: var(--ink-900);
+  background: var(--grey-50);
   box-sizing: border-box; /* NOT global in this app — see the block above */
   min-height: 44px; /* WCAG 2.5.5, same figure as the buttons */
 }

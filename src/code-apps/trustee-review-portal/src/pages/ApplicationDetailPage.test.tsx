@@ -1,11 +1,17 @@
 /**
  * The detail screen — WBS 6.3 and 6.4 together, plus the FR-038 direct-read guard.
+ *
+ * CARD-LAYOUT APP (Design 2.0, TAD trustee-portal-design-2). This file is on the parity gate's
+ * allow-list: its DOM-order case is replaced by ADR-057's order contract (below); every other
+ * case is the first app's, unchanged, plus the page-order and sub-heading cases WI-0071 and
+ * WI-0069 need.
  */
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ApplicationDetailPage } from "./ApplicationDetailPage";
 import { APPLICATION_DETAIL_LAYOUT, isRowVisible } from "../domain/applicationDetailLayout";
+import { SECTION_GROUP_ORDER, partitionRows } from "../domain/applicationDetailDisplay";
 import {
   APPLICATION_ID,
   makeDetail,
@@ -14,6 +20,15 @@ import {
   makeUser,
   renderWithProviders,
 } from "../test/harness";
+
+/** Text a screen reader gets from an element: its text with every `aria-hidden` subtree removed. */
+function accessibleText(element: Element): string {
+  const clone = element.cloneNode(true) as Element;
+  clone.querySelectorAll('[aria-hidden="true"]').forEach((node) => {
+    node.remove();
+  });
+  return clone.textContent ?? "";
+}
 
 function renderPage(
   overrides = {},
@@ -34,25 +49,22 @@ function renderPage(
 }
 
 describe("ApplicationDetailPage", () => {
-  it("shows one h1, then the Pack's five sections, the staff recommendation and the verdict, as h2s in that order (WI-0005)", async () => {
+  it("shows one h1, then the Summary hero, the Pack's four other sections, the staff recommendation and the verdict, as h2s in that order (WI-0071)", async () => {
     renderPage();
-    // Wait for the PANELS, not the h1: the h1 renders immediately from the reference the
-    // list already knew, so waiting on it proves nothing about the fetch.
     await waitFor(() => {
-      expect(screen.getAllByRole("heading", { level: 2 }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole("heading", { level: 2 }).length).toBeGreaterThan(1);
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Application REV-2026-001");
-    const panels = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-    // The order is the reading order AND the print order — nothing reorders for print. The
-    // section list comes from the spec, whose own test pins it to the PDF; this asserts the
-    // screen renders the spec and nothing else in between.
-    expect(panels).toEqual([
-      ...APPLICATION_DETAIL_LAYOUT.map((section) => section.heading),
+    const names = screen.getAllByRole("heading", { level: 2 }).map((h) => accessibleText(h));
+    // The hero's h2 is the design heading, prefixed for assistive technology with the Pack's own
+    // section heading; every other h2 is the Pack heading verbatim. Nothing reorders for print.
+    expect(names[0]?.startsWith(`${APPLICATION_DETAIL_LAYOUT[0]?.heading ?? ""}: `)).toBe(true);
+    expect(names.slice(1)).toEqual([
+      ...APPLICATION_DETAIL_LAYOUT.slice(1).map((section) => section.heading),
       "Staff recommendation",
       "Your verdict",
     ]);
-    expect(panels.slice(0, 5)).toEqual([
-      "Summary",
+    expect(names.slice(1, 5)).toEqual([
       "Application Details",
       "About Applicant",
       "Current Circumstances",
@@ -60,30 +72,78 @@ describe("ApplicationDetailPage", () => {
     ]);
   });
 
-  it("renders every section's rows, sub-headings and labels exactly as the spec lists them (WI-0005)", async () => {
+  /**
+   * ADR-057 — THE ORDER CONTRACT OF THIS APP, replacing the first app's "renders every section's
+   * rows … exactly as the spec lists them" case (reviewer R1: "If the fields are grouped in the
+   * same sections. It basically is the same only better readable."). Per section:
+   *   (a) the rendered row ids are exactly the spec's visible rows — none missing, none extra —
+   *       and every label is the spec's, verbatim, to assistive technology;
+   *   (b) within each display group, row ids are in Pack order;
+   *   (c) the display groups appear in the section's fixed order from applicationDetailDisplay.ts;
+   *   (d) is the conditional-rows case below.
+   * The ONE property given up is cross-group order, and only in this app.
+   */
+  for (const [name, detail] of [
+    ["defaults", makeDetail()],
+    ["every conditional row", makeDetail({ exceptionalCircumstance: 4, conditionProfile: [3, 10], supportRecipientConditionProfile: [2, 10] })],
+  ] as const) {
+    it(`renders every section's rows exactly once, labelled verbatim, in Pack order within each display group, groups in the fixed order (ADR-057 (a)-(c), ${name})`, async () => {
+      const { container } = renderPage({ getApplication: () => Promise.resolve(detail) });
+      await waitFor(() => {
+        expect(container.querySelector('dt[data-field="S1"]')).not.toBeNull();
+      });
+      for (const section of APPLICATION_DETAIL_LAYOUT) {
+        const root = container.querySelector(
+          section.id === "summary" ? `section[data-section="${section.id}"]` : `[data-section="${section.id}"]`,
+        )?.closest("section");
+        expect(root, section.id).not.toBeNull();
+        const terms = Array.from((root as HTMLElement).querySelectorAll("dt[data-field]"));
+        const rendered = terms.map((dt) => dt.getAttribute("data-field") ?? "");
+        const visible = section.groups.flatMap((group) => group.rows.filter((row) => isRowVisible(row, detail)));
+        // (a) none missing, none extra, each label verbatim.
+        expect([...rendered].sort(), section.id).toEqual(visible.map((row) => row.id).sort());
+        for (const dt of terms) {
+          const row = visible.find((r) => r.id === dt.getAttribute("data-field"));
+          expect(accessibleText(dt), row?.id).toBe(row?.label);
+        }
+        // (b) and (c), for each layout group the section has.
+        const packOrder = visible.map((row) => row.id);
+        const order = SECTION_GROUP_ORDER[section.id] ?? [];
+        for (const group of section.groups) {
+          const expectedGroups = partitionRows(section.id, group.rows, detail);
+          const renderedByGroup = expectedGroups.map((g) =>
+            rendered.filter((id) => g.rows.some((r) => r.row.id === id)),
+          );
+          renderedByGroup.forEach((ids, index) => {
+            expect(ids, `${section.id} ${expectedGroups[index]?.kind ?? ""}`).toEqual(
+              [...ids].sort((a, b) => packOrder.indexOf(a) - packOrder.indexOf(b)),
+            );
+          });
+          const positions = expectedGroups.map((g) => order.indexOf(g.kind));
+          expect(positions, section.id).toEqual([...positions].sort((a, b) => a - b));
+          // The groups also appear in that order in the DOM.
+          const firstIndex = renderedByGroup.map((ids) => rendered.indexOf(ids[0] ?? ""));
+          expect(firstIndex, section.id).toEqual([...firstIndex].sort((a, b) => a - b));
+        }
+      }
+    });
+  }
+
+  it("keeps the Pack sub-headings as h3s, and adds only the three approved new ones", async () => {
     const { container } = renderPage();
     await waitFor(() => {
-      expect(container.querySelector('dt[data-field="S1"]')).not.toBeNull();
+      expect(container.querySelector('dt[data-field="C3"]')).not.toBeNull();
     });
-    for (const section of APPLICATION_DETAIL_LAYOUT) {
-      const heading = screen.getByRole("heading", { level: 2, name: section.heading });
-      const panel = heading.closest("section");
-      expect(panel, section.heading).not.toBeNull();
-      // Every row id and sub-heading in document order, compared to the spec's own sequence.
-      const rendered = Array.from((panel as HTMLElement).querySelectorAll("dt, h3")).map((el) =>
-        el.tagName === "H3" ? `h3:${el.textContent ?? ""}` : `${el.getAttribute("data-field") ?? ""}:${el.textContent ?? ""}`,
-      );
-      const expected = section.groups.flatMap((group) => [
-        ...(group.heading === null ? [] : [`h3:${group.heading}`]),
-        ...group.rows
-          .filter((row) => isRowVisible(row, makeDetail()))
-          .map((row) => `${row.id}:${row.label}`),
-      ]);
-      expect(rendered, section.heading).toEqual(expected);
+    const h3 = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+    for (const heading of APPLICATION_DETAIL_LAYOUT.flatMap((s) => s.groups.map((g) => g.heading))) {
+      if (heading !== null) expect(h3, heading).toContain(heading);
     }
+    const approved = new Set(["Costs", "In their words", "Not visible to trustees"]);
+    const packHeadings = new Set(APPLICATION_DETAIL_LAYOUT.flatMap((s) => s.groups.map((g) => g.heading)));
+    expect(h3.filter((text) => !packHeadings.has(text) && !approved.has(text ?? ""))).toEqual([]);
   });
 
-  it("renders the reviewer's conditional 'other' rows directly after D11 and A3 only when 'Other' is chosen (WI-0005 review)", async () => {
+  it("renders the reviewer's conditional 'other' rows only when 'Other' is chosen, in their trigger row's section, first in its answers (ADR-057 (d))", async () => {
     const { container } = renderPage({
       getApplication: () =>
         Promise.resolve(
@@ -93,12 +153,19 @@ describe("ApplicationDetailPage", () => {
     await waitFor(() => {
       expect(container.querySelector('dt[data-field="D11a"]')).not.toBeNull();
     });
-    const ids = Array.from(container.querySelectorAll("dt[data-field]")).map((el) => el.getAttribute("data-field"));
-    expect(ids[ids.indexOf("D11") + 1]).toBe("D11a");
-    expect(ids[ids.indexOf("A3") + 1]).toBe("A3a");
+    // D11 is a fact and D11a an answer, so they are in different display groups; D11a is the
+    // first answer of Application Details, as it follows D11 directly in the Pack.
+    const sectionOf = (id: string) => container.querySelector(`dt[data-field="${id}"]`)?.closest("section");
+    expect(sectionOf("D11a")).toBe(sectionOf("D11"));
+    expect(sectionOf("A3a")).toBe(sectionOf("A3"));
+    const answersOf = (id: string) =>
+      Array.from(
+        container.querySelector(`dt[data-field="${id}"]`)?.closest('[data-display-group="answers"]')?.querySelectorAll("dt") ?? [],
+      ).map((dt) => dt.getAttribute("data-field"));
+    expect(answersOf("D11a")[0]).toBe("D11a");
+    expect(answersOf("A3a")[0]).toBe("A3a");
     // The person supported did not tick "Other", so their note is not shown.
-    expect(ids).not.toContain("A3b");
-    expect(ids.slice(0, 3)).toEqual(["S0a", "S0b", "S1"]);
+    expect(container.querySelector('dt[data-field="A3b"]')).toBeNull();
   });
 
   it("omits the conditional rows when 'Other' is not chosen", async () => {

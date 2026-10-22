@@ -62,6 +62,7 @@ import {
   CARE_HOURS_BAND_LABELS,
   CARE_PROVIDED_TYPE_LABELS,
   CONDITION_PROFILE_LABELS,
+  EMPLOYMENT_STATUS_LABELS,
   EXCEPTIONAL_CIRCUMSTANCE_LABELS,
   INCOME_BAND_LABELS,
   LIKERT_RESPONSE_LABELS,
@@ -150,6 +151,15 @@ export interface DetailSection {
 
 function value(text: string): DetailCell {
   return { kind: "value", text };
+}
+
+/**
+ * Free text shown as written, line breaks kept (FR-115). An absent or blank answer is the
+ * one-line "Not recorded" value rather than an empty long-text block.
+ */
+function longText(text: string | null): DetailCell {
+  const shown = formatText(text);
+  return shown === NOT_RECORDED ? value(NOT_RECORDED) : { kind: "long-text", text: shown };
 }
 
 function redacted(detail: ApplicationDetail, text: string | null): DetailCell {
@@ -534,20 +544,30 @@ const FINANCIAL_ELIGIBILITY: DetailSection = {
     {
       heading: null,
       rows: [
+        // F1-F3: SDD A-14 (FR-114, FR-115; portal TAD trustee-portal-design-2 §14.2, ADR-084).
+        // Released read-only to trustees by REV_TrusteeFinancialEligibility, so they are values
+        // now, not restricted rows. A null (not answered, or not readable) is "Not recorded".
         {
           id: "F1",
           label: "Do you currently receive means tested benefits?",
-          cell: () => ({ kind: "restricted", catalogueKey: "benefit-status" }),
+          cell: (d) => value(formatYesNo(d.receivesBenefits)),
         },
         {
           id: "F2",
           label: "Benefit Provider",
-          cell: () => ({ kind: "restricted", catalogueKey: "benefit-provider" }),
+          // As written, as plain text with its line breaks. NOT gated by redactionReleased: the
+          // one free-text answer shown outside the redaction rules (FR-115, OQ-062 (b)).
+          cell: (d) => longText(d.benefitProvider),
         },
         {
           id: "F3",
           label: "Are you currently working?",
-          cell: () => ({ kind: "restricted", catalogueKey: "employment-status" }),
+          cell: (d) =>
+            value(
+              d.employmentStatus === null
+                ? NOT_RECORDED
+                : optionLabel(EMPLOYMENT_STATUS_LABELS, d.employmentStatus),
+            ),
         },
         {
           id: "F4",

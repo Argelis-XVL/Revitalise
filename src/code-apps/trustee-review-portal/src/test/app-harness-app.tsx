@@ -91,6 +91,10 @@ function detailOf(row: ApplicationSummary): ApplicationDetail {
     supportRecipientConditionProfile: null,
     helperDeclarationConsent: null,
     helperDeclarationConsentDate: null,
+    // SDD A-14 (portal TAD §14.2) — released read-only to trustees.
+    receivesBenefits: null,
+    benefitProvider: null,
+    employmentStatus: null,
     redactedUnableToFundExplanation: null,
     redactedOtherCondition: null,
     redactedSupportRecipientOtherCondition: null,
@@ -177,12 +181,34 @@ const STATISTICS: RoundStatisticsResponse = {
   },
 };
 
+function reviewFor(applicationId: string, index: number) {
+  return {
+    id: `r${String(index + 1)}`,
+    applicationId,
+    reference: "REV-R-00001",
+    round: ROUND,
+    panelDate: null,
+    staffRecommendation: null,
+    trustee1Id: TRUSTEE,
+    trustee2Id: "22222222-2222-4222-8222-222222222222",
+    verdict1: null,
+    verdict2: null,
+    notes1: null,
+    notes2: null,
+    finalisedOn: null,
+  };
+}
+
 const repository: TrusteeRepository = {
   listApplicationsForReview: () => Promise.resolve(APPLICATIONS),
   getApplication: (id) => Promise.resolve(detailOf(APPLICATIONS.find((a) => a.id === id) ?? APPLICATIONS[0]!)),
+  // SDD A-14 (ADR-086): one review per application, every slot empty, so every row reads
+  // "Record verdict" as before.
+  listReviewsForApplications: (ids) => Promise.resolve(ids.map((id, index) => reviewFor(id, index))),
   getReviewForApplication: () =>
     Promise.resolve({
       id: "r1",
+      applicationId: null,
       reference: "REV-R-00001",
       round: ROUND,
       panelDate: null,

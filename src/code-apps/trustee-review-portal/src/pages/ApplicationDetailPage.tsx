@@ -11,6 +11,18 @@
  * is now the only statement of it. Nothing here reorders content for print, so what a screen
  * reader announces and what comes off the printer are the same sequence (WCAG 1.3.2).
  *
+ * ## Card layout (Design 2.0)
+ *
+ * TAD `docs/architecture/trustee-portal-design-2-architecture.md` ADR-055..059, wbs:6.3
+ * (unbilled). The page order is unchanged
+ * (WI-0071): `<h1>`, the action row, then the spec's sections in order — the first of which,
+ * Summary, now renders as the hero (`DetailSectionPanel` dispatches it) — then the staff
+ * recommendation, then the verdict. What is new is only the frame around them: the blocks sit in
+ * one `.detailBlocks` column 24px apart on the grey-50 page, and the Verdict, which
+ * `VerdictSection` renders through the shared `Panel`, is wrapped in a `PanelFrame` that supplies
+ * its card and its "Your decision" eyebrow without touching its content or behaviour (WI-0070).
+ * No state is added: `useApplication` and `useReview` are called exactly as before (WI-0075).
+ *
  * ## Revision 15 — WI-0005 re-opened a THIRD time: the Pack's rows, not only its sections
  *
  * Revisions 12-14 below reordered this screen's own panels. The reviewer's third raise
@@ -153,12 +165,15 @@ import { Spinner } from "@fluentui/react-components";
 import { Button, Notice } from "../components/ds";
 import type { CurrentUser } from "../dataverse/types";
 import { DetailSectionPanel, StaffRecommendationPanel } from "../components/CasePanels";
+import { PanelFrame } from "../components/detail/DetailPanel";
 import { APPLICATION_DETAIL_LAYOUT } from "../domain/applicationDetailLayout";
+import { VERDICT_EYEBROW } from "../domain/applicationDetailDisplay";
 import { StateMessage } from "../components/Panel";
 import { VerdictSection } from "../components/VerdictSection";
 import { useApplication, useReview } from "../hooks/queries";
 import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "../styles/app.module.css";
+import detailStyles from "../styles/detail.module.css";
 
 export function ApplicationDetailPage({
   applicationId,
@@ -241,10 +256,10 @@ export function ApplicationDetailPage({
           }
         />
       ) : (
-        <>
-          {/* Revision 15 (WI-0005): the Pack's five sections, then the portal-only one, each
-              rendered row by row from the spec. Nothing here chooses an order any more; the
-              spec does, and its test pins it to the PDF. */}
+        <div className={detailStyles.detailBlocks}>
+          {/* The spec's sections in order; the first (Summary) renders as the hero. Nothing here
+              chooses an order: the spec does, and within a section the display map groups rows
+              (ADR-057). */}
           {APPLICATION_DETAIL_LAYOUT.map((section) => (
             <DetailSectionPanel key={section.id} section={section} detail={detail} />
           ))}
@@ -253,13 +268,15 @@ export function ApplicationDetailPage({
             panelDate={review.data?.panelDate ?? null}
             loading={review.isLoading}
           />
-          <VerdictSection
-            application={detail}
-            review={review.data ?? null}
-            user={user}
-            loading={review.isLoading}
-          />
-        </>
+          <PanelFrame eyebrow={VERDICT_EYEBROW}>
+            <VerdictSection
+              application={detail}
+              review={review.data ?? null}
+              user={user}
+              loading={review.isLoading}
+            />
+          </PanelFrame>
+        </div>
       )}
     </>
   );

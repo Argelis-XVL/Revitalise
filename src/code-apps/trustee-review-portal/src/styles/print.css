@@ -217,4 +217,72 @@
     break-inside: avoid;
     page-break-inside: avoid;
   }
+  /* ----------------------------------------------------------------------------------- *
+   * Card-layout detail screen — THIS APP ONLY (Design 2.0, WI-0073, TAD trustee-portal-
+   * design-2 ADR-055..059). This file is on the parity gate's allow-list for these rules.
+   *
+   * The screen's cards, tiles, chips, pills and receipt print as plain black on white: no
+   * gradient, no shadow, and any border at 1px #000. `!important` on each declaration for the
+   * reason `[data-print="datatable"]` above gives: the screen rules are CSS-Module classes at
+   * the same (0,1,0) specificity as these attribute selectors, so without it the winner would
+   * be whichever stylesheet the bundler emitted last. Nothing here reveals anything the screen
+   * hides except the scale's text value, which the screen shows as colour (below).
+   * ----------------------------------------------------------------------------------- */
+  [data-print="block"],
+  [data-print="frame"] {
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  [data-print="tile"],
+  [data-print="answer"],
+  [data-print="receipt"] {
+    background: none !important;
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    color: #000 !important;
+  }
+
+  /* The eyebrows and the score track are decorative and carry `data-print="hide"` already. */
+
+  /* The 0-10 scale prints its value AS TEXT (README non-negotiable 7, WI-0065 clause 2): the
+     filled point is colour, which a monochrome printer or a "no background graphics" setting
+     loses. Its sentence ("Answer: N out of 10") is in the DOM on screen, visually hidden and
+     `aria-hidden` (the points' own `aria-label` already says it to a screen reader); on paper
+     it is unclipped, exactly the way `[data-print="datatable"]` unclips a chart's table. It
+     reveals nothing the screen does not already show: the same value is the filled point. */
+  [data-print="scale-value"] {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+    clip-path: none !important;
+    white-space: normal !important;
+    font-weight: bold;
+  }
+
+  [data-print="scale-points"] span {
+    background: none !important;
+    border: 1px solid #000 !important;
+    color: #000 !important;
+  }
+  /* ----------------------------------------------------------------------------------- *
+   * Card-layout OTHER SCREENS — THIS APP ONLY (Design 2.0 Revision 2, TAD §13). The round
+   * overview's HTML chart marks print as solid black, as the first app's SVG bars do (the rule
+   * for `rect`/`path` above), so a monochrome printer never reads a pale fill as an empty bar.
+   * The table beside each chart is the record; the marks are the picture.
+   * ----------------------------------------------------------------------------------- */
+  [data-print="chart"] [data-chart-mark] {
+    background: #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* The stamp pill prints as plain text, still distinct as its own line. */
+  [data-print="stamp"] {
+    background: none !important;
+    box-shadow: none !important;
+  }
 }

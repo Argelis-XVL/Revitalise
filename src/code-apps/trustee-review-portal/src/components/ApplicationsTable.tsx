@@ -1,4 +1,11 @@
 /**
+ * CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.3, WI-0093/WI-0094):
+ * `ApplicationsList.jsx` lines 39-81 — the table in a card that holds its own horizontal
+ * scroll, the kit's header row, the score as a 56x6px bar plus the number in Playfair
+ * (`ScoreChip`), and the status as a pill toned by option value (`StatusPill`). Columns, their
+ * order, the caption, the row link names, "Record verdict" and its `aria-label`, and sorting
+ * are unchanged and pinned by the first app's page tests (contract).
+ *
  * The applications summary list — WBS 6.2, FR-034, SDD US-012 AC-1, US-013 AC-1/AC-2.
  *
  * A native `<table>` with `<th scope="col">` and `aria-sort`, not a div grid. TAD §8
@@ -29,14 +36,28 @@
  * target this app guarantees — the converted `ds/Button` carries `min-height: 44px` on every
  * size for exactly that reason, so `styles.tallTarget` is no longer needed beside it and is
  * not re-applied.
+ *
+ * ## SDD A-14, FR-116 — the button shows the trustee's OWN verdict (portal TAD ADR-086 point 4)
+ *
+ * `verdictStateFor(row)` (optional) gives the signed-in trustee's own verdict state for the row
+ * (`domain/ownVerdict.ts`). `decided`: the button's text is the verdict WORD — Approved, Deferred,
+ * Rejected — on that verdict's tone, and its `aria-label` contains the word (WCAG 2.5.3):
+ * "Approved — your verdict on REV-…. Open to view or change it" ("… to view it" once finalised).
+ * Every other state, or no callback: **Record verdict**, primary, as before. An option value
+ * outside 1 to 3 shows its option label in the neutral secondary style. The button opens the
+ * same dialog in every case. Both the applications list and the group members table render this
+ * component, so both get the same marking.
  */
 import { Button } from "./ds";
-import { APPLICATION_STATUS_LABELS, EXCEPTIONAL_CIRCUMSTANCE_LABELS, optionLabel } from "../dataverse/schema";
+import type { OwnVerdictState } from "../domain/ownVerdict";
+import { decidedVerdictAriaLabel, verdictStateWord, verdictTone } from "../domain/ownVerdict";
+import { EXCEPTIONAL_CIRCUMSTANCE_LABELS, optionLabel } from "../dataverse/schema";
 import type { ApplicationSummary } from "../dataverse/types";
-import { formatDateRange, formatScore } from "../domain/format";
+import { formatDateRange } from "../domain/format";
 import { ariaSortFor } from "../domain/listView";
 import type { SortKey, SortState } from "../domain/listView";
 import styles from "../styles/app.module.css";
+import { ScoreChip, StatusPill } from "../cards/pills";
 
 interface Column {
   key: SortKey;
@@ -90,6 +111,63 @@ function SortHeader({
   );
 }
 
+/**
+ * A header with no sort control — the kit's group-detail table, which passes no `sort` and no
+ * `onSort` (GroupScreens.jsx:62), so its headers show no arrow (ApplicationsList.jsx:54, :58).
+ * Plain text rather than the kit's inert button: a button that does nothing is a keyboard stop
+ * with no action. It keeps the sortable header's mixed case and metrics.
+ */
+function StaticHeader({ column }: { column: Column }) {
+  return (
+    <th scope="col" aria-sort="none" className={column.numeric === true ? styles.numeric : undefined}>
+      <span className={styles.staticHeader}>
+        {column.label}
+        <span aria-hidden="true" />
+      </span>
+    </th>
+  );
+}
+
+const TONE_CLASS = {
+  approved: styles.verdictApproved,
+  deferred: styles.verdictDeferred,
+  rejected: styles.verdictRejected,
+} as const;
+
+/** The per-row verdict control. Exported for its own tests. */
+export function VerdictButton({
+  row,
+  state,
+  onRecordVerdict,
+}: {
+  row: ApplicationSummary;
+  state: OwnVerdictState;
+  onRecordVerdict: (application: ApplicationSummary) => void;
+}) {
+  const open = () => {
+    onRecordVerdict(row);
+  };
+  if (state.kind !== "decided") {
+    return (
+      <Button variant="primary" aria-label={`Record verdict for ${row.reference}`} onClick={open}>
+        Record verdict
+      </Button>
+    );
+  }
+  const tone = verdictTone(state.verdict);
+  return (
+    <Button
+      variant="secondary"
+      className={tone === "neutral" ? undefined : `${styles.verdictButton} ${TONE_CLASS[tone]}`}
+      data-verdict-tone={tone}
+      aria-label={decidedVerdictAriaLabel(state.verdict, state.finalised, row.reference)}
+      onClick={open}
+    >
+      {verdictStateWord(state.verdict)}
+    </Button>
+  );
+}
+
 export function ApplicationsTable({
   rows,
   sort,
@@ -97,6 +175,8 @@ export function ApplicationsTable({
   onOpen,
   onRecordVerdict,
   caption,
+  sortable = true,
+  verdictStateFor,
 }: {
   rows: readonly ApplicationSummary[];
   sort: SortState;
@@ -104,16 +184,24 @@ export function ApplicationsTable({
   onOpen: (application: ApplicationSummary) => void;
   onRecordVerdict: (application: ApplicationSummary) => void;
   caption: string;
+  /** false: headers carry no sort control, glyph or `aria-sort` (Group detail). */
+  sortable?: boolean;
+  /** SDD A-14, FR-116: the trustee's own verdict per row. Absent: every row reads "Record verdict". */
+  verdictStateFor?: (row: ApplicationSummary) => OwnVerdictState;
 }) {
   return (
-    <div className={styles.tableScroll}>
+    <div className={styles.tableCard}>
       <table className={styles.table}>
         <caption>{caption}</caption>
         <thead>
           <tr>
-            {COLUMNS.map((column) => (
-              <SortHeader key={column.key} column={column} sort={sort} onSort={onSort} />
-            ))}
+            {COLUMNS.map((column) =>
+              sortable ? (
+                <SortHeader key={column.key} column={column} sort={sort} onSort={onSort} />
+              ) : (
+                <StaticHeader key={column.key} column={column} />
+              ),
+            )}
             <th scope="col">
               <span className={styles.plainHeader}>Decision</span>
             </th>
@@ -139,23 +227,25 @@ export function ApplicationsTable({
                   {row.reference}
                 </button>
               </th>
-              <td className={styles.numeric}>{formatScore(row.circumstanceScore)}</td>
-              <td>{optionLabel(EXCEPTIONAL_CIRCUMSTANCE_LABELS, row.exceptionalCircumstance)}</td>
+              <td className={styles.numeric}>
+                <ScoreChip score={row.circumstanceScore} />
+              </td>
+              <td className={row.exceptionalCircumstance === null ? styles.mutedCell : styles.strongCell}>
+                {optionLabel(EXCEPTIONAL_CIRCUMSTANCE_LABELS, row.exceptionalCircumstance)}
+              </td>
               <td>{formatDateRange(row.preferredStart, row.preferredEnd)}</td>
-              <td>{optionLabel(APPLICATION_STATUS_LABELS, row.status)}</td>
+              <td>
+                <StatusPill status={row.status} />
+              </td>
               <td>
                 <div className={styles.rowActions} data-print="hide">
                   {/* US-013 AC-3: a trustee who works only from this screen must be able
                       to record a verdict without opening the case. */}
-                  <Button
-                    variant="primary"
-                    aria-label={`Record verdict for ${row.reference}`}
-                    onClick={() => {
-                      onRecordVerdict(row);
-                    }}
-                  >
-                    Record verdict
-                  </Button>
+                  <VerdictButton
+                    row={row}
+                    state={verdictStateFor === undefined ? { kind: "none" } : verdictStateFor(row)}
+                    onRecordVerdict={onRecordVerdict}
+                  />
                 </div>
               </td>
             </tr>

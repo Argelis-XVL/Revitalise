@@ -518,6 +518,38 @@ Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002 / 
         }
     }
 
+    # ADDED 2026-10-22, portal TAD trustee-portal-design-2 Revision 4 (ADR-084, SDD A-14, wbs:6.3).
+    # REV_TrusteeFinancialEligibility releases three answers read only to trustees; its only member
+    # is the trustee group team. CORRECTED 2026-10-22: DEV does have a trustee team (reviewer: "there
+    # is a trustees team with linked Entra ID group in DEV"), read live as
+    # REV-PP-GrantApplications-Trustees-DEV, so dev-settings.json declares it as the only member. scripts/verify-column-security-membership.py (G1) enforces the same
+    # rule by derivation; this test pins the policy itself.
+    It 'REV_TrusteeFinancialEligibility lists exactly the trustee team in test/prd and in DEV, and never in REV_TrusteeRestricted' {
+        foreach ($name in $script:Both.Keys) {
+            $profiles = @($script:Both[$name].dataverse.columnSecurityProfiles)
+            $release = $profiles | Where-Object { $_.name -eq 'REV_TrusteeFinancialEligibility' }
+            $release | Should -Not -BeNullOrEmpty -Because $name
+            # COUNT-COUPLED BY DESIGN (C-TECH-067): security policy, not a schema-size count.
+            @($release.memberTeams).Count | Should -Be 1 -Because $name
+            @($release.memberTeams) | Should -Contain 'REV Trustees' -Because $name
+            $trusteeTeam = @($script:Both[$name].dataverse.groupTeams | Where-Object { $_.name -eq 'REV Trustees' })
+            $trusteeTeam.Count | Should -Be 1 -Because "$name declares the team it names"
+            @($trusteeTeam[0].securityRoles) | Should -Contain 'REV Trustee' -Because $name
+            $restricted = $profiles | Where-Object { $_.name -eq 'REV_TrusteeRestricted' }
+            @($restricted.memberTeams) | Should -Not -Contain 'REV Trustees' -Because "${name}: the release profile is the ONLY profile a trustee team may join"
+        }
+        $dev = Get-Content (Join-Path $script:SettingsDir 'dev-settings.json') -Raw | ConvertFrom-Json
+        $devRelease = @($dev.dataverse.columnSecurityProfiles | Where-Object { $_.name -eq 'REV_TrusteeFinancialEligibility' })
+        $devRelease.Count | Should -Be 1 -Because 'DEV declares a trustee team, so G1 requires the release profile entry'
+        @($devRelease[0].memberTeams) | Should -Be @('REV-PP-GrantApplications-Trustees-DEV')
+        $devTrustee = @($dev.dataverse.groupTeams | Where-Object { $_.name -eq 'REV-PP-GrantApplications-Trustees-DEV' })
+        $devTrustee.Count | Should -Be 1
+        @($devTrustee[0].securityRoles) | Should -Contain 'REV Trustee'
+        foreach ($other in @($dev.dataverse.columnSecurityProfiles | Where-Object { $_.name -ne 'REV_TrusteeFinancialEligibility' })) {
+            @($other.memberTeams) | Should -Not -Contain 'REV-PP-GrantApplications-Trustees-DEV' -Because "DEV / $($other.name): the trustee team joins the release profile only"
+        }
+    }
+
     It 'names TEAMS, never a user principal name, in EVERY declared profile' {
         foreach ($name in $script:Both.Keys) {
             foreach ($profile in @($script:Both[$name].dataverse.columnSecurityProfiles)) {
@@ -530,13 +562,37 @@ Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002 / 
 }
 
 Describe 'Retention jobs (C-DOM-003 / ADR-004)' {
-    It 'four monthly/weekly bulk-delete jobs are declared in both environments' {
+    It 'the five personal-data retention jobs are declared in both environments, and aiEvents in PRD only (ADR-083)' {
         foreach ($name in $script:Both.Keys) {
             $jobs = @($script:Both[$name].dataverse.bulkDeleteJobs)
-            $jobs.Count | Should -Be 4 -Because $name
-            foreach ($key in @('rejectedApplications', 'withdrawnIncompleteApplications', 'orphanedApplicants', 'errorLog')) {
+            foreach ($key in @('paidGrantApplications', 'rejectedApplications', 'withdrawnIncompleteApplications', 'orphanedApplicants', 'errorLog')) {
                 @($jobs | Where-Object { $_.jobKey -eq $key }).Count | Should -Be 1 -Because "$name / $key"
             }
+        }
+        # Counts come from the settings source, not from literals (C-TECH-067): PRD declares
+        # every job, TST/ACC declares the same set minus the PRD-only aiEvents.
+        $prdKeys  = @($script:Prd.dataverse.bulkDeleteJobs  | ForEach-Object { $_.jobKey })
+        $testKeys = @($script:Test.dataverse.bulkDeleteJobs | ForEach-Object { $_.jobKey })
+        $prdOnly  = @('aiEvents')
+        $expectedTest = @($prdKeys | Where-Object { $prdOnly -notcontains $_ }).Count
+        # TST/ACC: the PRD set minus aiEvents. A copy-paste of PRD's file must not quietly add aiEvents.
+        $testKeys.Count | Should -Be $expectedTest
+        $testKeys.Count | Should -BeGreaterThan 0
+        @($script:Test.dataverse.bulkDeleteJobs | Where-Object { $_.jobKey -eq 'aiEvents' }).Count | Should -Be 0 `
+            -Because 'the AI Event job is PRD-only by the reviewer decision (ADR-083, TAD 3.4.1); add it to test-settings.json only if real applicant text is ever scrubbed there'
+        # PRD: the TST/ACC set plus each PRD-only job.
+        $prdKeys.Count | Should -Be ($testKeys.Count + $prdOnly.Count)
+        @($script:Prd.dataverse.bulkDeleteJobs | Where-Object { $_.jobKey -eq 'aiEvents' }).Count | Should -Be 1
+    }
+
+    It 'the paid-grant job is 72 months monthly at 01:40, so it runs before the orphan sweep at 02:40 (ADR-083)' {
+        foreach ($name in $script:Both.Keys) {
+            $paid = @($script:Both[$name].dataverse.bulkDeleteJobs | Where-Object { $_.jobKey -eq 'paidGrantApplications' })[0]
+            $paid.entity            | Should -Be 'rev_application' -Because $name
+            $paid.retentionValue    | Should -Be 72 -Because $name
+            $paid.retentionUnit     | Should -Be 'months' -Because $name
+            $paid.recurrencePattern | Should -Be 'FREQ=MONTHLY;INTERVAL=1' -Because $name
+            $paid.startTimeUtc      | Should -Be '01:40' -Because $name
         }
     }
 
@@ -565,9 +621,15 @@ Describe 'Retention jobs (C-DOM-003 / ADR-004)' {
         }
     }
 
-    It 'the error-log job is the only one measured in days, and it is 90' {
+    It 'the error-log job is 90 days, and in PRD the AI-event job is 30 days, daily, at 03:30 (ADR-083)' {
         $errorLog = @($script:Test.dataverse.bulkDeleteJobs | Where-Object { $_.jobKey -eq 'errorLog' })[0]
         $errorLog.retentionValue | Should -Be 90
         $errorLog.retentionUnit  | Should -Be 'days'
+        $ai = @($script:Prd.dataverse.bulkDeleteJobs | Where-Object { $_.jobKey -eq 'aiEvents' })[0]
+        $ai.entity            | Should -Be 'msdyn_aievent'
+        $ai.retentionValue    | Should -Be 30
+        $ai.retentionUnit     | Should -Be 'days'
+        $ai.recurrencePattern | Should -Be 'FREQ=DAILY;INTERVAL=1' -Because 'daily, so a row is gone at most 31 days after it is written'
+        $ai.startTimeUtc      | Should -Be '03:30'
     }
 }

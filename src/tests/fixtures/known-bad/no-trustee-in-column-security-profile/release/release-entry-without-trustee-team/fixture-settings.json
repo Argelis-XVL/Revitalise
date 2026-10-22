@@ -1,0 +1,36 @@
+{
+  "_fixture": "KNOWN-BAD: a DEV-like file with no trustee team declares the release profile. Asserted by src/tests/build/BuildGates.Tests.ps1. Never copy into provisioning/deploymentSettings/.",
+  "dataverse": {
+    "groupTeams": [
+      {
+        "name": "REV Admins",
+        "entraGroupObjectId": "00000000-0000-0000-0000-000000000001",
+        "securityRoles": [
+          "REV Admin"
+        ]
+      },
+      {
+        "name": "REV Service Accounts",
+        "entraGroupObjectId": "00000000-0000-0000-0000-000000000002",
+        "securityRoles": [
+          "REV Service Automation"
+        ]
+      }
+    ],
+    "columnSecurityProfiles": [
+      {
+        "name": "REV_TrusteeRestricted",
+        "memberTeams": [
+          "REV Admins",
+          "REV Service Accounts"
+        ]
+      },
+      {
+        "name": "REV_TrusteeFinancialEligibility",
+        "memberTeams": [
+          "REV Trustees"
+        ]
+      }
+    ]
+  }
+}

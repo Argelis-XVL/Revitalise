@@ -1124,7 +1124,19 @@ environments:
 
     post_deploy:
       - description: >
-          Publish the trustee Code App to DEV. `pac code push --solutionName
+          Publish the trustee Code App to DEV. RETIRED NOTE (2026-10-22, wbs:6.3 unbilled): the
+          app this step was written against (appId 70869c95-92e5-442f-b5b9-44b3d3e549f6, the
+          original list layout) was removed from the solution by the reviewer after the business
+          chose the card layout (TAD trustee-portal-design-2 §9.3-§9.4). The folder
+          src/code-apps/trustee-review-portal is now the former card app, appId
+          b0483396-a875-4c1f-8580-296d433edb4a, display name "REV Trustee Review Portal". The
+          appId in power.config.json is the surviving app's, so a push UPDATES it and never
+          creates a third. Everything below that cites 70869c95 is dated evidence about the
+          retired app and is kept as history.
+          Open assumptions that follow the surviving app: A-TR-16 (the CanView share of this app to
+          the REV Trustees group team, a human check in the admin centre; trustees open THIS app now)
+          and A-TR-17 (managed-upgrade removal of a Code App downstream, never observed; avoided
+          because the retired app left the solution in DEV before any promotion, TAD §9.3). `pac code push --solutionName
           RevitaliseGrantAutomation` associates it with the feature solution, which is the
           route TAD §9.3 prefers — the app then travels to TST/ACC and PRD inside the managed
           import like any other component. Run from src/code-apps/trustee-review-portal after
@@ -1136,7 +1148,8 @@ environments:
           After `pac code push --solutionName RevitaliseGrantAutomation` succeeded against DEV,
           a live `solutioncomponents?$filter=_solutionid_value eq <id>` query returned
           componenttype 300 with exactly one row whose objectid
-          (70869c95-92e5-442f-b5b9-44b3d3e549f6) is the Code App's own appId — identical to
+          (70869c95-92e5-442f-b5b9-44b3d3e549f6 — the app retired 2026-10-22, see the RETIRED NOTE
+          below; the surviving app is b0483396-a875-4c1f-8580-296d433edb4a) is the Code App's own appId — identical to
           `pac code list` and to power.config.json. Componenttype 300 is the same code
           documented for Canvas Apps.
           CONSEQUENCE: the app travels with the managed export like any other component, so
@@ -1222,45 +1235,6 @@ environments:
           CLOSED for the CanView/ACC pairing specifically; whether Set-AdminPowerAppRoleAssignment
           itself accepts a Code App's appId programmatically remains unconfirmed by any tool run
           from this project, and is not re-opened by this entry.
-      # ══ -cards: the Design 2.0 card-layout Code App (TAD docs/architecture/trustee-portal-design-2-
-      # architecture.md §9.1-§9.2, ADR-055; wbs:6.3 unbilled; WI-0079). DEV ONLY — no TST/ACC or PRD
-      # entry is added (TAD §9.3): the business chooses one app and the other is removed in DEV
-      # BEFORE the first promotion export. A-TR-17 (managed-upgrade removal of a Code App
-      # downstream, never observed) is avoided only while that ordering holds. Retiring either app deletes these two entries (§9.4).
-      - description: >
-          -cards — Publish the card-layout trustee Code App to DEV, from
-          src/code-apps/trustee-review-portal-cards after `npm run build` has produced its dist/
-          (packaged by the build as the `code-app-cards` artifact). NOT the first app's folder:
-          each app is pushed from its own folder, and the first app's push above is unchanged.
-          FIRST PUSH ONLY (A-TR-14): power.config.json carries `"appId": null` on purpose, never
-          a copy of the first app's id — a copied id would make this push OVERWRITE the live
-          first app (TAD R-D2-1; the parity gate's check P3 fails the build on it). Run
-          `pa app init` in the folder first if the CLI asks for one, then
-          `pac code push --solutionName RevitaliseGrantAutomation`, then READ BACK the assigned
-          appId (`pac code list` must show TWO apps with different ids) and commit it to that
-          folder's power.config.json in the same change — never an invented id (C-TECH-051).
-          THEN VERIFY SOLUTION MEMBERSHIP (A-TR-15, never observed on this project): a
-          `solutioncomponents` read for RevitaliseGrantAutomation, componenttype 300, must return
-          TWO rows, one per appId. If the new app is absent, add it through the maker portal's
-          "Add existing component" (knowledge/technology/code-apps.md fallback) and re-read.
-          wbs:6.3 unbilled.
-        operation: code-app-push   # check 13 matches this key, never the prose (IMP-0182)
-        app: src/code-apps/trustee-review-portal-cards   # check 15 / deploy label operation:code-app-push@<folder> (IMP-0986)
-        script: manual   # live environment write — pipeline-agent's, not development-agent's (WI-0079)
-        owner: pipeline-agent (a session holding the DEV pac profile), or the reviewer
-      - description: >
-          -cards — Share the card-layout trustee Code App with the SAME REV Trustees group team
-          the first app is shared with, CanView, by Entra-group-backed group team, never by
-          individual user (C-TECH-040). Same shape as the first app's share above, and closed
-          the same way: share-apps.ps1's code-app branch cannot run on this Mac (IMP-0186 cert-drive
-          failure) and `pa app share` is scoped to users and service principals, so the share is
-          made in the maker portal / admin centre and checked there by a human (A-TR-16). After
-          the real appId is read back, add its `dataverse.apps` entry (type code, shareWith the
-          trustee group) to provisioning/deploymentSettings/dev-settings.json — only then, never
-          with an invented id (TAD §12). Then V4: a trustee opens BOTH apps and reads the same
-          application in each, so the business can choose (reviewer R1/R5). wbs:6.3 unbilled.
-        script: manual   # human V4 check in the admin centre, as for the first app
-        owner: reviewer (or a session holding admin-centre access), after the -cards push above
       - description: >
           Create/verify the REV Trustees Dataverse group team and bind the REV Trustee role to
           it. Roles are looked up BY NAME because role GUIDs differ per environment
@@ -2155,11 +2129,12 @@ environments:
           settings list; no script change needed for the four new tables.
         script: provisioning/dataverse/ensure-auditing.ps1 -Env test
       - description: >
-          Create/verify the recurring bulk-delete retention jobs: rejected
-          applications (12 months), withdrawn/incomplete (6 months), orphaned
-          applicants (the derived sweep, TAD §3.4 gap 1) and error log (90 days).
-          The 6-year paid-grant job arrives with the rev_grant table in a later
-          phase (C-DOM-003, ADR-004).
+          Create/verify the five recurring bulk-delete retention jobs: paid-grant
+          applications (72 months from the grant's final payment date), rejected
+          (12 months), withdrawn/incomplete (6 months), orphaned applicants (the
+          derived sweep, TAD §3.4 gap 1) and error log (90 days). There is no
+          AI-event job in TST/ACC: that one is PRD-only (C-DOM-003, ADR-004,
+          ADR-083, TAD §3.4.1).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
           Seed/upsert the 48 rev_setting rows — Likert point map, feeling-scale
@@ -2445,7 +2420,11 @@ environments:
           added rev_provider, rev_bankaccount, rev_payment, rev_anonymisedstatistic); audit
           retention 6 years.
         script: provisioning/dataverse/ensure-auditing.ps1 -Env prd
-      - description: Recurring bulk-delete retention jobs (12m / 6m / orphan sweep / 90d)
+      - description: >
+          Recurring bulk-delete retention jobs, six: paid grants (72m) / rejected
+          (12m) / withdrawn or incomplete (6m) / orphan sweep / error log (90d) /
+          AI events msdyn_aievent (30d, daily, PRD only). Run today by the
+          reviewer as an administrator (ADR-083, TAD §3.4.1).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env prd
       - description: >
           Seed the rev_setting rows with the board-confirmed values. Fails fast

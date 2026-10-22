@@ -26,14 +26,12 @@
       "cites": [
         "IMP-0160"
       ],
-      "description": "The Dev Summary's security-controls table asserts the coverage test's exact-count check as '(39, not 40 or more)'. Same truth as the handover claim above.",
+      "description": "The Dev Summary's security-controls table asserts the coverage test's exact-count check as '(39, not 40 or more)'. Same truth as the handover claim above. SCOPED 2026-10-22 (portal TAD trustee-portal-design-2 ADR-085): the claim is the number of SECURED COLUMNS, each released by exactly one of REV_TrusteeRestricted and REV_FinanceOnly. The third profile, REV_TrusteeFinancialEligibility, re-grants three of those columns read-only to trustees, so a file-wide pair count would rise by 3 with no new secured column. The derive counts FieldPermission elements in the two original profiles only; xml_pair_count's scope takes one profile, hence a shell derive.",
       "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
       "claim_pattern": "\\((?P<number>[0-9]+), not [0-9]+ or more\\)",
       "derive": {
-        "kind": "xml_pair_count",
-        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
-        "outer_tag": "EntityName",
-        "inner_tag": "AttributeName"
+        "kind": "shell",
+        "command": "python3 -c \"import xml.etree.ElementTree as E; r=E.parse('src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml').getroot(); print(sum(len(list(p.iter('FieldPermission'))) for p in r.iter('FieldSecurityProfile') if p.get('name') in ('REV_TrusteeRestricted','REV_FinanceOnly')))\""
       }
     },
     {
@@ -41,14 +39,12 @@
       "cites": [
         "IMP-0160"
       ],
-      "description": "Dev Summary section 9's verification table recorded a LIVE fieldpermissions query returning 39 on 2026-08-21, which was an exact match to source that day. Repointed 2026-08-22: that figure is a dated observation and correcting it to today's number would assert a result the query never produced, so the row now checks the sentence's live half ('source is N today') and the historical half is left standing as history.",
+      "description": "Dev Summary section 9's verification table recorded a LIVE fieldpermissions query returning 39 on 2026-08-21, which was an exact match to source that day. Repointed 2026-08-22: that figure is a dated observation and correcting it to today's number would assert a result the query never produced, so the row now checks the sentence's live half ('source is N today') and the historical half is left standing as history. SCOPED 2026-10-22 (portal TAD trustee-portal-design-2 ADR-085): the claim is the number of SECURED COLUMNS, each released by exactly one of REV_TrusteeRestricted and REV_FinanceOnly. The third profile, REV_TrusteeFinancialEligibility, re-grants three of those columns read-only to trustees, so a file-wide pair count would rise by 3 with no new secured column. The derive counts FieldPermission elements in the two original profiles only; xml_pair_count's scope takes one profile, hence a shell derive.",
       "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
       "claim_pattern": "source is \\*{0,2}(?P<number>[0-9]+)\\*{0,2} today",
       "derive": {
-        "kind": "xml_pair_count",
-        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
-        "outer_tag": "EntityName",
-        "inner_tag": "AttributeName"
+        "kind": "shell",
+        "command": "python3 -c \"import xml.etree.ElementTree as E; r=E.parse('src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml').getroot(); print(sum(len(list(p.iter('FieldPermission'))) for p in r.iter('FieldSecurityProfile') if p.get('name') in ('REV_TrusteeRestricted','REV_FinanceOnly')))\""
       }
     },
     {

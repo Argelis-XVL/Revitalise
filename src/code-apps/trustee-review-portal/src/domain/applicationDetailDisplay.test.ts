@@ -70,7 +70,8 @@ describe("ROW_DISPLAY — the README's mapping table (lines 35-41)", () => {
       C1: "score", C2: "scale",
       C3: "likert", C4: "likert", C5: "likert", C6: "likert", C7: "likert", C8: "likert",
       C9: "likert", C10: "likert", C11: "likert", C12: "likert",
-      F1: "restricted", F2: "restricted", F3: "restricted",
+      // F1-F3 are facts since SDD A-14 (portal TAD §14.2): released read only to trustees.
+      F1: "fact", F2: "fact", F3: "fact",
       F4: "fact", F5: "answer", F6: "fact",
     };
     expect(new Set(Object.keys(expected))).toEqual(ROW_IDS);
@@ -92,9 +93,9 @@ describe("a display hint can never render a protected row as a value (ADR-058, R
     return kind === "redacted" || kind === "restricted";
   });
 
-  it("found the protected rows: 8 redacted answers and 3 restricted rows", () => {
+  it("found the protected rows: 8 redacted answers and, since SDD A-14, no restricted Pack row", () => {
     expect(protectedRows.map(({ row }) => row.id)).toEqual([
-      "D11a", "D12", "D13", "A3a", "A3b", "A4", "A6", "F1", "F2", "F3", "F5",
+      "D11a", "D12", "D13", "A3a", "A3b", "A4", "A6", "F5",
     ]);
   });
 
@@ -120,6 +121,13 @@ describe("a display hint can never render a protected row as a value (ADR-058, R
           cell.kind === "redacted" ? "answer" : "restricted",
         );
       }
+    }
+  });
+
+  it("renders a restricted cell as restricted under every hint the map uses, though no Pack row is restricted today (R-D2-5)", () => {
+    const restricted: DetailCell = { kind: "restricted", catalogueKey: null };
+    for (const id of [...Object.keys(ROW_DISPLAY), "D1", "UNMAPPED"]) {
+      expect(displayOf({ id, label: "L", cell: () => restricted }, restricted), id).toBe("restricted");
     }
   });
 

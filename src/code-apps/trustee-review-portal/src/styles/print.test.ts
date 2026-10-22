@@ -95,6 +95,41 @@ describe("print.css", () => {
     expect(PRINT_CSS).toMatch(/\[data-print="brand"\][^{]*\{[^}]*height:\s*\d+pt/);
   });
 
+  /*
+   * Card-layout app only (Design 2.0, WI-0073). The tiles print as plain black on white — no
+   * gradients, no shadows, 1px #000 borders — and the 0-10 scale prints its value as text.
+   */
+  it("prints the card-layout blocks as plain black on white (WI-0073)", () => {
+    const rule = (selector: string): string => {
+      const at = PRINT_CSS.indexOf(selector);
+      expect(at, `${selector} has a print rule`).toBeGreaterThanOrEqual(0);
+      return PRINT_CSS.slice(at, PRINT_CSS.indexOf("}", at));
+    };
+    const tiles = rule('[data-print="tile"],');
+    expect(tiles).toMatch(/background:\s*none\s*!important/);
+    expect(tiles).toMatch(/box-shadow:\s*none\s*!important/);
+    expect(tiles).toMatch(/border:\s*1px solid #000\s*!important/);
+    for (const selector of ['[data-print="answer"]', '[data-print="receipt"]']) {
+      expect(PRINT_CSS).toContain(selector);
+    }
+    const blocks = rule('[data-print="block"],\n  [data-print="frame"]');
+    expect(blocks).toMatch(/background:\s*none\s*!important/);
+    expect(blocks).toMatch(/box-shadow:\s*none\s*!important/);
+  });
+
+  it("prints the 0-10 scale's value as text, by unclipping it rather than displaying it (WI-0065, WI-0073)", () => {
+    const at = PRINT_CSS.indexOf('[data-print="scale-value"] {');
+    expect(at).toBeGreaterThanOrEqual(0);
+    const body = PRINT_CSS.slice(at, PRINT_CSS.indexOf("}", at));
+    expect(body).toMatch(/clip:\s*auto\s*!important/);
+    expect(body).toMatch(/position:\s*static\s*!important/);
+    expect(body).not.toMatch(/display:/);
+  });
+
+  it("prints the round overview's HTML chart marks as solid black (Revision 2, TAD §13.2)", () => {
+    expect(PRINT_CSS).toMatch(/\[data-print="chart"\] \[data-chart-mark\] \{\s*background:\s*#000/);
+  });
+
   it("does not reorder content, so print order equals reading order", () => {
     expect(PRINT_CSS).not.toMatch(/\border:\s*-?\d/);
     expect(PRINT_CSS).not.toContain("flex-direction: column-reverse");

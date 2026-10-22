@@ -1,0 +1,107 @@
+{
+  "_comment": "KNOWN-BAD fixture for the trustee-field-catalogue gate's G4 (portal TAD trustee-portal-design-2 ADR-085): the committed manifest plus one field whose column the trustee release profile grants. The gate must exit 1. Asserted by src/tests/build/BuildGates.Tests.ps1. Never copy into config/.",
+  "profile_name": "REV_TrusteeRestricted",
+  "entity": "rev_application",
+  "export_const_name": "TRUSTEE_RESTRICTED_FIELD_CATALOGUE",
+  "export_interface_name": "TrusteeRestrictedFieldCatalogueEntry",
+  "group_order": [
+    "Helper, referee and emergency contact"
+  ],
+  "fields": [
+    [
+      "helper-organisation",
+      "rev_helperorganisation",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "helper-relationship",
+      "rev_helperrelationship",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "helper-name",
+      "rev_helpername",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "helper-email",
+      "rev_helperemail",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "helper-phone",
+      "rev_helperphone",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-name",
+      "rev_refereename",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-email",
+      "rev_refereeemail",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-phone",
+      "rev_refereephone",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-first-name",
+      "rev_refereefirstname",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-last-name",
+      "rev_refereelastname",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-title",
+      "rev_refereetitle",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-job-title",
+      "rev_refereejobtitle",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-company",
+      "rev_refereecompany",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-address",
+      "rev_refereeaddress",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-town-city",
+      "rev_refereetowncity",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "referee-postcode",
+      "rev_refereepostcode",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "emergency-contact-name",
+      "rev_emergencycontactname",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "emergency-contact-phone",
+      "rev_emergencycontactphone",
+      "Helper, referee and emergency contact"
+    ],
+    [
+      "benefit-status",
+      "rev_receivesbenefits",
+      "Helper, referee and emergency contact"
+    ]
+  ]
+}

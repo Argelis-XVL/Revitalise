@@ -1,5 +1,12 @@
 # Technical Architecture Document — Trustee Portal Visual Refresh and Round-Statistics Landing Screen
 
+> **SUPERSEDED IN PART, 2026-10-22.** The business kept the card layout. The trustee **application detail screen's
+> layout and presentation** (its sections' look, the list-style rows, the DOM order of the Pack rows) is now
+> specified by `docs/architecture/trustee-portal-design-2-architecture.md` (ADR-055 to ADR-063, ADR-057 for the
+> order contract); where this document describes that screen's layout, that document governs. The data model, the
+> three-state redaction rule (§3.2.2), the FR-078 catalogue (§3.2.3), the round-statistics mechanism and the
+> security design in this document are **not** superseded. This banner marks the document, not each section.
+
 **Feature Slug:** `trustee-portal-visual-refresh`
 **SDD Reference:** `docs/plans/revitalise-grant-automation-plan.md` — **Amendment A-02** (APPROVED 2026-08-24,
 `wbs:6.1,6.3,6.5`), **Amendment A-03** (APPROVED 2026-08-25, `wbs:6.9`), including A-03's
@@ -3747,6 +3754,15 @@ owes for `rev_ethnicgroup`.
 ### ADR-032: FR-078's restricted state is rendered from a field catalogue — the app never selects a secured column
 **Status:** `Derived` — **Revision 3, 2026-08-27. This is the one point on which this TAD does not
 implement A-05's stated mechanism, and the reviewer should read it as such** · **Serves:** `wbs:6.3`, FR-035, FR-078
+
+> ⚠️ **NARROWED by ADR-085** (`docs/architecture/trustee-portal-design-2-architecture.md`, Revision 4, SDD
+> Amendment A-14, **approved 2026-10-22** by Xander Lykopoulos). Benefit status, benefit provider and employment
+> status leave the catalogue: trustees read them through a new read-only profile, `REV_TrusteeFinancialEligibility`
+> (ADR-084), so every persona that opens the portal can read them, and the portal selects them. The catalogue keeps
+> the other eighteen fields. *"No `$select` anywhere in the app names a secured column"* below becomes *"… a
+> secured column outside the trustee release profile"*. The text below is kept as written; its "eleven" is the
+> A-05 count.
+
 **Context.** A-05 Finding 1 concludes that the app may bind the eleven `REV_TrusteeRestricted` columns
 because *"the platform returns no value to a trustee whatever the app asks for"* — describing it as a
 second line of defence. The premise is correct for a trustee and **incomplete for this app**. Parent TAD

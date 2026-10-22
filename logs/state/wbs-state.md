@@ -10,10 +10,10 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 
 | Derived state | Tasks |
 |---|---|
-| `complete` | 27 |
+| `complete` | 31 |
 | `manual_only` | 20 |
-| `not_started` | 8 |
 | `complete_pending_manual` | 6 |
+| `not_started` | 4 |
 
 ## Disagreements between the claim and the evidence
 
@@ -26,12 +26,16 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 | `2.8` Test with real data + sign-off | Phase 2 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
 | `3.2` Build trigger flow | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `3.3` Configure reminders + escalation | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
+| `3.4` Build completion flow | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `5.1` Define free-text redaction rules | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
+| `5.3` Build AI narrative scrubbing | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
+| `5.4` Build confidence flagging | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.1` Design the trustee Dataverse app + sec | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.2` Build applications list screen | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.3` Build application detail screen | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.4` Build decision capture | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.5` Share app to trustee role + access tes | Phase 3 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
+| `6.6` Build finalise-decisions flow | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `8.1` Finalise finance tables | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `8.2` Build finance security role | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `8.3` Build payment capture form | Phase 4 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |

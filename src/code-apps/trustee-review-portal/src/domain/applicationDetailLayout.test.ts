@@ -401,15 +401,31 @@ describe("approved sub-headings the Pack does not print (WI-0008 review, 2026-09
 });
 
 describe("restricted rows — rendered in position, never requested (FR-078, ADR-032)", () => {
-  it("renders the three Group B financial rows restricted, each with a real catalogue key", () => {
+  it("renders F1-F3 as values since SDD A-14, and none of them as restricted (FR-114, FR-115; portal TAD §14.2)", () => {
+    const filled = makeDetail({ receivesBenefits: false, benefitProvider: "  Local council\nHousing benefit  ", employmentStatus: 1 });
+    expect(cellOf("F1", filled)).toEqual({ kind: "value", text: "No" });
+    expect(cellOf("F2", filled)).toEqual({ kind: "long-text", text: "Local council\nHousing benefit" });
+    expect(cellOf("F3", filled)).toEqual({ kind: "value", text: "Yes, full-time" });
+    const empty = makeDetail();
+    for (const id of ["F1", "F2", "F3"]) {
+      expect(cellOf(id, empty)).toEqual({ kind: "value", text: "Not recorded" });
+    }
+    // A blank benefit provider is "Not recorded", not an empty long-text block.
+    expect(cellOf("F2", makeDetail({ benefitProvider: "   " }))).toEqual({ kind: "value", text: "Not recorded" });
+    // An option value the map does not know still renders, visibly (IMP-0019).
+    expect(cellOf("F3", makeDetail({ employmentStatus: 9 }))).toEqual({ kind: "value", text: "Unknown (9)" });
+  });
+
+  it("shows benefit provider whether or not redaction is released — it is outside the redaction rules (FR-115)", () => {
+    for (const redactionReleased of [false, true]) {
+      expect(cellOf("F2", makeDetail({ redactionReleased, benefitProvider: "DWP" }))).toEqual({ kind: "long-text", text: "DWP" });
+    }
+  });
+
+  it("no longer carries the three released keys in the catalogue, and no layout row points at them", () => {
     const keys = new Set(TRUSTEE_RESTRICTED_FIELD_CATALOGUE.map((entry) => entry.key));
-    for (const [id, key] of [
-      ["F1", "benefit-status"],
-      ["F2", "benefit-provider"],
-      ["F3", "employment-status"],
-    ] as const) {
-      expect(cellOf(id, makeDetail())).toEqual({ kind: "restricted", catalogueKey: key });
-      expect(keys.has(key)).toBe(true);
+    for (const key of ["benefit-status", "benefit-provider", "employment-status"]) {
+      expect(keys.has(key)).toBe(false);
     }
   });
 

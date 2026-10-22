@@ -33,24 +33,24 @@ A document that restates a baseline figure goes stale silently and is inherited 
 
 | Where | Says |
 |---|---|
-| `docs/plans/revitalise-grant-automation-plan.md:630` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:630` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:630` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:630` | 35–50 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:630` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:630` | 50–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:643` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2099` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2099` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2445` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3087` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3087` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3087` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3087` | 35–50 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3087` | 50–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3131` | 106–160 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3163` | 133–208 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3188` | 106–160 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:632` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:632` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:632` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:632` | 35–50 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:632` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:632` | 50–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:645` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2249` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2249` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2614` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3262` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3262` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3262` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3262` | 35–50 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3262` | 50–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3312` | 106–160 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3344` | 133–208 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3369` | 106–160 hours |
 
 ## 4. D-3 compliance — fee and rate figures
 
@@ -59,7 +59,7 @@ Clean. No fee or rate figure appears in the checked paths.
 ## 5. Claimed status against evidence
 
 - **0 overclaim(s)** — a task marked complete whose deliverable is partly or wholly absent
-- **17 underclaim(s)** — a deliverable that exists against a blank status
+- **21 underclaim(s)** — a deliverable that exists against a blank status
 - 0 task(s) with no evidence rule
 
   - UNDERCLAIM `0.7` Data governance & compliance
@@ -69,12 +69,16 @@ Clean. No fee or rate figure appears in the checked paths.
   - UNDERCLAIM `2.8` Test with real data + sign-off
   - UNDERCLAIM `3.2` Build trigger flow
   - UNDERCLAIM `3.3` Configure reminders + escalation
+  - UNDERCLAIM `3.4` Build completion flow
   - UNDERCLAIM `5.1` Define free-text redaction rules
+  - UNDERCLAIM `5.3` Build AI narrative scrubbing
+  - UNDERCLAIM `5.4` Build confidence flagging
   - UNDERCLAIM `6.1` Design the trustee Dataverse app + security role
   - UNDERCLAIM `6.2` Build applications list screen
   - UNDERCLAIM `6.3` Build application detail screen
   - UNDERCLAIM `6.4` Build decision capture
   - UNDERCLAIM `6.5` Share app to trustee role + access test
+  - UNDERCLAIM `6.6` Build finalise-decisions flow
   - UNDERCLAIM `8.1` Finalise finance tables
   - UNDERCLAIM `8.2` Build finance security role
   - UNDERCLAIM `8.3` Build payment capture form

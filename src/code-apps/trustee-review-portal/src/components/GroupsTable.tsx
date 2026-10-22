@@ -1,4 +1,9 @@
 /**
+ * CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.4, WI-0096): `GroupScreens.jsx`
+ * lines 15-47 — the table card, a gradient avatar tile with the code's last two characters, the
+ * overlapping member dots and the total in Playfair. The avatar and the dots are `aria-hidden`;
+ * columns, caption, link names and formatting are unchanged.
+ *
  * The group applications table (EF-43) — this app's second, entity-level table, rendered on
  * its own screen, `pages/GroupsListPage.tsx`.
  *
@@ -25,6 +30,8 @@
 import { formatAmount, formatDateRange } from "../domain/format";
 import type { GroupSummary } from "../domain/groups";
 import styles from "../styles/app.module.css";
+import cards from "../styles/cards.module.css";
+import { memberDotColor } from "../cards/palette";
 
 export function GroupsTable({
   groups,
@@ -34,7 +41,7 @@ export function GroupsTable({
   onOpen: (group: GroupSummary) => void;
 }) {
   return (
-    <div className={styles.tableScroll}>
+    <div className={styles.tableCard}>
       <table className={styles.table}>
         <caption>
           {groups.length} group{groups.length === 1 ? "" : "s"} of linked applications.
@@ -59,19 +66,39 @@ export function GroupsTable({
           {groups.map((group) => (
             <tr key={group.code}>
               <th scope="row">
-                <button
-                  type="button"
-                  className={styles.rowLink}
-                  aria-label={`Group ${group.code}, open the group's applications`}
-                  onClick={() => {
-                    onOpen(group);
-                  }}
-                >
-                  {group.code}
-                </button>
+                <span className={cards.groupCell}>
+                  {/* GroupScreens.jsx:31 — the last two characters of the code, decorative. */}
+                  <span className={cards.groupAvatar} aria-hidden="true">
+                    {group.code.slice(-2)}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.rowLink}
+                    aria-label={`Group ${group.code}, open the group's applications`}
+                    onClick={() => {
+                      onOpen(group);
+                    }}
+                  >
+                    {group.code}
+                  </button>
+                </span>
               </th>
-              <td className={styles.numeric}>{group.memberCount}</td>
-              <td className={styles.numeric}>{formatAmount(group.totalRequested)}</td>
+              <td className={styles.numeric}>
+                <span className={cards.memberCell}>
+                  {/* GroupScreens.jsx:37 — one overlapping dot per member, decorative. */}
+                  <span className={cards.memberDots} aria-hidden="true">
+                    {group.members.map((member, index) => (
+                      <span
+                        key={member.id}
+                        className={cards.memberDot}
+                        style={{ backgroundColor: memberDotColor(index) }}
+                      />
+                    ))}
+                  </span>
+                  <strong className={cards.memberCount}>{group.memberCount}</strong>
+                </span>
+              </td>
+              <td className={`${styles.numeric} ${cards.groupTotal}`}>{formatAmount(group.totalRequested)}</td>
               <td>{formatDateRange(group.sharedStart, group.sharedEnd)}</td>
             </tr>
           ))}

@@ -1,92 +1,107 @@
 /*
- * Layout and custom styles for the trustee portal.
+ * Layout and shell styles — CARD APP (Design 2.0 Revision 2, TAD trustee-portal-design-2 §13.1-§13.5).
  *
- * STYLING APPROACH — **CSS Modules**, which is code-apps.md's first-named option, works
- * natively in Vite and adds no dependency.
+ * ADR-060 classes this file PRESENTATION: it may differ from the first app's `app.module.css`, and
+ * it does — every visual value here is taken from the design kit
+ * `Designsystem/Revitalise Design System (1)/ui_kits/trustee-review-portal/` (the JSX inline styles
+ * and the `<style>` block of its `index.html`, whose `.rv-card`, `.rv-table`, `.rv-nav` and `.rv-btn`
+ * rules are cross-screen), with the kit's `var(--…)` tokens resolved from that folder's
+ * `styles.css` and `tokens/`. Each rule cites its source as `File.jsx:line`. The Dev Summary's
+ * Revision 2 STYLE INVENTORY lists every value, design side and built side, and every deviation.
  *
- * ## THE SPLIT, AND WHY IT IS TWO FILES RATHER THAN ONE (Revision 4, TAD §2.1.2)
+ * THE ONLY PERMITTED DEVIATIONS (reviewer's fidelity mandate, 2026-09-30), each marked
+ * `DEVIATION (a|b|c)` beside the rule it changes:
+ *   (a) a contrast substitution the TAD §8.2/§8.3 records — brand pink as TEXT or as a text
+ *       background becomes `--pink-700` (#c4006c, 5.89:1); `--text-muted` text becomes
+ *       `--ink-600`; the black focus ring and the strong control border stay (ADR-037
+ *       corrections 3 and 4); 44px targets stay (TAD §8.1);
+ *   (b) content ADR-061 and Appendix B keep from the current source;
+ *   (c) what the Code App cannot express, with the evidence.
  *
- * `styles/ds.module.css` holds the CONVERTED DESIGN-SYSTEM COMPONENT VARIANTS — one class per
- * variant of `Button`, `Notice`, `StatTile`, `Card`, `Input`, `Radio`, `Checkbox`. This file
- * holds THIS APP'S OWN LAYOUT: the page shell, the header, the table, the panels, the two
- * chart blocks. The two have different lifecycles, which is the whole reason for the split:
- * ds.module.css is a one-way conversion of an external artefact and will be re-diffed against
- * it when that artefact is re-supplied; this file is ours and answers to no external source.
- * Vite hashes both identically, so nothing about the print path or the class-name contract
- * changes.
+ * WHAT THE CONTRACT TESTS STILL READ HERE. `ApplicationFilters.test.tsx` (contract) reads
+ * `.filterSelect`: a 44px floor, the strong border, no `--border-default`, vertical padding only.
+ * `ds-tokens.test.ts` (contract) reads `ds.module.css`, not this file. The card app's own
+ * `layout.test.ts` (presentation, ADR-061) pins this file's layout values and the accessibility
+ * properties the first app's copy holds.
  *
- * WHERE THE VALUES COME FROM NOW. Three token vocabularies coexist here, on purpose:
- *
- *   - `--space-*`, `--radius-*`, `--text-*`, `--weight-*`, `--border-*`, `--surface-*`,
- *     `--text-heading`, `--text-body`, `--font-display` — the design system's, published by
- *     `styles/ds-tokens.css` with ADR-037's five contrast corrections already applied. This is
- *     the vocabulary the restyle adopts, and it is where every spacing, radius, type size and
- *     rule weight in this file now comes from.
- *   - `var(--colorNeutralBackground1)` and siblings — Fluent's, published by `theme.ts` through
- *     `FluentProvider`. Retained where the thing being styled is a Fluent surface or a Fluent
- *     state (the skip link's fill, the sort control's hover, the focus outline, the error
- *     box's red boundary), because there is no design-system token for any of them.
- *   - `var(--rev-color-secondary)` and siblings — the three supplied brand colours Fluent's
- *     one-ramp theme has nowhere to put (`styles/brand.css`).
- *
- * NO RAW HEX IS INTRODUCED ANYWHERE IN THIS FILE. Every colour is a `var()`, so every pairing
- * is one that `ds-tokens.test.ts` or `theme.test.ts` has already measured.
- *
- * Print rules live in styles/print.css and key off `data-print` attributes rather than
- * class names, because CSS Module class names are hashed at build time and a print
- * stylesheet must not depend on them. That is exactly why this restyle is safe: the print
- * path never reads a class name, so renaming or re-valuing anything here cannot reach it
- * (TAD §8.5 point 7).
+ * Print rules stay in `print.css`, keyed on `data-print` attributes, never on these hashed names.
  */
 
 /* ------------------------------------------------------------------------------------- *
- * REVIEWER ITEM 6 (Revision 9, 2026-09-01, wbs:6.9) — THE VERTICAL RHYTHM, AS EXACTLY TWO
- * TOKENS, NAMED HERE SO IT CANNOT DRIFT SCREEN TO SCREEN.
- *
- * The reviewer asked for more whitespace across every trustee-portal screen, naming the
- * applications overview as the example: nav bar → filter fields → "Print this list" → the
- * results caption → the table all sat on one 12–16px rhythm, so nothing on the screen read as
- * a group. The fix is not "add space"; it is to make the space MEAN something, which needs two
- * steps and no more:
- *
- *   - **`--space-4` (16px) — WITHIN a group.** Attributes that belong to one thing: a heading
- *     and the content under it, the rows of a definition list, a table's caption and its
- *     table, the fields of one filter row.
- *   - **`--space-8` (32px) — BETWEEN groups.** One whole block against the next: the nav bar,
- *     the filter toolbar, an action row, a panel, a chart block.
- *
- * A clean 2:1, so a reader sees group boundaries without measuring anything. Both are existing
- * steps in `ds-tokens.css` — no pixel literal is introduced by this item anywhere.
- *
- * TWO SMALLER STEPS SURVIVE AND ARE NOT EXCEPTIONS TO THIS. `--space-2` (8px) is the gutter
- * INSIDE one control cluster (`.viewNav`'s pills, `.actionRow`'s two buttons) and `--space-1`
- * (4px) binds a label to the control it names (`.filterField`). Neither separates attributes
- * from each other; they hold single objects together, which is the level below the one this
- * rhythm governs. Widening them would break the cluster apart rather than give the page air.
- *
- * Adjacent block margins collapse, so a `--space-8` bottom against a `--space-8` top is 32px
- * between the two groups, not 64px — which is why every group-level rule below states the
- * same `margin: var(--space-8) 0` rather than each choosing a side.
+ * Local values the token files do not carry, declared once on the page root.
  * ------------------------------------------------------------------------------------- */
+/* The kit's own values, on the page AND on the dialog surface: Fluent renders the dialog in a
+   portal outside `.page`, so a variable defined only on `.page` is undefined there (the verdict
+   choice cards lost their 14px radius that way). */
+.page,
+:global(.fui-DialogSurface) {
+  /* .rv-card shadow — index.html:9 */
+  --rv-shadow-card: 0 1px 2px rgba(43, 43, 43, 0.04), 0 6px 20px rgba(43, 43, 43, 0.07);
+  /* .rv-card.rv-lift:hover — index.html:10 */
+  --rv-shadow-lift: 0 2px 4px rgba(43, 43, 43, 0.05), 0 16px 40px rgba(43, 43, 43, 0.12);
+  /* header — AppFrame.jsx:12 */
+  --rv-shadow-header: 0 1px 0 rgba(43, 43, 43, 0.05), 0 4px 16px rgba(43, 43, 43, 0.06);
+  /* the teal tint — Shared.jsx:12 RV.tealTint */
+  --rv-teal-tint: #e7f6f8;
+  --rv-radius-tile: 14px;
+  --rv-radius-card: 16px;
+  --rv-radius-hero: 20px;
+  --rv-page-pad: clamp(16px, 4vw, 48px); /* AppFrame.jsx:12, :16 */
+  /* The kit's --text-heading is --ink-900 #2b2b2b (tokens/colors.css:34). The app's contract
+     token file sets it to navy #002060 (ds-tokens.css, the first app's ADR-035/OQ-040), which
+     every ds component reads (notice titles, stat-tile values, card titles, input labels). Card
+     app only, so it is overridden here, at the card app's root and on the dialog portal. */
+  --text-heading: var(--ink-900);
+  /* The kit's body text rendering (tokens/effects.css:13). */
+  -webkit-font-smoothing: antialiased;
+}
 
 .page {
-  /* NFR-026 / ADR-026: full-width, fluid shell — no max-width. "Full width" is the
-     shell, tables and stat tiles; prose keeps its own readable measure separately
-     (see .preserveLines below), so removing it here does not widen paragraphs. */
-  margin: 0 auto;
-  padding: var(--space-4) clamp(var(--space-4), 4vw, var(--space-12));
-  /*
-   * ADR-041 (Revision 7), §0.10.1 — the header band's vertical padding.
-   * `.header` (below) carries no dedicated block padding of its own; the space above it
-   * (before its content) is this `padding-top`, which §0.10.1 found one step short of the
-   * ui_kit's own `var(--space-5) var(--space-8)` header band (`AppFrame.jsx:6`). Corrected
-   * here rather than by raising the shorthand above, because that value ALSO sets the
-   * bottom padding of the whole page — a figure §0.10.1 did not find any mismatch in and
-   * ADR-041 does not touch. Only the header band's own top space moves.
-   */
-  padding-top: var(--space-5);
-  /* Content must not require horizontal scrolling at 320px (WCAG 1.4.10). */
+  /* The kit's global `*{box-sizing:border-box}` (styles.css:4 → tokens/effects.css) scoped to the
+     app, so every width and padding below means what it means in the kit. */
   box-sizing: border-box;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: var(--grey-50); /* AppFrame.jsx:11 */
+  color: var(--text-body);
+  font-family: var(--font-body);
+  /* The kit's body sets no line-height (tokens/effects.css:13), so its text sits at `normal`.
+     FluentProvider's root sets a fixed 22px (theme.ts REV_BODY_LINE_HEIGHT); this resets it
+     for everything inside the page. Every rule below that sets `line-height: normal` does so
+     because the kit element sets none; the only numeric values left are the kit's own
+     (1, 1.05, 1.15, 1.2, 1.25). */
+  line-height: normal;
+}
+
+/* The kit's `body{margin:0;background:var(--grey-50)}` (index.html:8). The body sits outside the
+   app's markup, so it is reached through `:has()` while the app is mounted.
+   A-CRD-4: that the Power Apps player hosts the app in a browser with `:has()` (Chromium 105+,
+   Safari 15.4+) and paints the body the app sits in; measured in Chromium only. */
+:global(body):has(.page) {
+  margin: 0;
+  background: var(--grey-50);
+}
+
+.page *,
+.page *::before,
+.page *::after,
+:global(.fui-DialogSurface) *,
+:global(.fui-DialogSurface) *::before,
+:global(.fui-DialogSurface) *::after {
+  box-sizing: border-box;
+}
+
+/* Headings: the kit's global h1-h4 rule (tokens/effects.css:14) — Playfair, bold, ink-900, no
+   margin. `brand.css` (contract) already sets the family and the <h1>'s size. */
+.page h1,
+.page h2,
+.page h3,
+.page h4 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+  margin: 0;
 }
 
 .skipLink {
@@ -100,436 +115,563 @@
   z-index: 100;
 }
 
-/* Visible on focus only — a skip link that is never reachable is not a skip link. */
 .skipLink:focus {
   left: var(--space-2);
   top: var(--space-2);
   outline: 2px solid var(--colorStrokeFocus2);
 }
 
+/* ------------------------------------------------------------------------------------- *
+ * Header — AppFrame.jsx:12-15 (WI-0099).
+ * ------------------------------------------------------------------------------------- */
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: baseline;
+  gap: var(--space-4);
+  align-items: center;
   justify-content: space-between;
-  /*
-   * The brand rule under the header — NFR-026. The header carried no visual separation from
-   * `<main>` before this pass; now that it also carries the logo, the boundary needs to
-   * read. The secondary brand colour is the fill, not the accent: at 10.91:1 against white
-   * it clears the 3:1 UI-graphic floor several times over, whereas the accent (#14adbb) is
-   * 2.72:1 and would have needed WCAG 1.4.11's decorative exemption to be defensible.
-   * See styles/brand.css for the accent's own verified pairing.
-   *
-   * Kept at 3px rather than moved to the design system's `--border-width` (1px): this is a
-   * BRAND rule carrying the secondary colour, not a component boundary, and thinning it to a
-   * hairline would lose the separation it exists to create. The mockup's own header rule is
-   * a 1px `--border-default` hairline (`AppFrame.jsx:5`) and it reads as no rule at all.
-   */
-  border-bottom: 3px solid var(--rev-color-secondary);
-  padding-bottom: var(--space-3);
-  /* Item 6: the header band against everything under it — between groups. */
-  margin-bottom: var(--space-8);
+  padding: var(--space-4) var(--rv-page-pad);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-header);
 }
 
-/* Logo and (on the list view) the page title, as one group, so the signed-in line stays on
-   the far side of the header's `space-between` rather than being pushed to the middle. */
 .brandLockup {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4);
-}
-
-/* An `<h1>` inside the header must not bring its own 0.67em block margin with it — at the
-   44px title size (styles/brand.css) that is ~29px of dead space inside a flex header. */
-.brandLockup h1 {
-  margin: 0;
 }
 
 .logo {
-  /*
-   * Fixed height, width follows the file's own 1340x434 (~3.09:1) ratio, so 40px tall is
-   * ~124px wide. `max-width: 100%` is the guarantee that it can never widen the page body at
-   * a 320px viewport (WCAG 1.4.10) whatever the source file's dimensions become.
-   *
-   * WHY 40px SPECIFICALLY, AND WHAT IT COSTS. The supplied asset is a lockup: the
-   * "Revitalise" wordmark over about the top 69% of the image, and a strapline
-   * ("Funding vital respite for disabled people & carers") across the bottom ~12%. 40px
-   * renders the wordmark at ~28px, which reads clearly, and keeps the logo SHORTER than the
-   * 44px page title beside it — on a working tool the screen's own heading should dominate,
-   * not the branding. The strapline renders at ~4px and is not legible; it is not legible at
-   * 48px or 64px either (~5-7px), so no header-appropriate size recovers it, and the
-   * organisation is identified by the wordmark and by the image's `alt` text regardless.
-   * A wordmark-only variant of the asset is what a UI header actually wants — flagged to the
-   * reviewer rather than solved here, because cropping a brand asset is not a dev decision.
-   *
-   * NOT moved to the mockup's 44px (`AppFrame.jsx:6`): 44px is exactly the page title's own
-   * size, so the logo would stop being shorter than the heading beside it, which is the
-   * property the paragraph above chose 40px for. A pixel height for a raster lockup is not a
-   * spacing step and has no token.
-   *
-   * Contrast: the wordmark is the primary magenta on transparent, i.e. 4.22:1 against the
-   * white page. That is not a failure to fix — WCAG 1.4.3 and 1.4.11 both exempt logotypes
-   * ("text that is part of a logo or brand name has no contrast requirement"). Recorded so
-   * the pair is not read later as one nobody checked.
-   */
-  height: 40px;
+  height: 44px; /* AppFrame.jsx:13 */
   width: auto;
+  max-width: 100%;
+  /* The kit's logo file, WITHOUT the strapline (AppFrame.jsx:13 →
+     assets/logo/revitalise-logo.png, 1705×530; copied byte-identical into this app's own
+     presentation assets). App.tsx is CONTRACT and imports the first app's strapline logo, so the
+     image is replaced here: `content: url()` on a replaced element swaps the painted image and
+     keeps the <img>'s alt text. `?inline` embeds it as a data URI at build time — never a
+     runtime URL, for the reason App.tsx's A-BRAND-1 note records.
+     A-CRD-5: that the Power Apps player's browser paints `content: url()` on an <img>, honours
+     `accent-color` on the verdict radios and the `lh` unit on the notes box (all three measured
+     in Chromium only). */
+  content: url("../cards/assets/revitalise-logo.png?inline");
+  aspect-ratio: 1705 / 530;
+}
+
+.signedInAs {
+  margin: 0;
+  font-size: var(--text-sm); /* AppFrame.jsx:14 */
+  /* DEVIATION (a): the kit's --text-muted (#8a8a8a, 3.45:1) — TAD §8.3, ADR-037 correction 2. */
+  color: var(--ink-600);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Main column — AppFrame.jsx:16 (WI-0101): 32px top/bottom, the fluid side gutter, 1200px wide,
+ * one flex column with 24px between blocks. Every block's own outer margin is therefore 0.
+ * ------------------------------------------------------------------------------------- */
+.page > main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--rv-page-pad);
+}
+
+.page > main > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Nav bar — AppFrame.jsx:2-6, :17-22 and index.html:15-16, :23 (WI-0100).
+ * ------------------------------------------------------------------------------------- */
+.viewNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-card);
+  align-self: flex-start;
   max-width: 100%;
 }
 
-/*
- * The signed-in line. `--text-xs` (13px) rather than the old 12px, adopting the design
- * system's type scale (§8.4.4, the part that conflicts with nothing) — still smaller than the
- * 16px body, which is the property this class exists for.
- *
- * The mockup sets this line in `--text-muted` (`AppFrame.jsx:8`). It is NOT set in
- * `--text-muted` here: ADR-037 correction 2 forbids that token from carrying text at all
- * (3.45:1 at its best), and this line names the trustee who is signed in — not decoration.
- */
-.signedInAs {
-  font-size: var(--text-xs);
-  color: var(--text-body);
-}
-
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  /* Item 6: the fields of one filter row are attributes WITHIN a group. */
-  gap: var(--space-4);
-  align-items: flex-end;
-  margin: var(--space-8) 0;
-}
-
-/*
- * REVISION 8 (2026-08-31, wbs:6.9) — EVERY FILTER FIELD IS THE SAME WIDTH.
- *
- * The reviewer saw two of these controls render at visibly different widths. `min-width` is
- * a FLOOR, and these are flex items with `flex: 0 1 auto`, so each control was sized by its
- * own CONTENT above that floor: "Review round" grew to fit the 25-character
- * "All rounds available to you" option while "Status" stayed at the 160px floor beside it.
- * The widths were never authored — they were whatever the longest option string happened to
- * be, which is why the mismatch looks arbitrary rather than designed.
- *
- * `flex-basis` fixes the width instead of flooring it, so every field starts at the same
- * 220px and the row's spare space is shared equally by `flex-grow: 1`. IMP-0486 fixed the
- * two controls' HEIGHT and box treatment; this is the same defect on the other axis, and
- * `.filterControl` below is what stops the control inside from re-introducing it.
- *
- * `.scoreRange` stays narrower on purpose: two numeric fields that hold at most three digits,
- * paired under one conceptual "score" control. Both halves of it are equal to each other,
- * which is the property that was missing, and the pair as a whole matches one full field.
- */
-.filterField {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  flex: 1 1 220px; /* a control's usable width, not a spacing step: no token */
-  min-width: 0; /* a flex item's `auto` minimum would re-inflate a long option string */
-  max-width: 320px;
-}
-
-/*
- * The control itself fills the field it is labelled by. Without this a `<select>` and an
- * `<input>` inside two equal-width fields still render at two different widths, because each
- * falls back to its own intrinsic sizing — a `<select>`'s longest option, an `<input>`'s
- * `size` attribute default of 20 characters. `box-sizing` is already global.
- */
-.filterControl {
-  width: 100%;
-}
-
-.scoreRange {
-  display: flex;
-  gap: var(--space-2);
-  flex: 1 1 220px;
-  min-width: 0;
-  max-width: 320px;
-}
-
-.scoreRange .filterField {
-  flex: 1 1 0; /* the two halves are equal to each other, whatever the pair's width */
-  max-width: none;
-}
-
-/*
- * Fluent's `<Select>` DELIBERATELY stays (ApplicationFilters.tsx's own header — the design
- * system has no Select at all), but its NATIVE box does not match `ds/Input`'s (IMP-0486): the
- * reviewer saw "Review round"/"Status"/"Region" render smaller than "Score from"/"Score to"
- * sitting right beside them. This class targets Fluent's `select` SLOT specifically —
- * `<Select select={{ className: styles.filterSelect }}>` — never the top-level `className`
- * prop, which `@fluentui/react-select`'s own `getPartitionedNativeProps` (read from the
- * installed package's compiled source) routes to the outer wrapper `<span>`, not the `<select>`
- * element that actually carries the border/height/background this fix changes.
- *
- * Deliberately NOT touched: horizontal padding. Fluent reserves `padding-right` for its own
- * chevron icon (`useSelectStyles.styles.raw.js`'s `paddingRight` calc, absolutely positioned
- * independent of this class); overriding it risks the icon overlapping a long option label.
- * `min-height` is a floor, not a fixed height, so it composes safely with Fluent's own
- * `height: 32px` (the used value is the greater of the two, per the CSS height/min-height
- * cascade) rather than fighting it.
- */
-/*
- * REVIEWER ITEM 3 (Revision 9, wbs:6.9) — the vertical padding drops one step, to `--space-2`,
- * matching `ds.module.css`'s `.inputField` exactly. That file's own `.inputField` block carries
- * the full diagnosis of why the two controls rendered 4px apart; the half that lands HERE is
- * that this control's used height is Fluent's `height: 32px` raised to the 44px floor, with the
- * content SQUEEZED to fit — at 12px padding plus a 1px border the content box was 18px for a
- * ~22px line box, i.e. the text was already sitting in less room than it needs. Both controls
- * now declare the same box-sizing, the same vertical padding and the same 44px floor, so they
- * are the same height because they are the same box, not because two numbers happen to agree.
- */
-.filterSelect {
-  width: 100%; /* Revision 8 — see `.filterControl`; Fluent's select slot needs it here */
-  min-height: 44px; /* same figure ds/Input's .inputField uses, WCAG 2.5.5 */
-  box-sizing: border-box; /* Fluent's own select slot declares this; stated so both agree */
-  padding-top: var(--space-2);
-  padding-bottom: var(--space-2);
-  border: var(--border-width) solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-card);
+.viewNavButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink-900);
   font-family: var(--font-body);
-  font-size: var(--text-base);
-  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
 }
 
-.filterSelect:focus-visible {
-  outline: 2px solid var(--focus-ring);
+.viewNavButton:not([aria-current]):hover {
+  background: var(--grey-50); /* index.html:16 */
+}
+
+.viewNavButton:focus-visible {
+  outline: 2px solid var(--focus-ring); /* DEVIATION (a): black ring, ADR-037 correction 3 */
   outline-offset: 2px;
 }
 
-/* Wide content scrolls inside its own container, never the page body. */
-.tableScroll {
-  overflow-x: auto;
+.viewNavButtonSelected {
+  /* DEVIATION (a): the kit fills with --brand-primary #e6027f; white 15px bold on it is 4.49:1.
+     TAD §8.3 row 1: --pink-700 (5.89:1). The shadow is the kit's (index.html:23). */
+  background: var(--pink-700);
+  color: var(--white);
+  box-shadow: 0 2px 6px rgba(230, 2, 127, 0.18);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: var(--text-base);
-}
-
-.table caption {
-  text-align: left;
-  /* Item 6: the caption and its table are one group — the within-group step. */
-  padding-bottom: var(--space-4);
-}
-
-/*
- * THE TABLE'S RULE AND ROW PADDING — §2.2.2 item 3, with `ApplicationsList.jsx:42-57` as the
- * visual reference. The mockup's contribution to this table is exactly three things: a 2px
- * `--border-strong` rule under the header row, 1px `--border-default` between body rows, and
- * `var(--space-3) var(--space-2)` cell padding. All three are taken. Its MARKUP is not: it
- * has no `scope`, no sort button and no `aria-sort` (§2.2.1).
- */
-.table th,
-.table td {
-  border-bottom: var(--border-width) solid var(--border-default);
-  padding: var(--space-3) var(--space-2);
-  vertical-align: top;
-}
-
-.table th {
-  /* A header cell is a header cell to assistive technology because of scope="col",
-     not because it is bold. */
-  padding: 0;
-}
-
-/*
- * The header row's heavier rule. On the `<tr>` rather than on `.table thead th`, because with
- * `border-collapse: collapse` the wider of two adjacent borders wins, so this overrides the
- * 1px above without needing to out-specify it — and it survives a header cell that carries no
- * border of its own.
- */
-.table thead tr {
-  border-bottom: 2px solid var(--border-strong); /* the mockup's own 2px; no token */
-}
-
-/*
- * The header row's type. The display face and `--text-heading` are the mockup's
- * (`ApplicationsList.jsx:46`) and they are what makes a header row read as a header row
- * without relying on weight alone. 15.27:1 on the page surface.
- */
-.table thead th {
-  font-family: var(--font-display);
-  color: var(--text-heading);
-}
-
-.table th .sortButton {
+/* ------------------------------------------------------------------------------------- *
+ * Screen heads — Shared.jsx:131-136 (PageTitle, ActionRow); RoundOverview.jsx:207-214;
+ * ApplicationsList.jsx:102-104 (WI-0080, WI-0091, WI-0095).
+ * ------------------------------------------------------------------------------------- */
+.titleGroup {
   display: flex;
-  align-items: center;
-  gap: 6px; /* the glyph's own gutter; between --space-1 and --space-2, so no token */
-  width: 100%;
-  min-height: 44px;
-  padding: var(--space-3) var(--space-2);
-  background: none;
-  border: none;
-  font: inherit;
-  font-weight: var(--weight-semibold);
-  text-align: left;
-  cursor: pointer;
-  color: inherit;
-}
-
-.table th .plainHeader {
-  display: block;
-  padding: var(--space-3) var(--space-2);
-  font-weight: var(--weight-semibold);
-}
-
-.table th .sortButton:hover {
-  background: var(--colorNeutralBackground1Hover);
-}
-
-/* Never remove the focus outline — WCAG 2.4.7. */
-.table th .sortButton:focus-visible,
-.rowLink:focus-visible {
-  outline: 2px solid var(--colorStrokeFocus2);
-  outline-offset: -2px;
-}
-
-.sortIndicator {
-  /* Deliberately below the type scale's 13px floor: this is a decorative arrow that must not
-     compete with the header label beside it, and the sorted state is carried by `aria-sort`
-     and the button's accessible name, never by the glyph (WCAG 1.4.1). No token. */
-  font-size: 11px;
-}
-
-.numeric {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/*
- * A row's navigation control. IT IS A `<button>`, AND IT STAYS ONE (§2.2.1's last row): the
- * mockup navigates with `<a href="#" onClick={e => e.preventDefault()}>` in two places
- * (`ApplicationsList.jsx:26`, `:53`), and a fragment anchor that is really a button is a
- * semantics regression as well as a navigation risk in a Power Apps host. This class only
- * makes it LOOK like the link it behaves as.
- *
- * `--link-default` resolves to the supplied ramp's brand[70] `#cc0078` — the same value
- * `--colorBrandForegroundLink` carried before this pass, at 5.47:1 on the page surface, so
- * the change is one of vocabulary and not of colour. Underlined, so colour is never the only
- * carrier of the fact that this is a control (WCAG 1.4.1).
- */
-.rowLink {
-  min-height: 44px;
-  background: none;
-  border: none;
-  padding: var(--space-1) 0;
-  font: inherit;
-  font-weight: var(--weight-bold);
-  text-decoration: underline;
-  cursor: pointer;
-  color: var(--link-default);
-}
-
-.rowLink:hover {
-  color: var(--link-hover);
-}
-
-.rowActions {
-  display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-2);
 }
 
-/*
- * "Not available" / "Not recorded" in a value position. `--text-body` #5a5a5a is 6.90:1 on
- * white — better than the `--colorNeutralForeground3` #616161 (6.19:1) it replaces, and it
- * is emphatically NOT `--text-muted` (3.45:1), which ADR-037 correction 2 bars from carrying
- * text. An absence is still content: `format.ts`'s own rule is that a missing value renders
- * as words, never as a blank cell.
- */
-.notAvailable {
-  font-style: italic;
+.titleIntro {
+  margin: 0;
   color: var(--text-body);
 }
 
-/*
- * A panel. The mockup's `Section` (`ApplicationDetail.jsx:5`) is the visual reference and all
- * three of its values are taken: a `--border-default` hairline, `--radius-md`, and
- * `--space-6` of padding. `--border-default` at 1.34:1 is correct here — ADR-037 correction 4
- * bars the weak border from FORM CONTROLS, where the boundary is the only way to perceive the
- * control; a panel's boundary is decorative and its `<h2>` carries the meaning.
- */
+.actionRow,
+.landingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.landingNav,
+.refreshBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.refreshBar {
+  align-items: center;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+}
+
+.cardNote {
+  margin: 0;
+  font-size: var(--text-sm); /* RoundOverview.jsx:237 */
+  color: var(--ink-600);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Cards — Shared.jsx:18-28 (Panel), RoundOverview.jsx:9-19 (Card), index.html:9-10
+ * (.rv-card, .rv-lift) (WI-0068, WI-0083).
+ * ------------------------------------------------------------------------------------- */
 .panel {
-  border: var(--border-width) solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-6);
-  margin: var(--space-8) 0; /* item 6: one panel against the next — between groups */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+  padding: var(--space-8);
+  border-radius: var(--rv-radius-card);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-card);
+  min-width: 0;
+  transition:
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
 }
 
-/*
- * THE HEADING LADDER (NFR-026), RESTATED FOR REVISION 4.
- *
- * The supplied body size is 16px, so `theme.ts` overrides `fontSizeBase300` from Fluent's
- * 14px default. Before the ladder moved, `.panelHeading` at 16px sat exactly equal to both
- * the body text above it and the sub-headings below it — three levels collapsed into one.
- * Revision 4 keeps the ladder and re-expresses it in the design system's own type scale:
- *
- *   body            16px            (theme.ts, `fontSizeBase300` — Fluent's, not the DS's)
- *   .panelHeading   <h2>  --text-lg  20px   (was a literal 20px; the token IS 20px)
- *   .fieldHeading   <h3>  --text-base 17px  (was a literal 16px)
- *
- * `--text-base` is 17px where the old literal was 16px, so the `<h3>` level now reads
- * marginally LARGER than body text rather than equal to it and distinguished by weight
- * alone. That is a strictly better ladder, and it is the design system's own scale rather
- * than a number invented here.
- *
- * `.stateHeading` and `.stateExplanation` are GONE from this ladder because they are gone
- * from this file: `StateMessage` renders through `ds/Notice` now (§8.5 point 1), so its
- * heading and body type are `.noticeTitle` (`--text-base` 17px, bold) and `.noticeBody`
- * (`--text-sm` 15px) in `ds.module.css`. The property the old 14px->16px change existed to
- * protect — a state's heading must not read smaller than the body text it heads — still
- * holds, and by a wider margin.
- *
- * The `--text-xs` secondary-text classes (`.signedInAs`, `.hint`, `.freshness`,
- * `.freshnessManual`) stay smaller than body text on purpose: secondary text is meant to
- * read smaller, and at 13px it still does.
- */
+/* The hover lift (index.html:10). The kit makes it unconditional; the design README makes it
+   optional and says it is off under prefers-reduced-motion, which is what this does. TAD §7 had
+   turned it off; the reviewer's fidelity mandate ("hover and transition states") restores it. */
+.panel:hover {
+  box-shadow: var(--rv-shadow-lift);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .panel:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+.panelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .panelHeading {
-  margin: 0 0 var(--space-4);
-  /*
-   * Revision 10 (2026-09-02, wbs:6.8), reviewer item 5 — 20px ('--text-lg') to 28px.
-   *
-   * 28px matches NO step of `ds-tokens.css`'s own ladder (`--text-xl` is 24px, `--text-2xl`
-   * is 32px) — the reviewer's figure is literal, so it is a literal value here rather than a
-   * snap to the nearest named step, with that gap stated plainly rather than silently
-   * rounded away.
-   *
-   * CHECKED AGAINST IMP-0509/IMP-0566 BEFORE THIS SIZE CHANGED, PER THIS DISPATCH'S OWN
-   * INSTRUCTION. Both are the C-TECH-076 class: an authored declaration whose correctness is
-   * arithmetic against another declared value, invisible to jsdom, found only on a rendered
-   * screen. This rule already carries its OWN explicit `line-height` below — unlike the
-   * IMP-0509 defect (inheriting FluentProvider's fixed 22px, tuned for Fluent's own base
-   * size) — and that line-height is `var(--leading-snug)`, a UNITLESS ratio (1.3), not a
-   * pixel value: a unitless line-height is a multiplier of THIS rule's own font-size, so it
-   * scales automatically with the size change above rather than needing a second, separately
-   * maintained figure. Changing `font-size` here could not reproduce IMP-0509's defect
-   * without also deleting the `line-height` declaration entirely, which this change does not
-   * do.
-   */
-  font-size: 28px;
-  line-height: var(--leading-snug);
-  font-weight: var(--weight-semibold);
-  color: var(--text-heading);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl); /* Shared.jsx:9 h2Style */
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
 }
 
-.panelBody > * + * {
-  margin-top: var(--space-3);
+.panelBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
 }
 
-/* Narrative and score breakdown are authored multi-line text: keep the line breaks.
-   NFR-026 / ADR-026: the page shell above is now fluid, but prose does not follow it —
-   WCAG 1.4.8 asks for a line length of no more than ~80 characters, so this is the one
-   class that needs a measure. `MultilineText` (components/Panel.tsx) is the only thing
-   that renders this class, and it backs every prose block in the app — the narrative
-   panel, the score breakdown, the staff recommendation and all eight of Amendment A-05's
-   free-text rows (components/CasePanels.tsx). Unchanged by Revision 4: 75ch is a measure,
-   not a spacing step, and the design system has no token for it. */
+/* The eyebrow — RoundOverview.jsx:5-7. index.html loads RoundOverview.jsx after Shared.jsx, and
+   its top-level `function Eyebrow` replaces the global one, so the 13px version
+   (`var(--text-xs, 12px)`, tokens/typography.css:2) is what renders on EVERY kit screen —
+   measured with getComputedStyle on the kit render: 13px on all six screens. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  /* DEVIATION (a): the kit's default --brand-primary text is 4.49:1 on white and 4.20:1 on the
+     grey page (TAD §8.3 rows 3-4): --pink-700. */
+  color: var(--pink-700);
+}
+
+.eyebrow[data-tone="purple"] {
+  color: var(--rev-color-secondary);
+}
+
+.eyebrow[data-tone="ink"] {
+  color: var(--ink-600); /* RoundOverview.jsx:281, :288 */
+}
+
+.eyebrowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-circle);
+  background: currentColor;
+  flex: none;
+}
+
+/* The dot takes the kit's own colour: it is a graphic (3:1 applies), and #e6027f clears 3:1 on
+   white and on grey-50, so only the TEXT needs the pink-700 substitution. */
+.eyebrow:not([data-tone]) .eyebrowDot,
+.eyebrow[data-tone="brand"] .eyebrowDot {
+  background: var(--pink-600);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Round overview — "Figures of this round" header row and the stamp pill
+ * (RoundOverview.jsx:218-221, WI-0082).
+ * ------------------------------------------------------------------------------------- */
+.statisticsRegion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin: 0;
+}
+
+.figuresHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.figuresHeading {
+  font-size: var(--text-2xl);
+  line-height: normal;
+}
+
+.stampPill {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+  background: var(--white);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  box-shadow: 0 1px 3px rgba(43, 43, 43, 0.08);
+}
+
+.stampDenominator {
+  margin: calc(-1 * var(--space-4)) 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+}
+
+/* The financial position's pill — RoundOverview.jsx:276-279 (WI-0090). */
+.handEntered {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.handEnteredPill {
+  background: var(--lavender-100);
+  color: var(--rev-color-secondary);
+  font-weight: var(--weight-bold);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+}
+
+.tileGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * Tiles — Definitions (Shared.jsx:83-97), ProgressTiles (RoundOverview.jsx:51-63),
+ * MoneyTiles (RoundOverview.jsx:186-200), StatTileRow (Shared.jsx:124-130) (WI-0105).
+ * Grids use container-relative floors (css-arithmetic check B): the kit's floor, capped at N.
+ * ------------------------------------------------------------------------------------- */
+.definitions {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(220px, (100% - 3 * var(--space-3)) / 4)), 1fr)
+  );
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.definitionTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--rv-radius-tile);
+  background: var(--grey-50);
+  border: 1.5px solid transparent;
+  min-width: 0;
+}
+
+.definitionTile[data-absent="true"] {
+  background: transparent;
+  border: 1.5px dashed var(--grey-200);
+}
+
+.definitionTile dt {
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.definitionValue,
+.definitionValueAbsent {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: normal;
+  overflow-wrap: anywhere;
+}
+
+.definitionValue {
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.definitionValueAbsent {
+  font-weight: var(--weight-regular);
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.progressTiles {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, max(180px, (100% - 2 * var(--space-4)) / 3)), 1fr)
+  );
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.progressTile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-radius: var(--rv-radius-tile);
+  background: var(--pink-50);
+  min-width: 0;
+  --rv-tile-bar: var(--pink-600);
+}
+
+/* The 28x6px bar above the value. */
+.progressTile::before {
+  content: "";
+  display: block;
+  width: 28px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--rv-tile-bar);
+}
+
+.progressTile[data-tone="1"] {
+  background: var(--lavender-100);
+  --rv-tile-bar: var(--rev-color-secondary);
+}
+
+.progressTile[data-tone="2"] {
+  background: var(--rv-teal-tint);
+  --rv-tile-bar: var(--rev-color-accent);
+}
+
+.progressTileValue,
+.progressTileValueAbsent {
+  order: -1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The bar stays first: the value is drawn after it and before the label, as the kit does. */
+.progressTile::before {
+  order: -2;
+}
+
+.progressTileValue {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1.05;
+  color: var(--ink-900);
+}
+
+.progressTileValueAbsent {
+  font-size: var(--text-base);
+  line-height: normal;
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.progressTileLabel {
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.moneyTiles {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(200px, (100% - 3 * var(--space-3)) / 4)), 1fr)
+  );
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.moneyTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--rv-radius-tile);
+  background: var(--grey-50);
+  border: 1.5px solid transparent;
+  min-width: 0;
+}
+
+.moneyTile[data-absent="true"] {
+  background: transparent;
+  border: 1.5px dashed var(--grey-200);
+}
+
+.moneyTileLabel {
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.moneyTileValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+}
+
+.moneyTileValueAbsent {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: normal;
+  font-style: italic;
+  color: var(--ink-600);
+}
+
+.statTiles {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(200px, (100% - 3 * var(--space-4)) / 4)), 1fr)
+  );
+  gap: var(--space-4);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * State messages — Shared.jsx:98-105 (WI-0105). `muted` is the kit's dashed lavender card;
+ * `quiet` keeps §8.5 point 1's second, visibly different state.
+ * ------------------------------------------------------------------------------------- */
+.stateMessage,
+.stateMessageQuiet {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--rv-radius-tile);
+}
+
+.stateMessage {
+  border: 1.5px dashed var(--lavender-200);
+  background: linear-gradient(135deg, rgba(237, 232, 241, 0.5), rgba(253, 241, 248, 0.5));
+}
+
+.stateMessageQuiet {
+  border: 1.5px solid var(--grey-200);
+  background: var(--white);
+}
+
+.stateHeading {
+  margin: 0;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.stateExplanation {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+  text-wrap: pretty;
+}
+
+.errorBox {
+  border: var(--border-width) solid var(--colorPaletteRedBorder2);
+  border-left: var(--space-1) solid var(--colorPaletteRedBorder2);
+}
+
 .preserveLines {
   max-width: 75ch;
   white-space: pre-wrap;
@@ -538,197 +680,11 @@
   font: inherit;
 }
 
-/*
- * A definition list of label/value pairs — and the markup, not this class, is what FR-078
- * depends on (§8.5 point 2). See `components/Panel.tsx`'s `Definitions` for why the supplied
- * mockup's `<div><strong>label</strong><span>value</span></div>` is refused rather than
- * adapted.
- *
- * WHAT IS TAKEN FROM THE MOCKUP, AND THE ONE THING THAT IS NOT — because taking it would have
- * been fidelity to a number at the cost of a real WCAG failure.
- *
- * Taken: the LABEL WEIGHT and colour. `ApplicationDetail.jsx:13` sets the label bold and in
- * `--text-heading`, where this app had semibold and inherited colour, and the mockup is right
- * — the label is what a trustee scans down.
- *
- * NOT taken: its `minWidth: '220px'` on the label. Two reasons, and the second is the one that
- * settles it. First, it would change almost nothing: the track's maximum is `max-content`, so
- * the column already grows to the widest label in the panel ("Support recipient condition
- * profile" is 37 characters) and the pixel figure is only a FLOOR, which the content clears on
- * every panel in the app. Second, a 220px floor plus this gap leaves ~52px for the value at a
- * 320px viewport, so a value whose longest word needs more than that forces the PAGE BODY to
- * scroll sideways — which WCAG 1.4.10 does not allow, and which the mockup's five hardcoded
- * one-word rows never exposed. The 140px floor stays.
- */
-.definitions {
-  display: grid;
-  grid-template-columns: minmax(140px, max-content) 1fr;
-  /* Item 6: each row is one attribute of the same group — the within-group step, on both
-     axes. The 4px row gap this replaces read as a single dense block rather than a list. */
-  gap: var(--space-4);
-  margin: 0;
+.notAvailable {
+  font-style: italic;
+  color: var(--ink-600);
 }
 
-.definitions dt {
-  font-weight: var(--weight-bold);
-  color: var(--text-heading);
-}
-
-.definitions dd {
-  margin: 0;
-  color: var(--text-body);
-}
-
-/*
- * WI-0005 — the detail screen's Trustee Pack rows. Applied WITH `.definitions`, never instead of
- * it, so the gap, label weight and colour above are unchanged.
- *
- * Why the detail screen needs its own tracks: its labels are now the Pack's own QUESTIONS
- * ("Do you or the person you support have a disability as defined by the Equality Act 2010?"
- * is 87 characters), and `.definitions`' `max-content` label track would grow to the whole of
- * one such label on one line, leaving the value a sliver or forcing sideways scroll (WCAG
- * 1.4.10). Two fractional tracks let labels wrap and keep the value column the wider of the two,
- * the proportion the Pack's own two-column tables use. The 140px floor is the same one
- * `.definitions` documents; `minmax(0, …)` on the value lets a long unbroken value wrap rather
- * than widen the grid.
- *
- * Below 480px the rows STACK, label above value. MEASURED, not reasoned: at a 320px viewport
- * the panel body is 222px, so the 140px floor plus the gap left the value track 66px and
- * "accommodation" (102px) spilled out of its cell and scrolled the page sideways by 8px
- * (`application-detail-layout.visual.spec.ts`, which asserts all three widths). Stacked, a
- * pair is told apart from the next by spacing: a small gap inside the pair, the group's own
- * `--space-4` between pairs. `overflow-wrap: anywhere` breaks a single word wider than the
- * whole panel rather than letting it scroll the page.
- */
-.packDefinitions {
-  grid-template-columns: minmax(140px, 2fr) minmax(0, 3fr);
-}
-
-.packDefinitions dt,
-.packDefinitions dd {
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 479.98px) {
-  .packDefinitions {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-1);
-  }
-
-  .packDefinitions dd {
-    margin-bottom: var(--space-3);
-  }
-}
-
-/* Sub-field labels inside a multi-field panel — the panel already has its own h2
-   (.panelHeading); these are the h3s beneath it, so each free-text field is announced
-   before its own text. Kept as its own class rather than merged with the panel heading
-   because the two mean different things: this labels a field, that headlines a state.
-   `--text-base` 17px, not the old literal 16px — see "THE HEADING LADDER" above. */
-.fieldHeading {
-  /* Item 6: a sub-heading opens a new group; its own content is one step under it. The
-     `:first-child` rule below still zeroes the top margin inside a panel. */
-  margin: var(--space-8) 0 var(--space-4);
-  font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
-  color: var(--text-heading);
-}
-
-.fieldHeading:first-child {
-  margin-top: 0;
-}
-
-/*
- * WI-0008 review (2026-09-30) — the detail screen's sub-sections (Current Circumstances: life
- * satisfaction, "In the last 2 weeks…", "In the last year…") read as three distinct blocks.
- * Reviewer: "Make it three distinct sections with more white space in between the sections. Now it
- * show the section title … directly under the last question."
- *
- * The cause: each sub-heading is the FIRST child of its group wrapper, so `.fieldHeading:first-child`
- * above zeroes its top margin, and the wrappers had no spacing of their own — the heading sat one
- * row-gap under the previous group's last answer. The step between groups is `--space-12`, three
- * times the `--space-4` between rows, and the heading keeps its own `--space-4` below it. No
- * divider line: `--border-default` is reserved for the card boundary (ADR-037, `ds-tokens.css`).
- * Measured, not asserted: `application-detail-layout.visual.spec.ts` checks the sub-section gap is
- * at least twice the row gap at 320, 390 and 1280px (measured 60px at 320px and 48px at 1280px
- * against a 16px row gap; 24px and 12px without this rule).
- */
-.detailGroup + .detailGroup {
-  margin-top: var(--space-12);
-}
-
-.verdictForm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-/*
- * Every action bar in this app — the detail screen's Back/Print pair, the list screen's
- * Print, and the verdict form's own — is this one class.
- *
- * REVISION 8 (wbs:6.9) ADDS THE MARGIN, which is the second half of the reviewer's
- * "misaligned" finding. `.landingNav` and `.refreshBar` beside it both declare
- * `margin: var(--space-3) 0`; this bar declared none, so an action bar sat tight against the
- * heading above it on one screen and on a comfortable rhythm on another. The buttons were
- * never mis-aligned horizontally — every bar is left-aligned — they were on two different
- * vertical rhythms, which reads as the same fault. All three bars now share one.
- */
-/*
- * The verdict form's own action row. STILL `.verdictActions`, and after Revision 9 it is used
- * by `VerdictForm.tsx` ALONE — the two page-level bars that also used it moved to `.actionRow`
- * below, which is reviewer item 4. Kept distinct because this one sits inside a form, among
- * the fields it submits, rather than under the nav bar.
- */
-.verdictActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-  margin: var(--space-8) 0;
-}
-
-/*
- * REVIEWER ITEM 4 (Revision 9, wbs:6.9) — A PAGE'S OWN BUTTON ROW, ALIGNED TO THE NAV BAR
- * ABOVE IT BY SHARING ITS METRICS RATHER THAN BY RESTATING THEM.
- *
- * The reviewer saw the detail screen's "Back to the list" / "Print this case" pair render out
- * of alignment with "Round overview" / "Applications list" directly above. Both rows start at
- * the same left edge and Revision 8 already equalised the BUTTONS themselves (`.buttonMd` was
- * re-scaled to `.viewNavButton`'s padding and type size, asserted in `layout.test.ts`), so the
- * button sizes were not the defect. The GUTTER was: `.verdictActions` set `gap: var(--space-3)`
- * (12px) where `.viewNav` sets `var(--space-2)` (8px), so the second control in the lower row
- * started 4px right of the second control above it, and `align-items: center` against the nav
- * bar's default `stretch` let a taller control in one row sit off the other's baseline.
- *
- * This class therefore declares the nav bar's own three values — `--space-2`, `wrap`, and no
- * `align-items` override — so the two rows are one grid by construction. `margin` is item 6's
- * between-groups step, which is what puts it a full group away from the bar rather than
- * crowding under it. Change `.viewNav`'s gap and this must change with it; that is why the
- * relationship is stated here rather than left as two files that happen to agree.
- */
-.actionRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: var(--space-8) 0;
-}
-
-.hint {
-  font-size: var(--text-xs);
-  color: var(--text-body);
-}
-
-/*
- * A 44x44 CSS-pixel minimum target (WCAG 2.5.5).
- *
- * STILL LOAD-BEARING AFTER REVISION 4, ON FEWER CONTROLS. Every `ds/Button` size now declares
- * `min-height: 44px` itself and `.choice` does the same for `ds/Radio`, so no `ds/*` call site
- * applies this class any more. It remains applied to the Fluent controls that carry no such
- * guarantee — the verdict form's three Fluent `Radio`s, which stay Fluent's because
- * `ds/Radio` does not compose inside Fluent's `RadioGroup` (see `VerdictForm.tsx`'s header
- * for the measurement).
- */
 .tallTarget {
   min-height: 44px;
   min-width: 44px;
@@ -746,209 +702,390 @@
   border: 0;
 }
 
-/*
- * The error box — and it is now ONLY the red boundary.
- *
- * All three of this app's error boxes render through `ds/Notice`, which supplies the fill,
- * the radius and the padding, with `role="alert"` passed in from the call site because the
- * component sets no role at all (§8.5 point 6). This class adds the one thing `Notice` has no
- * tone for: a red boundary, so a genuine failure is not visually identical to a designed
- * `role="note"` state.
- *
- * IT DECLARES NOTHING `.notice` OR `.noticeMuted` ALSO DECLARES, DELIBERATELY. The two classes
- * live in different CSS Modules at equal specificity (0,1,0), so a shared property would be
- * resolved by whichever stylesheet the bundler happens to emit first — a correctness question
- * settled by build-order luck. Border and border-left are untouched by either, so the outcome
- * here is order-independent.
- *
- * The design system has no error tone and deliberately declares neither `--warning` nor
- * `--success` (ADR-037 correction 5: both fail AA at the pairings it uses them in), so the
- * red is Fluent's `colorPaletteRedBorder2`. It is not the only carrier of anything — the
- * heading says "Could not load...", the message says why, and `role="alert"` announces it.
- */
-.errorBox {
-  border: var(--border-width) solid var(--colorPaletteRedBorder2);
-  border-left: var(--space-1) solid var(--colorPaletteRedBorder2);
-}
-
 /* ------------------------------------------------------------------------------------- *
- * The landing screen — WBS 6.9, FR-056..FR-063, ADR-029.
- *
- * Every colour below is a design-system token from `ds-tokens.css` (with ADR-037's
- * corrections applied) or an existing Fluent token `theme.ts` generates from one brand ramp
- * (ADR-026). No new colour VALUE is introduced anywhere in this block — TAD §8.2 requires
- * each pair to be contrast-verified against the ramp, and adding an ad hoc colour would
- * create a pair nobody has checked.
+ * Filters card — ApplicationsList.jsx:11-37 (WI-0092).
  * ------------------------------------------------------------------------------------- */
-
-/* `.backNav` (the App.tsx "Back to the round overview" nav) is retired by ADR-040 — the
-   persistent `.viewNav` bar below replaces it. `.landingNav` stays: it is `LandingPage`'s
-   own, unrelated "open the applications list" nav. */
-
-/*
- * REVIEWER ITEM 2 (Revision 11, 2026-09-02, wbs:6.8) — `--space-8` -> `--space-4` ON THE ROUND
- * OVERVIEW'S TWO CONTROL BARS, AND THE INTERPRETATION THAT PUTS IT HERE RATHER THAN ELSEWHERE.
- *
- * The reviewer, verbatim: *"Too much white space between the round's summary/KPI figures
- * ('Round progress' stat tiles, and the FR-063 financial-position tiles) and the 'Applications
- * list' button below them — reduce it."*
- *
- * **THE READING TAKEN, STATED BECAUSE THE INSTRUCTION IS GENUINELY AMBIGUOUS.** There is exactly
- * one control on the round-overview screen whose label names the applications list:
- * `LandingPage`'s own `.landingNav` "Open the applications list" button. It is not *below* the
- * KPI figures in DOM order — `LandingPage` renders `<h1>` -> hint -> `.landingNav` ->
- * `.refreshBar` -> "This round" -> the statistics region (whose FIRST panel is "Round progress")
- * -> the FR-063 finance panel — so "below" cannot be taken literally about any control that
- * exists on this screen. The persistent `.viewNav` bar (the reading the dispatch offers as the
- * alternative) is higher still, above the `<h1>`.
- *
- * What IS unambiguous is that between the round's figures and that button there are two control
- * bars each declaring 32px above and 32px below, which collapse into a band of whitespace
- * roughly a third of a screen deep in the middle of the screen's opening sequence. Halving both
- * to `--space-4` reduces the gap between the figure blocks and the "Applications list" control
- * WHICHEVER of the two adjacencies the reviewer was looking at, which is why it is the
- * defensible reading rather than a guess between two.
- *
- * **IT IS A NAMED EXCEPTION TO REVISION 9's ITEM 6 TWO-TOKEN RHYTHM, NOT A DRIFT FROM IT.** That
- * item put every group boundary on `--space-8` and every within-group step on `--space-4`; these
- * two bars are still separated from their neighbours by a step of that same scale, one notch
- * down. `.viewNav`, `.actionRow`, `.verdictActions`, `.panel` and `.chartBlock` are all
- * untouched, so the rhythm the reviewer asked for in Revision 9 still governs every other screen
- * and every other boundary on this one. `layout.test.ts` asserts the exception explicitly rather
- * than having its "one rhythm" test quietly narrowed.
- */
-.landingNav {
-  margin: var(--space-4) 0;
-}
-
-/*
- * ADR-040 (Revision 7) — the persistent view-switching bar. `TrusteePortalApp.jsx:8-13` is
- * the visual reference: a pill-shaped `<button>` per screen, the current one filled with the
- * brand colour, the others a neutral grey. Both colour pairings below are ALREADY VERIFIED —
- * `ds-tokens.test.ts` asserts white-on-`--brand-primary` (5.47:1) and `--text-heading` on
- * every surface including `--grey-100` (13.90:1) — so this introduces no new, unchecked pair.
- *
- * A real `<button type="button">`, never the mockup's markup verbatim (App.tsx's own header,
- * Revision 4, restates why every control here is a button): `TrusteePortalApp.jsx:10` already
- * IS a plain `<button>`, so no semantics correction is needed — only its visual shape is taken.
- */
-.viewNav {
+.toolbar {
   display: flex;
   flex-wrap: wrap;
-  /* Item 6: `--space-2` is the gutter inside ONE control cluster, not a group separation. */
-  gap: var(--space-2);
-  margin: var(--space-8) 0;
+  gap: var(--space-4);
+  align-items: flex-end;
+  margin: 0;
 }
 
-/* The padding, type size and target floor below are identical BY INTENT to `ds.module.css`'s
-   `.buttonMd` — ADR-037 correction 5 (Revision 8, wbs:6.9) re-scaled that class to match this
-   one, so that a `ds/Button` beside a nav button is the same size on every screen. Change
-   neither without the other; that note carries the reasoning. */
-.viewNavButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: 44px; /* WCAG 2.5.5 */
-  padding: var(--space-2) var(--space-4);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-pill);
-  background: var(--grey-100);
-  color: var(--text-heading);
-  font: inherit;
+.filterCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--rv-radius-card);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-card);
+}
+
+/* Each field is its own wrap item at the kit's FIXED width — 200px, 120px for the scores, 260px
+   for the reference (ApplicationsList.jsx:10, :30-32) — so at 320px they stack exactly as the
+   kit's do. max-width keeps a 260px field inside a narrower card. */
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: none;
+  width: 200px;
+  min-width: 0;
+  max-width: 100%;
   font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  cursor: pointer;
+  color: var(--ink-900);
 }
 
-.viewNavButton:hover:not(:disabled) {
-  background: var(--surface-muted);
+.filterField label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  line-height: normal;
+  color: var(--ink-900);
 }
 
-.viewNavButton:focus-visible {
+.filterFieldWide {
+  width: 260px;
+}
+
+.filterFieldScore {
+  width: 120px;
+}
+
+.filterControl {
+  width: 100%;
+}
+
+.filterSelect {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding-top: 0; /* the kit's `0 14px` (ApplicationsList.jsx:12); min-height sets the box */
+  padding-bottom: 0;
+  line-height: normal;
+  /* DEVIATION (a): the kit's 1.5px --grey-200 control border — ADR-037 correction 4, TAD §8.3. */
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-lg); /* 12px, ApplicationsList.jsx:12 */
+  background: var(--grey-50);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--ink-900);
+}
+
+/* The kit's native select (ApplicationsList.jsx:12, :25, :28): 0 14px inline padding and the
+   browser's own chevron. Set apart from `.filterSelect`, whose vertical-only padding the contract
+   test ApplicationFilters.test.tsx pins. */
+.filterField select.filterSelect {
+  padding-inline: 14px;
+  background: var(--grey-50);
+  border-radius: var(--radius-lg);
+  color: var(--ink-900);
+}
+
+.filterSelect:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-/* The current view — `aria-current="page"` carries the state to assistive technology; this
-   is the matching VISUAL treatment, never the only carrier of it (WCAG 1.4.1). */
-.viewNavButtonSelected {
-  background: var(--brand-primary);
-  color: var(--text-on-brand);
+/* ------------------------------------------------------------------------------------- *
+ * Tables — ApplicationsList.jsx:39-81, GroupScreens.jsx:15-47, index.html:11-14 (WI-0093,
+ * WI-0096, WI-0103). The card holds the horizontal scroll, so the page never scrolls sideways.
+ * ------------------------------------------------------------------------------------- */
+.tableScroll {
+  position: relative;
+  overflow-x: auto;
 }
 
-.viewNavButtonSelected:hover:not(:disabled) {
-  background: var(--brand-primary);
+.tableCard {
+  /* The containing block for the sort buttons' visually hidden hints (`.srOnly` is absolutely
+     positioned): without it they escape the scroll container and widen the PAGE at 320px. */
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: var(--rv-radius-card);
+  background: var(--white);
+  box-shadow: var(--rv-shadow-card);
 }
 
-/*
- * `.viewNavButtonDisabled` and `.viewNavCaption` WERE HERE, AND WERE DELETED BY REVIEWER
- * ITEM 5 (Revision 9, 2026-09-01, wbs:6.9), NOT LEFT UNUSED.
- *
- * They styled the "Application detail" control in the state ADR-040 designed for it: present
- * on every screen, disabled and captioned "Open a case first" until a case was open. The
- * reviewer asked for that control to be REMOVED from the bar on the landing and list screens
- * instead — `App.tsx`'s Revision 9 header states in full what that reverses in ADR-040 and
- * why it costs no accessible behaviour. With the state gone there is no call site, and a
- * class no markup can reach reads as a live decision rather than as a retired one.
- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--text-base);
+}
 
-/* Reviewer item 2 (Revision 11) — the second of the round overview's two control bars; see
-   `.landingNav` above for the finding, the reading taken and why this is a named exception to
-   Revision 9's rhythm rather than a departure from it. */
-.refreshBar {
+.table caption {
+  text-align: left;
+  color: var(--ink-700);
+  font-size: var(--text-sm);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  background: var(--white);
+}
+
+.table thead tr,
+.table tbody tr {
+  border-bottom: var(--border-width) solid var(--border-default);
+}
+
+.table tbody tr {
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.table tbody tr:hover {
+  background: var(--grey-50);
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table thead th {
+  padding: 0;
+  text-align: left;
+  vertical-align: bottom;
+  background: var(--grey-50);
+  font-family: var(--font-body);
+  font-weight: var(--weight-bold);
+  font-size: 12px;
+  line-height: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-700);
+}
+
+.table thead th.numeric {
+  text-align: right;
+}
+
+/* No font-family here: the kit's tdStyle sets none (ApplicationsList.jsx:40), so cells inherit the
+   page's body font and a cell that sets its own — the Playfair group total — keeps it. */
+.table tbody th,
+.table tbody td {
+  padding: var(--space-4);
+  vertical-align: middle;
+}
+
+.table tbody th {
+  text-align: left;
+  font-weight: var(--weight-bold);
+}
+
+.table th .sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* DEVIATION (a): the kit's bare header button has no floor; 44px targets stay (TAD §8.1). */
+  min-height: 44px;
+  padding: var(--space-4);
+  background: none;
+  border: none;
+  /* `font: inherit` as the kit's header button has (ApplicationsList.jsx:57). It does NOT inherit
+     the header's uppercase or letter-spacing — a <button>'s own UA style resets both — so the
+     sortable labels render in mixed case in the kit, and do here. Only "Decision", a plain
+     header, is uppercase. */
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  color: inherit;
+  cursor: pointer;
+}
+
+.table th.numeric .sortButton {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.table th .sortButton:focus-visible,
+.rowLink:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.table th .plainHeader {
+  display: block;
+  padding: var(--space-4);
+}
+
+/* Group detail's unsortable headers: the kit renders them as the same inert header button, so
+   mixed case and normal tracking (a button resets both), at the sort button's padding. */
+.table th .staticHeader {
+  /* The kit's header <button> (ApplicationsList.jsx:57-58): inline-flex, 6px gap before an
+     always-present empty glyph span, and a button's UA text-align: center, so a two-line label
+     centres its lines. Positioned in the cell by the <th>'s own text-align. */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-4);
+  text-align: center;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.sortIndicator {
+  font-size: 10px;
+  color: var(--pink-600);
+}
+
+/* Right-aligned, proportional figures: the kit sets no font-variant-numeric on any numeric cell
+   (GroupScreens.jsx:35, :41; ApplicationsList.jsx:70; RoundOverview.jsx:108-109). */
+.numeric {
+  text-align: right;
+}
+
+/* RowLink — Shared.jsx:137-139. */
+.rowLink {
+  min-height: 44px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+  cursor: pointer;
+  /* DEVIATION (a): the kit's --link-default is #e6027f (4.49:1 as text); the app's --link-default
+     is ADR-037's corrected #cc0078 (5.47:1). */
+  color: var(--link-default);
+}
+
+.rowLink:hover {
+  color: var(--link-hover);
+}
+
+.rowActions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-  margin: var(--space-4) 0;
+  gap: var(--space-2);
 }
 
-.statisticsRegion {
-  /* A live region, not a visual container: no border and no background, so it adds a
-     landmark for assistive technology without adding a box a sighted reader has to parse.
-     The panels inside it carry their own borders. */
+/* SDD A-14, FR-116 (portal TAD trustee-portal-design-2 ADR-086 points 4-5): the verdict button in
+   the signed-in trustee's own verdict tone. Two classes, so these beat `ds.module.css`'s
+   single-class variant rules whatever order the bundler emits the two stylesheets in; the hover
+   and active rules carry the same pseudo-classes as the variant's own, plus one class. The
+   `background` shorthand also clears the primary variant's gradient image. */
+.verdictButton.verdictApproved,
+.verdictButton.verdictDeferred,
+.verdictButton.verdictRejected {
+  color: var(--verdict-text);
+  border-color: transparent;
+}
+.verdictButton.verdictApproved {
+  background: var(--verdict-approved);
+}
+.verdictButton.verdictApproved:hover:not(:disabled) {
+  background: var(--verdict-approved-hover);
+}
+.verdictButton.verdictApproved:active:not(:disabled) {
+  background: var(--verdict-approved-active);
+}
+.verdictButton.verdictDeferred {
+  background: var(--verdict-deferred);
+}
+.verdictButton.verdictDeferred:hover:not(:disabled) {
+  background: var(--verdict-deferred-hover);
+}
+.verdictButton.verdictDeferred:active:not(:disabled) {
+  background: var(--verdict-deferred-active);
+}
+.verdictButton.verdictRejected {
+  background: var(--verdict-rejected);
+}
+.verdictButton.verdictRejected:hover:not(:disabled) {
+  background: var(--verdict-rejected-hover);
+}
+.verdictButton.verdictRejected:active:not(:disabled) {
+  background: var(--verdict-rejected-active);
+}
+
+/* FR-117: the "N awaiting your verdict" status line above the applications table. */
+.awaitingStatus {
   margin: 0;
-}
-
-/* The statistics region's freshness stamp — the flow's `computedOn` (TAD §8.3). */
-.freshness {
-  margin: var(--space-2) 0 0;
-  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
   color: var(--text-body);
 }
 
-/* FR-063's own freshness stamp — `rev_figuresasat`. Deliberately NOT the same class as
-   .freshness above: TAD §8.3 requires the two statements to be visually distinct as well
-   as separately worded, because one covers figures that are seconds old and the other
-   covers figures a person typed on some cadence. Italic and indented by a rule, so the
-   difference survives even in the print stylesheet's monochrome.
-
-   The mockup sets its equivalent line in `--text-muted` (`RoundOverview.jsx:27`); this one
-   does not, for ADR-037 correction 2's reason — a date a trustee is being asked to judge
-   currency by is not decoration. */
-.freshnessManual {
-  margin: 0 0 var(--space-2);
-  padding-left: 10px; /* the rule's own gutter, half a --space-5; no token */
-  border-left: 3px solid var(--border-strong);
-  font-size: var(--text-xs);
-  font-style: italic;
-  color: var(--text-body);
+.mutedCell {
+  color: var(--ink-600); /* ApplicationsList.jsx:71 */
 }
 
-/* A header cell with no sort control inside it. `.table th` zeroes its own padding
-   because most header cells in this app wrap a button that supplies it; these do not. */
+.strongCell {
+  color: var(--ink-900);
+}
+
+/* Round-statistics tables (RoundOverview.jsx:100-113): 15px, a 1px rule under the header and
+   a hairline under each row, 6px 8px cells. */
+.chartBlock .table,
+.statTable {
+  font-size: var(--text-sm);
+}
+
+.chartBlock .table thead tr,
+.statTable thead tr {
+  border-bottom: var(--border-width) solid var(--border-default);
+}
+
+.chartBlock .table tbody tr,
+.statTable tbody tr {
+  border-bottom: var(--border-width) solid var(--grey-100);
+}
+
+.chartBlock .table tbody tr:hover,
+.statTable tbody tr:hover {
+  background: transparent;
+}
+
+.chartBlock .table thead th,
+.statTable thead th {
+  background: transparent;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--text-sm);
+  color: var(--ink-900);
+}
+
 .table th.plainHeaderCell {
-  padding: var(--space-3) var(--space-2);
-  font-weight: var(--weight-semibold);
+  padding: 6px 8px;
+  text-align: left;
 }
 
-/* A distribution row's own header cell (`<th scope="row">`). Left-aligned and allowed to
-   wrap: two of the applicant-type labels are full sentences. */
+/* The kit right-aligns the header of every numeric column over its right-aligned cells
+   (RoundOverview.jsx:103-104). */
+.table th.plainHeaderCell.numeric {
+  text-align: right;
+}
+
 .table th.categoryCell {
-  padding: var(--space-3) var(--space-2);
-  font-weight: var(--weight-semibold);
+  padding: 6px 8px;
+  font-weight: var(--weight-regular);
   text-align: left;
   min-width: 14ch;
+}
+
+.chartBlock .table td,
+.statTable td {
+  padding: 6px 8px;
+  text-align: right;
+}
+
+/* Type of break (kept content, Appendix B) in the kit's round-statistics table style: the
+   caption is the kit's "Counted over" line (RoundOverview.jsx:87-89) — 15px ink-600, no inset —
+   and the header row is transparent with --text-heading labels (RoundOverview.jsx:101-105). */
+.table.statTable tbody th,
+.table.statTable tbody td {
+  padding: 6px 8px; /* (0,2,2): above `.table tbody td`'s 16px list-table padding */
+}
+
+.statTable caption {
+  text-align: start; /* the kit's <p> default */
+  padding: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+  background: transparent;
+}
+
+.statTable thead th.plainHeaderCell {
+  font-weight: var(--weight-bold);
 }
 
 .tableCaption {
@@ -957,66 +1094,38 @@
 }
 
 /* ------------------------------------------------------------------------------------- *
- * The distribution chart — ADR-029, TAD §8.5 point 4.
- *
- * RESTYLED IN PLACE, EXPLICITLY NOT REPLACED, AND THE RESTYLE IS ENTIRELY IN THIS BLOCK.
- * Not one line of `components/DistributionChart.tsx`'s markup, ARIA or geometry moved in
- * Revision 4: it still emits a real `<table>` with a `<caption>`, three `<th scope="col">`
- * and a `<th scope="row">` per row, AND an inline `<svg role="img" aria-label focusable="false">`
- * drawn from the SAME `series.rows` array the table maps — the property that makes the two
- * renderings structurally incapable of disagreeing. The design system ships no chart component
- * and the supplied `RoundOverview.jsx` mockup contains no chart at all, so there was nothing
- * here to adopt and nothing was invented: only the section chrome below changed.
+ * Chart blocks — RoundOverview.jsx:91-117 (ChartBlock) and :244, :261 (the two-up grid)
+ * (WI-0084, WI-0089).
  * ------------------------------------------------------------------------------------- */
-
 .chartBlock {
-  margin: var(--space-8) 0 0; /* item 6: one distribution against the next — between groups */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  min-width: 0;
 }
 
-/*
- * Reviewer item 1's "Show the data table" disclosure — `components/DistributionChart.tsx`.
- *
- * A block, so it sits on its own line under the figure rather than beside it, and one
- * within-group step clear of both (item 6's `--space-4`): the toggle belongs to the chart
- * above it and to the table it reveals below, so it is inside that group, not between two.
- * Everything else about the control — its 44px target, its type, its padding — is
- * `ds/Button`'s `ghost`/`sm`, restated nowhere.
- */
+.fieldHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: normal;
+  font-weight: var(--weight-bold);
+  color: var(--ink-900);
+}
+
+.chartBlock .hint {
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+}
+
+/* "Show the data table" — the kit's RowLink (Shared.jsx:137-139), left-aligned. */
 .dataTableToggle {
   display: inline-flex;
-  margin: var(--space-4) 0;
+  align-self: flex-start;
+  margin: 0;
 }
 
-.chartBlock:first-child {
-  margin-top: 0;
-}
-
-/* Table first, chart beside it (ADR-029). One column below 900px, because a chart squeezed
-   next to a table is unreadable long before the page needs to scroll sideways — and the
-   page body must never scroll horizontally at 320px (WCAG 1.4.10). */
-.chartLayout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
-  align-items: start;
-}
-
-@media (min-width: 900px) {
-  .chartLayout {
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  }
-}
-
-/*
- * `DistributionChart`'s `figures="share-only"` layout — Revision 8 (wbs:6.9).
- *
- * ONE COLUMN AT EVERY WIDTH, and that is the whole difference from `.chartLayout` above.
- * That mode renders no second chart to sit beside the table (its count-scaled SVG is
- * withdrawn — see `DistributionChart.tsx`'s Revision 8 section), so there is no two-column
- * pairing left to make; and the blocks that use it sit inside `.applicantGrid` below, which
- * has already halved the width available to each one. Splitting that in two again would put
- * a share table in ~270px.
- */
 .chartLayoutStacked {
   display: grid;
   grid-template-columns: 1fr;
@@ -1024,104 +1133,13 @@
   align-items: start;
 }
 
-/*
- * FR-061's "Who applied in this round" — two visuals per row (Revision 8, wbs:6.9).
- *
- * The reviewer asked for this section's visuals "as a 2-per-row grid instead of the current
- * layout", where each distribution previously took a full-width block of its own.
- *
- * `auto-fit` with a 340px floor rather than a literal `repeat(2, 1fr)`, for exactly the
- * reason `.statTiles` above gives: two fixed columns overflow a narrow viewport, and the
- * page body must never scroll horizontally at 320px (WCAG 1.4.10). The `max()` term caps it
- * at two the same way `.statTiles` caps at four — a track can never be narrower than half
- * the row, so a third column cannot fit at any width, and below ~740px the 340px floor takes
- * over and the grid collapses to one column.
- *
- * 340px is the floor at which `RoundStatisticsCharts.tsx`'s `BAR_CHART_MIN_WIDTH` (550px as
- * of Revision 9; 440px when this was written)
- * still scrolls inside its own `.tableScroll` box rather than the page — the chart is
- * allowed to overflow ITS container, which is what that class is for.
- */
 .applicantGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(max(340px, (100% - var(--space-8)) / 2), 1fr));
-  /* Item 6: two chart blocks side by side are two groups — and the `max()` term above must
-     subtract THIS gap, or the two-column cap it computes is wrong by the difference. */
-  gap: var(--space-8);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); /* RoundOverview.jsx:244 */
+  gap: var(--space-8) var(--space-10);
   align-items: start;
 }
 
-/* Each grid cell owns its top margin; `.chartBlock`'s stacked rhythm would double it. */
-.applicantGrid > * {
-  margin-top: 0;
-}
-
-.chart {
-  width: 100%;
-  height: auto;
-  /* The SVG has no intrinsic height in some engines once width is 100%; the viewBox's
-     aspect ratio supplies it, and this keeps a 13-row chart from growing without bound. */
-  max-height: 320px;
-}
-
-/*
- * A bar. UNCHANGED BY REVISION 4, and the TAD says so twice — §8.5 point 4 first lists the
- * fill among the two things that change and then states plainly that "the fill stays
- * `var(--colorCompoundBrandBackground)`". The explicit sentence governs, and the arithmetic
- * below is why: this is the one pairing on this screen whose figure is already recorded, and
- * re-pointing it at a design-system token would create a pair nobody has measured for a
- * change nobody would see.
- *
- * `colorCompoundBrandBackground` is the same brand token Fluent uses for a filled control,
- * so it moves with the brand ramp rather than pinning a hex value here.
- *
- * Contrast: this is a UI graphic, so WCAG 1.4.11 asks for >= 3:1 against the adjacent
- * background. RE-MEASURED against Revitalise's real ramp (A-R26 closed, 2026-08-26), which
- * is the check ADR-026 and TAD §8.2 both call for: against `colorNeutralBackground1`
- * (#ffffff), brand[80] is #ed008c and measures 4.22:1 — clears the 3:1 floor with room to
- * spare, and is the figure theme.ts's own header records. `theme.test.ts:183-198` pins it.
- *
- * `colorCompoundBrandBackground` is also the one brand-background token theme.ts leaves at
- * brand[80] rather than shifting down the ramp for AA. That is deliberate and this bar is
- * the reason: the shift exists to fix white NORMAL-SIZE TEXT on a brand fill (4.22:1 fails
- * the 4.5:1 floor), and nothing draws text on this bar.
- *
- * And it is never the only carrier of anything: every count and percentage this bar
- * depicts is text in the table beside it (WCAG 1.4.1), and `print.css:169-171` forces it to
- * #000 on paper.
- */
-.chartBar {
-  fill: var(--colorCompoundBrandBackground);
-}
-
-/* ------------------------------------------------------------------------------------- *
- * Recharts visuals — `components/RoundStatisticsCharts.tsx`.
- *
- * These are all decorative (`aria-hidden`, see that file's header), so nothing here
- * carries an accessibility contract of its own — the contract stays on `.chartBlock` /
- * `.chart` / `.chartBar` above and on `Definitions`' `<dl>`, both unchanged.
- * ------------------------------------------------------------------------------------- */
-
-/* A hand-rolled legend, not Recharts' own — see RoundStatisticsCharts.tsx's header for
-   why. Real text, so a sighted trustee with colour-vision deficiency never has to read
-   identity from hue alone (dataviz skill, "never colour-alone for identity"). */
-/*
- * REVIEWER ITEM 4 (Revision 11, 2026-09-02, wbs:6.8) — A COLUMN, NOT A WRAPPING ROW.
- *
- * *"The Applicant Type pie chart's legend/data labels don't have enough width for their text —
- * it's being clipped or wrapped badly. Give those labels enough width."*
- *
- * This was a wrapping flex ROW of items, so each `<li>` was sized by the row's leftover space:
- * `APPLICANT_TYPE_LABELS`' longest option is "A carer applying on behalf of a disabled person"
- * (46 characters), and beside two other items in a grid cell roughly 620px wide it was handed a
- * fraction of a line and broke mid-phrase — the "wrapped badly" the reviewer reported. The same
- * shape applies to `WellbeingComparisonChart`'s three question headings.
- *
- * A column gives every item the block's full width, which is the whole of "enough width for
- * their text" for a legend of at most three or six entries (`CHART_PALETTE`'s validated slot
- * count, and `AGREEMENT_RESPONSE_LABELS`' six). The row gutter stays `--space-2`; there is no
- * column gutter left to declare.
- */
 .chartLegend {
   display: flex;
   flex-direction: column;
@@ -1129,23 +1147,14 @@
   margin: var(--space-2) 0 0;
   padding: 0;
   list-style: none;
-  /* Reviewer item 2: 13px --text-xs -> 15px --text-sm, the same step the chart's own axis
-     ticks take (`RoundStatisticsCharts.tsx`'s TICK_FONT_SIZE) — a legend smaller than the
-     labels it explains was half the "too small" the reviewer reported. The line-height is
-     declared rather than inherited because this list WRAPS at narrow widths, which is the
-     shape IMP-0509 overlapped; 15px is under the ambient 17px so C-TECH-076 check A does not
-     reach it, and it is stated anyway because the wrap is the risk, not the size. */
   font-size: var(--text-sm);
   line-height: var(--leading-normal);
 }
 
-/* `flex-start`, not `center` (reviewer item 4): a label that still wraps onto a second line —
-   possible at a narrow viewport even in a column — would otherwise centre the 12px swatch
-   against the whole two-line block instead of against the first line of its own label. */
 .chartLegendItem {
   display: flex;
   align-items: flex-start;
-  gap: 6px; /* a swatch's own gutter; no token */
+  gap: 6px;
 }
 
 .chartLegendSwatch {
@@ -1154,67 +1163,168 @@
   height: 12px;
   border-radius: 2px;
   flex: none;
-  /* Centres the 12px swatch on the FIRST line of its label rather than on the whole item,
-     which is what `align-items: flex-start` above gives up: (15px x --leading-normal 1.5
-     = 22.5px line box, minus 12px) / 2 ~ 5px. No token — this is a swatch's own optical
-     alignment, the same class of figure as the 6px gutter above it. */
   margin-top: 5px;
 }
 
 /* ------------------------------------------------------------------------------------- *
- * KPI stat tiles — `components/Panel.tsx`'s `StatTileRow`.
- *
- * ONLY THE GRID IS HERE NOW. Revision 4 re-implements `StatTileRow` over `ds/StatTile`
- * (TAD §2.1.4, §8.5 point 3), so the TILE — its surface, boundary, radius, label type and
- * the `absent` state that stops a null figure being typeset as a 32px display measurement —
- * lives in `ds.module.css`. What stays here is the LAYOUT, which is this app's own: a
- * responsive grid of tiles.
- *
- * The accessible contract is unchanged and is the same one `.definitions` carries: real
- * `<dt>`/`<dd>` pairs inside a `<dl>`, laid out as cards instead of a two-column list. A
- * screen reader announces the same term/definition pairs either way.
- *
- * `auto-fit`/`minmax` rather than the mockup's fixed `repeat(4, 1fr)`
- * (`RoundOverview.jsx:30`): four fixed columns of eight financial measures overflow a 320px
- * viewport, which WCAG 1.4.10 does not allow.
- *
- * ADR-041 (Revision 7) WIDENS THE FLOOR FROM 160px TO 240px, NOT A CHANGE OF STRATEGY. The
- * reviewer compared this grid directly against `RoundOverview.jsx:28`'s bigger, roomier
- * `repeat(4, 1fr)` tiles. A literal fixed 4-column grid still overflows 320px with eight
- * tiles at any usable width — that reasoning above is untouched — so the fix is a bigger
- * MINIMUM, not a fixed count: `auto-fit` still collapses to fewer columns as the viewport
- * narrows and to one column under 320px, so the WCAG 1.4.10 guarantee is unchanged in kind.
- * 240px is wide enough that `RoundFinancePanel.tsx`'s currency values (e.g. £550,000.00) fit
- * on one line at `--text-2xl` in the common case, and lands at 2 rows of 4 on the desktop
- * widths this portal is actually used at — matching the ui_kit's layout without reintroducing
- * its overflow.
- *
- * REVISION 8 (2026-08-31, wbs:6.9) — ADR-041's 240px FLOOR DID NOT PRODUCE 4 COLUMNS, AND
- * THIS IS THE FIX FOR THAT, NOT A REVERSAL OF IT.
- *
- * The reviewer measured the shipped screen and found eight tiles laid out **6 + 2**, on both
- * the FR-063 financial panel and the "Round progress" row. The reason is arithmetic that the
- * ADR-041 note above did not do: `auto-fit` fits as MANY tracks as the floor allows, so at a
- * ~1500px content width 240px admits six columns, not four. Widening the floor again is the
- * wrong lever — the floor that forces exactly four at 1500px (≈370px) would force ONE column
- * at 700px, which is worse than what it fixes.
- *
- * The lever is a floor that is RELATIVE to the container as well as absolute:
- * `max(240px, (100% - 3 gaps) / 4)`. A track can never be narrower than a quarter of the row,
- * so a fifth column cannot fit at any width — the grid tops out at 4 and lands 8 tiles as
- * **4 + 4**. Below ~1000px the 240px half of the `max()` takes over again and `auto-fit`
- * collapses to 3, then 2, then 1 exactly as before, so ADR-041's reasoning and the WCAG
- * 1.4.10 guarantee ("still collapses to one column under 320px") are both untouched in kind.
- * `min()` on the gap term keeps the subtraction correct at any `--space-4`.
+ * Verdict — Shared.jsx:106-160 (VerdictChoices, VerdictDialog) and ApplicationDetail.jsx's
+ * "Your verdict" panel (WI-0104). `VerdictForm`, `VerdictSection` and `VerdictDialog` are
+ * CONTRACT (ADR-060), so their look changes here only: the choices become cards through
+ * `:has(:checked)`, and the notes box matches the detail screen's.
  * ------------------------------------------------------------------------------------- */
-
-.statTiles {
-  display: grid;
-  /* At most 4 columns, never fewer than `auto-fit` would already have chosen. */
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(max(240px, (100% - 3 * var(--space-4)) / 4), 1fr)
-  );
+.verdictForm {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
+}
+
+.verdictForm .hint {
+  font-size: var(--text-sm);
+  color: var(--text-body);
+}
+
+.verdictForm .filterField {
+  flex: 1 1 auto;
+  width: auto; /* the notes field spans the form, as the kit's label does (Shared.jsx:149) */
+  max-width: none;
+}
+
+/* The radio group lays the three choices out as the kit's card grid. */
+.verdictForm :global(.fui-RadioGroup) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: var(--space-3);
+}
+
+/* Each choice (Fluent `Radio`, carrying `.tallTarget`) as a card. */
+.verdictForm .tallTarget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 14px 16px;
+  border-radius: var(--rv-radius-tile);
+  background: var(--grey-50);
+  border: 2px solid transparent;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.verdictForm .tallTarget:has(:checked) {
+  background: var(--white);
+  border-color: var(--pink-600);
+  box-shadow: 0 4px 14px rgba(43, 43, 43, 0.08);
+}
+
+.verdictForm .tallTarget:nth-child(3):has(:checked) {
+  border-color: var(--rev-color-secondary); /* Defer — Shared.jsx:107 VERDICT_TONES */
+}
+
+.verdictForm .tallTarget:nth-child(4):has(:checked) {
+  border-color: var(--ink-600); /* Reject */
+}
+
+/* Fluent colours the label from `input:enabled:not(:checked) ~ label` at (0,4,0); the doubled
+   class lifts this rule to (0,5,0) so ink-900 holds in every state, as in the kit. */
+.verdictForm.verdictForm .tallTarget :global(.fui-Radio__input) ~ :global(.fui-Radio__label) {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  font-weight: var(--weight-bold);
+  line-height: normal;
+  color: var(--ink-900);
+  cursor: pointer;
+}
+
+/* The kit's choice is a NATIVE 18px radio tinted with accent-color (Shared.jsx:115). Fluent
+   renders its own indicator over an invisible, absolutely-positioned input; here the input is
+   put back in the flow and shown, and Fluent's indicator is hidden. Selectors at (0,3,0) beat
+   Fluent's atomic (0,1,0) classes in any load order. */
+.verdictForm .tallTarget :global(.fui-Radio__input) {
+  position: static;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  opacity: 1;
+  cursor: pointer;
+  accent-color: var(--pink-600); /* Approve — Shared.jsx:107; a graphic, 4.49:1 > 3:1 */
+}
+
+.verdictForm .tallTarget:nth-child(3) :global(.fui-Radio__input) {
+  accent-color: var(--rev-color-secondary); /* Defer — #49345b */
+}
+
+.verdictForm .tallTarget:nth-child(4) :global(.fui-Radio__input) {
+  accent-color: var(--ink-600); /* Reject */
+}
+
+.verdictForm .tallTarget :global(.fui-Radio__input):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.verdictForm .tallTarget :global(.fui-Radio__indicator) {
+  display: none;
+}
+
+/* The kit's notes label: 15px, --text-heading (ink-900), 6px above its control
+   (Shared.jsx:149). "Your verdict" is the contract's required Field label and takes the same
+   treatment — DEVIATION (c), see Dev Summary §11. */
+.verdictForm :global(.fui-Field) {
+  row-gap: 6px;
+}
+
+.verdictForm :global(.fui-Field) :global(.fui-Field__label) {
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  line-height: normal;
+  color: var(--ink-900);
+}
+
+/* The kit's textarea is the bordered box itself, full width (Shared.jsx:151). Fluent's wrapper
+   is inline-flex with a 2px bottom padding for its focus underline; both reset. */
+.verdictForm :global(.fui-Textarea) {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  border-radius: 12px;
+  border: 1.5px solid var(--grey-200);
+  background: var(--grey-50);
+}
+
+/* rows={3} (Shared.jsx:151): three line boxes plus the 12px + 12px padding. The fixed 96px is the
+   fallback for a browser without the `lh` unit. */
+.verdictForm :global(.fui-Textarea__textarea) {
+  min-height: 96px;
+  min-height: calc(3lh + 24px);
+  padding: 12px 14px;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: normal;
+}
+
+/* Inside the dialog the verdict section's own "Your verdict" heading is not drawn: the kit's
+   dialog has one heading (Shared.jsx:146). The heading stays in the accessibility tree, since
+   VerdictSection (CONTRACT) labels its section with it. */
+:global(.fui-DialogSurface) .panelHeader {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.verdictActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
   margin: 0;
 }

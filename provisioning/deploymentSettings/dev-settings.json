@@ -20,9 +20,18 @@
     "states DEV confirmation is limited to those three. Do not invent one; the",
     "no-trustee-in-column-security-profile gate does not need it (REV Trustees is not, and",
     "must never be, a memberTeams entry of any columnSecurityProfile — that is the gate's",
-    "whole point). entraGroupObjectId values below are placeholder tokens in the same style",
-    "test/prd use, not resolved live ids — nothing in this repo has resolved DEV object ids",
-    "for these groups either.",
+    "whole point).",
+    "SUPERSEDED 2026-10-22 (reviewer, Xander Lykopoulos: 'there is a trustees team with linked",
+    "Entra ID group in DEV'): the paragraph above is kept as history. A read-only pac env fetch on",
+    "team (teamtype 2/3, outer join teamroles -> role) found REV-PP-GrantApplications-Trustees-DEV,",
+    "a Security Group team holding REV Trustee, so groupTeams now carries it with its live name and",
+    "Entra object id. Since SDD A-14 (portal TAD trustee-portal-design-2 ADR-084/ADR-085) a trustee",
+    "team may be a member of exactly ONE profile, REV_TrusteeFinancialEligibility (read only, three",
+    "columns), and the gate REQUIRES that membership in every file declaring a trustee team. It still",
+    "must never be a member of REV_TrusteeRestricted or REV_FinanceOnly.",
+    "entraGroupObjectId values below were resolved live on 2026-10-22 from",
+    "each team's azureactivedirectoryobjectid (read-only pac env fetch on REV-GrantApplications-DEV);",
+    "that is the id of the Entra group each Security Group team is bound to.",
     "",
     "memberTeams below (2026-09-15, IMP-0734) use the ACTUAL Dataverse group team names",
     "confirmed live in this dev org via `teams?$select=name` — the Power Platform",
@@ -36,30 +45,6 @@
 
   "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
 
-  "_unresolved": [
-    {
-      "path": "dataverse.groupTeams[0].entraGroupObjectId",
-      "owner": "Xander Lykopoulos",
-      "why": "The object id of the Entra security group backing the REV Admins group team in DEV. IMP-0734's live DEV lookup (2026-09-15) confirmed the Dataverse team NAME via `teams?$select=name`, but never resolved this group's Entra object id — no source in this repo has (see the _readme above). Resolve with GET /groups?$filter=displayName eq '<the Entra group backing REV-PP-GrantApplications-DEV>'&$select=id in a read-only Graph session. Never invented: a wrong group object id binds Dataverse security roles to the wrong set of people, which is a live access-control defect rather than a broken deploy (IMP-0011).",
-      "expires": "2026-10-16",
-      "expiry_rationale": "Four weeks, the same short lookup window test-settings.json used for its Entra id placeholders (IMP-0175) — DEV already exists and the team itself is already confirmed live, so only the object-id lookup remains."
-    },
-    {
-      "path": "dataverse.groupTeams[1].entraGroupObjectId",
-      "owner": "Xander Lykopoulos",
-      "why": "The object id of the Entra security group backing the REV Service Accounts group team in DEV. Same gap and same resolution path as groupTeams[0].entraGroupObjectId above, declared separately because binding both teams to one group would silently give service accounts the admin role set.",
-      "expires": "2026-10-16",
-      "expiry_rationale": "Four weeks — same as groupTeams[0]; one Graph session against DEV clears all three entries in this block."
-    },
-    {
-      "path": "dataverse.groupTeams[2].entraGroupObjectId",
-      "owner": "Xander Lykopoulos",
-      "why": "The object id of the Entra security group backing the REV Finance group team in DEV (wbs:8.2). Same gap and same resolution path as groupTeams[0].entraGroupObjectId above; the Finance team name itself carries the confirmed leading space (see the _readme above), but its Entra object id is unresolved in every source this repo has.",
-      "expires": "2026-10-16",
-      "expiry_rationale": "Four weeks — same as groupTeams[0]; one Graph session against DEV clears all three entries in this block."
-    }
-  ],
-
   "auth": {
     "appIdEnvVar": "PROVISION_APP_ID",
     "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
@@ -71,8 +56,8 @@
     "groupTeams": [
       {
         "name": "REV-PP-GrantApplications-DEV",
-        "_comment": "Live DEV Dataverse team name confirmed 2026-09-15 (IMP-0734) via teams?$select=name — backs the 'REV Admins' persona (architecture/test/prd shorthand 'REV Admins'). entraGroupObjectId is a placeholder token, same style as test/prd; not resolved live.",
-        "entraGroupObjectId": "{{ENTRA_GROUP_ADMINS_DEV_OBJECT_ID}}",
+        "_comment": "Live DEV Dataverse team name confirmed 2026-09-15 (IMP-0734) via teams?$select=name — backs the 'REV Admins' persona (architecture/test/prd shorthand 'REV Admins'). entraGroupObjectId resolved live 2026-10-22 from the Dataverse team's own azureactivedirectoryobjectid (pac env fetch, read-only).",
+        "entraGroupObjectId": "1e44ebd6-ad47-4904-9e6b-e1ae917eb359",
         "securityRoles": [
           "REV Admin"
         ]
@@ -80,17 +65,25 @@
       {
         "name": "REV-PP-GrantApplications-Service-DEV",
         "_comment": "Live DEV Dataverse team name confirmed 2026-09-15 (IMP-0734) — backs the 'REV Service Accounts' persona.",
-        "entraGroupObjectId": "{{ENTRA_GROUP_SERVICEACCOUNTS_DEV_OBJECT_ID}}",
+        "entraGroupObjectId": "c5f25889-346e-4d6c-ab15-7d97b77f244e",
         "securityRoles": [
           "REV Service Automation"
         ]
       },
       {
-        "name": " REV-PP-GrantApplications-Finance-DEV",
+        "name": "REV-PP-GrantApplications-Finance-DEV",
         "_comment": "Live DEV Dataverse team name confirmed 2026-09-15 (IMP-0734) — backs the 'REV Finance' persona (wbs:8.2). Carries a LEADING SPACE, confirmed live via the Dataverse Web API, reproduced deliberately because lookups are exact-match.",
-        "entraGroupObjectId": "{{ENTRA_GROUP_FINANCE_DEV_OBJECT_ID}}",
+        "entraGroupObjectId": "a4bb1b01-7a36-4b9c-ad3a-d64fb3404442",
         "securityRoles": [
           "REV Finance"
+        ]
+      },
+      {
+        "name": "REV-PP-GrantApplications-Trustees-DEV",
+        "_comment": "Live DEV Dataverse team read 2026-10-22 (pac env fetch on team, teamtype Security Group, outer join teamroles -> role; exact-name lookup returned teamid adf27ed8-fc9d-f111-b8de-7ced8d43e87d) — backs the 'REV Trustees' persona. The reviewer confirmed the team exists (2026-10-22), superseding the earlier 'There is no trustees team for DEV.' Name and object id copied from the live read, never guessed (IMP-0734).",
+        "entraGroupObjectId": "8842eb3f-748f-49fa-8bbb-084d428a2d2f",
+        "securityRoles": [
+          "REV Trustee"
         ]
       }
     ],
@@ -108,7 +101,14 @@
         "_comment": "The profile ships in the managed solution; only its membership is provisioned. REV Service Accounts and, as of wbs:8.2 (2026-09-13), REV Finance are the only members — REV Admins remains deliberately excluded: the Admin role holds no table privilege on rev_bankaccount/rev_payment at all (TAD §6.2, NFR-002 separation of duties), so it must not be a profile member either, or a role misconfiguration would leak finance data through this profile as a second path. TAD §6.2.1 deliverable #5. Team names below are this dev org's actual live names (IMP-0734) — the Finance one carries a leading space, confirmed live via the Dataverse Web API, not a typo introduced here.",
         "memberTeams": [
           "REV-PP-GrantApplications-Service-DEV",
-          " REV-PP-GrantApplications-Finance-DEV"
+          "REV-PP-GrantApplications-Finance-DEV"
+        ]
+      },
+      {
+        "name": "REV_TrusteeFinancialEligibility",
+        "_comment": "Portal TAD trustee-portal-design-2 Revision 4, ADR-084 (SDD A-14, FR-114, FR-115). Releases rev_receivesbenefits, rev_benefitprovider and rev_employmentstatus to trustees, READ ONLY. Its only member is the trustee group team, here DEV's live REV-PP-GrantApplications-Trustees-DEV. This is the ONLY profile a trustee-role team may be a member of, and only while it stays read-only and matches the special-category register's trustee_release rows (scripts/verify-column-security-membership.py, G1). Never add the trustee team to REV_TrusteeRestricted.",
+        "memberTeams": [
+          "REV-PP-GrantApplications-Trustees-DEV"
         ]
       }
     ]

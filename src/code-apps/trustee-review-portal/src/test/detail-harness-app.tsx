@@ -61,6 +61,10 @@ function fixture(released: boolean, id: string): ApplicationDetail {
     supportRecipientConditionProfile: [2, 10], // and A3b
     helperDeclarationConsent: null,
     helperDeclarationConsentDate: null,
+    // SDD A-14 (portal TAD §14.2) — released read-only to trustees.
+    receivesBenefits: true,
+    benefitProvider: "Department for Work and Pensions\nUniversal Credit",
+    employmentStatus: 3,
     redactedUnableToFundExplanation: LONG,
     redactedOtherCondition: LONG,
     redactedSupportRecipientOtherCondition: LONG,

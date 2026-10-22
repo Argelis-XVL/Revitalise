@@ -147,12 +147,30 @@ export interface ApplicationDetail extends ApplicationSummary {
    *     `redactionReleased` — see `financialFreeTextState`/`conditionFreeTextState` in
    *     `domain/visibility.ts`, the same three-state pattern `careSupportState` already
    *     uses for the three above.
-   * The eleven secured "Group B" columns (benefit status, employment status, and the
-   * helper/referee/emergency-contact identity columns) are DELIBERATELY ABSENT from this
-   * interface and from every query in this app — ADR-032. Their restricted state comes
-   * from the build-derived field catalogue (`domain/fieldCatalogue.ts`), never a fetched
-   * column, so there is no field here for them to occupy.
+   * The secured "Group B" helper/referee/emergency-contact identity columns are DELIBERATELY
+   * ABSENT from this interface and from every query in this app — ADR-032. Their restricted
+   * state comes from the build-derived field catalogue (`domain/fieldCatalogue.ts`), never a
+   * fetched column, so there is no field here for them to occupy.
+   *
+   * SDD A-14 (portal TAD trustee-portal-design-2 Revision 4, ADR-084/ADR-085): three Group B
+   * answers — benefit status, benefit provider, employment status — are released read-only to
+   * trustees by REV_TrusteeFinancialEligibility and are read below (`receivesBenefits`,
+   * `benefitProvider`, `employmentStatus`). They stay secured; a principal no profile releases
+   * them to gets null, rendered as "Not recorded" (A-TR-18).
    * ----------------------------------------------------------------------------------- */
+
+  /**
+   * rev_receivesbenefits — Art. 9 tier, secured, released read-only to trustees (FR-114).
+   * Tri-state: `null` = not answered, or not readable by this principal.
+   */
+  receivesBenefits: boolean | null;
+  /**
+   * rev_benefitprovider — secured, released read-only to trustees and shown AS WRITTEN, with no
+   * redacted copy and NOT gated by `redactionReleased` (FR-115, OQ-062 (b)).
+   */
+  benefitProvider: string | null;
+  /** rev_employmentstatus — secured choice, released read-only to trustees (FR-114). */
+  employmentStatus: number | null;
 
   /** rev_incomeband — Personal (Art. 6), unconditional. */
   incomeBand: number | null;
@@ -246,6 +264,12 @@ export type WellbeingAnswers = Readonly<Record<WellbeingQuestionNumber, number |
 export interface ReviewRow {
   /** rev_reviewid */
   id: string;
+  /**
+   * _rev_applicationid_value — the application this review belongs to (already in
+   * `REVIEW_COLUMNS`). Read so one list-wide review read can be split back per application
+   * (portal TAD trustee-portal-design-2 ADR-086 point 1); `currentReviewFor` matches on it.
+   */
+  applicationId: string | null;
   reference: string | null;
   /** rev_round */
   round: string | null;
@@ -671,8 +695,12 @@ export interface SaveVerdictInput {
   reviewId: string;
   slot: VerdictSlot;
   verdict: number;
-  /** Optional per FR-037. Empty string clears the notes. */
-  notes: string;
+  /**
+   * Optional per FR-037. Empty string clears the notes. ABSENT (`undefined`) leaves the stored
+   * notes untouched: the update names only the verdict column (portal TAD ADR-087 point 6, a
+   * group Approve with no note; A-TR-20). The single verdict dialog always sends notes.
+   */
+  notes?: string;
 }
 
 /** The whole data surface of this app. Everything above `src/dataverse/` uses this. */
@@ -685,6 +713,13 @@ export interface TrusteeRepository {
   getApplication(applicationId: string): Promise<ApplicationDetail | null>;
   /** `null` when no review row exists for the application — a first-class state. */
   getReviewForApplication(applicationId: string): Promise<ReviewRow | null>;
+  /**
+   * Every review row for these applications, in one read per chunk of
+   * `REVIEW_INDEX_CHUNK_SIZE` ids (portal TAD ADR-086 point 1; A-TR-19). Unordered: choose the
+   * review per application with `currentReviewFor`, the same function the dialog's read uses.
+   * Rejects when a read fails or a chunk is truncated — a partial index cannot be counted.
+   */
+  listReviewsForApplications(applicationIds: readonly string[]): Promise<ReviewRow[]>;
   saveVerdict(input: SaveVerdictInput): Promise<void>;
   getCurrentUser(): Promise<CurrentUser>;
   /**

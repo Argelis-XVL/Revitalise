@@ -1,0 +1,43 @@
+{
+  "_fixture": "CONTROL: correct membership; with release/profiles-read-only.xml and release/register.yml the gate must exit 0. Asserted by src/tests/build/BuildGates.Tests.ps1. Never copy into provisioning/deploymentSettings/.",
+  "dataverse": {
+    "groupTeams": [
+      {
+        "name": "REV Admins",
+        "entraGroupObjectId": "00000000-0000-0000-0000-000000000001",
+        "securityRoles": [
+          "REV Admin"
+        ]
+      },
+      {
+        "name": "REV Service Accounts",
+        "entraGroupObjectId": "00000000-0000-0000-0000-000000000002",
+        "securityRoles": [
+          "REV Service Automation"
+        ]
+      },
+      {
+        "name": "REV Trustees",
+        "entraGroupObjectId": "00000000-0000-0000-0000-000000000003",
+        "securityRoles": [
+          "REV Trustee"
+        ]
+      }
+    ],
+    "columnSecurityProfiles": [
+      {
+        "name": "REV_TrusteeRestricted",
+        "memberTeams": [
+          "REV Admins",
+          "REV Service Accounts"
+        ]
+      },
+      {
+        "name": "REV_TrusteeFinancialEligibility",
+        "memberTeams": [
+          "REV Trustees"
+        ]
+      }
+    ]
+  }
+}

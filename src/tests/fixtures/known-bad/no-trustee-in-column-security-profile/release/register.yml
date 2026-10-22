@@ -1,0 +1,18 @@
+# Fixture register for no-trustee-in-column-security-profile (G1). Same shape as
+# constraints/domain/special-category-register.yml, three rows carrying trustee_release.
+columns:
+  - name: rev_narrativeraw
+    entity: rev_application
+    secured: required
+  - name: rev_receivesbenefits
+    entity: rev_application
+    secured: required
+    trustee_release: {basis: "fixture", decided: "fixture"}
+  - name: rev_benefitprovider
+    entity: rev_application
+    secured: required
+    trustee_release: {basis: "fixture", decided: "fixture"}
+  - name: rev_employmentstatus
+    entity: rev_application
+    secured: required
+    trustee_release: {basis: "fixture", decided: "fixture"}

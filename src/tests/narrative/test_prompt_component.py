@@ -7,14 +7,11 @@ is still in the solution and no longer called. Its tests stand, as a check on th
 run-action test checks the rewrite action against the one designer-saved run action this tenant has
 (fixtures/run-a-prompt-action.json), for host, parameter shape and answer path.
 
-REV 30 (Iteration 14, 2026-10-21, ADR-082). ONE prompt now rewrites and corrects spelling, so the flow calls the
-rewrite prompt only. The spelling component stays in the solution, uncalled, until the reviewer deletes it in DEV
-(its root-component entry goes in the same commit), so its export is still checked here. The rewrite template of
-rev 30 is in the prompt document section 1 and is APPLIED IN DEV BY THE REVIEWER AFTER the new flow is deployed (R1d),
-so until the component is re-exported, Other/Customizations.xml still holds the rev 23 template. Two tests carry that
-state: the export is compared with the rev 23 text the document keeps in section 1.2, and the rev 30 text is proved to
-be that text plus exactly the spelling changes of ADR-082 item 5. When R1d is done and the export refreshed, a later
-dispatch moves the export comparison to section 1.
+REV 30 (Iteration 14, 2026-10-21, ADR-082), finished 2026-10-22. ONE prompt rewrites and corrects spelling, so the flow
+calls the rewrite prompt only. The reviewer applied the rev 30 template in DEV (R1d), the component was re-exported
+from DEV (2026-10-22) and copied into Other/Customizations.xml as exported, and REV Narrative Spelling Prompt was removed
+from the solution source (Customizations.xml and its root component in Solution.xml). The export is therefore compared
+with the prompt document's section 1, the rev 30 template.
 
 Run:  python3 -m unittest discover -s src/tests/narrative -p 'test_*.py' -v
 Also run by NarrativeRedaction.Tests.ps1 inside the HARD `unit-tests` build step.
@@ -57,8 +54,8 @@ def ai_models() -> list[str]:
 
 
 DETECTOR = "REV Narrative Redaction Prompt"      # rev 20, no longer called; kept until the reviewer decides
-REWRITE = "REV Narrative Rewrite Prompt"         # rev 23 template (R1b), exported 2026-10-16
-SPELLING = "REV Narrative Spelling Prompt"       # rev 22 template, exported 2026-10-16
+REWRITE = "REV Narrative Rewrite Prompt"         # rev 30 template (R1d), exported from DEV 2026-10-22
+RETIRED_SPELLING_ID = "763cff31-d653-416b-a52f-7e6f400bce21"   # REV Narrative Spelling Prompt, removed from source (ADR-082)
 
 
 def model(name: str = DETECTOR) -> str:
@@ -93,9 +90,7 @@ def documented_template(heading: str = r"### A1\. The rev 20 detector template")
     return re.search(heading + r".*?```text\n(.*?)\n```", PROMPT_DOC, re.S).group(1)
 
 
-REWRITE_REV30 = r"## 1\. The rewrite prompt"           # the template the reviewer applies in DEV (R1d)
-REWRITE_REV23 = r"### 1\.2 The rev 23 template"         # the template Customizations.xml exports until R1d is re-exported
-SPELLING_DOC = r"## 2\. The spelling prompt"            # retired by ADR-082, kept until the component is deleted in DEV
+REWRITE_REV30 = r"## 1\. The rewrite prompt"           # the template applied in DEV (R1d) and exported 2026-10-22
 
 
 def run_actions() -> dict:
@@ -112,11 +107,11 @@ NEW_PROMPTS = {  # run action -> (answer Compose, documented section, input name
 
 class TheComponent(unittest.TestCase):
 
-    def test_three_ai_models_each_a_declared_root_component(self):
-        self.assertEqual(len(ai_models()), 3)
-        for name in (DETECTOR, REWRITE, SPELLING):
+    def test_two_ai_models_each_a_declared_root_component(self):
+        self.assertEqual(len(ai_models()), 2)
+        for name in (DETECTOR, REWRITE):
             self.assertIn(f'<RootComponent type="401" id="{{{model_id(name)}}}" behavior="0" />', MANIFEST, name)
-        self.assertEqual(MANIFEST.count('<RootComponent type="401"'), 3)
+        self.assertEqual(MANIFEST.count('<RootComponent type="401"'), 2)
 
     def test_it_is_the_redaction_prompt_on_the_prompt_template(self):
         m = model(DETECTOR)
@@ -177,10 +172,12 @@ class TheFlowsRunActions(unittest.TestCase):
             self.assertEqual(set(act["inputs"]["parameters"]), {"recordId"} | {f"item/requestv2/{n}" for n in inputs})
             self.assertEqual(act["inputs"]["parameters"]["recordId"], model_id(REWRITE))
 
-    def test_the_spelling_prompt_is_no_longer_called(self):
-        """ADR-082 item 4: the component is still in the solution (the reviewer deletes it in DEV, then its source reference
-        goes in the same commit) but nothing calls it."""
-        self.assertNotIn(model_id(SPELLING), json.dumps(FLOW))
+    def test_the_spelling_prompt_is_gone_from_the_solution_and_not_called(self):
+        """ADR-082 item 4: the component and its root-component entry are removed from source (2026-10-22)."""
+        self.assertNotIn(RETIRED_SPELLING_ID, CUSTOMIZATIONS)
+        self.assertNotIn(RETIRED_SPELLING_ID, MANIFEST)
+        self.assertNotIn("REV Narrative Spelling Prompt", CUSTOMIZATIONS)
+        self.assertNotIn(RETIRED_SPELLING_ID, json.dumps(FLOW))
         self.assertNotIn("Run_the_spelling_prompt", json.dumps(FLOW))
 
     def test_each_template_declares_exactly_the_inputs_its_action_passes(self):
@@ -210,79 +207,46 @@ class TheFlowsRunActions(unittest.TestCase):
                     self.assertNotIn("RedactionPromptStage", p.read_text(encoding="utf-8", errors="ignore"), str(p))
 
 
-class TheTwoNewComponents(unittest.TestCase):
-    """A-NS-31, closed by the DEV export of 2026-10-16 (after R1b): both components copied from it exactly,
-    and checked here against the prompt document and the flow that calls them."""
-    PROMPTS = {REWRITE: ("Run_the_rewrite_prompt", REWRITE_REV23,
-                         {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}),
-               SPELLING: (None, SPELLING_DOC, {"Text"})}      # None: no run action any more (ADR-082)
+class TheRewriteComponent(unittest.TestCase):
+    """A-NS-31, closed by the DEV export of 2026-10-16 and refreshed from the DEV export of 2026-10-22 (after R1d):
+    the component is copied from the export exactly, and checked here against the prompt document and the flow."""
+    ACTION, INPUTS_ = "Run_the_rewrite_prompt", {"Narrative", "NeutralTerms", "Titles", "NameRules", "Labels"}
 
     def test_the_run_specification_declares_the_inputs_the_flow_passes_and_text_and_finish_reason(self):
-        for name, (action, _, inputs) in self.PROMPTS.items():
-            with self.subTest(name):
-                spec = active_configuration(name)["runspec"]
-                required = {k for k, v in spec["InputRootEntity"]["Attributes"].items() if not v.get("Optional")}
-                self.assertEqual(required, inputs)
-                self.assertEqual(set(spec["OutputRootEntity"]["Attributes"]), {"text", "finishReason"})
-                if action is None:
-                    continue
-                passed = {k.split("/", 2)[2] for k in run_actions()[action]["inputs"]["parameters"] if k.startswith("item/requestv2/")}
-                self.assertEqual(passed, inputs)
+        spec = active_configuration(REWRITE)["runspec"]
+        required = {k for k, v in spec["InputRootEntity"]["Attributes"].items() if not v.get("Optional")}
+        self.assertEqual(required, self.INPUTS_)
+        self.assertEqual(set(spec["OutputRootEntity"]["Attributes"]), {"text", "finishReason"})
+        passed = {k.split("/", 2)[2] for k in run_actions()[self.ACTION]["inputs"]["parameters"] if k.startswith("item/requestv2/")}
+        self.assertEqual(passed, self.INPUTS_)
 
     def test_model_settings_as_the_prompt_document_asks(self):
-        for name in self.PROMPTS:
-            with self.subTest(name):
-                custom = active_configuration(name)["custom"]
-                self.assertEqual(custom["modelParameters"], {"modelType": "gpt-41-mini", "gptParameters": {"temperature": 0}})
-                self.assertEqual(custom["definitions"]["output"], {"formats": ["text"]})
-                self.assertEqual(custom["settings"].get("contentModerationLevel"), "Low")
-                self.assertEqual(custom["version"], "GptDynamicPrompt-2")
+        custom = active_configuration(REWRITE)["custom"]
+        self.assertEqual(custom["modelParameters"], {"modelType": "gpt-41-mini", "gptParameters": {"temperature": 0}})
+        self.assertEqual(custom["definitions"]["output"], {"formats": ["text"]})
+        self.assertEqual(custom["settings"].get("contentModerationLevel"), "Low")
+        self.assertEqual(custom["version"], "GptDynamicPrompt-2")
 
-    def test_the_exported_template_is_the_documented_one_and_the_drift_is_exactly_the_known_drift(self):
-        """The reviewer typed both templates by hand (R1, R1b). The wording is identical to sections 1 and 2;
-        the only differences are the prompt builder's: a space each side of every input token, and one
-        newline at the end. Any other difference is new drift and must be reviewed, not absorbed."""
-        for name, (_, heading, inputs) in self.PROMPTS.items():
-            with self.subTest(name):
-                doc = documented_template(heading)
-                for t in inputs:
-                    doc = doc.replace("{" + t + "}", " {" + t + "} ")
-                self.assertEqual(exported_template(active_configuration(name)["custom"]), doc + "\n")
-
-    def test_the_rev30_template_is_the_exported_one_plus_exactly_the_spelling_changes(self):
-        """ADR-082 item 5. The text the reviewer pastes (section 1) is derived from the text now in DEV (section 1.2) by
-        three edits and nothing else: a Spelling paragraph before the lists, the two closing sentences saying 'apart from
-        the spelling corrections you list' (and no longer 'do not correct spelling'), and the reply form with the
-        delimiter. Any other difference is new drift."""
-        old, new = documented_template(REWRITE_REV23), documented_template(REWRITE_REV30)
-        spelling = ("Spelling. Before applying any rule, correct each word of the text that is misspelt or mistyped. Correct a "
-                    "word only if it starts with a lower-case letter and the correct word starts with the same letter and "
-                    "has the same number of letters give or take two. Never change a word that starts with a capital "
-                    "letter, a label in square brackets, a number, a name of a condition, a medicine or a treatment. Then "
-                    "apply the lists below to the corrected text.\n\n")
-        derived = old.replace("Apply these four lists of rules, and nothing else.", spelling
-                              + "Apply these four lists of rules, and nothing else.", 1)
-        derived = derived.replace("Use only words that are in the text or in the lists above. Correct only",
-                                  "Use only words that are in the text or in the lists above, apart from the spelling "
-                                  "corrections you list. Correct only", 1)
-        derived = derived.replace("Change nothing else: do not add, remove, reorder or reword anything, do not correct spelling, do not add\n"
-                                  "punctuation,", "Change nothing else, apart from the spelling corrections you list: do not add, remove, reorder or reword\n"
-                                  "anything, do not add punctuation,", 1)
-        # IMP-1202: DEV already holds this sentence (reviewer-applied, confirmed on application 1086); the third edit's tail
-        # is extended so the model keeps full stops. The allowed difference now includes exactly this sentence.
-        derived = derived.replace("anything, do not add punctuation, and do not change",
-                                  "anything; keep every punctuation mark exactly where it is, including the full stop at the end "
-                                  "of every sentence and after a label; do not add punctuation; and do not change", 1)
-        derived = derived.replace("Reply with the rewritten text only, with no explanation, quotation marks or code fences.",
-                                  "Reply with the rewritten text only, with no explanation, quotation marks or code fences. If you "
-                                  "corrected any word, add a line ###CORRECTIONS###, and under it one line per corrected word, "
-                                  "misspelt=>corrected, in lower case, nothing else.", 1)
+    def test_the_exported_template_is_the_documented_rev30_one_and_the_drift_is_exactly_the_known_drift(self):
+        """The reviewer typed the template by hand (R1d). The wording is identical to section 1; the only differences are
+        whitespace: the prompt builder's space each side of every input token, line breaks the maker editor does not keep
+        where the document wraps, and one newline at the end. Any change of a word is new drift and must be reviewed."""
+        doc = documented_template(REWRITE_REV30)
         norm = lambda t: re.sub(r"\s+", " ", t).strip()  # noqa: E731
-        self.assertEqual(norm(new), norm(derived))
-        self.assertNotIn("do not correct spelling", new)
-        self.assertIn("###CORRECTIONS###", new)
-        self.assertIn("including the full stop at the end of every sentence and after a label", norm(new))
-        self.assertEqual(set(re.findall(r"\{([A-Za-z]+)\}", new)), set(re.findall(r"\{([A-Za-z]+)\}", old)))   # no new input
+        self.assertEqual(norm(exported_template(active_configuration(REWRITE)["custom"])), norm(doc))
+
+    def test_the_rev30_template_has_the_spelling_changes_and_every_closing_clause(self):
+        """ADR-082 item 5 and IMP-1202, in the template DEV holds. The label-protection clause was missing from the first
+        R1d paste (IMP-1209); it is pinned here so a truncated paste fails instead of shipping."""
+        new = exported_template(active_configuration(REWRITE)["custom"])
+        norm = lambda t: re.sub(r"\s+", " ", t).strip()  # noqa: E731
+        n = norm(new)
+        self.assertNotIn("do not correct spelling", n)
+        self.assertIn("###CORRECTIONS###", n)
+        self.assertIn("apart from the spelling corrections you list", n)
+        self.assertIn("including the full stop at the end of every sentence and after a label", n)
+        self.assertIn("and do not change any label in square brackets except as the name rules say.", n)
+        self.assertEqual(set(re.findall(r"\{([A-Za-z]+)\}", new)), self.INPUTS_)
 
     def test_the_rewrite_prompt_has_no_extra_terms_input_any_more(self):
         custom = active_configuration(REWRITE)["custom"]
