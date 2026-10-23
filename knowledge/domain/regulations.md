@@ -27,10 +27,12 @@ Key obligations for this platform:
 - **Art. 5(2) accountability** — native field-change auditing of every create/update/delete on a
   record holding personal data, with before/after values (SDD NFR-014).
 - **Art. 15 right of access** — a complete extract for a named individual must be producible
-  (SDD FR-053). ⚠️ **No mechanism exists yet, and no response-time SLA is recorded anywhere**
-  (SDD OQ-023, C-DOM-005, TAD risk A-R22). Accepted as a known gap at the architecture gate.
-- **Art. 17 right to erasure** — on-demand erasure across the Dataverse tables and every linked
-  copy: the signed-PDF library, DocuSign envelopes and QuickBooks. Includes referees, helpers,
+  (SDD FR-053). Designed in TAD rev 33 (`ADR-088`): helper mode 3, started by the process owner,
+  produces one extract covering every store, payments, bank details and QuickBooks included. Not
+  built yet (CO-011, `wbs:0.13`). ⚠️ No response-time SLA is recorded anywhere (SDD OQ-023).
+- **Art. 17 right to erasure** — on-demand erasure across the Dataverse tables, the signed-PDF
+  library and DocuSign envelopes. QuickBooks is located and disclosed, never erased by this
+  solution; Finance deletes the record after six years (`ADR-088`). Includes referees, helpers,
   group members and emergency contacts captured with the application (SDD FR-051).
   Legal-hold carve-outs are honoured and **reported to the requester** (FR-052).
 - **Art. 32 security** — least-privilege roles, column security, separation of duties, TLS 1.2+

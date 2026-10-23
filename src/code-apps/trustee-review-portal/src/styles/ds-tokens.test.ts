@@ -685,7 +685,7 @@ describe("ADR-034 — the design system stays outside src/", () => {
 
 describe("verdict tones — SDD A-14, FR-116 (portal TAD trustee-portal-design-2 ADR-086 point 5)", () => {
   const VERDICTS = ["approved", "deferred", "rejected"] as const;
-  const STATES = ["", "-hover", "-active"] as const;
+  const STATES = ["", "-end", "-hover-end"] as const;
 
   it("passes normal-text contrast with the verdict text colour on every verdict fill and state", () => {
     for (const verdict of VERDICTS) {
@@ -697,9 +697,9 @@ describe("verdict tones — SDD A-14, FR-116 (portal TAD trustee-portal-design-2
   });
 
   it("keeps each rest fill at the measured value the TAD records", () => {
-    expect(contrast(WHITE, resolve("--verdict-approved"))).toBe(5.96);
-    expect(contrast(WHITE, resolve("--verdict-deferred"))).toBe(6.16);
-    expect(contrast(WHITE, resolve("--verdict-rejected"))).toBe(10.91);
+    expect(contrast(WHITE, resolve("--verdict-approved"))).toBe(4.75);
+    expect(contrast(WHITE, resolve("--verdict-deferred"))).toBe(6.5);
+    expect(contrast(WHITE, resolve("--verdict-rejected"))).toBe(4.54);
   });
 
   it("keeps every fill at least 3:1 against the white page, so the button's boundary is visible (WCAG 1.4.11)", () => {
@@ -710,13 +710,13 @@ describe("verdict tones — SDD A-14, FR-116 (portal TAD trustee-portal-design-2
     }
   });
 
-  it("darkens on hover and again on active, never lightens", () => {
+  it("darkens top to bottom, and again on hover, never lightens", () => {
     for (const verdict of VERDICTS) {
-      const rest = contrast(WHITE, resolve(`--verdict-${verdict}`));
-      const hover = contrast(WHITE, resolve(`--verdict-${verdict}-hover`));
-      const active = contrast(WHITE, resolve(`--verdict-${verdict}-active`));
-      expect(hover, verdict).toBeGreaterThan(rest);
-      expect(active, verdict).toBeGreaterThan(hover);
+      const top = contrast(WHITE, resolve(`--verdict-${verdict}`));
+      const bottom = contrast(WHITE, resolve(`--verdict-${verdict}-end`));
+      const hoverBottom = contrast(WHITE, resolve(`--verdict-${verdict}-hover-end`));
+      expect(bottom, verdict).toBeGreaterThan(top);
+      expect(hoverBottom, verdict).toBeGreaterThan(bottom);
     }
   });
 

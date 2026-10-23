@@ -16,6 +16,10 @@ BeforeAll {
     New-FakeModuleTree -Path (Join-Path ([IO.Path]::GetTempPath()) "revfakes-entra-$([guid]::NewGuid())")
     $script:FixturePath = New-SettingsFixture -Env acc
 
+    # Dot-source common here so Mock Get-ProvisioningCertificate can resolve the command
+    # when this file runs alone (IMP-1235).
+    . (Join-Path (Get-RepoRoot) 'provisioning' 'common' 'provisioning-common.ps1')
+
     $env:PROVISION_APP_ID          = 'provisioning-app-id'
     $env:PROVISION_CERT_THUMBPRINT = 'PROVTHUMB'
 

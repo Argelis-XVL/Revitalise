@@ -397,3 +397,23 @@ The auth triplet and the `Get-DataverseAccessToken -Auth <object> -EnvironmentUr
 `AppId` and `CertThumbprint` — not three separate string parameters. The environment URL comes from
 `provisioning/deploymentSettings/dev-schema-settings.json`, never from a literal in a script
 (`C-TECH-047`).
+
+## Querying and writing a live DEV from a test session
+
+*Recorded 2026-10-22 (`IMP-1220`, `IMP-1231`, `IMP-1232`), each measured against DEV.*
+
+- **`pac env fetch --xml` takes single-quoted attributes.** With double quotes pac 2.4.1 on macOS
+  failed every query with *XmlException "'\' is an unexpected token"*; single quotes ran. The
+  cause (the shim re-escaping quotes) is inferred, not proven; `--xmlFile` avoids it.
+  `olderthan-x-days` refuses 0.
+- **A hand-built Web API `QueryExpression` types every condition value.** `BulkDelete` dropped bare
+  JSON numbers (*"requires 1 value/s, not 0"*) and accepted
+  `{"@odata.type": "Microsoft.Dynamics.CRM.Object", "Type": "System.Int32", "Value": "30"}`.
+  `bulkdeleteoperation` has no `recurrencepattern` (0x80060888); read it through
+  `$expand=asyncoperationid`. A fake that accepts any body pinned both defects for two months:
+  send a hand-built body to a live org once before trusting the fake.
+- **Synthetic rows fire live flows unless the callback header is sent.**
+  `MSCRM.BypassBusinessLogicExecution: CustomSync,CustomAsync` did not stop Dataverse-connector
+  triggers; `MSCRM.SuppressCallbackRegistrationExpanderJob: true` on every create, update and
+  delete did. Mark each synthetic row by name, count `flowrun` rows before and after, and delete
+  by the marker.

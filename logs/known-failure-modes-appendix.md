@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1234 entries)
+Source: `logs/improvement-log.jsonl` (1237 entries)
 Generated: 2026-10-22
 
 ## What this file is, and who reads it
@@ -48,7 +48,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`agent-instructions-describe-a-topology-that-changed`** (×9): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757, IMP-1129
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
-- **`finding-premise-fails-re-measurement`** (×8): IMP-0632, IMP-0869, IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952, IMP-1206
+- **`finding-premise-fails-re-measurement`** (×9): IMP-0632, IMP-0869, IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952, IMP-1206, IMP-1239
 - **`human-correction-of-agent-output`** (×8): IMP-1031, IMP-1213, IMP-1216, IMP-1217, IMP-1221, IMP-1228, IMP-1233, IMP-1234
 - **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
 - **`gate-fired`** (×7): IMP-1072, IMP-1074, IMP-1079, IMP-1081, IMP-1082, IMP-1169, IMP-1188
@@ -76,10 +76,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-1235 · `two-invocation-paths-disagree`</sub>
 - A deploy-time tool that fails on a new component type gets fixed after the first workaround, not after the fourth: the workaround hides the defect from every gate.  
   <sub>IMP-1194 · `gate-scope-mismatch`</sub>
-- Put the app id after the dash, never inside the parenthesis; run verify-post-deploy-completeness --pending right after the last marker, not only before the stage line. IMP-1178 recurred unfixed.  
-  <sub>IMP-1181 · `gate-scope-mismatch`</sub>
-- A tool that globs a directory of one component type must skip or classify a second type arriving in the same directory, and the fixture set must include it.  
-  <sub>IMP-1178 · `gate-scope-mismatch`</sub>
 - A live-definition DIFFERS after a deploy may be source drift past the build, not a deploy defect: diff the artifact's flow json against src before reading it as one. Live 11/11 matched the artifact's flow json.  
   <sub>IMP-1155 · `gate-scope-mismatch`</sub>
 - When a knowledge file records a platform function that throws, the same change adds that throw to the WDL test evaluator; and never strip a character from a value that can be empty with substring(): use join(skip(split(x, sep), 1), sep).  
@@ -116,6 +112,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0152 · `gate-cannot-fail`</sub>
 - A targeted push still starts from a build: run a change-scoped build for the fix, then cut the single component from that artifact with scripts/scoped-repack.py; never pack the carrier from source.  
   <sub>IMP-1204 · `gate-scope-mismatch`</sub>
+- Put the app id after the dash, never inside the parenthesis; run verify-post-deploy-completeness --pending right after the last marker, not only before the stage line. IMP-1178 recurred unfixed.  
+  <sub>IMP-1181 · `gate-scope-mismatch`</sub>
+- A tool that globs a directory of one component type must skip or classify a second type arriving in the same directory, and the fixture set must include it.  
+  <sub>IMP-1178 · `gate-scope-mismatch`</sub>
 - A change-order id extractor must accept the id followed by prose in the same cell, or the change-order template must forbid prose there; and the fixture set must include both shapes.  
   <sub>IMP-1177 · `gate-scope-mismatch`</sub>
 - A dated deferral whose clearing decision (change order) is not yet taken will expire again; either record the commercial decision or extend with a warning visible at dispatch  
@@ -360,8 +360,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0006 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
-- Before authoring a NEW field security profile, plan the live ensure-schema run and the id read-back as the first build prerequisite: pac solution pack refuses a profile element with no fieldsecurityprofileid, so no build can run between authoring and read-back.  
-  <sub>IMP-1222 · `platform-fact-groundtruthed`</sub>
 - Before dispatching a deploy, check routing/dev logs for defect fixes approved after the artifact's pack time in the same solution; a Compose's secureData cannot be changed in the designer (no Secure outputs toggle, code view read-only) — only a re-import fixes it.  
   <sub>IMP-1159 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Recurrence schedule keys are frequency-bound: weekDays only with Week; hours and minutes only with Day or Week (documented). Turn a Recurrence-triggered flow on after its first import before calling it deployed.  
@@ -428,6 +426,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0255 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A table's OwnershipType determines which privileges Dataverse will ever create for it: OrganizationOwned tables get no Assign/Share privilege at all, full stop. Before writing or copying a role's privilege block for a custom table, check that table's own OwnershipType first (rev_anonymisedstatistic in this same solution is the worked correct example). Separately: ensure-schema.ps1's "privilege does not exist" error message assumes exactly one cause (table not yet created) and should be broadened, since it produced a misleading remedy here.  
   <sub>IMP-0254 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Before authoring a NEW field security profile, plan the live ensure-schema run and the id read-back as the first build prerequisite: pac solution pack refuses a profile element with no fieldsecurityprofileid, so no build can run between authoring and read-back.  
+  <sub>IMP-1222 · `platform-fact-groundtruthed`</sub>
 - For a Dataverse When a row is selected flow: declare rev_<table>id in the trigger schema (title, type string, format guid, as the designer stores it), make Get a row by ID the first action keyed on triggerBody()?['entity']['<id column>'], and work from its output. A failed read is the single missing-id and not-found failure.  
   <sub>IMP-1185 · `platform-fact-groundtruthed`</sub>
 - For a row-selected trigger, declare every column the flow reads under rows.items.entity.properties (rev_reviewid at least) and read it as triggerBody()?['entity']?['<col>']. An empty entity schema means an empty row from the Flow menu. When exporting a scratch flow as ground truth, make an action reference every column you will need, or the export shows an empty schema.  
@@ -768,7 +768,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*709 lesson(s), in the order the digest would have ranked them.*
+*712 lesson(s), in the order the digest would have ranked them.*
 
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
@@ -974,62 +974,16 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Deferral of superseded work needs a way to set its evidence aside in one event, or the repair of a rename has to count items, not rows.  
+  <sub>IMP-1241 · `work-item-evidence-orphaned-by-folder-rename`</sub>
+- Where one config serves several features, any lookup that derives a path from one feature name must take the dispatch's feature slug or a flag, not infer it.  
+  <sub>IMP-1240 · `shared-build-config-feature-name-misderived`</sub>
 - Check linked component labels against the declared label set at link time, not at the deploy transition. A prerequisite script that an item owes needs a label or the link must be dropped.  
   <sub>IMP-1238 · `gate-checks-too-late`</sub>
-- Steps that need a network or credential cannot be run by development-agent, so their warnings must be carried into the new feature's table from the previous build manifest's warnings_detail before dispatch.  
-  <sub>IMP-1237 · `untriaged-tool-warning`</sub>
-- Express a guard on a destructive action in the status the process owner already uses as final; offer an intermediate-state trigger only as an alternative.  
-  <sub>IMP-1234 · `human-correction-of-agent-output`</sub>
-- Before building on a statement that a team, group or record does or does not exist in an environment, run the one read-only query that answers it (pac env fetch on team with teamroles) and record the result, even when the statement comes from the reviewer.  
-  <sub>IMP-1233 · `human-correction-of-agent-output`</sub>
 - When writing synthetic rows to an environment with live flows, send MSCRM.SuppressCallbackRegistrationExpanderJob: true on every create, update and delete, and confirm with a flowrun count before and after.  
   <sub>IMP-1232 · `synthetic-write-fired-live-flows`</sub>
 - Before trusting a Web API action body or $select built by hand, send it once to a live org (synthetic rows, one-off, constrained); for QueryExpression conditions in the Web API, type every value as Microsoft.Dynamics.CRM.Object with Type and Value, and select only columns the table's metadata lists.  
   <sub>IMP-1231 · `fake-dataverse-accepts-what-the-platform-rejects`</sub>
-- When an ADR adds a component that overlaps an unbuilt, diagram-only design, re-read that design in the same revision and mark each step kept, moved or impossible.  
-  <sub>IMP-1230 · `diagram-level-design-carried-unverified-across-revisions`</sub>
-- When a TAD or SDD places a built flow under a task whose contracted description names only documents or configuration, raise the change-order question at first design, not when the flow grows.  
-  <sub>IMP-1229 · `scope-gap-found-at-design`</sub>
-- When a confidentiality property forces a process to need more than one person per occurrence, present the single-handler alternative with its residual risk as an explicit reviewer choice; do not resolve it silently in favour of the split.  
-  <sub>IMP-1228 · `human-correction-of-agent-output`</sub>
-- Before naming a test tool in a TAD test contract or a work-item clause, check the app's package.json; if it is absent, the contract either adds it as a decision or names the assertions instead.  
-  <sub>IMP-1225 · `test-contract-names-absent-tool`</sub>
-- When another session is drafting files a gate reads, measure that gate also against HEAD (git show HEAD:<file> into the scratchpad) and report both results; a green run against an unapproved draft is provisional evidence.  
-  <sub>IMP-1224 · `gate-result-depends-on-unapproved-draft`</sub>
-- When a dispatch includes a live provisioning step, check PROVISION_APP_ID before starting work and hand over the exact command and its verification query early, so the reviewer can run it in parallel with the source work.  
-  <sub>IMP-1223 · `credential-absent-in-dispatched-session`</sub>
-- When a reviewer approves 'that design', re-read the exact proposal he was shown before acting on any paraphrase of his answer; 'manual' in a reply about a flow mode names the trigger unless he says there is no flow.  
-  <sub>IMP-1221 · `human-correction-of-agent-output`</sub>
-- Write FetchXML attributes with single quotes when passing it to pac env fetch --xml.  
-  <sub>IMP-1220 · `cli-argument-quoting`</sub>
-- When a design rests on 'no person can read it', measure the owning identity's accessmode and roles, not its name.  
-  <sub>IMP-1219 · `design-premise-about-identity-type-unmeasured`</sub>
-- A personal-data store inventory covers both directions: copies made from the record and the source the record was copied from.  
-  <sub>IMP-1218 · `store-of-personal-data-missing-from-inventory`</sub>
-- For every store an erasure path names, state who deletes it and with what write access; a read-only connection cannot be an erasure route.  
-  <sub>IMP-1217 · `human-correction-of-agent-output`</sub>
-- An absent settings entry means 'unknown', not 'exists with an unknown name'; ask which it is before a design depends on it.  
-  <sub>IMP-1216 · `human-correction-of-agent-output`</sub>
-- Write a control rule as the property it protects, with the current mechanism beneath it.  
-  <sub>IMP-1215 · `doc-contradicts-reality`</sub>
-- When a requirement batches an existing action, list the single action's validation rules and state for each whether the batch keeps it.  
-  <sub>IMP-1214 · `doc-contradicts-reality`</sub>
-- When the reviewer's decision cites an artefact as its basis ('as shown in the PDF'), take the default from what that artefact actually shows, not from a general rule the artefact already departs from; and for workflow-shape questions, ask how the process owner works before designing edge-case rules.  
-  <sub>IMP-1213 · `human-correction-of-agent-output`</sub>
-- Before removing a variant app, grep the repo for its folder name and run verify-build-config.py, verify-assumption-markers.py and the field-catalogue --check; a gate script no step invokes cannot be kept, delete it with the step that ran it.  
-  <sub>IMP-1212 · `retirement-checklist-incomplete`</sub>
-- Before relying on a knowledge-file non-negotiable about who sees what, check it against SDD §7.1a/§7.1b and NFR-031, which are the current rule.  
-  <sub>IMP-1211 · `stale-claim-contradicting-rechecked-source`</sub>
-- When recording a TAD approval, update the status line, the revision entry and the Approval section in the same edit; and treat 'scripted' retention jobs as unverified until a deployment record shows CREATED.  
-  <sub>IMP-1210 · `approval-recorded-in-one-place-only`</sub>
-- After R1d, compare the exported template with section 1 before anything else moves; a truncated closing clause is the label-protection rule, which the flow's own checks do not backstop.  
-  <sub>IMP-1209 · `reality-contradicted-repo-document`</sub>
-- Write the routing tag from the Task call's model parameter, not from the decision; a tier:strategic line with no override is a standard dispatch.  
-  <sub>IMP-1208 · `declared-policy-not-mechanically-enforced`</sub>
-- Read-only diagnostics use git diff, git status and git show only; a stash moves every modified file in the tree, including another session's.  
-  <sub>IMP-1207 · `concurrent-session-same-file-write`</sub>
-- For a proposed check, run a scratch implementation over the real corpus at draft time and put the count it printed in the change row; for a planned closure, dump the entry first. A status word in this repository's review headers can be struck through and kept, so a header test strips ~~...~~ before reading the word.  
-  <sub>IMP-1206 · `finding-premise-fails-re-measurement`</sub>
 - Tell a rewrite prompt explicitly to keep every punctuation mark where it is, and measure punctuation survival per column in the corpus rather than only flagging large losses.  
   <sub>IMP-1202 · `rewrite-prompt-drops-punctuation`</sub>
 - A derived not_started is a claim about a name, not about the work; verify against the folder before reporting it to the client  
@@ -1042,8 +996,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-1175 · `ledger-cannot-record-a-design-change-honestly`</sub>
 - State a prompt rule as the rule and give phrasings as examples ('This includes ...'), and mirror the wider rule in the oracle.  
   <sub>IMP-1171 · `rule-precedence-unstated`</sub>
-- One log-line.py call per marker: never put the ATTEMPTED of one write and the BEGUN of the next in the same heredoc, because the tool joins them into a single line.  
-  <sub>IMP-1165 · `log-marker-lost-to-tool-behaviour`</sub>
 - When a TAD adds or names a rev_setting row the process owner may edit, seed it createOnly and check the existing rows of the same requirement: an upserted row undoes her edit at every deploy.  
   <sub>IMP-1148 · `declared-policy-not-mechanically-enforced`</sub>
 - When an LLM rewrite must preserve form, tell it to keep what must survive (not only what not to add) and count it after the call.  
@@ -1368,6 +1320,58 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- When a review reports a residual failure count, classify every failure line into one cause and state the last green build's figure beside it; 'older drift' is a cause and needs the same measurement as any other.  
+  <sub>IMP-1239 · `finding-premise-fails-re-measurement`</sub>
+- Steps that need a network or credential cannot be run by development-agent, so their warnings must be carried into the new feature's table from the previous build manifest's warnings_detail before dispatch.  
+  <sub>IMP-1237 · `untriaged-tool-warning`</sub>
+- Express a guard on a destructive action in the status the process owner already uses as final; offer an intermediate-state trigger only as an alternative.  
+  <sub>IMP-1234 · `human-correction-of-agent-output`</sub>
+- Before building on a statement that a team, group or record does or does not exist in an environment, run the one read-only query that answers it (pac env fetch on team with teamroles) and record the result, even when the statement comes from the reviewer.  
+  <sub>IMP-1233 · `human-correction-of-agent-output`</sub>
+- When an ADR adds a component that overlaps an unbuilt, diagram-only design, re-read that design in the same revision and mark each step kept, moved or impossible.  
+  <sub>IMP-1230 · `diagram-level-design-carried-unverified-across-revisions`</sub>
+- When a TAD or SDD places a built flow under a task whose contracted description names only documents or configuration, raise the change-order question at first design, not when the flow grows.  
+  <sub>IMP-1229 · `scope-gap-found-at-design`</sub>
+- When a confidentiality property forces a process to need more than one person per occurrence, present the single-handler alternative with its residual risk as an explicit reviewer choice; do not resolve it silently in favour of the split.  
+  <sub>IMP-1228 · `human-correction-of-agent-output`</sub>
+- Before naming a test tool in a TAD test contract or a work-item clause, check the app's package.json; if it is absent, the contract either adds it as a decision or names the assertions instead.  
+  <sub>IMP-1225 · `test-contract-names-absent-tool`</sub>
+- When another session is drafting files a gate reads, measure that gate also against HEAD (git show HEAD:<file> into the scratchpad) and report both results; a green run against an unapproved draft is provisional evidence.  
+  <sub>IMP-1224 · `gate-result-depends-on-unapproved-draft`</sub>
+- When a dispatch includes a live provisioning step, check PROVISION_APP_ID before starting work and hand over the exact command and its verification query early, so the reviewer can run it in parallel with the source work.  
+  <sub>IMP-1223 · `credential-absent-in-dispatched-session`</sub>
+- When a reviewer approves 'that design', re-read the exact proposal he was shown before acting on any paraphrase of his answer; 'manual' in a reply about a flow mode names the trigger unless he says there is no flow.  
+  <sub>IMP-1221 · `human-correction-of-agent-output`</sub>
+- Write FetchXML attributes with single quotes when passing it to pac env fetch --xml.  
+  <sub>IMP-1220 · `cli-argument-quoting`</sub>
+- When a design rests on 'no person can read it', measure the owning identity's accessmode and roles, not its name.  
+  <sub>IMP-1219 · `design-premise-about-identity-type-unmeasured`</sub>
+- A personal-data store inventory covers both directions: copies made from the record and the source the record was copied from.  
+  <sub>IMP-1218 · `store-of-personal-data-missing-from-inventory`</sub>
+- For every store an erasure path names, state who deletes it and with what write access; a read-only connection cannot be an erasure route.  
+  <sub>IMP-1217 · `human-correction-of-agent-output`</sub>
+- An absent settings entry means 'unknown', not 'exists with an unknown name'; ask which it is before a design depends on it.  
+  <sub>IMP-1216 · `human-correction-of-agent-output`</sub>
+- Write a control rule as the property it protects, with the current mechanism beneath it.  
+  <sub>IMP-1215 · `doc-contradicts-reality`</sub>
+- When a requirement batches an existing action, list the single action's validation rules and state for each whether the batch keeps it.  
+  <sub>IMP-1214 · `doc-contradicts-reality`</sub>
+- When the reviewer's decision cites an artefact as its basis ('as shown in the PDF'), take the default from what that artefact actually shows, not from a general rule the artefact already departs from; and for workflow-shape questions, ask how the process owner works before designing edge-case rules.  
+  <sub>IMP-1213 · `human-correction-of-agent-output`</sub>
+- Before removing a variant app, grep the repo for its folder name and run verify-build-config.py, verify-assumption-markers.py and the field-catalogue --check; a gate script no step invokes cannot be kept, delete it with the step that ran it.  
+  <sub>IMP-1212 · `retirement-checklist-incomplete`</sub>
+- Before relying on a knowledge-file non-negotiable about who sees what, check it against SDD §7.1a/§7.1b and NFR-031, which are the current rule.  
+  <sub>IMP-1211 · `stale-claim-contradicting-rechecked-source`</sub>
+- When recording a TAD approval, update the status line, the revision entry and the Approval section in the same edit; and treat 'scripted' retention jobs as unverified until a deployment record shows CREATED.  
+  <sub>IMP-1210 · `approval-recorded-in-one-place-only`</sub>
+- After R1d, compare the exported template with section 1 before anything else moves; a truncated closing clause is the label-protection rule, which the flow's own checks do not backstop.  
+  <sub>IMP-1209 · `reality-contradicted-repo-document`</sub>
+- Write the routing tag from the Task call's model parameter, not from the decision; a tier:strategic line with no override is a standard dispatch.  
+  <sub>IMP-1208 · `declared-policy-not-mechanically-enforced`</sub>
+- Read-only diagnostics use git diff, git status and git show only; a stash moves every modified file in the tree, including another session's.  
+  <sub>IMP-1207 · `concurrent-session-same-file-write`</sub>
+- For a proposed check, run a scratch implementation over the real corpus at draft time and put the count it printed in the change row; for a planned closure, dump the entry first. A status word in this repository's review headers can be struck through and kept, so a header test strips ~~...~~ before reading the word.  
+  <sub>IMP-1206 · `finding-premise-fails-re-measurement`</sub>
 - Before the first write to a review document or the improvement log, re-read the review's Status line and the log's mtime; an apply in another session can start after your dispatch. An apply writes its Status as APPLYING before its first change.  
   <sub>IMP-1205 · `concurrent-dispatches-one-document`</sub>
 - Before trusting a green batch-trigger line, count the awaiting-approval entries whose review names them; hollow stamps hide a batch that is due.  
@@ -1414,6 +1418,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-1168 · `concurrent-session-same-file-write`</sub>
 - For a Dataverse row-selected (Flow menu) trigger, search the designer for 'Manual' under Microsoft Dataverse; its operationId is RecordSelected. The rest of the solution JSON (parameters, split-on, connection reference) still needs an export.  
   <sub>IMP-1166 · `platform-contract-established`</sub>
+- One log-line.py call per marker: never put the ATTEMPTED of one write and the BEGUN of the next in the same heredoc, because the tool joins them into a single line.  
+  <sub>IMP-1165 · `log-marker-lost-to-tool-behaviour`</sub>
 - Before editing a shared design document, check logs/routing.log for an open ROUTED_TO:architect-agent on the same feature and compare the file's mtime twice a minute apart; if it moves, wait for it to be quiet for two minutes, then allocate rev, ADR, risk and section ids at the moment of the write, never earlier.  
   <sub>IMP-1164 · `concurrent-dispatches-one-document`</sub>
 - When an ADR reverses a behaviour, git grep its retired words over the whole TAD, diagrams included, and list the section 2 diagram lines in the 'Words this retires' table.  

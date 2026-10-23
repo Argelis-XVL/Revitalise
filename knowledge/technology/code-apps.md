@@ -768,6 +768,9 @@ Summary:
   generated services
 - **Integration**: Vitest against a real Test environment
 - **E2E**: Playwright — automate the full app flow in a browser against the Test environment
+- **Accessibility**: the trustee portal has no axe dependency (no axe-core, jest-axe or vitest-axe in
+  `package.json`). A test contract asserts roles, accessible names and visible text directly; adding
+  axe-core is a lockfile change under `C-TECH-074` and needs a reviewer decision (`IMP-1225`).
 
 ---
 

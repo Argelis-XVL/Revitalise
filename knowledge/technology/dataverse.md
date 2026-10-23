@@ -238,8 +238,11 @@ project already depends on it.
 must read** cannot use it, for two project-specific reasons:
 
 1. `CanUpdate` governs only `IsSecured=1` columns, and releasing a secured column to a trustee
-   requires the trustee team **inside a field security profile** — which
-   `no-trustee-in-column-security-profile` forbids, and which is `ADR-002`'s whole control.
+   requires the trustee team **inside a field security profile**. The property
+   `no-trustee-in-column-security-profile` protects is *no trustee team in a profile that releases
+   identity or grants write* (`ADR-002`). Since portal TAD trustee-portal-design-2 Revision 4
+   (`ADR-084`, `ADR-085`, SDD A-14) one profile is the named exception, `REV_TrusteeFinancialEligibility`:
+   read only, three columns, and the gate REQUIRES every trustee team to be its member (`IMP-1215`).
 2. A secured column on a table the app queries fails `no-secured-columns-in-code-app`.
 
 **Never write *"the platform cannot"* where *"our own HARD gates forbid"* is the true statement.**
@@ -548,3 +551,15 @@ prose and there is no value to assert on.
 standing decision (2026-08-28) is that the descriptions stay as they are, naming the columns while
 stating the truth about them — the alternative, forbidding the column names in prose to make a
 value gate possible, buys enforcement by constraining how documentation may be written.
+
+## A New Field Security Profile Cannot Be Packed Until the Platform Has Given It an Id
+
+*Recorded 2026-10-22 (`IMP-1222`), measured with a local `pac solution pack`.*
+
+`pac solution pack` fails with *"RootComponent validation failed"* when
+`Other/FieldSecurityProfiles.xml` declares a `<FieldSecurityProfile>` with no
+`fieldsecurityprofileid`: the packer keys the profile's root component by that id, and
+`C-TECH-051` forbids inventing one. So for a NEW profile the order is fixed — create it live
+(`ensure-schema.ps1 -Env dev`), read the id back, write it into source, then build. **No build
+can run between authoring the element and the read-back**; plan the live step as the first
+build prerequisite, not as an import prerequisite.

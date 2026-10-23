@@ -192,3 +192,4 @@ HANDOFF | from:build-agent | to:improvement-agent | feature:applicant-ethnicgrou
 [2026-10-21 14:26] [BUILD] [revitalise-grant-automation] SUCCESS (V2, DEV-only, wbs:5.3,5.6) — build/artifacts/revitalise-grant-automation-20261021-3/
 [2026-10-22 16:18] [BUILD] [trustee-portal-design-2] wbs:6.3 FAILED — C-TECH-055: Solution Checker Medium 1 has no row in the feature Dev Summary; packed at V2 (build/artifacts/trustee-portal-design-2-20261022-2, 88 steps green). Earlier attempt build/artifacts/trustee-portal-design-2-20261022-1 FAILED at unit-tests (46 transient Pester failures, IMP-1235).
 [2026-10-22 17:48] [BUILD] [trustee-portal-design-2] wbs:6.3 SUCCESS — build/artifacts/trustee-portal-design-2-20261022-3 (V2 packaged, full run, 88 steps; items WI-0146,WI-0147,WI-0148 packaged)
+[2026-10-22 20:36] [BUILD] [trustee-portal-design-2] wbs:6.3 SUCCESS (V2, DEV-only, SCOPED to 4 files vs HEAD) — build/artifacts/trustee-portal-design-2-20261022-4/

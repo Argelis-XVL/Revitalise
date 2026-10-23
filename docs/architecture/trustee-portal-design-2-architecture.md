@@ -1241,20 +1241,22 @@ button.
    view it"* when the round is finalised), which contains the visible word (WCAG 2.5.3). Every other state:
    **Record verdict**, primary, as today. The button opens the same dialog in every case. An option value outside
    1 to 3 shows its option label, or the number, in the neutral secondary style.
-5. **The tones** (new tokens in `src/styles/ds-tokens.css`, white text on a solid fill, measured on white):
+5. **The tones** (tokens in `src/styles/ds-tokens.css`; revised by reviewer ruling 2026-10-22). The decided button
+   is the primary button's exact treatment — top-down gradient lighter at the top, white text, soft shadow, hover
+   one step darker — with only the colours changed, and every button in the Decision column is one size
+   (`.rowActions > button`: `min-width: 12.5rem`, no wrap), so recording a verdict no longer shrinks it:
 
-   | Verdict | Token | Fill | Contrast |
-   |---|---|---|---|
-   | Approved | `--verdict-approved` | `#2f7044` | 5.96:1 with white text |
-   | Deferred | `--verdict-deferred` | `#8a5600` | 6.16:1 with white text |
-   | Rejected | `--verdict-rejected` | `#49345b` | 10.91:1 with white text |
+   | Verdict | Top stop (lightest) | Bottom stop | Hover bottom | White text at top stop |
+   |---|---|---|---|---|
+   | Approved — turquoise | `--verdict-approved` `#0e7f8a` | `#0b6a74` | `#095a63` | 4.75:1 |
+   | Deferred — dark purple | `--verdict-deferred` `#6a5774` | `#49345b` | `#3d2b4c` | 6.5:1 |
+   | Rejected — greyed out | `--verdict-rejected` `#767676` | `#5c5c5c` | `#4d4d4d` | 4.54:1 |
 
-   Approved is the design system's `--success`, and Deferred its `--warning`, each darkened until white text passes,
-   as ADR-037 did for other failing tokens: as supplied, white text on them measures 4.25:1 and 3.43:1 and fails.
-   Rejected is the design system's purple, already in `CARD_MARK_PALETTE`. The design system has no red, and the primary button is already brand pink, so Rejected takes the purple rather
-   than a colour from outside the system. Hover and active shades are darker steps of each fill, and a unit test
-   computes every text/fill pair from the token file (≥ 4.5:1), the way `theme.test.ts` does today. The fill-to-
-   page boundary is ≥ 3:1 for all three (WCAG 1.4.11). Verdict word always present (WCAG 1.4.1).
+   Approved is the design system's turquoise (`--rev-color-accent` `#14adbb`, the Round statistics colour) darkened
+   until white text passes — as supplied, white on it is 2.72:1 — the same correction TAD §8.3 row 2 made to the
+   primary pink gradient. Deferred is `--rev-color-secondary-faded` to `--rev-color-secondary`. A unit test computes
+   every text/stop pair from the token file (≥ 4.5:1) and checks each gradient darkens downward and on hover. The
+   fill-to-page boundary is ≥ 3:1 for all three (WCAG 1.4.11). Verdict word always present (WCAG 1.4.1).
 6. **The awaiting count and filter (FR-117), on the applications list.** Above the table, a status line
    (`role="status"`, polite): *"3 awaiting your verdict"*, or *"None awaiting your verdict"*, counted over **every
    row the list loaded**, before the trustee's own filters. In `ApplicationFilters`, a checkbox *"Show only

@@ -1,0 +1,91 @@
+{
+  "feature": "trustee-portal-design-2",
+  "wbs": [
+    "6.3"
+  ],
+  "items": [],
+  "build_date": "2026-10-22",
+  "build_number": 4,
+  "artifact_path": "build/artifacts/trustee-portal-design-2-20261022-4/",
+  "build_config": "config/revitalise-grant-automation-build.yml (shared; no trustee-portal-design-2-build.yml exists)",
+  "source_commit": "ca3797b283caa7191de74cecfe03b820055866bb",
+  "source_tree_dirty_paths": 4,
+  "source_commit_note": "Packed from a dirty tree: 4 uncommitted paths under docs/ and src/ at manifest time.",
+  "build_tool": "pac via scripts/run-build.py; Vite; Pester",
+  "build_os": "Darwin 27.0.0 (macOS, local)",
+  "constraint_check": "PASS",
+  "preflight": "PASS (preflight-build-config ran, step 3 of 89)",
+  "verification_level": "V2 - packaged; layout accepted by the packer, content unverified",
+  "scoped": true,
+  "scope_note": "SCOPED BUILD - inner-loop artifact for DEV only, NOT promotable to ACC/PRD. Do not promote; run an unscoped build first.",
+  "base_ref": "HEAD (ca3797b), passed explicitly",
+  "base_ref_reason": "last-green could not resolve: run-build.py globs build/artifacts/<config feature>-*/ (revitalise-grant-automation-*), but trustee-portal-design-2 builds live in trustee-portal-design-2-* dirs, so it fell back to build 20261021-3 (base 495dd5b, FULL RUN). Scope was instead verified by mtime: only the 4 paths above, plus a touched power.config.json with no content change, are newer than build -3's manifest.",
+  "full_run_reason": null,
+  "skipped_unchanged": [
+    "lint"
+  ],
+  "unit_tests": "Pester 1500 total, 0 failed, 1 skipped, command coverage 76.23% (measured; coverage-threshold step exit 0). code-app-unit-tests (vitest coverage) exit 0 (caller reported 952/952). code-app-visual-tests 23 passed. code-app-typecheck and code-app-lint exit 0. code-app-audit: 0 vulnerabilities.",
+  "warnings": {
+    "total": 3,
+    "resolved": 0,
+    "accepted": 3,
+    "untriaged": 0
+  },
+  "warnings_detail": [
+    {
+      "step": "code-app-build",
+      "signature": "Some chunks are larger than 500 kB after minification. [figures compared: index js 857.73 kB (857,730 bytes before, unchanged); css 150.78 kB vs 150.25 kB before (+~530 bytes, the styling change); code-app-bundle-budget PASS]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L394"
+    },
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: [figures compared: 21 Type= lines, equal to build -3]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L398"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: [figures compared: 21 Type= lines, identical to pack-managed]",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-design-2-dev-summary.md#L398"
+    }
+  ],
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context",
+      "level_not_established": "V3",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "lint",
+      "reason": "skipped-unchanged",
+      "level_not_established": "Solution Checker not re-run; no solution file changed",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "build_config_sha256": "4228c32bcf0fa38ac026437554041d3da65fb14d0b9c378f3c801eb413747059",
+  "build_config_drift": "none (re-hashed before packaging, equal)",
+  "digest_regenerated": "digest-current failed first run (known-failure-modes.md stale vs improvement log); regenerated with generate-known-failure-modes.py (generated file, not hand-edited); rerun green. Left as uncommitted changes to logs/known-failure-modes*.md.",
+  "improvement_log_at_manifest": "verify-improvement-log --warn-only: OK, 1235 entries, 0 deploy-open; open post-deploy batch review docs/improvements/2026-10-22-improvement-review-3.md",
+  "code_app_artifact": "build/artifacts/trustee-portal-design-2-20261022-4/code-app/ (dist: index.html + assets); source for pac code push: src/code-apps/trustee-review-portal",
+  "status": "SUCCESS",
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 133,
+    "post-deploy-completeness": 1,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 326,
+    "dispatch-share": 0,
+    "open-questions": 3,
+    "document-status-consistency": 1,
+    "derived-counts": 3,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 48,
+    "constraint-verifiers": 1
+  }
+}

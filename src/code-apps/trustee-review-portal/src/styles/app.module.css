@@ -959,43 +959,52 @@
   gap: var(--space-2);
 }
 
+/* Every control in the Decision column is one size, whatever it reads: the decided verdict words
+   are shorter than "Record verdict", and without this the button shrank when a verdict was
+   recorded (reviewer, 2026-10-22). No wrap, so "Record verdict" stays on one line. */
+.rowActions > button {
+  min-width: 12.5rem;
+  white-space: nowrap;
+}
+
 /* SDD A-14, FR-116 (portal TAD trustee-portal-design-2 ADR-086 points 4-5): the verdict button in
-   the signed-in trustee's own verdict tone. Two classes, so these beat `ds.module.css`'s
+   the signed-in trustee's own verdict tone — the primary button's treatment (ds.module.css
+   `.buttonPrimary`: 180deg gradient lighter at the top, white text, soft two-layer shadow, hover
+   one step darker) with only the colours swapped. Two classes, so these beat `ds.module.css`'s
    single-class variant rules whatever order the bundler emits the two stylesheets in; the hover
-   and active rules carry the same pseudo-classes as the variant's own, plus one class. The
-   `background` shorthand also clears the primary variant's gradient image. */
+   rule carries the same pseudo-classes as the variant's own, plus one class. No :active rule:
+   the primary button has none. */
+.verdictButton.verdictApproved {
+  --verdict-top: var(--verdict-approved);
+  --verdict-bottom: var(--verdict-approved-end);
+  --verdict-bottom-hover: var(--verdict-approved-hover-end);
+  --verdict-glow: var(--verdict-approved-shadow);
+}
+.verdictButton.verdictDeferred {
+  --verdict-top: var(--verdict-deferred);
+  --verdict-bottom: var(--verdict-deferred-end);
+  --verdict-bottom-hover: var(--verdict-deferred-hover-end);
+  --verdict-glow: var(--verdict-deferred-shadow);
+}
+.verdictButton.verdictRejected {
+  --verdict-top: var(--verdict-rejected);
+  --verdict-bottom: var(--verdict-rejected-end);
+  --verdict-bottom-hover: var(--verdict-rejected-hover-end);
+  --verdict-glow: var(--verdict-rejected-shadow);
+}
 .verdictButton.verdictApproved,
 .verdictButton.verdictDeferred,
 .verdictButton.verdictRejected {
-  color: var(--verdict-text);
+  background: linear-gradient(180deg, var(--verdict-top) 0%, var(--verdict-bottom) 100%);
   border-color: transparent;
+  color: var(--verdict-text);
+  box-shadow: 0 1px 2px var(--verdict-glow), 0 3px 8px var(--verdict-glow);
 }
-.verdictButton.verdictApproved {
-  background: var(--verdict-approved);
-}
-.verdictButton.verdictApproved:hover:not(:disabled) {
-  background: var(--verdict-approved-hover);
-}
-.verdictButton.verdictApproved:active:not(:disabled) {
-  background: var(--verdict-approved-active);
-}
-.verdictButton.verdictDeferred {
-  background: var(--verdict-deferred);
-}
-.verdictButton.verdictDeferred:hover:not(:disabled) {
-  background: var(--verdict-deferred-hover);
-}
-.verdictButton.verdictDeferred:active:not(:disabled) {
-  background: var(--verdict-deferred-active);
-}
-.verdictButton.verdictRejected {
-  background: var(--verdict-rejected);
-}
+.verdictButton.verdictApproved:hover:not(:disabled),
+.verdictButton.verdictDeferred:hover:not(:disabled),
 .verdictButton.verdictRejected:hover:not(:disabled) {
-  background: var(--verdict-rejected-hover);
-}
-.verdictButton.verdictRejected:active:not(:disabled) {
-  background: var(--verdict-rejected-active);
+  background: linear-gradient(180deg, var(--verdict-bottom) 0%, var(--verdict-bottom-hover) 100%);
+  box-shadow: 0 2px 4px var(--verdict-glow), 0 6px 14px var(--verdict-glow);
 }
 
 /* FR-117: the "N awaiting your verdict" status line above the applications table. */

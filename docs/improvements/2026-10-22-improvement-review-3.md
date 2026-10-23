@@ -3,7 +3,7 @@
 **Agent:** improvement-agent (tier `strategic`)
 **Findings processed:** 35 `NEW` → 11 clusters (31 unread, 1 logged by this review, 3 reviewer-deferred entries whose return condition this deploy met)
 **Trigger:** post-deploy batch — pipeline-agent's DEV PARTIAL (V3) of build `trustee-portal-design-2-20261022-3` ([pipeline.log L457](logs/pipeline.log#L457))
-**Status:** DRAFT, parked at its gate. Nothing below is applied.
+**Status:** APPLIED 2026-10-22 21:05, all 15 rows, on the reviewer's "Approve Improvements" + "Option A please." (Xander Lykopoulos, relayed verbatim by lead-agent). 30 entries closed, 5 deferred, none rejected. Rows 7–15 sit in the `.engine` working tree, uncommitted: the engine commit, push and pointer bump are the reviewer's. See the [applied record](#applied-record--2026-10-22).
 **Serves:** `wbs:system`; the deploy it follows serves `wbs:6.3` (unbilled)
 **Gate:** `APPROVE IMPROVEMENTS`
 
@@ -334,6 +334,52 @@ Respond APPROVE IMPROVEMENTS to apply, or give feedback for revision.
 Written **after** `APPROVE IMPROVEMENTS`. Apply order: (1) set the status to `APPLYING`; (2) confirm `.engine/scripts/lib/work_items.py` is still sha1 `6f9c8e79ff7f…` and `work-items.py` `9a1b1f2e56b1…`, and merge if not; (3) apply §A, §B, §C one row at a time, closing each entry as its row lands; (4) run both engine selftests, `verify-engine-instance-split.py`, the scoped and unscoped work-items checks; (5) regenerate the digest; (6) `verify-improvement-log.py --check`, `verify-derived-counts.py`, `verify-review-document.py`.
 
 ---
+
+### Applied record — 2026-10-22
+
+**Approval:** *"Approve Improvements"* followed by *"Option A please."*, typed by Xander Lykopoulos after lead-agent showed him this draft, relayed verbatim (logs/routing.log, 2026-10-22 20:50). "Option A" answers decision 2: pm-agent re-points the 55 items with `reopen --retrace`, lead-agent re-cites the existing DEV verdicts, and the 8 classic-portal items are deferred as superseded. Lead-agent routes that work; this apply did not dispatch it.
+
+**Re-verified before applying (20:51):** the Status line still read DRAFT; both engine files still had sha1 `6f9c8e79ff7f…` and `9a1b1f2e56b1…`; no `corrects` warning named any entry here. One entry arrived after the draft, IMP-1240 (build-agent, shared-config last-green glob). It is outside this approval and stays unread for the next batch. The ledger was unchanged (948 events), so every routed row still stands. Nothing was withheld or narrowed.
+
+| # | Change | Applied at | Status | Entries moved |
+|---|---|---|---|---|
+| 1 | §C.1 overview.md item 1, CR-01 lead | working tree 2026-10-22 20:53 | APPLIED 2026-10-22 | IMP-1211 |
+| 2 | §C.2 dataverse.md point 1 | working tree | APPLIED 2026-10-22 | IMP-1215 |
+| 3 | §C.3 BR-D04, regulations Art. 15/17, CR-09, SAR row | working tree | APPLIED 2026-10-22 | IMP-1217, IMP-1221 (also row 10) |
+| 4 | §C.4 dataverse.md new section | working tree | APPLIED 2026-10-22 | IMP-1222 (reobserved V2) |
+| 5 | §C.5 testing-tools.md new section | working tree | APPLIED 2026-10-22 | IMP-1220; IMP-1231, IMP-1232 deferred |
+| 6 | §C.6 code-apps.md bullet | working tree | APPLIED 2026-10-22 | IMP-1225 |
+| 7 | §C.7 verify-a-platform-contract shape 3 | `.engine` working tree, **not committed** | APPLIED 2026-10-22 | IMP-1216, IMP-1219, IMP-1233 |
+| 8 | §C.8 compliance-checklist line | `.engine`, not committed | APPLIED 2026-10-22 | IMP-1218 |
+| 9 | §C.9 apply-constraints paragraph | `.engine`, not committed | APPLIED 2026-10-22 | IMP-1224 |
+| 10 | §C.10 lead-agent relay rule | `.engine`, not committed | APPLIED 2026-10-22 | IMP-1221 |
+| 11 | §C.11 architect-agent items 6–7 | `.engine`, not committed | APPLIED 2026-10-22 | IMP-1228, IMP-1230, IMP-1234 |
+| 12 | §C.12 development-agent two subsections | `.engine`, not committed | APPLIED 2026-10-22 | IMP-1212, IMP-1237 (reobserved V2); IMP-1236 deferred |
+| 13 | §C.13 improvement-agent step 6 bullets | `.engine`, not committed | APPLIED 2026-10-22 | IMP-1206, IMP-1239 |
+| 14 | §A `lib/work_items.py`, byte-identical to the scratch copy measured at draft | `.engine`, not committed | — | IMP-1238 deferred (V3) |
+| 15 | §B `work-items.py` | `.engine`, not committed | — | — |
+
+Closed as notes (no rule change): APPLIED 2026-10-22 | IMP-1207 · APPLIED 2026-10-22 | IMP-1208 · APPLIED 2026-10-22 | IMP-1209 · APPLIED 2026-10-22 | IMP-1210 · APPLIED 2026-10-22 | IMP-1213 · APPLIED 2026-10-22 | IMP-1214 · APPLIED 2026-10-22 | IMP-1223 · APPLIED 2026-10-22 | IMP-1229
+
+Closed on this deploy's re-observation (V3, pipeline-agent 18:01–18:02): IMP-1165, IMP-1181, IMP-1178.
+
+Deferred with a recorded reason: IMP-1231, IMP-1232, IMP-1235, IMP-1236, IMP-1238. No entry rejected. IMP-1240 carries `excluded_by` naming this document; it waits for the next batch.
+
+**Two registered counts corrected because this apply drifted them:** the digest line count in `generate-known-failure-modes.py` (638 → 640, both copies), and the `verify-*.py` count in `agents/improvement-agent.md` (71 → 70, after the other session deleted `verify-code-app-variant-parity.py`). The one remaining drift, the bundle size in the grant-automation dev summary (1205 → 858 kB), belongs to development-agent and is not changed here.
+
+**Checks after applying:**
+
+| Check | Exit | Result |
+|---|---|---|
+| `python3 scripts/work-items.py --selftest` | 0 | 0 FAIL lines, both IMP-1238 cases OK |
+| `python3 scripts/verify-work-items.py --selftest` | 0 | |
+| `verify-work-items.py --check --scope WI-0146,WI-0147,WI-0148 --at-least built` | 0 | 0 failures |
+| `verify-work-items.py --check` (unscoped, warn-only) | 1 | 326, unchanged: the fix is write-path only, and the repair is routed (Option A) |
+| `verify-engine-instance-split.py` | 0 | |
+| `verify-improvement-log.py --check` | 0 | 0 awaiting-approval, 0 blockers open; 1 unread (IMP-1240, out of scope) |
+| `generate-known-failure-modes.py --check` | 0 | current, 1236 entries, 1212 lessons |
+| `verify-derived-counts.py` (SOFT) | WARN | 1 drift, not from this review (above) |
+| `verify-review-document.py --only` this document | 0 | |
 
 ## §A — `.engine/scripts/lib/work_items.py` (proposed)
 

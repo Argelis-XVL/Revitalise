@@ -88,7 +88,7 @@ position, not as settled, and do not build a gate on it without saying so.
 | BR-D01 | Retention keys off **status plus trigger date on one record**, not on four copies |
 | BR-D02 | Review, Grant and Payment **cascade** from Application, so deleting the Application removes the whole case in one operation |
 | BR-D03 | Retention runs **automatically and at least monthly**. No record depends on anyone remembering |
-| BR-D04 | Erasure locates data across Applicant, Application, Review, Grant, Payment, the signed-PDF library, DocuSign and QuickBooks — **including** referees, helpers, group members and emergency contacts |
+| BR-D04 | Erasure **locates** data across Applicant, Application, Review, Grant, Payment, the signed-PDF library, DocuSign and QuickBooks — **including** referees, helpers, group members and emergency contacts. It **deletes** from Dataverse, the signed-PDF library and DocuSign only. **QuickBooks is never erased by this solution**: the connection is read only (`ADR-017`), the record is kept under the finance policy, and Finance deletes it after six years outside this solution (TAD `ADR-088`); the requester is told (`IMP-1217`) |
 | BR-D05 | A legal-hold carve-out (the six-year financial duty, or safeguarding) is **retained and reported to the requester** — never silently applied |
 | BR-D06 | The anonymised snapshot is written **at outcome, before the source record is purged**, holds no identifiers and is **never linked back**. A view alone would not survive the purge |
 | BR-D07 | **No personal data in any operational log.** Run status, error message and record reference only (NFR-012, NFR-016) |

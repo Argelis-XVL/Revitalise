@@ -102,8 +102,11 @@ Detail in `knowledge/domain/regulations.md`.
 Full list with verification in `knowledge/domain/compliance-requirements.md`. The four that block
 any release:
 
-1. **Special-category data never reaches a trustee.** Column security hides identity; the
-   narrative is redacted before trustee review.
+1. **Identity and raw free text never reach a trustee.** Column security hides identity, and the
+   narrative is redacted before trustee review. Categorical Art. 9 answers (condition profiles,
+   exceptional circumstance, the Equality Act answers, and since SDD Amendment A-14 benefit and
+   employment status) are trustee-visible by design, each released only under NFR-031 with its
+   necessity recorded (SDD §7.1a, §7.1b). The SDD, not this line, holds the current set (`IMP-1211`).
 2. **Special-category data never influences the automated score.** Disability, health-condition
    data and the free-text narrative do not feed the circumstance score (SDD FR-016, DUAA
    position). Enforced mechanically by the `no-special-category-data-in-scoring` build gate.
