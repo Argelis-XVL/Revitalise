@@ -252,13 +252,11 @@ def parse_section_31(text: str) -> tuple[list[Spec], dict, list[Violation]]:
             prose = [(header_line, body[header_line - offset])]
             prose += [(n, l) for n, l in rows
                       if l.strip() and not l.lstrip().startswith(">")]
-            first = True
             for number, line in prose:
                 visible = _is_trustee_visible(line)
                 for token in _CODE_SPAN.findall(line):
-                    if first and token == table:
-                        first = False
-                        continue  # the block header names its own table
+                    if token == table:
+                        continue  # a block names its own table, on its header and in a later rev-delta paragraph (IMP-1244)
                     if not token.startswith("rev_"):
                         continue  # `REV_FinanceOnly`, `GR-2026-00001`, `KnockoutThreshold`
                     specs += _specs_from(table, token, number, visible, problems)
@@ -1111,7 +1109,9 @@ def run(tad: Path, solution: Path, deferrals_path: Path,
             f"named by TAD §3.1 (line {spec.line}) but absent from source — {table_state}",
             f"add the attribute to src/solutions/RevitaliseGrantAutomation/Entities/"
             f"{spec.table}/Entity.xml, or declare an owned, dated deferral in "
-            f"{deferrals_path}"))
+            f"{deferrals_path}. If the token names a choice set or a table rather than a column, "
+            f"write it without backticks: every backticked rev_* token in a §3.1 block is read "
+            f"as a column of that block's table (IMP-1244)"))
 
     # ── (a2) THE OTHER DIRECTION: source → TAD (IMP-0688, and IMP-0337/IMP-0338 before it) ──
     # (a) catches an INVENTED column: everything the TAD names must exist. It cannot catch an
@@ -1285,7 +1285,8 @@ _FIXTURE_TABLES = [f"rev_t{i:02d}" for i in range(10)]
 
 def _fixture_tad(*, include_section: bool = True, absent_column: bool = False,
                  visible_on_unread_table: bool = False, stated_secured: str | None = None,
-                 negated_on_unread_table: bool = False) -> str:
+                 negated_on_unread_table: bool = False,
+                 prose_block_with_delta: str | None = None) -> str:
     out = ["# Fixture TAD", "", "## 3. Data Model", ""]
     if include_section:
         out += ["### 3.1 Key attributes and the controls each carries", ""]
@@ -1307,6 +1308,11 @@ def _fixture_tad(*, include_section: bool = True, absent_column: bool = False,
             if absent_column and index == 0:
                 out.append(f"| `{table}_gone` | Text | Tier 3 | never built |")
             out.append("")
+        if prose_block_with_delta is not None:
+            # IMP-1244: a prose block whose later rev-delta paragraph names the block's own table
+            t = prose_block_with_delta
+            out += [f"**`{t}` — Tier 2:** `{t}_c00`, `{t}_c01`.", "",
+                    f"Rev 2 (`ADR-1`): **`{t}`** gains `{t}_c02`.", ""]
     out += ["### 3.2 Provider classification", "", "prose", ""]
     return "\n".join(out)
 
@@ -1515,6 +1521,9 @@ def selftest() -> int:
         case("column-named-by-the-TAD-is-absent",
              tad=_fixture_tad(absent_column=True), read_tables=every,
              deferral=None, expect_fail=True)
+        case("VALID-prose-delta-paragraph-naming-its-own-table (IMP-1244)",
+             tad=_fixture_tad(prose_block_with_delta="rev_fixturedelta"), read_tables=every,
+             deferral=None, expect_fail=False, extra_table="rev_fixturedelta")
         case("deferral-with-no-owner",
              tad=_fixture_tad(absent_column=True), read_tables=every,
              deferral=_deferral_doc({**_GOOD_DEFERRAL, "owner": ""}), expect_fail=True)

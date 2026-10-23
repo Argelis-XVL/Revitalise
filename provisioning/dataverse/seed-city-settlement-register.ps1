@@ -37,7 +37,7 @@
 
     Provenance: the two rev_setting rows (CitySourceFile, CitySourceCapturedOn) are written
     the same keyed-upsert way seed-settings.ps1 writes every other rev_setting row, seeded
-    once and never updated thereafter (NFR-221) — CitySourceCapturedOn is fixed at
+    once and never updated thereafter (NFR-221, read as protecting the VALUE only) — CitySourceCapturedOn is fixed at
     2026-09-16, the date the file was delivered per
     docs/plans/emily-review-feedback-2026-09-plan.md line 1321, NOT the date this script
     happens to run.
@@ -194,18 +194,22 @@ Write-Output ("SUMMARY — City settlement register: $created created, $existed 
 # Unlike seed-settings.ps1's rows, these two are never expected to change value on a
 # re-run — the source file and its delivery date are historical facts, not configuration a
 # process owner tunes. Still an idempotent keyed upsert for C-TECH-042's sake.
+# Both rows belong to the 'Postcodes and local authorities' category (ADR-090), taken from the same
+# label -> value table seed-settings.ps1 uses so the two scripts cannot disagree.
+$categoryValue = [int](Get-SettingCategoryMap)['Postcodes and local authorities']
+
 $provenance = @(
     [pscustomobject]@{
         Key         = 'CitySourceFile'
         Value       = 'Postcode Details.xlsx'
         DataType    = 1  # Text — rev_settingdatatype
-        Description = 'The client-delivered file rev_citysettlementregister was seeded from (wbs:4.7, CO-007).'
+        Description = 'The name of the postcode file the city lookup was loaded from. Used for information only, so you can tell which list the cities come from; no process reads this row. It is set by the deployment and is not meant to be edited. Text; if it is missing, nothing else changes.'
     },
     [pscustomobject]@{
         Key         = 'CitySourceCapturedOn'
         Value       = '2026-09-16'
         DataType    = 7  # Date — rev_settingdatatype
-        Description = 'The date Postcode Details.xlsx was delivered (docs/plans/emily-review-feedback-2026-09-plan.md line 1321), NOT the date this script last ran.'
+        Description = 'The date the postcode file behind the city lookup was delivered (16 September 2026), not the date it was last loaded. Used for information only, so you can tell how old the city list is; no process reads this row. It is set by the deployment and is not meant to be edited. A date as year-month-day; if it is missing, nothing else changes.'
     }
 )
 
@@ -231,6 +235,7 @@ foreach ($row in $provenance) {
             rev_value       = $row.Value
             rev_datatype    = $row.DataType
             rev_description = $row.Description
+            rev_category    = $categoryValue
         }
         if (-not $rowExists) {
             $body.rev_effectivefrom = [datetime]::UtcNow.ToString('yyyy-MM-dd')

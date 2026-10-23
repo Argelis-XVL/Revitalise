@@ -81,6 +81,30 @@
             <Description description="The kind of value stored in this setting, so that it can be read correctly." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="rev_category">
+          <!-- ADR-090 (wbs:2.2, CO-012): the group the setting is listed under. Not required, so an
+               import or an older row never fails; an empty Category sorts to the top (A-SETCAT-3).
+               The repository owns it: the seed script writes it on every deploy, create-only rows
+               included. No flow reads it. Created by ensure-schema.ps1, not by import (C-TECH-050).
+               A-SETCAT-4: ensure-schema.ps1 adds this column to the existing table without touching
+               the others (OPEN, DEV run). A-SETCAT-1 / A-SETCAT-2: grouping by this column is the
+               user's own Group by in the grid, if it is offered; no grid-control configuration is
+               authored here or anywhere in source (C-TECH-051), so both stay OPEN until a DEV check. -->
+          <Type>picklist</Type>
+          <Name>rev_category</Name>
+          <LogicalName>rev_category</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_settingcategory</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Category" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The group this setting is listed under in the Settings list. Set by the deployment, not edited by hand." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_description">
           <Type>nvarchar</Type>
           <Name>rev_description</Name>

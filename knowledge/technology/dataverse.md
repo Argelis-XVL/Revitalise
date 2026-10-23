@@ -491,6 +491,12 @@ than a blanket rule, and why it is not mechanically gated: telling "this variabl
 response" from "this variable is a request body I just built" needs dataflow analysis. Measured
 before deciding: a regex over `provisioning/` found 6 candidate sites, 2 real and 4 false.
 
+**`@odata.nextLink` is the same case.** It is absent on the last page of a result, so
+`$r.'@odata.nextLink'` throws there under StrictMode; read it through
+`$r.PSObject.Properties['@odata.nextLink']`. And build an OData path in a single-quoted string: in a
+double-quoted one, a backtick placed anywhere but directly before `$` leaves `$select` to be read as
+an unset variable, which StrictMode also throws on (`IMP-1246`, `IMP-1247`).
+
 ### And the test fake must OMIT the property, not set it to `$null`
 
 This is the half that makes the defect invisible to its own test:

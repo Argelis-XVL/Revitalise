@@ -2,8 +2,7 @@
 """The AI prompt components (wbs:5.3) against the repo's own documents and the flow that calls them.
 
 REV 22 (Iteration 9, 2026-10-16). The flow called two NEW prompts (rewrite, spelling; ADR-075 items 3-4), created in
-DEV by the reviewer (TAD 12.6.1 R1, A-NS-31 closed by the export of 2026-10-16). The rev 20 detector component below
-is still in the solution and no longer called. Its tests stand, as a check on the component the solution ships; the
+DEV by the reviewer (TAD 12.6.1 R1, A-NS-31 closed by the export of 2026-10-16). The rev 20 detector component was removed from the solution on 2026-10-23 (WI-0154); the
 run-action test checks the rewrite action against the one designer-saved run action this tenant has
 (fixtures/run-a-prompt-action.json), for host, parameter shape and answer path.
 
@@ -53,21 +52,22 @@ def ai_models() -> list[str]:
     return re.findall(r"<AIModel>(.*?)</AIModel>", block.group(1), re.S) if block else []
 
 
-DETECTOR = "REV Narrative Redaction Prompt"      # rev 20, no longer called; kept until the reviewer decides
+DETECTOR = "REV Narrative Redaction Prompt"      # rev 20 detector, retired 2026-10-23 (WI-0154): removed from source
+DETECTOR_ID = "122be8e0-4b6b-44cd-a9a9-d1faff162b02"
 REWRITE = "REV Narrative Rewrite Prompt"         # rev 30 template (R1d), exported from DEV 2026-10-22
 RETIRED_SPELLING_ID = "763cff31-d653-416b-a52f-7e6f400bce21"   # REV Narrative Spelling Prompt, removed from source (ADR-082)
 
 
-def model(name: str = DETECTOR) -> str:
+def model(name: str = REWRITE) -> str:
     (m,) = [x for x in ai_models() if f"<msdyn_name>{name}</msdyn_name>" in x]
     return m
 
 
-def model_id(name: str = DETECTOR) -> str:
+def model_id(name: str = REWRITE) -> str:
     return re.search(r"<AIModel>\s*<msdyn_aimodelid>\{([^}]+)\}", "<AIModel>" + model(name)).group(1)
 
 
-def active_configuration(name: str = DETECTOR) -> dict:
+def active_configuration(name: str = REWRITE) -> dict:
     m = model(name)
     active = re.search(r"<msdyn_activerunconfigurationid>\{([^}]+)\}", m).group(1)
     for cfg in re.findall(r"<AIConfiguration>(.*?)</AIConfiguration>", m, re.S):
@@ -107,58 +107,26 @@ NEW_PROMPTS = {  # run action -> (answer Compose, documented section, input name
 
 class TheComponent(unittest.TestCase):
 
-    def test_two_ai_models_each_a_declared_root_component(self):
-        self.assertEqual(len(ai_models()), 2)
-        for name in (DETECTOR, REWRITE):
-            self.assertIn(f'<RootComponent type="401" id="{{{model_id(name)}}}" behavior="0" />', MANIFEST, name)
-        self.assertEqual(MANIFEST.count('<RootComponent type="401"'), 2)
+    def test_one_ai_model_a_declared_root_component_and_the_retired_detector_is_gone(self):
+        """WI-0154 (2026-10-23): the rev 20 detector prompt is not called by any flow and the reviewer had to delete
+        it from DEV by hand after every import, because its root component and its definition were still in source.
+        Both are removed. The rewrite prompt is the only AI model the solution ships."""
+        self.assertEqual(len(ai_models()), 1)
+        self.assertIn(f'<RootComponent type="401" id="{{{model_id(REWRITE)}}}" behavior="0" />', MANIFEST)
+        self.assertEqual(MANIFEST.count('<RootComponent type="401"'), 1)
+        self.assertNotIn(DETECTOR_ID, MANIFEST)
+        self.assertNotIn(DETECTOR_ID, CUSTOMIZATIONS)
+        self.assertNotIn(f"<msdyn_name>{DETECTOR}</msdyn_name>", CUSTOMIZATIONS)
 
-    def test_it_is_the_redaction_prompt_on_the_prompt_template(self):
-        m = model(DETECTOR)
-        self.assertIn("<msdyn_name>REV Narrative Redaction Prompt</msdyn_name>", m)
-        self.assertEqual(active_configuration()["custom"]["version"], "GptDynamicPrompt-2")
-
-    def test_the_template_is_the_documented_one_up_to_token_whitespace(self):
-        norm = lambda s: re.sub(r"\s+", " ", s).strip()  # noqa: E731
-        self.assertEqual(norm(exported_template(active_configuration()["custom"])), norm(documented_template()))
-
-    def test_the_exact_drift_from_the_document_is_the_recorded_drift(self):
-        """Dev Summary Iteration 4 §4.4 drift row 1: the prompt builder pads each input token with a
-        space on both sides (and the AllowedLabels line keeps the space typed before it). Any other
-        difference is new drift and must be reviewed, not absorbed."""
-        doc = documented_template()
-        padded = (doc.replace("{Categories}", " {Categories} ").replace("{Narrative}", " {Narrative} ")
-                  .replace("labels: {AllowedLabels}", "labels:  {AllowedLabels} "))
-        self.assertEqual(exported_template(active_configuration()["custom"]), padded)
-
-    def test_the_inputs_are_the_three_text_inputs_the_flow_passes(self):
-        custom = active_configuration()["custom"]
-        self.assertEqual({i["id"] for i in custom["definitions"]["inputs"]}, INPUTS)
-        self.assertTrue(all(i["type"] == "text" for i in custom["definitions"]["inputs"]))
-        tokens = {p["id"] for p in custom["prompt"] if p["type"] == "inputVariable"}
-        self.assertEqual(tokens, INPUTS)
-
-    def test_model_settings_as_exported(self):
-        """GPT-4.1 mini, temperature 0 and content moderation Low, as R1 asked (moderation is in the
-        export since the reviewer re-published the prompt on 2026-10-07). Output format is TEXT where
-        R1 asked for JSON: the reviewer decided to keep text (D-1 = a, 2026-10-07); the template itself
-        asks for JSON and the flow parses the text."""
-        custom = active_configuration()["custom"]
-        self.assertEqual(custom["modelParameters"], {"modelType": "gpt-41-mini", "gptParameters": {"temperature": 0}})
-        self.assertEqual(custom["definitions"]["output"], {"formats": ["text"]})
-        self.assertEqual(custom["settings"].get("contentModerationLevel"), "Low")
-
-    def test_the_run_specification_declares_the_inputs_and_text_and_finish_reason(self):
-        spec = active_configuration()["runspec"]
-        required = {k for k, v in spec["InputRootEntity"]["Attributes"].items() if not v.get("Optional")}
-        self.assertEqual(required, INPUTS)
-        self.assertEqual(set(spec["OutputRootEntity"]["Attributes"]), {"text", "finishReason"})
+    def test_the_rewrite_component_is_the_live_prompt_the_flow_calls(self):
+        self.assertEqual(model_id(REWRITE), "e853d7c8-dd36-4917-951f-50108a812fc4")
+        self.assertIn("e853d7c8-dd36-4917-951f-50108a812fc4", json.dumps(FLOW))
 
 
 class TheFlowsRunActions(unittest.TestCase):
 
     def test_the_rev20_detector_component_is_no_longer_called(self):
-        self.assertNotIn(model_id(), json.dumps(FLOW))
+        self.assertNotIn(DETECTOR_ID, json.dumps(FLOW))
 
     def test_each_new_run_action_has_the_designer_saved_shape(self):
         """A-NS-31, the part a source test can check: same host and operation as the action a maker saved in

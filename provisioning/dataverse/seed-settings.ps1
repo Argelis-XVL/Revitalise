@@ -12,7 +12,10 @@
     rev_setting is the single place the process owner can change the behaviour of the
     scoring automation without a deployment (ADR-010, NFR-019), so the rows have to
     exist before the flows run for the first time. Every row comes from settings key
-    `dataverse.settingRows`: `key`, `displayName`, `value`, `dataType` and `description`.
+    `dataverse.settingRows`: `key`, `displayName`, `value`, `dataType`, `category` and `description`.
+    `category` is required: the label text of the rev_settingcategory choice (ADR-090 item 5), mapped to
+    its value by a table beside the data-type map. A row with no category, or one that is not in the
+    table, aborts the whole run before anything is written.
     `displayName` is optional (EF-25, 2026-09-17) — it seeds `rev_displayname`, the
     human-readable label shown to grant administrators alongside the Setting Key.
 
@@ -35,8 +38,15 @@
     in the settings file is the process owner's from the moment it exists: the four narrative
     scrubbing rule rows (RedactionNeutralTerms, RedactionTitles, RedactionNameRules,
     RedactionLabels), which Emily edits in the app. Such a row is CREATED where absent and LEFT
-    ALONE where present: an existing row reports `EXISTS — ... left unchanged (createOnly)` and is
-    never written. The create is a POST to the entity set, which can only ever create: if a row
+    ALONE where present: its VALUE, data type and effective-from date are never written again. Since
+    ADR-090 (rev 35, 2026-10-23) the repository owns two things on every row, create-only included:
+    the description and the category. For an existing create-only row the script updates
+    `rev_description` and `rev_category` by the row's own id (read from the existing-row probe) with a
+    body of exactly those two columns, sent only when either differs from the file, and reports
+    `EXISTS — description and category updated (createOnly; value untouched)`; when both already
+    match it sends nothing and reports `EXISTS — left unchanged (createOnly)`. The update carries
+    If-Match: * so it can never create a row: one deleted between probe and write fails visibly
+    instead of reappearing without a value. The create is a POST to the entity set, which can only ever create: if a row
     with the same rev_name appears between the probe and the POST, Dataverse refuses the POST on
     the alternate key, the probe is repeated, and the row is reported EXISTS. Every other row
     keeps the upsert below.
@@ -137,6 +147,13 @@ $dataTypeMap = @{
     Date        = 7
 }
 
+# A-SETCAT-5 (CLOSED, DISPROVED 2026-10-23): the two live rows the files lack are CitySourceFile and
+# CitySourceCapturedOn; seed-city-settlement-register.ps1 writes their description and category.
+# rev_category → the rev_settingcategory global option set. The label → value table lives in
+# provisioning-common.ps1 (Get-SettingCategoryMap) because seed-city-settlement-register.ps1 writes the
+# category of its two provenance rows from the same table.
+$categoryMap = Get-SettingCategoryMap
+
 # NOT Get-ProvisioningSettings -Env dev for -Env dev. ProvisioningCommon.Tests.ps1 asserts
 # `Get-ProvisioningSettings -Env dev` throws "file not found" — several other scripts
 # (verify-role-bindings.ps1, ensure-bulk-delete-jobs.ps1, DataverseScripts.Tests.ps1) rely
@@ -181,6 +198,17 @@ foreach ($rowDef in $rows) {
         $value        = Get-Setting -Settings $rowDef -Path 'value'
         $dataTypeName = Get-Setting -Settings $rowDef -Path 'dataType'
         $description  = Get-Setting -Settings $rowDef -Path 'description' -Optional
+        $categoryName = Get-Setting -Settings $rowDef -Path 'category' -Optional
+        if ([string]::IsNullOrWhiteSpace($categoryName)) {
+            throw ("row has no 'category'. Every row carries the label of its rev_settingcategory choice (one of: " +
+                   (($categoryMap.Keys | Sort-Object) -join ', ') + ').')
+        }
+        $categoryName = $categoryName.Trim()
+        if (-not $categoryMap.ContainsKey($categoryName)) {
+            throw ("category '$categoryName' is not one of " +
+                   (($categoryMap.Keys | Sort-Object) -join ', ') +
+                   ' (rev_settingcategory option set)')
+        }
 
         $lookup = ($dataTypeName -replace '\s', '')
         if (-not $dataTypeMap.ContainsKey($lookup)) {
@@ -200,6 +228,7 @@ foreach ($rowDef in $rows) {
             DisplayName   = $displayName
             Value         = [string]$value
             DataTypeValue = $dataTypeMap[$lookup]
+            CategoryValue = [int]$categoryMap[$categoryName]
             Description   = $description
             CreateOnly    = $createOnly
         }
@@ -229,9 +258,10 @@ foreach ($row in $plan) {
         # answer for a row that does not exist yet and is not an error; anything else
         # is rethrown to the per-row catch below.
         $rowExists = $true
+        $probe     = $null
         try {
-            Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
-                -Path ($keyPath + '?$select=rev_name') | Out-Null
+            $probe = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
+                -Path ($keyPath + '?$select=rev_settingid,rev_name,rev_description,rev_category')
         }
         catch {
             $statusCode = $null
@@ -242,8 +272,34 @@ foreach ($row in $plan) {
         }
 
         if ($row.CreateOnly -and $rowExists) {
-            # ADR-076 item 6: the process owner's row. Never written again by a deploy.
-            Write-ResourceStatus -Status EXISTS -Name $label -Detail 'left unchanged (createOnly)'
+            # ADR-076 item 6: the process owner's row. Its VALUE is never written again by a deploy.
+            # ADR-090 item 6: description and category belong to the repository, so they are brought
+            # level by an update by the row's own id whose body is exactly those two columns.
+            $probeDescription = ''
+            $probeCategory    = ''
+            $probeId          = $null
+            if ($null -ne $probe) {
+                if ($probe.PSObject.Properties.Name -contains 'rev_description' -and $null -ne $probe.rev_description) { $probeDescription = [string]$probe.rev_description }
+                if ($probe.PSObject.Properties.Name -contains 'rev_category'    -and $null -ne $probe.rev_category)    { $probeCategory    = [string]$probe.rev_category }
+                if ($probe.PSObject.Properties.Name -contains 'rev_settingid')  { $probeId = [string]$probe.rev_settingid }
+            }
+            $wantDescription = if ($row.Description) { [string]$row.Description } else { $probeDescription }
+            if (($probeDescription -ceq $wantDescription) -and ($probeCategory -eq [string]$row.CategoryValue)) {
+                Write-ResourceStatus -Status EXISTS -Name $label -Detail 'left unchanged (createOnly)'
+                continue
+            }
+            if ([string]::IsNullOrWhiteSpace($probeId)) {
+                throw 'the existing-row probe returned no rev_settingid, so the row cannot be updated by id.'
+            }
+            $metaBody = @{
+                rev_description = $wantDescription
+                rev_category    = $row.CategoryValue
+            }
+            # If-Match: * turns the PATCH into update-only: a row deleted since the probe is a 404, not a
+            # new row with no value.
+            Invoke-DataverseApi -Method PATCH -EnvironmentUrl $envUrl -AccessToken $token `
+                -Path ('rev_settings({0})' -f $probeId) -Body $metaBody -AdditionalHeaders @{ 'If-Match' = '*' } | Out-Null
+            Write-ResourceStatus -Status EXISTS -Name $label -Detail 'description and category updated (createOnly; value untouched)'
             continue
         }
 
@@ -251,6 +307,7 @@ foreach ($row in $plan) {
             rev_name     = $row.Key
             rev_value    = $row.Value
             rev_datatype = $row.DataTypeValue
+            rev_category = $row.CategoryValue
         }
         if ($row.DisplayName)  { $body.rev_displayname  = $row.DisplayName }
         if ($row.Description)  { $body.rev_description  = $row.Description }

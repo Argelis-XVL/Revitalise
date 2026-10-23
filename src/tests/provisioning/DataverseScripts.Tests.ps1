@@ -218,6 +218,130 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         $updated.Body.PSObject.Properties.Name | Should -Not -Contain 'rev_effectivefrom'
     }
 
+    # ── ADR-090 (rev 35, wbs:2.2, WI-0153): category on every row; description and category on create-only rows ──
+    Context 'ADR-090 category and the create-only metadata path' {
+        It 'createOnly: an EXISTING row with a stale description is updated BY ID with exactly rev_description and rev_category, never POSTed, value untouched' {
+            Remove-SettingsFixture
+            New-SettingsFixture -Env acc -Mutate {
+                param($s)
+                $s.dataverse.settingRows = @(
+                    @{ key = 'AmountLimitOther'; category = 'Automatic rejection rules'; dataType = 'Whole Number'; value = '500'; description = 'new text'; createOnly = $true }
+                )
+            } | Out-Null
+            Register-FakeDataverseResponse -Method GET   -UriPattern "rev_name='AmountLimitOther'" -Response ([pscustomobject]@{ rev_settingid = 'guid-777'; rev_name = 'AmountLimitOther'; rev_description = 'old text'; rev_category = $null })
+            Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings\(guid-777\)' -Response $null
+
+            $output = & $script:SeedSettings -Env acc
+            $LASTEXITCODE | Should -Be 0
+            ($output -join "`n") | Should -Match "EXISTS — Setting row 'AmountLimitOther' : description and category updated \(createOnly; value untouched\)"
+            @(Get-FakeDataverseCalls -Method POST).Count | Should -Be 0
+            @(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name=").Count | Should -Be 0 -Because 'the update is by id, not by alternate key'
+            $calls = @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'rev_settings\(guid-777\)')
+            $calls.Count | Should -Be 1
+            $names = @($calls[0].Body.PSObject.Properties.Name | Sort-Object)
+            ($names -join ',') | Should -Be 'rev_category,rev_description'
+            $calls[0].Body.rev_category | Should -Be 2
+            $calls[0].Body.rev_description | Should -Be 'new text'
+            foreach ($forbidden in 'rev_value', 'rev_datatype', 'rev_displayname', 'rev_effectivefrom', 'rev_name') {
+                $calls[0].Body.PSObject.Properties.Name | Should -Not -Contain $forbidden
+            }
+            $calls[0].Headers['If-Match'] | Should -Be '*' -Because 'update-only: a row deleted since the probe must fail, not be re-created without a value'
+
+            Remove-SettingsFixture
+            New-SettingsFixture -Env acc | Out-Null
+        }
+
+        It 'createOnly: a re-run where description and category already equal the file sends nothing' {
+            Remove-SettingsFixture
+            New-SettingsFixture -Env acc -Mutate {
+                param($s)
+                $s.dataverse.settingRows = @(
+                    @{ key = 'AmountLimitOther'; category = 'Automatic rejection rules'; dataType = 'Whole Number'; value = '500'; description = 'same text'; createOnly = $true }
+                )
+            } | Out-Null
+            Register-FakeDataverseResponse -Method GET -UriPattern "rev_name='AmountLimitOther'" -Response ([pscustomobject]@{ rev_settingid = 'guid-777'; rev_name = 'AmountLimitOther'; rev_description = 'same text'; rev_category = 2 })
+
+            $output = & $script:SeedSettings -Env acc
+            $LASTEXITCODE | Should -Be 0
+            ($output -join "`n") | Should -Match "EXISTS — Setting row 'AmountLimitOther' : left unchanged \(createOnly\)"
+            @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+            @(Get-FakeDataverseCalls -Method POST).Count | Should -Be 0
+
+            Remove-SettingsFixture
+            New-SettingsFixture -Env acc | Out-Null
+        }
+
+        It 'a createOnly row that does not exist is still created with rev_category in the POST body' {
+            Remove-SettingsFixture
+            New-SettingsFixture -Env acc -Mutate {
+                param($s)
+                $s.dataverse.settingRows = @(
+                    @{ key = 'RedactionTitles'; category = 'Narrative scrubbing'; dataType = 'Text'; value = 'Mr'; description = 'd'; createOnly = $true }
+                )
+            } | Out-Null
+            Register-FakeDataverseResponse -Method GET  -UriPattern 'rev_settings' -StatusCode 404
+            Register-FakeDataverseResponse -Method POST -UriPattern 'rev_settings$' -Response ([pscustomobject]@{ rev_settingid = 'new-1' })
+
+            & $script:SeedSettings -Env acc | Out-Null
+            $LASTEXITCODE | Should -Be 0
+            (@(Get-FakeDataverseCalls -Method POST -UriPattern 'rev_settings$')[0]).Body.rev_category | Should -Be 5
+
+            Remove-SettingsFixture
+            New-SettingsFixture -Env acc | Out-Null
+        }
+
+        It 'an ordinary (upserted) row sends rev_category in its body' {
+            Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings\(rev_name=' -Response ([pscustomobject]@{ rev_name = 'x' })
+            Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings\(rev_name=' -Response $null
+
+            & $script:SeedSettings -Env acc | Out-Null
+            (@(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='KnockoutThreshold'")[0]).Body.rev_category | Should -Be 8
+        }
+
+        It 'ABORTS BEFORE ANY WRITE when a row has no category, or one that is not a choice label' -ForEach @(
+            @{ Why = 'no category';      Row = @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '20'; description = 'd' };                                   Message = "has no 'category'" },
+            @{ Why = 'unknown category'; Row = @{ key = 'KnockoutThreshold'; category = 'Misc'; dataType = 'Whole Number'; value = '20'; description = 'd' };               Message = "category 'Misc' is not one of .*rev_settingcategory option set" }
+        ) {
+            Remove-SettingsFixture
+            $rowToUse = $Row
+            New-SettingsFixture -Env acc -Mutate {
+                param($s)
+                $s.dataverse.settingRows = @(
+                    @{ key = 'BorderlineBandLower'; category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '21'; description = 'valid' },
+                    $rowToUse
+                )
+            } | Out-Null
+            Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings' -StatusCode 404
+            Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings' -Response $null
+            Register-FakeDataverseResponse -Method POST  -UriPattern 'rev_settings$' -Response ([pscustomobject]@{ rev_settingid = 'n' })
+
+            $output = & $script:SeedSettings -Env acc
+            $LASTEXITCODE | Should -Be 1
+            ($output -join "`n") | Should -Match $Message
+            @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+            @(Get-FakeDataverseCalls -Method POST).Count | Should -Be 0
+            @(Get-FakeDataverseCalls -Method GET).Count | Should -Be 0
+
+            Remove-SettingsFixture
+            New-SettingsFixture -Env acc | Out-Null
+        }
+
+        It 'the shared category table (Get-SettingCategoryMap, used by both seed scripts) holds exactly the eight labels and values that OptionSets/rev_settingcategory.xml declares' {
+            $xml = [xml](Get-Content -Raw (Join-Path (Get-RepoRoot) 'src' 'solutions' 'RevitaliseGrantAutomation' 'OptionSets' 'rev_settingcategory.xml'))
+            $fromXml = @{}
+            foreach ($o in $xml.optionset.options.option) { $fromXml[[string]$o.labels.label.description] = [int]$o.value }
+            $fromXml.Count | Should -Be 8
+            $source = Get-Content -Raw (Join-Path (Get-RepoRoot) 'provisioning' 'common' 'provisioning-common.ps1')
+            $block = [regex]::Match($source, '(?s)function Get-SettingCategoryMap.*?@\{(.*?)\n    \}').Groups[1].Value
+            $fromScript = @{}
+            foreach ($m in [regex]::Matches($block, "'([^']+)'\s*=\s*(\d+)")) { $fromScript[$m.Groups[1].Value] = [int]$m.Groups[2].Value }
+            $fromScript.Count | Should -Be 8
+            foreach ($k in $fromXml.Keys) { $fromScript[$k] | Should -Be $fromXml[$k] -Because "label '$k'" }
+            # values follow the alphabetical order of the labels (A-SETCAT-3)
+            (@($fromXml.GetEnumerator() | Sort-Object Value | ForEach-Object { $_.Key }) -join '|') | Should -Be ((@($fromXml.Keys | Sort-Object -CaseSensitive) -join '|'))
+        }
+    }
+
     It 'maps the friendly dataType label to the rev_settingdatatype option value' {
         Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings\(rev_name=' -StatusCode 404
         Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings\(rev_name=' -Response $null
@@ -234,8 +358,8 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         New-SettingsFixture -Env acc -Mutate {
             param($s)
             $s.dataverse.settingRows = @(
-                @{ key = 'KnockoutThreshold';   dataType = 'Whole Number'; value = '{{PENDING_OQ_001}}'; description = 'unconfirmed' },
-                @{ key = 'BorderlineBandLower'; dataType = 'Whole Number'; value = '21';                 description = 'confirmed' }
+                @{ key = 'KnockoutThreshold';   category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '{{PENDING_OQ_001}}'; description = 'unconfirmed' },
+                @{ key = 'BorderlineBandLower'; category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '21';                 description = 'confirmed' }
             )
         } | Out-Null
         Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings' -StatusCode 404
@@ -262,9 +386,9 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         New-SettingsFixture -Env acc -Mutate {
             param($s)
             $s.dataverse.settingRows = @(
-                @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '{{PENDING_OQ_001}}'; description = 'unconfirmed'; createOnly = $true },
-                @{ key = 'AmountLimitOther'; dataType = 'Whole Number'; value = '500'; description = 'd'; createOnly = $true },
-                @{ key = 'SavingsRuleEnabled'; dataType = 'Boolean'; value = 'true'; description = 'd'; createOnly = $true }
+                @{ key = 'KnockoutThreshold'; category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '{{PENDING_OQ_001}}'; description = 'unconfirmed'; createOnly = $true },
+                @{ key = 'AmountLimitOther'; category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '500'; description = 'd'; createOnly = $true },
+                @{ key = 'SavingsRuleEnabled'; category = 'Scoring and eligibility'; dataType = 'Boolean'; value = 'true'; description = 'd'; createOnly = $true }
             )
         } | Out-Null
         Register-FakeDataverseResponse -Method GET  -UriPattern 'rev_settings' -StatusCode 404
@@ -285,8 +409,8 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         New-SettingsFixture -Env acc -Mutate {
             param($s)
             $s.dataverse.settingRows = @(
-                @{ key = 'SavingsRuleEnabled'; dataType = 'Boolean'; value = 'true'; description = 'd'; createOnly = $true },
-                @{ key = 'AmountLimitDayTripsOrOutings'; dataType = 'Whole Number'; value = '100'; description = 'd'; createOnly = $true }
+                @{ key = 'SavingsRuleEnabled'; category = 'Scoring and eligibility'; dataType = 'Boolean'; value = 'true'; description = 'd'; createOnly = $true },
+                @{ key = 'AmountLimitDayTripsOrOutings'; category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '100'; description = 'd'; createOnly = $true }
             )
         } | Out-Null
         Register-FakeDataverseResponse -Method GET  -UriPattern 'rev_settings' -StatusCode 404
@@ -309,7 +433,7 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         Remove-SettingsFixture
         New-SettingsFixture -Env acc -Mutate {
             param($s)
-            $s.dataverse.settingRows = @(@{ key = 'X'; dataType = 'Guesswork'; value = '1'; description = 'd' })
+            $s.dataverse.settingRows = @(@{ key = 'X'; category = 'Scoring and eligibility'; dataType = 'Guesswork'; value = '1'; description = 'd' })
         } | Out-Null
         Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings' -Response $null
 
@@ -326,7 +450,7 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         Remove-SettingsFixture
         New-SettingsFixture -Env acc -Mutate {
             param($s)
-            $s.dataverse.settingRows = @(@{ key = "O'Key"; dataType = 'Text'; value = 'v'; description = 'd' })
+            $s.dataverse.settingRows = @(@{ key = "O'Key"; category = 'Scoring and eligibility'; dataType = 'Text'; value = 'v'; description = 'd' })
         } | Out-Null
         Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings' -StatusCode 404
         Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings' -Response $null
@@ -354,16 +478,16 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
     # ── Create-only rows (TAD rev 23, ADR-076 item 6, A-NS-36) ──────────────────────────────
     # The four narrative-scrubbing rule rows are the process owner's once they exist: a deploy
     # creates them where absent and never writes them again.
-    It 'createOnly: an EXISTING row is left unchanged and never written' {
+    It 'createOnly: an EXISTING row whose description and category already match is left unchanged and never written (ADR-090 step 4)' {
         Remove-SettingsFixture
         New-SettingsFixture -Env acc -Mutate {
             param($s)
             $s.dataverse.settingRows = @(
-                @{ key = 'RedactionTitles'; dataType = 'Text'; value = "Mr`nMrs"; description = 'd'; createOnly = $true },
-                @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '20'; description = 'd' }
+                @{ key = 'RedactionTitles'; category = 'Scoring and eligibility'; dataType = 'Text'; value = "Mr`nMrs"; description = 'd'; createOnly = $true },
+                @{ key = 'KnockoutThreshold'; category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '20'; description = 'd' }
             )
         } | Out-Null
-        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings' -Response ([pscustomobject]@{ rev_name = 'x' })
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings' -Response ([pscustomobject]@{ rev_settingid = 'id-1'; rev_name = 'x'; rev_description = 'd'; rev_category = 8 })
         Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings' -Response $null
 
         $output = & $script:SeedSettings -Env acc
@@ -383,7 +507,7 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         Remove-SettingsFixture
         New-SettingsFixture -Env acc -Mutate {
             param($s)
-            $s.dataverse.settingRows = @(@{ key = 'RedactionTitles'; dataType = 'Text'; value = "Mr`nMrs"; description = 'd'; createOnly = $true })
+            $s.dataverse.settingRows = @(@{ key = 'RedactionTitles'; category = 'Scoring and eligibility'; dataType = 'Text'; value = "Mr`nMrs"; description = 'd'; createOnly = $true })
         } | Out-Null
         Register-FakeDataverseResponse -Method GET  -UriPattern 'rev_settings' -StatusCode 404
         Register-FakeDataverseResponse -Method POST -UriPattern 'rev_settings$' -Response ([pscustomobject]@{ rev_settingid = 'new-1' })
@@ -409,7 +533,7 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         Remove-SettingsFixture
         New-SettingsFixture -Env acc -Mutate {
             param($s)
-            $s.dataverse.settingRows = @(@{ key = 'RedactionLabels'; dataType = 'Text'; value = '[NAME] = a name'; description = 'd'; createOnly = $true })
+            $s.dataverse.settingRows = @(@{ key = 'RedactionLabels'; category = 'Scoring and eligibility'; dataType = 'Text'; value = '[NAME] = a name'; description = 'd'; createOnly = $true })
         } | Out-Null
         Register-FakeDataverseResponse -Method GET -UriPattern 'rev_settings' -Response {
             $message  = [System.Net.Http.HttpResponseMessage]::new([System.Net.HttpStatusCode]::NotFound)
@@ -432,8 +556,8 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         New-SettingsFixture -Env acc -Mutate {
             param($s)
             $s.dataverse.settingRows = @(
-                @{ key = 'RedactionLabels'; dataType = 'Text'; value = '[NAME] = a name'; description = 'd'; createOnly = $true },
-                @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '20'; description = 'd' }
+                @{ key = 'RedactionLabels'; category = 'Scoring and eligibility'; dataType = 'Text'; value = '[NAME] = a name'; description = 'd'; createOnly = $true },
+                @{ key = 'KnockoutThreshold'; category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '20'; description = 'd' }
             )
         } | Out-Null
         $probes = @{ n = 0 }
@@ -498,7 +622,7 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
             dataverse = @{
                 environmentUrl = $script:EnvUrl
                 settingRows    = @(
-                    @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '20'; description = 'dev fixture' }
+                    @{ key = 'KnockoutThreshold'; category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '20'; description = 'dev fixture' }
                 )
             }
         } | ConvertTo-Json -Depth 10 | Set-Content -Path $devFixturePath -Encoding utf8

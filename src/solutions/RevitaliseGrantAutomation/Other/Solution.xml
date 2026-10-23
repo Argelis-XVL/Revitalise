@@ -150,6 +150,7 @@
       <RootComponent type="9" schemaName="rev_localauthoritystatus" />
       <RootComponent type="9" schemaName="rev_conditionprofile" />
       <RootComponent type="9" schemaName="rev_settingdatatype" />
+      <RootComponent type="9" schemaName="rev_settingcategory" />
       <RootComponent type="9" schemaName="rev_errorseverity" />
       <RootComponent type="9" schemaName="rev_grantstatus" />
       <!-- Added by the schema revision pass. The first five carry PLACEHOLDER option values that must be confirmed with the process owner before PRD - each file says so at the top. -->
@@ -293,12 +294,9 @@
            wbs:8.6, WI-0136, A-CP-9). Authored in the DEV maker designer and copied from the DEV export exactly as
            exported, including behavior="0"; its id is the platform's (C-TECH-051). Not edited by hand. -->
       <RootComponent type="29" id="{02ac658e-9bcc-f111-a05c-7ced8d43e1b4}" behavior="0" />
-      <!-- REV Narrative Redaction Prompt (AI Builder prompt, msdyn_aimodel, component type 401;
-           ADR-072, wbs:5.3). Created by the reviewer in DEV inside this solution (TAD 12.6.1 R1,
-           2026-10-06) and copied from the DEV export exactly as exported, including behavior="0"
-           (A-NS-9). Its id is the platform's, read from the export, never chosen here (C-TECH-051).
-           The flow's run action refers to it by this id. -->
-      <RootComponent type="401" id="{122be8e0-4b6b-44cd-a9a9-d1faff162b02}" behavior="0" />
+      <!-- REV Narrative Rewrite Prompt (AI Builder prompt, component type 401; ADR-075, ADR-082). The rev 20 detector
+           prompt {122be8e0-...} was removed here and from Customizations.xml on 2026-10-23 (WI-0154): no flow calls it.
+           A-RETIRE-1 (OPEN): what a managed Pipelines promotion does to a copy of it already created in ACC or PRD. -->
       <RootComponent type="401" id="{e853d7c8-dd36-4917-951f-50108a812fc4}" behavior="0" />
       <!--
         App sitemap (type 62) and model-driven app (type 80) ARE DECLARED BY NAME, NOT BY GUID,

@@ -35,6 +35,10 @@ BeforeAll {
 
     $script:RepoRoot = Get-RepoRoot
 
+    # rev_setting.rev_description's declared limit, read from the schema source, never typed here (IMP-1243).
+    $script:DescriptionMaxLength = [int](([xml](Get-Content -Raw (Join-Path $script:RepoRoot 'src' 'solutions' 'RevitaliseGrantAutomation' 'Entities' 'rev_setting' 'Entity.xml'))).Entity.EntityInfo.entity.attributes.attribute |
+        Where-Object { $_.PhysicalName -eq 'rev_description' }).MaxLength
+
     # Dot-source common HERE, before any Mock Get-ProvisioningCertificate call below —
     # Pester's Mock requires the target command to already be resolvable when Mock is
     # called; the script under test also dot-sources this, but at execution time, too late
@@ -218,6 +222,33 @@ Describe 'seed-city-settlement-register.ps1 — register upsert, provenance and 
                 $capturedOn = @(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='CitySourceCapturedOn'")[0]
                 $capturedOn.Body.rev_value    | Should -Be '2026-09-16' -Because 'the file DELIVERY date, never the run date (see script header)'
                 $capturedOn.Body.rev_datatype | Should -Be 7
+            }
+            finally { Remove-Item -Path $csv -ErrorAction SilentlyContinue }
+        }
+
+        It 'writes a plain-language description and category 6 (Postcodes and local authorities) on both provenance rows, on create and on re-run (ADR-090)' -ForEach @(
+            @{ Exists = $false }, @{ Exists = $true }
+        ) {
+            $csv = New-CityCsvFixture -Rows @([pscustomobject]@{ OutwardCode = 'AB1'; CityName = 'Aberdeen' })
+            try {
+                Register-FakeDataverseResponse -Method GET   -UriPattern $script:RegisterKeyPattern -StatusCode 404
+                Register-FakeDataverseResponse -Method PATCH -UriPattern $script:RegisterKeyPattern -Response $null
+                if ($Exists) { Register-FakeDataverseResponse -Method GET -UriPattern $script:SettingKeyPattern -Response ([pscustomobject]@{ rev_name = 'x' }) }
+                else         { Register-FakeDataverseResponse -Method GET -UriPattern $script:SettingKeyPattern -StatusCode 404 }
+                Register-FakeDataverseResponse -Method PATCH -UriPattern $script:SettingKeyPattern -Response $null
+
+                & $script:SeedCity -Env dev -SettingsPath $script:DevSchemaSettingsPath -CsvPath $csv | Out-Null
+                $LASTEXITCODE | Should -Be 0
+                foreach ($key in 'CitySourceFile', 'CitySourceCapturedOn') {
+                    $call = @(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='$key'")[0]
+                    $call.Body.rev_category | Should -Be 6 -Because "$key belongs to 'Postcodes and local authorities'"
+                    $call.Body.rev_description | Should -Not -BeNullOrEmpty
+                    $call.Body.rev_description.Length | Should -BeLessOrEqual $script:DescriptionMaxLength
+                    $call.Body.rev_description | Should -Not -Match '\b(FR|NFR|ADR|OQ|IMP|SDD|EF|CO|TAD|WBS)[- ]?\d+\b|\bwbs:|\.(md|json|ps1|xlsx)\b|\bline \d+|\brev_[a-z]' -Because 'Emily cannot open the repository'
+                }
+                # the value, data type and effective-from behaviour are unchanged by the category
+                (@(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='CitySourceFile'")[0]).Body.rev_value | Should -Be 'Postcode Details.xlsx'
+                (@(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='CitySourceCapturedOn'")[0]).Body.rev_value | Should -Be '2026-09-16'
             }
             finally { Remove-Item -Path $csv -ErrorAction SilentlyContinue }
         }

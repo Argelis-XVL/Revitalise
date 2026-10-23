@@ -903,7 +903,7 @@ The new tests run inside the existing HARD `unit-tests` step. The type-401 knowl
   199 tests (189 at approval, plus the 10 trigger-loop tests added after it).
 - **Full suite:** `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -CodeCoverage -CoverageThreshold 0 -OutputPath <dir>`,
   then `python3 scripts/verify-coverage-threshold.py <dir>/coverage.xml --threshold 80 --exclusions config/coverage-exclusions.json`.
-- **After import to DEV (V3/V4):** the solution shows *REV Narrative Redaction Prompt* once, not twice. The after-deploy
+- **After import to DEV (V3/V4):** the solution shows *REV Narrative Redaction Prompt* once, not twice (SUPERSEDED by Iteration 15: that prompt left the solution on 2026-10-23). The after-deploy
   check prints `PASS — AI model 122be8e0-… exists`. Open the flow in the designer: `Run_the_redaction_prompt` shows
   the prompt by name with three inputs filled. Save.
 
@@ -942,7 +942,7 @@ Rows new in this iteration, or whose evidence changed. Earlier rows stand as wri
 
 | Warning | Source step | Resolved / Accepted | Rationale if accepted |
 |---|---|---|---|
-| `pac solution pack`: *"Following root components are not defined in customizations: Type='AIModel', Id='{122be8e0-…}'"* | pack-managed, pack-unmanaged | Accepted | The packer reports it for an inline AI model the same way it reports the standing relationship and environment variable lines. **Repacking DEV's own export gives the identical line**, and both packed zips contain the component. It is the packer's view of this type, not a source defect |
+| `pac solution pack`: *"Following root components are not defined in customizations: Type='AIModel', Id='{122be8e0-…}'"* | pack-managed, pack-unmanaged | Accepted (since 2026-10-23, WI-0154, only the `{e853d7c8-…}` AIModel line remains: the `{122be8e0-…}` model left the solution, see Iteration 15) | The packer reports it for an inline AI model the same way it reports the standing relationship and environment variable lines. **Repacking DEV's own export gives the identical line**, and both packed zips contain the component. It is the packer's view of this type, not a source defect |
 | `field-length-limits`: the run action's description at 369 characters | source gate | Resolved | Shortened to 227 |
 | `pac env fetch`: *"The top attribute can't be specified with paging attribute page"* | diagnostic read | Resolved | Re-run without `top` |
 | `pac solution check` (build 20261007-2): **Critical 0, High 0, Medium 15, Low 0**, every result `flow-avoid-recursive-loop`. **14 are on this flow**, one per Dataverse write: the 12 `Write_rev_…redacted` actions under `Write_the_counterpart`, `Write_the_decision` and `Hold_the_record_for_review`. The 15th is the standing `REVSafeguardingActionCompletion` result ([revitalise-grant-automation-dev-summary.md#L10323](revitalise-grant-automation-dev-summary.md#L10323)) | lint | Accepted (false positive, proven) | **The flow cannot trigger itself.** The trigger fires only on an update that names `rev_status` (`filteringattributes: "rev_status"`, no trigger conditions). The 14 actions write only the 12 `…redacted` columns, `rev_redactionconfidence`, `rev_redactionreleased` and `rev_redactionreviewrequired`, never `rev_status`. No other flow listens on those columns, so there is no loop through another flow either. The checker flags every write to the trigger's own table and ignores the filter: it still flags the safeguarding flow after its trigger was filtered (`IMP-0948`). **Evidence:** the SARIF from the build's Results URL, read 2026-10-07 (its 14 action names match the flow's 14 writes one for one), and the `NoTriggerLoop` tests in [test_scrub_flow_definition.py](../../src/tests/narrative/test_scrub_flow_definition.py), which fail if any write names a column the trigger listens on, if the filter is removed, if a write to `rev_applications` is added or removed, or if two flows form a loop (*Verification level* above). **The flow is not changed** |
@@ -2640,3 +2640,53 @@ The rewrite model dropped sentence full stops (`msdyn_aievent` shows it since 20
 |---|---|---|---|
 | [IMP-1193](../../logs/improvement-log.jsonl) | `scoped-build-plan-covers-the-whole-dirty-tree` | friction | Before promising a fast DEV-only build, read the `--plan` count: unrelated uncommitted work widens a change-scoped plan to nearly every step |
 
+---
+
+# Iteration 15 — the retired detector prompt leaves the solution (WI-0154, `wbs:5.3`, 2026-10-23)
+
+Recorded here, not in a new document: it is a removal from this feature's own component.
+
+## 15.1 Summary
+
+The reviewer: *"I had to manually remove the narrative redaction prompt again. probably not removed from disc. Its not used anymore in DEV."* The rev 20 detector prompt `{122be8e0-4b6b-44cd-a9a9-d1faff162b02}` (ADR-072, superseded by ADR-075 and ADR-082) was still a type 401 root component **and** still defined inline in `Other/Customizations.xml`, so every import re-created it in DEV. Verified before editing: no flow references it (the rewrite flow carries `e853d7c8-…` only), `scripts/scoped-repack.py` and `.engine/` do not name it (the tool handles type 401 generically and is given `e853d7c8` only).
+
+## 15.2 What was built
+
+| File | Change |
+|---|---|
+| `src/solutions/RevitaliseGrantAutomation/Other/Solution.xml` | The `type="401"` root component and its comment removed; `e853d7c8-…` unchanged, with a short comment carrying `A-RETIRE-1` |
+| `src/solutions/RevitaliseGrantAutomation/Other/Customizations.xml` | **The detector's whole `<AIModel>` block removed too.** Removing only the root component, as the item's clause 1 reads, would leave the definition in the package, and an import would still carry it. The `<AIModels>` comment renamed to the rewrite prompt |
+| `src/tests/narrative/test_prompt_component.py` | The detector-only tests are removed (template, drift, inputs, settings, run specification: all compared a component that is no longer shipped; the rewrite prompt has its own). New: one AI model, one 401 root, the detector id absent from both files, the live prompt present. The not-called assertion now uses the id constant |
+| `src/tests/narrative/fixtures/run-a-prompt-action.json` | `recordId` set to `null` (like the other parameter values) and the source note says why; its shape is still the designer's |
+| `src/tests/narrative/test_scrub_flow_definition.py:1363` | Unchanged: it still asserts the flow does not call `122be8e0-…` |
+
+Left alone on purpose: `docs/development/revitalise-redaction-prompt.md`, the 2026-10-07 test report and the deployment summary name the id as history; they are records, not dependants.
+
+## 15.3 Clause 4 — what an import does to an already-created AIModel once it leaves the solution
+
+- **DEV (unmanaged, `pac solution import --force-overwrite`, `pipeline.yml` `stage_dev_command`):** an import adds and updates components; it does not delete one that is no longer in the package. So the copy the reviewer deleted by hand on 2026-10-23 stays deleted, and nothing re-creates it now. Any other copy that exists anywhere stays until someone deletes it. Stated from Microsoft's documented update-versus-upgrade behaviour; **not measured on this tenant**.
+- **ACC and PRD (managed, Power Platform Pipelines, deployed from DEV's own export):** a managed *upgrade* removes components that the previous version had and the new one does not; a managed *update* does not. Which of the two Pipelines uses for this solution is not recorded in this repository. The export comes from DEV, where the reviewer has deleted the prompt, so the next export will not carry it either way.
+- **Owner:** if a stale copy remains in ACC or PRD after the promotion, the reviewer (environment owner) deletes it there by hand, as he did in DEV, or the pipeline-agent records it. Nothing in the repository can delete it.
+
+## 15.4 Unvalidated Assumptions Register (C-TECH-052)
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
+|---|---|---|---|---|---|---|
+| A-RETIRE-1 | A managed promotion through Power Platform Pipelines removes the detector prompt from ACC and PRD if it exists there (upgrade) and leaves it if the promotion is an update. If wrong in either direction, a stale prompt stays in that environment and is deleted by hand. | [`Other/Solution.xml`](../../src/solutions/RevitaliseGrantAutomation/Other/Solution.xml) (comment above the 401 root) | E3 (Microsoft documentation of update versus upgrade; not read for this tool version) | No environment holding the prompt was observable; DEV's copy is already deleted | After the next promotion to ACC: list AI models in the solution there; expect only `REV Narrative Rewrite Prompt`; and if the detector is present, record that the promotion was an update | OPEN |
+
+## 15.5 Verification Evidence
+
+| Check | Level | Result |
+|---|---|---|
+| `pac solution pack` (unmanaged, local) | V2 | Exit 0. The notice lists **20** lines, not 21: 1 `AIModel` (`e853d7c8`), 9 `EntityRelationship`, 10 `EnvironmentVariableDefinition`. The zip's `solution.xml` has one `type="401"` and its `customizations.xml` has no `122be8e0` |
+| `python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml` | V1 | Exit 0, 19 of 89 steps (includes `root-components-resolve` and `component-shape`) |
+| `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -OutputPath <dir>` (the build's unit-tests step without coverage options) | V1 | Exit 0, 1511 passed, 0 failed, 1 skipped, which includes the Python narrative suite |
+| DEV after the next import | **Not reached** | The shared check `AI models in the solution` should show the rewrite prompt only |
+
+**Tool warnings triaged (C-TECH-055):** the "not defined in customizations" notice is accepted as before and now has 20 lines (one `AIModel`); see the §11 row in `revitalise-settings-category-dev-summary.md`, which carried the 21-line figure for build 20261023-2.
+
+**Work item:** WI-0154 (`wbs:5.3`).
+
+## Findings Logged (Iteration 15)
+
+none (see the gate output).

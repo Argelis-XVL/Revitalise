@@ -452,353 +452,401 @@
         "key": "LikertPointMap",
         "displayName": "Wellbeing scoring map",
         "dataType": "JSON",
+        "category": "Scoring and eligibility",
         "value": "{\"1\":5,\"2\":4,\"3\":3,\"4\":2,\"5\":1,\"6\":0}",
-        "description": "Maps a wellbeing answer's option VALUE to circumstance points (FR-013). Position 1 scores 5, position 5 scores 1. Key \"6\" ('Not sure') = 0, CHANGED FROM 0.5 on 2026-08-20 and confirmed with Emily (process owner). This supersedes the D-014 derivation from the hand-scored export; the map now holds no fractional value, so the half-point rounding can never fire. Full record: provisioning/deploymentSettings/settings-rows.notes.md#LikertPointMap."
+        "description": "Sets how many circumstance points each answer to the ten wellbeing questions is worth. Used by the scoring process for every application. The keys are the answer positions 1 to 6 as listed on the form: 1 is the first answer ('None of the time' or 'Strongly disagree'), 5 is the fifth ('All of the time' or 'Strongly agree'), 6 is 'Not sure'. Position 1 scores 5 points and position 5 scores 1, because all ten questions are worded so that a frequent occurrence or an agreement means better wellbeing and so less need. 'Not sure' scores 0, so it adds nothing. One map serves both answer scales because they share the same six positions. Use whole numbers or halves only: any other fraction breaks the rounding of the final score. It must stay valid JSON with a key for every position 1 to 6; if the row is missing or broken, scoring stops and raises an alert. Changing a value changes the maximum possible score, so check MaxCircumstanceScore too."
       },
       {
         "key": "FeelingScaleInversion",
         "displayName": "Life-satisfaction inversion map",
         "dataType": "JSON",
+        "category": "Scoring and eligibility",
         "value": "{\"0\":10,\"1\":9,\"2\":8,\"3\":7,\"4\":6,\"5\":5,\"6\":4,\"7\":3,\"8\":2,\"9\":1,\"10\":0}",
-        "description": "Inverts the life-satisfaction answer rev_feelingscaleanswer, a whole number 0 to 10, so that a lower reported satisfaction scores more points (FR-012). This is 10 minus the raw answer, expressed as a lookup map so the direction of the scale is configuration rather than arithmetic inside the flow. REPLACED IN REVISION 0.3: it was a five-entry map over a five-option picklist. The Automation Solution Design v0.5 specifies exactly this for Automation #2 Q1 \u2014 \"inverted (0/10 feeling = 10 points)\"."
+        "description": "Turns the life-satisfaction answer (0 to 10) into circumstance points so that lower satisfaction scores more. Used by the scoring process for every application. The keys are the answers 0 to 10 and each value is the points for that answer; as supplied, an answer of 0 scores 10 points, 5 scores 5 and 10 scores 0 (10 minus the answer). It is a lookup table rather than a calculation so the direction of the scale can be changed here without changing the scoring process. It needs an entry for every whole number from 0 to 10 and must stay valid JSON; if the row is missing or broken, scoring stops and raises an alert. If you change the highest value, update MaxCircumstanceScore to match."
       },
       {
         "key": "KnockoutThreshold",
         "displayName": "Threshold score",
         "dataType": "Whole Number",
+        "category": "Scoring and eligibility",
         "value": "{{PENDING_OQ_001}}",
         "createOnly": true,
-        "description": "Circumstance score at or below which the application status becomes Auto-reject. Board decision, SDD OQ-001."
+        "description": "The circumstance score at or below which an application is automatically rejected. Used by the scoring process: after it works out the score, an application scoring this number or lower gets the status Auto-reject, whatever else is true, and the reason is recorded on the application. This check is made before the borderline band, so an application at or below this number can never end up as Borderline. Enter a whole number, for example 20. Keep it below the lower end of the borderline band. If the row is missing or not a whole number, scoring stops and raises an alert, so no application is scored until it is fixed. A change applies to applications scored from then on; applications already scored are not re-scored."
       },
       {
         "key": "BorderlineBandLower",
         "displayName": "Borderline band — lower",
         "dataType": "Whole Number",
+        "category": "Scoring and eligibility",
         "value": "{{PENDING_OQ_002}}",
         "createOnly": true,
-        "description": "Lower bound (inclusive) of the Borderline review band. Board decision, SDD OQ-002."
+        "description": "The lowest circumstance score that counts as Borderline, meaning the application needs the process owner's judgement. Used by the scoring process: a score from this number up to and including BorderlineBandUpper gives the status Borderline and sends the process owner a Teams message with a link to the application. Enter a whole number, for example 21. Keep it above KnockoutThreshold; a score at or below KnockoutThreshold is rejected before this band is considered. If the row is missing or not a whole number, scoring stops and raises an alert. A change applies to applications scored from then on; applications already scored are not re-scored."
       },
       {
         "key": "BorderlineBandUpper",
         "displayName": "Borderline band — upper",
         "dataType": "Whole Number",
+        "category": "Scoring and eligibility",
         "value": "{{PENDING_OQ_002}}",
         "createOnly": true,
-        "description": "Upper bound (inclusive) of the Borderline review band; a score above it becomes Auto-pass. Board decision, SDD OQ-002."
+        "description": "The highest circumstance score that still counts as Borderline. Used by the scoring process: a score from BorderlineBandLower up to and including this number gives the status Borderline for the process owner's judgement, and a score above it gives Auto-pass. Enter a whole number, for example 30, not lower than BorderlineBandLower. If the row is missing or not a whole number, scoring stops and raises an alert. A change applies to applications scored from then on; applications already scored are not re-scored."
       },
       {
         "key": "IncomeCeiling",
         "displayName": "Income ceiling",
         "dataType": "Currency",
+        "category": "Scoring and eligibility",
         "value": "{{PENDING_OQ_003}}",
         "createOnly": true,
-        "description": "Annual household income ceiling in GBP. Board decision, SDD OQ-003."
+        "description": "The highest annual household income, in pounds, that is still eligible. Used by the scoring process: it takes the top of the income band the applicant chose on the form (see IncomeBandUpperBoundMap) and compares it with this figure. If the top of the band is at or below this figure the income check passes; if it is above, the application is automatically rejected as above the income ceiling. Applicants who say they receive means-tested benefits are never rejected on income, and an application with no income band is not rejected for income. Enter the amount in pounds as a plain number, for example 25000. If the row is missing or not a number, scoring stops and raises an alert. Remember that income bands are compared by their upper limit, so the ceiling should normally match the top of one of the bands."
       },
       {
         "key": "AgeBandMap",
         "displayName": "Age band map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"maxAge\":17,\"option\":1},{\"maxAge\":24,\"option\":2},{\"maxAge\":34,\"option\":3},{\"maxAge\":44,\"option\":4},{\"maxAge\":54,\"option\":5},{\"maxAge\":64,\"option\":6},{\"maxAge\":74,\"option\":7},{\"maxAge\":200,\"option\":8}]",
-        "description": "Maps an age in whole years to a rev_agerange option value (1=Under 18 .. 8=75 and over). Fixed reference data. Option 9 (Not known) is the fallback when no date of birth was supplied and is therefore not in the map."
+        "description": "Works out an age band from an age in whole years. Used by the intake process only as a fallback, when an application comes with a date of birth instead of an age band; the form currently asks for an age band, so the AgeRangeLabelMap row is the normal route. Each entry gives the oldest age (maxAge) in a band and the choice number of that band, from 1 (Under 18) to 8 (75 and over). Keep the entries in order from the youngest band to the oldest: the first entry whose maxAge is not lower than the age is used. With no date of birth the age range is set to Not known (9), which is why 9 is not in the map. It must stay valid JSON; if the row is missing or broken, the intake run fails and raises an alert."
       },
       {
         "key": "AgeRangeLabelMap",
         "displayName": "Age range label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"18-24\",\"option\":2},{\"label\":\"25-34\",\"option\":3},{\"label\":\"35-44\",\"option\":4},{\"label\":\"45-54\",\"option\":5},{\"label\":\"55-64\",\"option\":6},{\"label\":\"65-74\",\"option\":7},{\"label\":\"75 or over\",\"option\":8},{\"label\":\"Prefer not to say\",\"option\":9}]",
-        "description": "Maps the age-band labels the live form actually sends to rev_agerange (2=18-24 .. 8=75+, 9=Not known). The live form asks an age band directly, NOT a date of birth, so this map \u2014 not AgeBandMap \u2014 is the primary route to rev_agerange. Matched case-insensitively after trimming. Option 1 (Under 18) has no label (form gates on 18+). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#AgeRangeLabelMap (D-021)."
+        "description": "Translates the age band chosen on the website application form (for example '25-34') into the age range stored on the application, where 2 is 18-24 up to 8 which is 75 and over, and 9 is Not known. This is the normal route to the age range, because the form asks for a band, not a date of birth. Read by the intake process every time an application arrives. There is no entry for Under 18 because the form only accepts applicants aged 18 or over. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "ExceptionalCircumstanceLabelMap",
         "displayName": "Exceptional circumstance label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Palliative care\",\"option\":1},{\"label\":\"Carer breakdown or urgent need\",\"option\":2},{\"label\":\"Carer breakdown/urgent need\",\"option\":2},{\"label\":\"Severe financial hardship\",\"option\":3},{\"label\":\"Other (please specify)\",\"option\":4}]",
-        "description": "Maps the exceptional-circumstance labels the live form sends to rev_exceptionalcircumstance option values (FR-064, form-field-corrections pass). Matched case-insensitively after trimming. An unmatched label leaves the column empty rather than guessing - see rev_intakereviewnote. Full derivation: settings-rows.notes.md#ExceptionalCircumstanceLabelMap."
+        "description": "Translates the answers to the exceptional-circumstance question (for example palliative care, or carer breakdown or urgent need) on the website application form into the fixed choice stored on the application. The wording of the same option can differ slightly between versions of the form, so some options have more than one label. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "EmploymentStatusLabelMap",
         "displayName": "Employment status label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Yes, full-time\",\"option\":1},{\"label\":\"Yes, part-time\",\"option\":2},{\"label\":\"No, unable to work due to disability/health/caring responsibilities\",\"option\":3},{\"label\":\"No, retired\",\"option\":4},{\"label\":\"No, other reason\",\"option\":5}]",
-        "description": "Maps the employment-status labels the live form sends to rev_employmentstatus option values (FR-064, form-field-corrections pass). Matched case-insensitively after trimming. An unmatched label leaves the column empty rather than guessing. Full derivation: settings-rows.notes.md#EmploymentStatusLabelMap."
+        "description": "Translates the answers to the employment-status question on the website application form into the fixed choice stored on the application. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "CareHoursBandLabelMap",
         "displayName": "Care hours band label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"9 hours or less\",\"option\":1},{\"label\":\"10 - 19 hours\",\"option\":2},{\"label\":\"20 - 34 hours\",\"option\":3},{\"label\":\"35 - 59 hours\",\"option\":4},{\"label\":\"50+\",\"option\":5}]",
-        "description": "Maps the care-hours band labels the live form sends to rev_carehoursperweek option values (FR-064, form-field-corrections pass). Matched case- and dash-insensitively after trimming - the live form and other sources render band 2's dash differently. An unmatched label leaves the column empty. Full derivation: settings-rows.notes.md#CareHoursBandLabelMap."
+        "description": "Translates the answers to the question about hours of care provided each week on the website application form into the fixed choice stored on the application. The two sources of this wording write one band's dash differently, which is why matching ignores dash style. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "TitleLabelMap",
         "displayName": "Title label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Dr\",\"option\":1},{\"label\":\"Dr.\",\"option\":1},{\"label\":\"Miss\",\"option\":2},{\"label\":\"Miss.\",\"option\":2},{\"label\":\"Mr\",\"option\":3},{\"label\":\"Mr.\",\"option\":3},{\"label\":\"Mrs\",\"option\":4},{\"label\":\"Mrs.\",\"option\":4},{\"label\":\"Ms\",\"option\":5},{\"label\":\"Ms.\",\"option\":5},{\"label\":\"Mx\",\"option\":6},{\"label\":\"Mx.\",\"option\":6},{\"label\":\"Prof\",\"option\":7},{\"label\":\"Prof.\",\"option\":7},{\"label\":\"Rev\",\"option\":8},{\"label\":\"Rev.\",\"option\":8}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_title option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. The trailing full stops are ALIAS rows (the website sends 'Mr.'), never a normalisation. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#TitleLabelMap."
+        "description": "Translates the answers to the title question (Dr, Miss, Mr and so on) on the website application form into the fixed choice stored on the application. The website sends some titles with a full stop (for example 'Mr.'), so each of those has its own entry beside the plain one. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "ApplicantTypeLabelMap",
         "displayName": "Applicant type label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"A disabled person\",\"option\":1},{\"label\":\"A carer applying on behalf of a disabled person\",\"option\":2},{\"label\":\"A carer applying for yourself\",\"option\":3}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_applicanttype option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#ApplicantTypeLabelMap."
+        "description": "Translates the answers to the question about who is applying (the disabled person, or a carer applying on their behalf or for themselves) on the website application form into the fixed choice stored on the application. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "GenderLabelMap",
         "displayName": "Gender label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Female\",\"option\":1},{\"label\":\"Male\",\"option\":2},{\"label\":\"Non-binary\",\"option\":3},{\"label\":\"Prefer to self-describe\",\"option\":4},{\"label\":\"Describes themselves another way\",\"option\":4},{\"label\":\"Prefer not to say\",\"option\":5}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_gender option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. 'Prefer to self-describe' is the form's wording for option 4 (an alias row). Equality monitoring only; never read by scoring. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#GenderLabelMap."
+        "description": "Translates the answers to the gender question on the website application form into the fixed choice stored on the application. Used for equality monitoring only; it is never used in scoring. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "EthnicGroupLabelMap",
         "displayName": "Ethnic group label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"White\",\"option\":1},{\"label\":\"Asian or Asian British\",\"option\":2},{\"label\":\"Black, African, Caribbean or Black British\",\"option\":3},{\"label\":\"Mixed or Multiple ethnic groups\",\"option\":4},{\"label\":\"Other ethnic group\",\"option\":5},{\"label\":\"Prefer not to say\",\"option\":6}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_ethnicgroup option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Equality monitoring only; never read by scoring (C-DOM-030). Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#EthnicGroupLabelMap."
+        "description": "Translates the answers to the ethnic group question on the website application form into the fixed choice stored on the application. Used for equality monitoring only; it is never used in scoring. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "LikertResponseLabelMap",
         "displayName": "Wellbeing (two-week) answer label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"None of the time\",\"option\":1},{\"label\":\"Rarely\",\"option\":2},{\"label\":\"Some of the time\",\"option\":3},{\"label\":\"Often\",\"option\":4},{\"label\":\"All of the time\",\"option\":5},{\"label\":\"Not sure\",\"option\":6}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_likertresponse option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Used by the seven two-week wellbeing answers (rev_wellbeinganswer1-7). Option values feed LikertPointMap unchanged. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#LikertResponseLabelMap."
+        "description": "Translates the answers to the seven two-week wellbeing questions (None of the time, Rarely, Some of the time, Often, All of the time and so on) on the website application form into the fixed choice stored on the application. The choice number each answer becomes is the one LikertPointMap then turns into points. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "AgreementResponseLabelMap",
         "displayName": "Wellbeing (last-year) answer label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Strongly disagree\",\"option\":1},{\"label\":\"Disagree\",\"option\":2},{\"label\":\"Neutral\",\"option\":3},{\"label\":\"Agree\",\"option\":4},{\"label\":\"Strongly agree\",\"option\":5},{\"label\":\"Not sure\",\"option\":6}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_agreementresponse option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Used by the three last-year wellbeing answers (rev_wellbeinganswer8-10). The option labels' capital A/D differ only by case, which the match folds. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#AgreementResponseLabelMap."
+        "description": "Translates the answers to the three last-year wellbeing questions (Strongly disagree to Strongly agree) on the website application form into the fixed choice stored on the application. The choice number each answer becomes is the one LikertPointMap then turns into points. Labels that differ only by capital letters count as the same label. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "BreakTypeLabelMap",
         "displayName": "Break type label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Holiday accommodation (hotel, cottage, caravan, holiday park)\",\"option\":1},{\"label\":\"Day trips or outings\",\"option\":2},{\"label\":\"Activity or experience (e.g. theatre, concert, attraction)\",\"option\":3},{\"label\":\"Respite care facility stay\",\"option\":4},{\"label\":\"Other (please specify)\",\"option\":5}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_breaktype option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#BreakTypeLabelMap."
+        "description": "Translates the answers to the question about the type of break being applied for (holiday accommodation, day trips or outings, activity or experience, respite care facility stay, other) on the website application form into the fixed choice stored on the application. The choice number also decides which AmountLimit setting applies to the application when it is scored. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "IncomeBandLabelMap",
         "displayName": "Household income label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Under £15,000 per year\",\"option\":1},{\"label\":\"£15,000 – £25,000\",\"option\":2},{\"label\":\"£25,000 – £35,000\",\"option\":3},{\"label\":\"Over £35,000\",\"option\":4},{\"label\":\"Under £15,000\",\"option\":1},{\"label\":\"£15,000 to £24,999\",\"option\":2},{\"label\":\"£25,000 to £34,999\",\"option\":3}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_incomeband option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. The first three are the form's wording (alias rows, en dashes as captured; the match dash-folds both sides); the option labels follow. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#IncomeBandLabelMap."
+        "description": "Translates the answers to the household income question on the website application form into the fixed choice stored on the application. The choice number each answer becomes is the one IncomeBandUpperBoundMap then turns into the top of that income band. The form's wording uses en dashes; matching ignores dash style. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "HearAboutUsLabelMap",
         "displayName": "How did you hear about us label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Google search\",\"option\":1},{\"label\":\"Social media (Facebook, Twitter, etc.)\",\"option\":2},{\"label\":\"Referral from another charity\",\"option\":3},{\"label\":\"Healthcare professional (GP, nurse, social worker)\",\"option\":4},{\"label\":\"Friend or family member\",\"option\":5},{\"label\":\"Local authority/council\",\"option\":6},{\"label\":\"Previous guest of Revitalise\",\"option\":7},{\"label\":\"Other (please specify)\",\"option\":8},{\"label\":\"Prefer not to say\",\"option\":9}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_hearaboutus option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Multi-select: the flow filters this map by the ticked labels (ADR-051 item 4). Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#HearAboutUsLabelMap."
+        "description": "Translates the answers to the 'how did you hear about us' question on the website application form into the fixed choice stored on the application. The question allows several answers: every ticked answer that has an entry is kept, and any that do not are listed in the intake review note. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "ConditionProfileLabelMap",
         "displayName": "Condition profile label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Vision (for example blindness or partial sight)\",\"option\":1},{\"label\":\"Hearing (for example deafness or partial hearing)\",\"option\":2},{\"label\":\"Mobility (for example walking short distances or climbing stairs)\",\"option\":3},{\"label\":\"Dexterity (for example lifting and carrying objects, using a keyboard)\",\"option\":4},{\"label\":\"Learning or understanding or concentrating\",\"option\":5},{\"label\":\"Memory\",\"option\":6},{\"label\":\"Mental health\",\"option\":7},{\"label\":\"Stamina or breathing or fatigue\",\"option\":8},{\"label\":\"Socially or behaviourally (e.g. autism spectrum disorder, ADHD)\",\"option\":9},{\"label\":\"Socially or behaviourally (for example associated with autism spectrum disorder (ASD) which includes Asperger's, or attention deficit hyperactivity disorder (ADHD))\",\"option\":9},{\"label\":\"Socially or behaviourally (for example associated with autism spectrum disorder (ASD) which includes Asperger’s, or attention deficit hyperactivity disorder (ADHD))\",\"option\":9},{\"label\":\"Other (please specify)\",\"option\":10}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_conditionprofile option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Both condition-profile multi-selects (applicant and person supported). Option 9 carries two alias rows, one per apostrophe form, because which one the form sends is unverified. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#ConditionProfileLabelMap."
+        "description": "Translates the answers to the condition questions, used for both the applicant and the person being supported on the website application form into the fixed choice stored on the application. The questions allow several answers: every ticked answer that has an entry is kept, and any that do not are listed in the intake review note. The 'another condition' option has an entry for each apostrophe style. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "CareProvidedTypeLabelMap",
         "displayName": "Care provided type label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Personal care (washing, dressing, toileting, feeding)\",\"option\":1},{\"label\":\"Mobility assistance (helping them move around, transfers, getting in/out of bed)\",\"option\":2},{\"label\":\"Medication management (administering, reminding, organizing)\",\"option\":3},{\"label\":\"Household tasks (cooking, cleaning, shopping, laundry)\",\"option\":4},{\"label\":\"Managing appointments and healthcare coordination\",\"option\":5},{\"label\":\"Financial and administrative support\",\"option\":6},{\"label\":\"Emotional support and companionship\",\"option\":7},{\"label\":\"Supervision for safety (ensuring they don't come to harm)\",\"option\":8},{\"label\":\"Communication support (speaking for them, interpreting their needs)\",\"option\":9},{\"label\":\"Night-time care (waking during the night to provide care)\",\"option\":10},{\"label\":\"Other (please specify)\",\"option\":11},{\"label\":\"Mobility assistance\",\"option\":2},{\"label\":\"Medication management\",\"option\":3},{\"label\":\"Household tasks\",\"option\":4},{\"label\":\"Supervision for safety\",\"option\":8},{\"label\":\"Communication support\",\"option\":9},{\"label\":\"Night-time care\",\"option\":10}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_careprovidedtype option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. The six short forms at the end are alias rows from the 2026-09-11 live-form capture. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#CareProvidedTypeLabelMap."
+        "description": "Translates the answers to the question about the type of care provided on the website application form into the fixed choice stored on the application. Some options also have shorter wording that the form is known to send, so those have extra entries. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "OtherFundingStatusLabelMap",
         "displayName": "Other funding status label map",
         "dataType": "JSON",
+        "category": "Lookup lists and wording",
         "value": "[{\"label\":\"Yes\",\"option\":1},{\"label\":\"No\",\"option\":2},{\"label\":\"Applied and awaiting decision from\",\"option\":3},{\"label\":\"Applied and awaiting decision\",\"option\":3}]",
-        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_otherfundingstatus option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. rev_receivingotherfunding is still written beside it (Yes true, No false, awaiting null). Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#OtherFundingStatusLabelMap."
+        "description": "Translates the answers to the question about other funding (yes, no, or applied and awaiting a decision) on the website application form into the fixed choice stored on the application. Intake also records whether the applicant is receiving other funding beside it: Yes is recorded as yes, No as no, and 'applied and awaiting a decision' as not yet known. Read by the intake process every time an application arrives. Each entry pairs a label exactly as the form sends it with the choice number it becomes; several labels can share a number. Matching ignores capitals, extra spaces and the style of dash, but the wording must otherwise be the same. A label with no entry leaves that field empty on the application and is named in the application's intake review note; the system never guesses. Change this row when the wording on the form changes. Keep it valid JSON: if the row is missing or broken, the intake run fails with an alert."
       },
       {
         "key": "PostcodeRegionMap",
         "displayName": "Postcode region map",
         "dataType": "JSON",
+        "category": "Postcodes and local authorities",
         "value": "[{\"prefixes\":[\"NE\",\"SR\",\"DH\",\"DL\",\"TS\"],\"option\":1},{\"prefixes\":[\"BB\",\"BL\",\"CA\",\"CH\",\"CW\",\"FY\",\"L\",\"LA\",\"M\",\"OL\",\"PR\",\"SK\",\"WA\",\"WN\"],\"option\":2},{\"prefixes\":[\"BD\",\"DN\",\"HD\",\"HG\",\"HU\",\"HX\",\"LS\",\"S\",\"WF\",\"YO\"],\"option\":3},{\"prefixes\":[\"DE\",\"LE\",\"LN\",\"NG\",\"NN\"],\"option\":4},{\"prefixes\":[\"B\",\"CV\",\"DY\",\"HR\",\"ST\",\"SY\",\"TF\",\"WR\",\"WS\",\"WV\"],\"option\":5},{\"prefixes\":[\"AL\",\"CB\",\"CM\",\"CO\",\"IP\",\"LU\",\"NR\",\"SG\",\"SS\",\"PE\",\"WD\"],\"option\":6},{\"prefixes\":[\"BR\",\"CR\",\"DA\",\"E\",\"EC\",\"EN\",\"HA\",\"IG\",\"KT\",\"N\",\"NW\",\"RM\",\"SE\",\"SM\",\"SW\",\"TW\",\"UB\",\"W\",\"WC\"],\"option\":7},{\"prefixes\":[\"BN\",\"GU\",\"ME\",\"MK\",\"OX\",\"PO\",\"RG\",\"RH\",\"SL\",\"SO\",\"TN\",\"CT\",\"HP\"],\"option\":8},{\"prefixes\":[\"BA\",\"BH\",\"BS\",\"DT\",\"EX\",\"GL\",\"PL\",\"SN\",\"SP\",\"TA\",\"TQ\",\"TR\"],\"option\":9},{\"prefixes\":[\"CF\",\"LD\",\"LL\",\"NP\",\"SA\"],\"option\":10},{\"prefixes\":[\"AB\",\"DD\",\"DG\",\"EH\",\"FK\",\"G\",\"HS\",\"IV\",\"KA\",\"KW\",\"KY\",\"ML\",\"PA\",\"PH\",\"TD\",\"ZE\"],\"option\":11},{\"prefixes\":[\"BT\"],\"option\":12}]",
-        "description": "Maps the uppercased alphabetic prefix of a UK outward code to a rev_locationarea option value (1=North East .. 12=Northern Ireland). Longest prefix wins, so match SW before S. Fixed reference data. Option 13 (Not known) is the fallback for an unrecognised or absent postcode and is therefore not in the map."
+        "description": "Works out the area of the UK an applicant lives in from the start of their postcode. Used by the intake process on every application. Each entry lists postcode letter prefixes (for example NE, SR) and the area number they belong to, from 1 (North East) to 12 (Northern Ireland). The letters are those at the start of the postcode, in capitals, before any digits. The longest matching prefix wins, so SW is matched before S. A missing or unrecognised postcode sets the area to Not known (13), which is why 13 is not in the map. Change a prefix here if a postcode is landing in the wrong area. It must stay valid JSON; if the row is missing or broken, the intake run fails and raises an alert."
       },
       {
         "key": "MaxCircumstanceScore",
         "displayName": "Maximum circumstance score",
         "dataType": "Whole Number",
+        "category": "Scoring and eligibility",
         "value": "60",
-        "description": "Maximum attainable circumstance score, for rendering 'n out of N': 10 wellbeing answers x 5 (50) plus the inverted life-satisfaction answer up to 10 = 60 (FR-011). Confirmed 60, not 55 \u2014 life-satisfaction is the 0-10 scale its source describes; matches the raw export header and Automation Solution Design v0.5. Unblocks KnockoutThreshold and the Borderline band (SDD OQ-001/002). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#MaxCircumstanceScore (D-021)."
+        "description": "The highest circumstance score an application can reach. Used by the scoring process only to write the score as 'n out of N' in the score breakdown shown to trustees; it does not change any decision. As supplied it is 60: ten wellbeing answers at up to 5 points each (50) plus the life-satisfaction answer at up to 10. Enter a whole number. If you change the points in LikertPointMap or FeelingScaleInversion, change this to the new maximum so the breakdown never states a maximum the scoring cannot reach. If the row is missing, scoring stops and raises an alert."
       },
       {
         "key": "IncomeBandUpperBoundMap",
         "displayName": "Income band upper bound map",
         "dataType": "JSON",
+        "category": "Scoring and eligibility",
         "value": "{\"1\":14999,\"2\":24999,\"3\":34999,\"4\":999999999}",
-        "description": "EF-29 (2026-09-17): re-seeded to Emily's four confirmed bands (Under 15,000 / 15,000-24,999 / 25,000-34,999 / Over 35,000), replacing the placeholder five-band, 10,000-boundary map and its 'Prefer not to say' sentinel. Maps each rev_incomeband option to the top of that band, compared against IncomeCeiling (FR-015). NFR-019: if the form's income bands change, this row changes, not the scoring flow. Option 4 (Over 35,000) is unbounded with a sentinel above any realistic ceiling. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#IncomeBandUpperBoundMap (D-021)."
+        "description": "Gives the top of each household income band, in pounds, so the band an applicant chose can be compared with IncomeCeiling. Used by the scoring process on every application. The keys are the choice numbers of the income bands on the form and each value is the highest income in that band: as supplied 1 is under 15,000 (14999), 2 is 15,000 to 24,999, 3 is 25,000 to 34,999 and 4 is over 35,000 (999999999, a deliberately huge number because that band has no top, so it is always above the ceiling). When the form's income bands change, change this row and IncomeBandLabelMap, not the scoring process. An application with no income band, or from an applicant receiving benefits, is handled separately and does not use this map. It must stay valid JSON; if the row is missing or broken, scoring stops and raises an alert."
       },
       {
         "key": "RoundStatisticsMoneyMeasureMinimumPopulation",
         "displayName": "Round statistics: minimum population",
         "dataType": "Whole Number",
+        "category": "Round statistics",
         "value": "5",
-        "description": "Minimum population for money-average measures on trustee landing screen; below this value is withheld, only count shown (TAD \u00a76.3.5, OQ-043). Disclosure control, not tunable: reviewer decision 2026-08-28. Absent row withholds all four money measures (fail-safe but not approved behaviour); unseeded divergence between environments. See settings-rows.notes.md#RoundStatisticsMoneyMeasureMinimumPopulation."
+        "description": "The smallest number of applications needed before an average money figure is shown to trustees. Used by the round statistics process behind the trustee landing screen. In the table by type of break, the average cost, the average grant requested and the grant share for a row are shown only when at least this many applications in that row carry a figure; otherwise the cell is left blank and only the number of applications is shown. This protects individual applicants from being identified in small groups, so treat it as a privacy safeguard and not a tuning knob. Enter a whole number, digits only, for example 5. If the row is missing, empty or not digits, all these money figures are withheld."
       },
       {
         "key": "RoundStatisticsStaleAfterSeconds",
         "displayName": "Round statistics: stale after (seconds)",
         "dataType": "Whole Number",
+        "category": "Round statistics",
         "value": "300",
-        "description": "Freshness window (seconds) for the trustee landing screen's Refresh figures control (TAD \u00a75.3.1, OQ-042). Reviewer decision (Emily) 2026-08-30, urgent fix for IMP-0511: unseeded left staleAfterSeconds null in every response document, so isCurrent()'s NaN comparison never returns true and no computed result was ever shown, including one this cycle's own poll just watched complete. 300 sits inside the two OQ-042 boundaries (above the ~12s poll bound, below a board-meeting length). Tunable, not a disclosure control like RoundStatisticsMoneyMeasureMinimumPopulation. See settings-rows.notes.md#RoundStatisticsStaleAfterSeconds. Seeded here for PRD at this environment's own next promotion (promote_mode:manual) \u2014 not pushed live by this dispatch, which is DEV only."
+        "description": "How long, in seconds, the round figures on the trustee landing screen count as current. Used by the trustee screen and the round statistics process: figures worked out within this time are shown at once, while older figures are recalculated when a trustee opens the screen or uses Refresh figures. Several trustees opening the screen in the same few minutes therefore cause only one calculation. Enter a whole number, digits only; 300 is five minutes. If the row is missing or not digits, figures are never treated as current and are recalculated every time the screen opens, which is slower but never shows out-of-date figures."
       },
       {
         "key": "RoundStatisticsHistoryStartDate",
         "displayName": "Round statistics: history tracking start date",
         "dataType": "Date",
+        "category": "Round statistics",
         "value": "2026-02-16",
-        "description": "FR-080/FR-082, TAD ADR-049 \u00a75.1.3, OQ-050 answer, reviewer decision 2026-09-19. The earliest month the all-history month-by-month application count covers. Unseeded is a valid, fail-safe state (\u00a75.1.3 point 1); a wrong value silently shifts every month boundary. See settings-rows.notes.md#RoundStatisticsHistoryStartDate. Seeded here for PRD at this environment's own next promotion (promote_mode:manual) \u2014 not pushed live by this dispatch, which is DEV only."
+        "description": "The date from which applications are counted month by month in the history shown to trustees. Used by the round statistics process: it counts the applications received in each month from this date to the present. Enter the date as year-month-day, for example 2026-02-16. A wrong date silently moves every month's boundary and so every month's count, so check it before changing it. If the row is missing, the month-by-month history is simply not shown."
       },
       {
         "key": "RoundStatisticsHistoryPriorApplicationCount",
         "displayName": "Round statistics: applications received before tracking start",
         "dataType": "Whole Number",
+        "category": "Round statistics",
         "value": "0",
-        "description": "FR-080/FR-082, TAD ADR-049 \u00a75.1.3, OQ-050 answer, reviewer decision 2026-09-19. Applications received before RoundStatisticsHistoryStartDate; 0 is a genuine seeded value, not an unseeded sentinel. Unseeded while the start date IS seeded sets understatedTotal true (\u00a75.1.3 point 2). See settings-rows.notes.md#RoundStatisticsHistoryPriorApplicationCount. Seeded here for PRD at this environment's own next promotion (promote_mode:manual) \u2014 not pushed live by this dispatch, which is DEV only."
+        "description": "The number of applications received before the monthly counting began (see RoundStatisticsHistoryStartDate). Used by the trustee screen: it is added to this round's count to show how many applications there have been in total and this round's share of them. Enter a whole number, digits only. 0 is a real value meaning none before then, not a blank. If the row is missing while the start date is set, the total is flagged as understated and the screen shows 'All applications' as not recorded instead of a share."
       },
       {
         "key": "RoundStatisticsMonthlyAnomalyThresholdPercent",
         "displayName": "Round statistics: monthly anomaly threshold (%)",
         "dataType": "Whole Number",
+        "category": "Round statistics",
         "value": "50",
-        "description": "FR-081, TAD ADR-050 \u00a75.1.3 part 3, OQ-049 answer, reviewer decision 2026-09-19 (plan Addendum). A month is flagged anomalous when its count deviates from its own trailing six-month mean by more than this percentage. Unseeded, or fewer than six trailing months of history exist yet, sets anomaly null on that month (fail-safe, \u00a75.1.3 point 4). Lower-stakes than the two history rows above: a wrong value here mistunes which months get flagged, correctable at any time with no history implication. See settings-rows.notes.md#RoundStatisticsMonthlyAnomalyThresholdPercent. Seeded here for PRD at this environment's own next promotion (promote_mode:manual) \u2014 not pushed live by this dispatch, which is DEV only."
+        "description": "How far, as a percentage, a month's application count can differ from the average of the previous six months before it is flagged as unusual. Used by the round statistics process for the month-by-month counts shown to trustees. With 50, a month more than 50 percent above or below its six-month average is flagged. If the previous six months averaged zero, any application in the month is flagged. A month with fewer than six months of history behind it is never flagged. Enter a whole number, digits only. If the row is missing, no month is flagged. A wrong value only changes which months are flagged and can be corrected at any time."
       },
       {
         "key": "EscalationDays",
         "displayName": "Escalation days",
         "dataType": "Whole Number",
+        "category": "Acceptance emails and reminders",
         "value": "14",
-        "description": "Days an acceptance envelope may sit unsigned before REV | Acceptance | Reminders & Escalation notifies the process owner (FR-044, TAD 5.9). Added to DEV 2026-09-06 for wbs:3.3 (EX-006/EX-007); mirrored here 2026-09-08 per reviewer confirmation that all three environments' rev_setting rows must agree at 18 \u2014 seeded for PRD at this environment's own next promotion (promote_mode:manual). EX-006/EX-007 still scope the wbs:3.2/3.3/3.4 DocuSign FLOWS themselves to DEV only pending Revitalise's own DocuSign licence; this row is configuration data, not a flow promotion."
+        "description": "How many days an acceptance agreement may stay unsigned before the process owner is told. Used by the daily acceptance reminders and escalation process: it looks for grants whose agreement was sent at least this many days ago and is still not signed, and sends the process owner a Teams message with the applicant's details. Each grant is escalated only once. Enter a whole number of days, for example 14. If the row is missing the process uses 14. If it holds something that is not a whole number the process fails and raises an alert."
       },
       {
         "key": "ReminderDays",
         "displayName": "Reminder days",
         "dataType": "JSON",
+        "category": "Acceptance emails and reminders",
         "value": "[3,7]",
-        "description": "IMP-0618 RESOLVED 2026-09-06: reviewer decision - the seeded table drives the reminder cadence dynamically, discarding the DocuSign template's own static 2/5-day configuration entirely. [first, second] reminder day (FR-043, TAD 5.9). Read by REV | Acceptance | Create Envelope (wbs:3.2), which calls the DocuSign connector's AddReminders action once per envelope right after creation - not read by wbs:3.3, which remains escalation-only. Added to DEV 2026-09-06; mirrored here 2026-09-08 per reviewer confirmation (same EX-006/EX-007 DEV-only scoping applies to the flow itself, not to this settings row). See settings-rows.notes.md#ReminderDays for the delay/frequency shape mismatch this produces."
+        "description": "When DocuSign sends automatic reminders for an unsigned acceptance agreement. Used by the acceptance process when it sends an agreement: it asks DocuSign to remind the signers on these days. Enter two whole numbers in square brackets, first and second reminder day counted from sending, for example [3,7]. DocuSign can only be told the day of the first reminder and the gap between reminders, so after the first reminder (day 3) further reminders repeat at the same gap as between the two numbers (every 4 days) until the agreement is signed or expires. If the row is missing the process uses [3,7]. The second number must be larger than the first. If the row is not two numbers in this form, the sending run fails and raises an alert."
       },
       {
         "key": "AcceptanceEmailApplicant",
         "displayName": "Acceptance email: applicant",
         "dataType": "JSON",
+        "category": "Acceptance emails and reminders",
         "value": "{{PENDING_ACCEPTANCE_EMAIL_WORDING}}",
-        "description": "TAD rev 15, ADR-068 item 3 (wbs:3.2): the applicant's own DocuSign email, JSON {subject, body}. Read by REV | Acceptance | Create Envelope and set with UpdateEnvelopeRecipient. {grantReference} is replaced with the grant reference (ADR-013); the subject must stay within 100 characters after that. No row, no subject or no body -> the flow alerts and sends nothing. PRD withheld behind a pending token until Emily supplies the wording, so seed-settings.ps1 aborts rather than emailing applicants test text. See settings-rows.notes.md#AcceptanceEmailApplicant--AcceptanceEmailReferee."
+        "description": "The email the applicant receives from DocuSign asking them to sign the acceptance agreement. Used by the acceptance process each time it sends an agreement. Enter it as JSON with a subject and a body, for example {\"subject\": \"...\", \"body\": \"...\"}. Write {grantReference} where the grant reference should appear and it is replaced for each applicant. The subject must be 100 characters or fewer once the reference is filled in. If the row is missing, or the subject or body is empty or too long, nothing is sent: the process stops and raises an alert naming what is wrong, so no agreement goes out until it is fixed."
       },
       {
         "key": "AcceptanceEmailReferee",
         "displayName": "Acceptance email: referee",
         "dataType": "JSON",
+        "category": "Acceptance emails and reminders",
         "value": "{{PENDING_ACCEPTANCE_EMAIL_WORDING}}",
-        "description": "TAD rev 15, ADR-068 items 3-4 (wbs:3.2): the referee's own DocuSign email, JSON {subject, body}. The body must state the access-code RULE (the last 6 numbers of your phone number) and never the digits. {grantReference} is replaced with the grant reference; subject within 100 characters. No row -> the flow alerts and sends nothing. PRD withheld behind a pending token until Emily supplies the wording, so seed-settings.ps1 aborts rather than emailing applicants test text. See settings-rows.notes.md#AcceptanceEmailApplicant--AcceptanceEmailReferee."
+        "description": "The email the referee receives from DocuSign asking them to sign the acceptance agreement. Used by the acceptance process each time it sends an agreement. Enter it as JSON with a subject and a body, for example {\"subject\": \"...\", \"body\": \"...\"}. Write {grantReference} where the grant reference should appear and it is replaced for each applicant. The subject must be 100 characters or fewer once the reference is filled in. The body must explain the rule for the access code the referee needs (the last 6 digits of their phone number) and must never contain the digits themselves. If the row is missing, or the subject or body is empty or too long, nothing is sent: the process stops and raises an alert."
       },
       {
         "key": "LocalAuthorityRegisterMultiAuthorityThresholdPercent",
         "displayName": "Local authority register - multi-authority threshold",
         "dataType": "Decimal",
+        "category": "Postcodes and local authorities",
         "value": "5",
-        "description": "wbs:4.6 (CO-004), TAD postcode-lookup-architecture.md S13 (OQ-200), reviewer decision 2026-09-23 (Anna Southern), CO-004 TAD Revision 2. An outward code is flagged Multi-Authority when a second local authority holds AT LEAST this percentage of its live unit postcodes; otherwise it resolves to the modal authority. Read by provisioning/dataverse/seed-local-authority-register.ps1 at the start of every harvest run - if this row is unseeded, the harvester fails the run with a named reason and writes nothing rather than inventing a threshold (TAD S13's own stated default)."
+        "description": "Decides when a postcode area is marked as covering more than one local authority. Used only when the local authority register is loaded from postcode data, which is currently on hold. A postcode area is marked Multi-Authority when a second local authority holds at least this percentage of its postcodes; otherwise it is given the authority that holds most of them. Enter a number, for example 5 for 5 percent; decimals are allowed. If the row is missing the loading run stops with a message and writes nothing, rather than guessing a percentage."
       },
       {
         "key": "RedactionNeutralTerms",
         "displayName": "Narrative scrubbing - neutral terms (the Anonymisation Key)",
         "dataType": "Text",
+        "category": "Narrative scrubbing",
         "value": "he = they\nshe = they\nhim = them\nher = their or them\nhis = their or theirs\nhers = theirs\nhimself = themself\nherself = themself\nhe's = they're or they've\nshe's = they're or they've\nhe'd = they'd\nshe'd = they'd\nhe'll = they'll\nshe'll = they'll\nmum = parent\nmummy = parent\nmother = parent\ndad = parent\ndaddy = parent\nfather = parent\nbrother = sibling\nsister = sibling\nson = child\ndaughter = child\nhusband = partner\nwife = partner\nboyfriend = partner\ngirlfriend = partner\nman = person\nwoman = person\nboy = person\ngirl = person\nlady = person\ngentleman = person\ngrandmother = grandparent\ngrandfather = grandparent\ngrandson = grandchild\ngranddaughter = grandchild\nstepson = stepchild\nstepdaughter = stepchild\nstepmother = stepparent\nstepfather = stepparent\naunt = relative\nauntie = relative\nuncle = relative\nniece = relative\nnephew = relative\nmums = parents\nmummies = parents\nmothers = parents\ndads = parents\ndaddies = parents\nfathers = parents\nbrothers = siblings\nsisters = siblings\nsons = children\ndaughters = children\nhusbands = partners\nwives = partners\nboyfriends = partners\ngirlfriends = partners\nmen = people\nwomen = people\nboys = people\ngirls = people\nladies = people\ngentlemen = people\ngrandmothers = grandparents\ngrandfathers = grandparents\ngrandsons = grandchildren\ngranddaughters = grandchildren\nstepsons = stepchildren\nstepdaughters = stepchildren\nstepmothers = stepparents\nstepfathers = stepparents\naunts = relatives\naunties = relatives\nuncles = relatives\nnieces = relatives\nnephews = relatives",
         "createOnly": true,
-        "description": "Narrative scrubbing (TAD ADR-076): the client's Anonymisation Key. One 'word = neutral word' per line ('word = first or second' where the sentence decides). Feeds the rewrite prompt, check P2 (right side) and the gendered residue check (left side). Synthetic examples only: never paste text from an application into this row."
+        "description": "The list of gendered and family words the narrative scrubbing replaces with neutral ones. Used by the scrubbing process, which rewrites an applicant's free-text answers to remove personal details before trustees see them. Write one entry per line as 'word = neutral word', for example 'mum = parent'. Where the sentence decides which word fits, write 'word = first or second'. The words on the left are rewritten by the AI and then checked afterwards: any of them still in the text sends the record for review. The words on the right are the only neutral words the rewrite may use. A neutral word must not also appear on the left. If the row is missing, empty or has a line that is not 'word = word', no narratives are scrubbed until it is fixed. Use made-up examples only: never paste text from an application into this row."
       },
       {
         "key": "RedactionTitles",
         "displayName": "Narrative scrubbing - titles to remove",
         "dataType": "Text",
+        "category": "Narrative scrubbing",
         "value": "Mr\nMrs\nMs\nMiss",
         "createOnly": true,
-        "description": "Narrative scrubbing (TAD ADR-076): titles the rewrite prompt removes, one per line, 1 to 10 letters with an optional full stop. Also the title residue check, matched with the capitals as written. Write 'none' for no titles. Synthetic examples only: never paste text from an application into this row."
+        "description": "The titles the narrative scrubbing removes from free-text answers. Used by the scrubbing process: the rewrite removes these titles, and afterwards the text is checked and sent for review if one is still there. Write one title per line, 1 to 10 letters with an optional full stop, for example Mr or Dr. The check matches capital letters as written (Ms Smith, not MS). Write 'none' if no titles should be removed. If the row is missing or empty, or a line is not a valid title, no narratives are scrubbed until it is fixed. Use made-up examples only: never paste text from an application into this row."
       },
       {
         "key": "RedactionNameRules",
         "displayName": "Narrative scrubbing - how names are handled",
         "dataType": "Text",
+        "category": "Narrative scrubbing",
         "value": "When [NAME] is the writer's own name, keep [NAME]. This includes \"I am [NAME]\", \"I'm [NAME]\", \"my name is [NAME]\" and any sentence where the writer says [NAME] is what they are called, such as \"[NAME] is the name my friends use for me\".\nKeep [NAME] after Dr: \"Dr [NAME] reviews my medication\" stays as it is.\nWhen [NAME] comes straight after a relationship word, remove it and keep the neutral word, even when the text names other people: \"my husband [NAME]\" becomes \"my partner\", and \"our son [NAME], who is [AGE 35 to 44],\" becomes \"our child, who is [AGE 35 to 44],\".\nOtherwise, keep [NAME] when the text names two or more different people other than the writer.\nIf the text is about one named person, write they, them or their in place of [NAME], as the sentence needs, and make the verb agree: \"[NAME] visits me.\" becomes \"They visit me.\"\nA name inside the name of a GP practice is part of [GP PRACTICE].\nMum or Dad used as a name, as in \"Mum helps me\", becomes \"my parent\".",
         "createOnly": true,
-        "description": "Narrative scrubbing (TAD ADR-076): how the rewrite prompt handles [NAME], one rule per line in plain words. Feeds the prompt only. Synthetic examples only: never paste text from an application into this row."
+        "description": "Plain-language rules telling the narrative rewrite how to handle names. Used by the scrubbing process, which replaces each name with the label [NAME] and then follows these rules about when to keep or remove it, for example keep [NAME] when it is the writer's own name, and remove it after a relationship word such as 'my husband [NAME]'. Write one rule per line in plain words. The rules guide the rewrite only; they are not checked afterwards. If the row is missing or empty, no narratives are scrubbed until it is fixed. Use made-up examples only: never paste text from an application into this row."
       },
       {
         "key": "RedactionLabels",
         "displayName": "Narrative scrubbing - labels the rewrite may write",
         "dataType": "Text",
+        "category": "Narrative scrubbing",
         "value": "[NAME] = a person's name\n[ADDRESS] = a street, a house name or number, a town in an address, or a postcode\n[PHONE] = a phone number\n[EMAIL] = an email address\n[GP PRACTICE] = the name of a GP practice or surgery",
         "createOnly": true,
-        "description": "Narrative scrubbing (TAD ADR-076): the labels the rewrite prompt may write, '[LABEL] = what it covers', one per line, the label in capitals in square brackets. Feeds the prompt and check P2. Synthetic examples only: never paste text from an application into this row."
+        "description": "The labels the narrative rewrite is allowed to write in place of personal details. Used by the scrubbing process: it replaces personal details with these labels, for example [NAME] or [PHONE], and any other label it writes fails the check and sends the record for review. Write one per line as '[LABEL] = what it covers', with the label in capitals in square brackets, for example '[PHONE] = a phone number'. If the row is missing, empty or has a line in the wrong shape, no narratives are scrubbed until it is fixed. Use made-up examples only: never paste text from an application into this row."
       },
       {
         "key": "RedactionConfidenceThreshold",
         "displayName": "Narrative scrubbing - confidence threshold for the review hint",
         "dataType": "Decimal",
+        "category": "Narrative scrubbing",
         "value": "0.85",
         "createOnly": true,
-        "description": "Narrative scrubbing (TAD ADR-078, FR-029, wbs:5.4): an application whose lowest extractor score is below this value gets the hint below-threshold on the process owner's card. A review signal only: the flow never releases, she releases every application. 0.85, 85 or 85% all mean 85%. Created once, then the process owner's; wbs:5.7 calibrates it."
+        "description": "The confidence level below which a scrubbed narrative is marked to look at more carefully. Used by the scrubbing process: when the lowest confidence the AI reported for any detail in an application is below this number, the process owner's card carries the hint 'below-threshold'. It is only a hint. Nothing is released automatically: you review and release every scrubbed application yourself. 0.85, 85 and 85% all mean 85 percent. If the row is missing or not a number between 0 and 100, the card shows the hint 'threshold-missing-or-invalid' instead. The row is set once when it is first created; after that it is yours to adjust in the app and a release never overwrites it."
       },
       {
         "key": "AmountLimitHolidayAccommodation",
         "displayName": "Amount limit - Holiday accommodation",
         "dataType": "Whole Number",
+        "category": "Automatic rejection rules",
         "value": "500",
         "createOnly": true,
-        "description": "Largest amount, in whole pounds, that can be requested for Holiday accommodation without ticking the exceptional funding request. A request over this, with no exceptional funding, becomes Auto-reject (SDD A-10, FR-102, FR-017). Enter digits only, for example 500: a value with a pound sign or a decimal point stops scoring with an alert. Create-only: the process owner edits it in the app and a deploy never overwrites it."
+        "description": "The largest amount, in whole pounds, that can be requested for Holiday accommodation without ticking the exceptional funding request. Used by the scoring process: a request for more than this, with exceptional funding not ticked, is automatically rejected as Auto-reject and the reason is recorded on the application. A request for exactly this amount passes. Enter digits only, for example 500: a pound sign, a decimal point or an empty value stops scoring with an alert. You edit this value in the app and a release never overwrites it."
       },
       {
         "key": "AmountLimitDayTripsOrOutings",
         "displayName": "Amount limit - Day trips or outings",
         "dataType": "Whole Number",
+        "category": "Automatic rejection rules",
         "value": "100",
         "createOnly": true,
-        "description": "Largest amount, in whole pounds, that can be requested for Day trips or outings without ticking the exceptional funding request. A request over this, with no exceptional funding, becomes Auto-reject (SDD A-10, FR-102, FR-017). Enter digits only, for example 100: a value with a pound sign or a decimal point stops scoring with an alert. Create-only: the process owner edits it in the app and a deploy never overwrites it."
+        "description": "The largest amount, in whole pounds, that can be requested for Day trips or outings without ticking the exceptional funding request. Used by the scoring process: a request for more than this, with exceptional funding not ticked, is automatically rejected as Auto-reject and the reason is recorded on the application. A request for exactly this amount passes. Enter digits only, for example 500: a pound sign, a decimal point or an empty value stops scoring with an alert. You edit this value in the app and a release never overwrites it."
       },
       {
         "key": "AmountLimitActivityOrExperience",
         "displayName": "Amount limit - Activity or Experience",
         "dataType": "Whole Number",
+        "category": "Automatic rejection rules",
         "value": "100",
         "createOnly": true,
-        "description": "Largest amount, in whole pounds, that can be requested for an Activity or Experience without ticking the exceptional funding request. A request over this, with no exceptional funding, becomes Auto-reject (SDD A-10, FR-102, FR-017). Enter digits only, for example 100: a value with a pound sign or a decimal point stops scoring with an alert. Create-only: the process owner edits it in the app and a deploy never overwrites it."
+        "description": "The largest amount, in whole pounds, that can be requested for an Activity or Experience without ticking the exceptional funding request. Used by the scoring process: a request for more than this, with exceptional funding not ticked, is automatically rejected as Auto-reject and the reason is recorded on the application. A request for exactly this amount passes. Enter digits only, for example 500: a pound sign, a decimal point or an empty value stops scoring with an alert. You edit this value in the app and a release never overwrites it."
       },
       {
         "key": "AmountLimitRespiteCareFacilityStay",
         "displayName": "Amount limit - Respite Care Facility stay",
         "dataType": "Whole Number",
+        "category": "Automatic rejection rules",
         "value": "500",
         "createOnly": true,
-        "description": "Largest amount, in whole pounds, that can be requested for a Respite Care Facility stay without ticking the exceptional funding request. A request over this, with no exceptional funding, becomes Auto-reject (SDD A-10, FR-102, FR-017). Enter digits only, for example 500: a value with a pound sign or a decimal point stops scoring with an alert. Create-only: the process owner edits it in the app and a deploy never overwrites it."
+        "description": "The largest amount, in whole pounds, that can be requested for a Respite Care Facility stay without ticking the exceptional funding request. Used by the scoring process: a request for more than this, with exceptional funding not ticked, is automatically rejected as Auto-reject and the reason is recorded on the application. A request for exactly this amount passes. Enter digits only, for example 500: a pound sign, a decimal point or an empty value stops scoring with an alert. You edit this value in the app and a release never overwrites it."
       },
       {
         "key": "AmountLimitOther",
         "displayName": "Amount limit - Other",
         "dataType": "Whole Number",
+        "category": "Automatic rejection rules",
         "value": "500",
         "createOnly": true,
-        "description": "Largest amount, in whole pounds, that can be requested for a break type of Other without ticking the exceptional funding request. A request over this, with no exceptional funding, becomes Auto-reject (SDD A-10, FR-102, FR-017). Enter digits only, for example 500: a value with a pound sign or a decimal point stops scoring with an alert. Create-only: the process owner edits it in the app and a deploy never overwrites it."
+        "description": "The largest amount, in whole pounds, that can be requested for a break type of Other without ticking the exceptional funding request. Used by the scoring process: a request for more than this, with exceptional funding not ticked, is automatically rejected as Auto-reject and the reason is recorded on the application. A request for exactly this amount passes. Enter digits only, for example 500: a pound sign, a decimal point or an empty value stops scoring with an alert. You edit this value in the app and a release never overwrites it."
       },
       {
         "key": "SavingsRuleEnabled",
         "displayName": "Savings rule on",
         "dataType": "Boolean",
+        "category": "Automatic rejection rules",
         "value": "true",
         "createOnly": true,
-        "description": "Whether an application whose applicant answered Yes to savings over 6,000 pounds becomes Auto-reject (SDD A-10, FR-103, FR-017). Enter true or false and nothing else: any other value stops scoring with an alert rather than switching the rule off. Create-only: the process owner edits it in the app and a deploy never overwrites it."
+        "description": "Switches on or off the rule that rejects applicants with savings over 6,000 pounds. Used by the scoring process: while it is true, an application where the applicant answered Yes to having savings over 6,000 pounds is automatically rejected as Auto-reject, whatever its score, and the reason is recorded. While it is false the answer is ignored. A blank answer never rejects. Enter true or false and nothing else: any other value stops scoring with an alert, so a typing slip cannot silently switch the rule off. You edit this value in the app and a release never overwrites it."
       },
       {
         "key": "PriorFundingRuleEnabled",
         "displayName": "Prior funding rule on",
         "dataType": "Boolean",
+        "category": "Automatic rejection rules",
         "value": "true",
         "createOnly": true,
-        "description": "Whether an application whose applicant was funded by Revitalise before, and answered No to that funding being more than 12 months ago, becomes Auto-reject (SDD A-10, FR-104, FR-017, EF-34). Enter true or false and nothing else: any other value stops scoring with an alert rather than switching the rule off. Create-only: the process owner edits it in the app and a deploy never overwrites it."
+        "description": "Switches on or off the rule that rejects applicants who were funded by Revitalise less than 12 months ago. Used by the scoring process: while it is true, an application where the applicant said they were funded by Revitalise before, and answered No to that being more than 12 months ago, is automatically rejected as Auto-reject, whatever its score, and the reason is recorded. While it is false the answers are ignored. A blank answer never rejects. Enter true or false and nothing else: any other value stops scoring with an alert, so a typing slip cannot silently switch the rule off. You edit this value in the app and a release never overwrites it."
       }
     ],
     "apps": [

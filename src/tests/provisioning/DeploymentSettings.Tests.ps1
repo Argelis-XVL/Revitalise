@@ -316,31 +316,42 @@ Describe 'NFR-019 / FR-017 — the rev_setting rows' {
         }
     }
 
-    # ── D-021 fix (2026-08-14) — rev_setting.rev_description has MaxLength=1000 ───────────
-    # Widened from 500 to 1000 on 2026-08-21 at the reviewer's request, in the same change that
-    # made the column a text area. The number below is still hand-kept, which is the defect the
-    # build gate does not have: scripts/verify-field-length-limits.py reads <MaxLength> out of
-    # Entity.xml and follows the schema. If this pair ever disagrees, believe the gate.
-    # Found live, running seed-settings.ps1 -Env dev against REV-GrantApplications-DEV for the
-    # first time: 4 of 11 rows failed a Dataverse validation error naming rev_description,
-    # because this project's normal verbose documentation style was never checked against the
-    # column's own limit. Nothing else exercises the real Dataverse Web API against these
-    # values (the mocked harness accepts any string), so this assertion — and
-    # scripts/verify-field-length-limits.py, the equivalent build gate (C-TECH-060) — are the only
-    # things that can catch a regression before the next live run.
-    It 'every settingRows[].description fits rev_setting.rev_description (MaxLength 1000 — D-021)' {
-        foreach ($name in $script:Both.Keys) {
-            foreach ($row in $script:Both[$name].dataverse.settingRows) {
-                $row.description.Length | Should -BeLessOrEqual 1000 -Because "$name / $($row.key)"
+    It 'no settingRows[].description carries a requirement, decision or work-item id, a repository path or a notes anchor - the process owner cannot open the repository (CO-012)' {
+        $banned = '\b(FR|NFR|ADR|OQ|IMP|SDD|EF|CO|TAD|WBS)[- ]?\d+\b|\bwbs:|\.(md|json|ps1)\b|settings-rows|\brev_[a-z]|\b[A-Z]-[A-Z]+-?\d+\b'
+        foreach ($settings in @($script:Dev, $script:Test, $script:Prd)) {
+            foreach ($row in $settings.dataverse.settingRows) {
+                $row.description | Should -Not -Match $banned -Because "$($row.key) is read by Emily, who has no access to the repository"
             }
         }
     }
 
-    It 'dev-scoring-settings.json also fits the 1000-char limit' {
+    It 'a row has the same description in all three environment files (CO-012)' {
         foreach ($row in $script:Dev.dataverse.settingRows) {
-            $row.description.Length | Should -BeLessOrEqual 1000 -Because "dev-scoring-settings.json / $($row.key)"
+            foreach ($other in @($script:Test, $script:Prd)) {
+                $match = @($other.dataverse.settingRows | Where-Object { $_.key -eq $row.key })[0]
+                $match.description | Should -BeExactly $row.description -Because $row.key
+            }
         }
     }
+
+    It 'every settingRows[] row carries a category that is one of the eight rev_settingcategory labels, identically in all three files (ADR-090)' {
+        $labels = @([xml](Get-Content -Raw (Join-Path (Get-RepoRoot) 'src' 'solutions' 'RevitaliseGrantAutomation' 'OptionSets' 'rev_settingcategory.xml'))).optionset.options.option | ForEach-Object { [string]$_.labels.label.description }
+        $labels.Count | Should -Be 8
+        $byFile = @{}
+        foreach ($settings in @($script:Dev, $script:Test, $script:Prd)) {
+            $name = $settings.dataverse.environmentUrl
+            foreach ($row in $settings.dataverse.settingRows) {
+                $row.category | Should -BeIn $labels -Because "$name / $($row.key)"
+                if (-not $byFile.ContainsKey($row.key)) { $byFile[$row.key] = $row.category }
+                else { $row.category | Should -Be $byFile[$row.key] -Because "$($row.key) must carry the same category in every file" }
+            }
+        }
+    }
+
+    # Description length (D-021) is no longer asserted here: two hand-kept 1000-character literals went stale when the
+    # column was widened to 2000 (IMP-1243). The `field-length-limits` build step
+    # (scripts/verify-field-length-limits.py, C-TECH-060) reads the limit from Entities/rev_setting/Entity.xml and covers
+    # every settings file.
 
     It 'BorderlineBandLower and BorderlineBandUpper use DISTINCT pending tokens (test-agent defect D-011)' -Skip {
         # SKIPPED, DELIBERATELY, AND RECORDED. D-011 (P4) is still open: both rows carry the
@@ -476,6 +487,17 @@ Describe 'C-TECH-006 / NFR-008 — the intake trigger authentication declaration
 }
 
 Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002 / NFR-002)' {
+    BeforeAll {
+        # Team names differ per environment: the admin-centre creation flow names a group team
+        # after its Entra group (REV-PP-GrantApplications-Admins-ACC in test, IMP-0734/IMP-1253),
+        # so the policy is pinned by the ROLE each team holds, not by a hard-coded team name.
+        function Get-TeamNameForRole([object]$Settings, [string]$Role) {
+            $teams = @($Settings.dataverse.groupTeams | Where-Object { @($_.securityRoles) -contains $Role })
+            $teams.Count | Should -Be 1 -Because "exactly one group team holds role '$Role'"
+            return $teams[0].name
+        }
+    }
+
     It 'REV_TrusteeRestricted lists exactly the two Phase 1 group teams in both environments' {
         foreach ($name in $script:Both.Keys) {
             $profiles = @($script:Both[$name].dataverse.columnSecurityProfiles)
@@ -487,8 +509,8 @@ Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002 / 
             # count. It must not drift with every table addition — the two lines below are the
             # assertion, and a wrong number here is the defect the test exists to catch.
             $members.Count | Should -Be 2 -Because $name
-            $members | Should -Contain 'REV Admins' -Because $name
-            $members | Should -Contain 'REV Service Accounts' -Because $name
+            $members | Should -Contain (Get-TeamNameForRole $script:Both[$name] 'REV Admin') -Because $name
+            $members | Should -Contain (Get-TeamNameForRole $script:Both[$name] 'REV Service Automation') -Because $name
         }
     }
 
@@ -512,9 +534,9 @@ Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002 / 
             # test above — this is the security policy (REV Service Accounts and REV Finance
             # only, never REV Admins), not a schema-size count.
             $members.Count | Should -Be 2 -Because $name
-            $members | Should -Contain 'REV Service Accounts' -Because $name
-            $members | Should -Contain 'REV Finance' -Because $name
-            $members | Should -Not -Contain 'REV Admins' -Because "$name — NFR-002 separation of duties"
+            $members | Should -Contain (Get-TeamNameForRole $script:Both[$name] 'REV Service Automation') -Because $name
+            $members | Should -Contain (Get-TeamNameForRole $script:Both[$name] 'REV Finance') -Because $name
+            $members | Should -Not -Contain (Get-TeamNameForRole $script:Both[$name] 'REV Admin') -Because "$name — NFR-002 separation of duties"
         }
     }
 
@@ -531,12 +553,10 @@ Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002 / 
             $release | Should -Not -BeNullOrEmpty -Because $name
             # COUNT-COUPLED BY DESIGN (C-TECH-067): security policy, not a schema-size count.
             @($release.memberTeams).Count | Should -Be 1 -Because $name
-            @($release.memberTeams) | Should -Contain 'REV Trustees' -Because $name
-            $trusteeTeam = @($script:Both[$name].dataverse.groupTeams | Where-Object { $_.name -eq 'REV Trustees' })
-            $trusteeTeam.Count | Should -Be 1 -Because "$name declares the team it names"
-            @($trusteeTeam[0].securityRoles) | Should -Contain 'REV Trustee' -Because $name
+            $trusteeTeamName = Get-TeamNameForRole $script:Both[$name] 'REV Trustee'
+            @($release.memberTeams) | Should -Contain $trusteeTeamName -Because $name
             $restricted = $profiles | Where-Object { $_.name -eq 'REV_TrusteeRestricted' }
-            @($restricted.memberTeams) | Should -Not -Contain 'REV Trustees' -Because "${name}: the release profile is the ONLY profile a trustee team may join"
+            @($restricted.memberTeams) | Should -Not -Contain $trusteeTeamName -Because "${name}: the release profile is the ONLY profile a trustee team may join"
         }
         $dev = Get-Content (Join-Path $script:SettingsDir 'dev-settings.json') -Raw | ConvertFrom-Json
         $devRelease = @($dev.dataverse.columnSecurityProfiles | Where-Object { $_.name -eq 'REV_TrusteeFinancialEligibility' })

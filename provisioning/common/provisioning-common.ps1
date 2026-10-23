@@ -247,7 +247,8 @@ function Invoke-DataverseApi {
         [Parameter(Mandatory)][string]$EnvironmentUrl,
         [Parameter(Mandatory)][string]$Path,
         [Parameter(Mandatory)][string]$AccessToken,
-        $Body
+        $Body,
+        [hashtable]$AdditionalHeaders
     )
     $uri = "$($EnvironmentUrl.TrimEnd('/'))/api/data/v9.2/$Path"
     $headers = @{
@@ -257,6 +258,7 @@ function Invoke-DataverseApi {
         Accept             = 'application/json'
     }
     if ($Method -eq 'POST') { $headers['Prefer'] = 'return=representation' }
+    if ($AdditionalHeaders) { foreach ($headerName in $AdditionalHeaders.Keys) { $headers[$headerName] = $AdditionalHeaders[$headerName] } }
 
     $params = @{
         Method      = $Method
@@ -266,6 +268,25 @@ function Invoke-DataverseApi {
     }
     if ($null -ne $Body) { $params.Body = ($Body | ConvertTo-Json -Depth 20) }
     Invoke-RestMethod @params
+}
+
+function Get-SettingCategoryMap {
+    <#
+      The rev_settingcategory global option set as label -> value (ADR-090). Same eight labels and values as
+      src/solutions/RevitaliseGrantAutomation/OptionSets/rev_settingcategory.xml (a Pester test asserts it);
+      values 1 to 8 follow the alphabetical order of the labels. Used by seed-settings.ps1 and by
+      seed-city-settlement-register.ps1. Matching is case-insensitive (a PowerShell hashtable).
+    #>
+    @{
+        'Acceptance emails and reminders' = 1
+        'Automatic rejection rules'       = 2
+        'Data retention and erasure'      = 3
+        'Lookup lists and wording'        = 4
+        'Narrative scrubbing'             = 5
+        'Postcodes and local authorities' = 6
+        'Round statistics'                = 7
+        'Scoring and eligibility'         = 8
+    }
 }
 
 function ConvertTo-ODataLiteral {

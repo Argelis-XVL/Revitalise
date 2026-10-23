@@ -21,7 +21,8 @@
       "Bash(python3 scripts/generate-known-failure-modes.py --check)",
       "Bash(echo \"digest-check exit $?\")",
       "Bash(python3 scripts/generate-known-failure-modes.py)",
-      "Bash(echo \"gen exit $?\")"
+      "Bash(echo \"gen exit $?\")",
+      "Bash(echo \"exit=$?\")"
     ],
     "deny": [
       "Agent(claude)",

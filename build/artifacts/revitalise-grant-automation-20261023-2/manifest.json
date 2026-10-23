@@ -1,0 +1,102 @@
+{
+ "feature": "revitalise-grant-automation",
+ "wbs": [
+  "2.2"
+ ],
+ "items": [
+  "WI-0150",
+  "WI-0151",
+  "WI-0152",
+  "WI-0153"
+ ],
+ "build_date": "2026-10-23",
+ "build_number": 2,
+ "artifact_path": "build/artifacts/revitalise-grant-automation-20261023-2/",
+ "build_config": "config/revitalise-grant-automation-build.yml",
+ "source_commit": "38ec7daf42bd2b39f81ed0708fe630146b9a0f41",
+ "source_commit_at_pack_time": "38ec7daf42bd2b39f81ed0708fe630146b9a0f41",
+ "source_tree_dirty_paths": 18,
+ "source_commit_note": "Packed from a dirty tree: 18 uncommitted paths under src/, provisioning/ and config/ at manifest time.",
+ "build_tool": "pac via scripts/run-build.py; Vite; Pester   tool                        Power Platform tools that can be installed and launched.",
+ "build_os": "Darwin 27.0.0 (macOS, local)",
+ "constraint_check": "PASS",
+ "preflight": "PASS (preflight-build-config ran, step 3 of 89)",
+ "verification_level": "V2 - packaged; layout accepted by the packer, content unverified",
+ "scoped": false,
+ "scope_note": "DEV build; full run, not scoped (.engine changed).",
+ "base_ref": "ca3797b283caa7191de74cecfe03b820055866bb",
+ "full_run_reason": ".engine changed - step definitions or their implementations moved",
+ "skipped_unchanged": [],
+ "platform_limit_gates": [
+  "source-validate",
+  "root-components-resolve",
+  "component-shape",
+  "attribute-type-stability",
+  "tad-coverage",
+  "forms-and-views-reachable",
+  "shipped-content",
+  "field-length-limits",
+  "guid-syntax",
+  "field-security-coverage",
+  "component-shape-packed"
+ ],
+ "unit_tests": "Pester 1511 passed, 0 failed, 1 skipped; command coverage 76.51% (measured)",
+ "warnings": {
+  "total": 3,
+  "resolved": 0,
+  "accepted": 3,
+  "untriaged": 0
+ },
+ "warnings_detail": [
+  {
+   "step": "code-app-build",
+   "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: JS 857.73 kB unchanged vs 857,730 B; CSS 150.78 kB vs 150,250 B, about +530 B; code-app-bundle-budget PASS]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-settings-category-dev-summary.md#L131"
+  },
+  {
+   "step": "pack-managed",
+   "signature": "Following root components are not defined in customizations: [figures compared: 21 Type= lines = 9 EntityRelationship, 2 AIModel, 10 EnvironmentVariableDefinition]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-settings-category-dev-summary.md#L129"
+  },
+  {
+   "step": "pack-unmanaged",
+   "signature": "Following root components are not defined in customizations: [figures compared: 21 Type= lines, identical by type to pack-managed]",
+   "status": "accepted",
+   "triaged_in": "docs/development/revitalise-settings-category-dev-summary.md#L130"
+  }
+ ],
+ "steps_not_executed": [
+  {
+   "step": "auth",
+   "reason": "out-of-context",
+   "level_not_established": "V3",
+   "consecutive_deferrals": 0
+  }
+ ],
+ "build_config_sha256": "4228c32bcf0fa38ac026437554041d3da65fb14d0b9c378f3c801eb413747059",
+ "build_config_drift": "none (re-hashed after run, equal)",
+ "improvement_log_entries": [
+  "IMP-1248",
+  "IMP-1250"
+ ],
+ "status": "SUCCESS",
+ "soft_gates": {
+  "change-order-requirements": 2,
+  "routing-reconciliation": 131,
+  "post-deploy-completeness": 1,
+  "review-document": 5,
+  "commercial-events": 0,
+  "work-items": 48,
+  "dispatch-share": 0,
+  "open-questions": 3,
+  "document-status-consistency": 2,
+  "derived-counts": 2,
+  "postcode-region-map": 0,
+  "design-doc-mapping-claims": 2,
+  "import-manifest-intake": 7,
+  "dev-summary-artefacts-committed": 50,
+  "constraint-verifiers": 1
+ }
+}

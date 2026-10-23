@@ -1,5 +1,5 @@
 {
-  "_source": "Ground truth for A-NS-25 / A-NS-20 (input half). The 'Run a prompt' action a maker added in the designer to the DEV test flow TestAIBuilder for REV Narrative Redaction Prompt, saved 2026-10-07, never run; read read-only with pac env fetch on workflow.clientdata. Copied as saved except: the parameter VALUES are replaced by null (they were maker test values), and the authentication block is omitted (the test flow uses a Button trigger's Raw token; solution flows use @parameters('$authentication')). outputs_read_by_the_designer: the expressions the designer itself wrote, on 2026-10-07, into Compose actions the reviewer added after it for each output (saved, never run).",
+  "_source": "Ground truth for A-NS-25 / A-NS-20 (input half). The 'Run a prompt' action a maker added in the designer to the DEV test flow TestAIBuilder for REV Narrative Redaction Prompt, saved 2026-10-07, never run; read read-only with pac env fetch on workflow.clientdata. Copied as saved except: the prompt id and the parameter VALUES are replaced by null (the prompt in the capture, the rev 20 detector, was removed from the solution on 2026-10-23) (they were maker test values), and the authentication block is omitted (the test flow uses a Button trigger's Raw token; solution flows use @parameters('$authentication')). outputs_read_by_the_designer: the expressions the designer itself wrote, on 2026-10-07, into Compose actions the reviewer added after it for each output (saved, never run).",
   "type": "OpenApiConnection",
   "inputs": {
     "host": {
@@ -8,7 +8,7 @@
       "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
     },
     "parameters": {
-      "recordId": "122be8e0-4b6b-44cd-a9a9-d1faff162b02",
+      "recordId": null,
       "item/requestv2/Categories": null,
       "item/requestv2/AllowedLabels": null,
       "item/requestv2/Narrative": null

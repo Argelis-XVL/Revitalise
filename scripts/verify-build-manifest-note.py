@@ -240,6 +240,26 @@ def soft_step_names(config_path: Path) -> tuple[set[str], str | None]:
     return names, None
 
 
+def config_from_run_result(path: Path, repo_root: Path) -> Path | None:
+    """The build config the runner RECORDED for this artifact, if it left a result beside it.
+
+    Precedence is --build-config, then this, then config/<feature>-build.yml. The manifest's
+    `feature` is the DISPATCHED feature, and one config serves several features, so deriving
+    the config from it failed NO BUILD CONFIG on every sibling-feature build; build-agent.md
+    told the agent to pass the flag, and the prose was not enough twice (IMP-0479, IMP-1240).
+    `run-build-result.json` carries `config` as a value. An unreadable or config-less result
+    falls through to the old derivation, which still fails closed."""
+    result = path.parent / "run-build-result.json"
+    try:
+        value = json.loads(result.read_text(encoding="utf-8")).get("config")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None
+    if not isinstance(value, str) or not value.strip():
+        return None
+    config = Path(value)
+    return config if config.is_absolute() else repo_root / config
+
+
 def check_required_fields(path: Path, data: dict,
                           build_config: Path | None = None,
                           repo_root: Path = REPO_ROOT) -> list[str]:
@@ -283,6 +303,8 @@ def check_required_fields(path: Path, data: dict,
     # ── soft_gates (IMP-0395) ────────────────────────────────────────────────────────────
     feature = str(data.get("feature") or "").strip()
     config = build_config
+    if config is None:
+        config = config_from_run_result(path, repo_root)
     if config is None:
         if not feature:
             errors.append(
@@ -483,6 +505,28 @@ def selftest() -> int:
                     print(f"                   {line}")
                 failures.append(label)
 
+        # config-from-run-result (IMP-1240): a sibling feature's manifest resolves the config
+        # the runner recorded beside it; a recorded config that does not exist still fails.
+        for n, (label, recorded, expect_fail, want) in enumerate((
+                ("required: a manifest whose feature has no config resolves the one recorded in "
+                 "the sibling run-build-result.json", "config/feat-build.yml", False, ""),
+                ("required: a recorded config that does not exist still fails NO BUILD CONFIG",
+                 "config/gone-build.yml", True, "NO BUILD CONFIG"))):
+            adir = Path(tmp) / f"art-{n}"
+            adir.mkdir()
+            (adir / "run-build-result.json").write_text(json.dumps({"config": recorded}),
+                                                         encoding="utf-8")
+            mpath = adir / "manifest.json"
+            mpath.write_text(json.dumps(dict(cases[0][1], feature="sibling-feature")),
+                             encoding="utf-8")
+            errors = check_manifest(mpath, repo_root=root)
+            rc = 1 if errors else 0
+            ok = ((rc != 0) if expect_fail else (rc == 0)) and (not want or want in "\n".join(errors))
+            print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {label} → exit {rc}")
+            if not ok:
+                failures.append(label)
+            _required_case_count += 1
+
         for name, (payload, expect_fail, want) in _CASES.items():
             path = Path(tmp) / f"{name}.json"
             path.write_text(json.dumps(payload), encoding="utf-8")
@@ -534,7 +578,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="skip the wbs / soft_gates required-field assertions (historical "
                         "manifests only — never for a build you are producing)")
     p.add_argument("--build-config", help="build config to derive the SOFT step list from "
-                                         "(default: config/<feature>-build.yml)")
+                                         "(default: the `config` recorded in the sibling "
+                                         "run-build-result.json, else config/<feature>-build.yml)")
     p.add_argument("--selftest", action="store_true")
     try:
         args = p.parse_args(argv)

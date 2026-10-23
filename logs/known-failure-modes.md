@@ -5,8 +5,8 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (1237 entries, 1213 distinct lessons)
-Generated: 2026-10-22
+Source: `logs/improvement-log.jsonl` (1249 entries, 1225 distinct lessons)
+Generated: 2026-10-23
 
 <a id="kfm-how-to-use"></a>
 ## How to use this file
@@ -42,7 +42,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Defended by | Renders in | Findings |
 |---|---|---|---|---|
-| **x95** | `platform-contract-guessed-not-groundtruthed` | **scripts/verify-component-shape.py — HARD, one gate reading one reference table. Adding a component type is a BLOCK IN THAT TABLE, never another script: skills/how-to-promote-a-finding.md section 2 forbids an instance gate on the second instance of a class, and a duplicate was authored and retired the same day for want of this row (IMP-0868)**<br>Covers: a HAND-AUTHORED solution component file under src/solutions/<Name>/ whose ELEMENT SHAPE differs from the one the platform accepts, for the three component types declared in constraints/technology/component-shapes.yml and no others -- measured 2026-09-24 as 56 files: environmentvariabledefinitions/*/environmentvariabledefinition.xml (nothing may precede the root element), OptionSets/*.xml (optionset-level Descriptions and displaynames present), Entities/*/FormXml/*/*.xml (root <forms type> one of main/mobile/quickCreate/quick). Values are read off the PARSED XML, never text-matched, so a correction quoting the withdrawn value in a comment cannot score worse than the defect it replaced<br>NOT covered: ALMOST ALL OF THIS CLASS, which is the largest in the digest at 65 instances -- do not read this row as 'the class is defended'. The gate settles the WRAPPER of three declared file types and nothing else. NOT covered: the BODY of any component (which controls a form carries, whether a lookup resolves, whether a maker can save it -- only a live import and a human in the designer settle those, which is what IMP-0866 stays deferred on); every component type with no block in the shapes file; every non-XML contract (a flow's connector operation ids, a Dataverse column's behaviour, an API's response shape); and any value the platform accepts today and rejects tomorrow. The vocabulary is a FIXED SET by design -- if Microsoft adds a fifth form type this gate rejects it as unknown until the table is updated, which is the correct failure direction for a fail-closed check and still a real cost. A shape block added from documentation or memory rather than from ground truth re-creates the exact defect the file closes, which is why every block carries its own ground_truth field<br>Prove it green: `python3 scripts/verify-component-shape.py src/solutions/RevitaliseGrantAutomation --shapes constraints/technology/component-shapes.yml` | `before-authoring` ×87, `Capabilities` ×8 | IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1180 (+89 earlier — see appendix) |
+| **x96** | `platform-contract-guessed-not-groundtruthed` | **scripts/verify-component-shape.py — HARD, one gate reading one reference table. Adding a component type is a BLOCK IN THAT TABLE, never another script: skills/how-to-promote-a-finding.md section 2 forbids an instance gate on the second instance of a class, and a duplicate was authored and retired the same day for want of this row (IMP-0868)**<br>Covers: a HAND-AUTHORED solution component file under src/solutions/<Name>/ whose ELEMENT SHAPE differs from the one the platform accepts, for the three component types declared in constraints/technology/component-shapes.yml and no others -- measured 2026-09-24 as 56 files: environmentvariabledefinitions/*/environmentvariabledefinition.xml (nothing may precede the root element), OptionSets/*.xml (optionset-level Descriptions and displaynames present), Entities/*/FormXml/*/*.xml (root <forms type> one of main/mobile/quickCreate/quick). Values are read off the PARSED XML, never text-matched, so a correction quoting the withdrawn value in a comment cannot score worse than the defect it replaced<br>NOT covered: ALMOST ALL OF THIS CLASS, which is the largest in the digest at 65 instances -- do not read this row as 'the class is defended'. The gate settles the WRAPPER of three declared file types and nothing else. NOT covered: the BODY of any component (which controls a form carries, whether a lookup resolves, whether a maker can save it -- only a live import and a human in the designer settle those, which is what IMP-0866 stays deferred on); every component type with no block in the shapes file; every non-XML contract (a flow's connector operation ids, a Dataverse column's behaviour, an API's response shape); and any value the platform accepts today and rejects tomorrow. The vocabulary is a FIXED SET by design -- if Microsoft adds a fifth form type this gate rejects it as unknown until the table is updated, which is the correct failure direction for a fail-closed check and still a real cost. A shape block added from documentation or memory rather than from ground truth re-creates the exact defect the file closes, which is why every block carries its own ground_truth field<br>Prove it green: `python3 scripts/verify-component-shape.py src/solutions/RevitaliseGrantAutomation --shapes constraints/technology/component-shapes.yml` | `before-authoring` ×88, `Capabilities` ×8 | IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1180, IMP-1253 (+90 earlier — see appendix) |
 | **x61** | `gate-cannot-fail` | — | `before-build` ×60, `Capabilities` | IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153, IMP-1179 (+55 earlier — see appendix) |
 | **x50** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | **scripts/verify-derived-counts.py — SOFT (--warn-only): it reports drift and never blocks a build. A registry entry per claim, never another script (IMP-1127)**<br>Covers: a count stated in prose that is registered in scripts/derived-counts-registry.json — among them 'the N rev_setting rows' in config/revitalise-grant-automation-pipeline.yml, re-derived as len(dataverse.settingRows) of dev-scoring-settings.json, test-settings.json and prd-settings.json (claim pipeline-rev-setting-row-count). Replayed 2026-10-16 with the pipeline text at HEAD ('36') against settings files holding 40: 2 DRIFT findings, the 2 lines IMP-1127 named<br>NOT covered: ALMOST ALL OF THIS CLASS — do not read this row as 'the class is defended'. Only the claims listed in the registry are checked, 11 of them on 2026-10-16. Unregistered counts in the same pipeline file ('the 3,394-row rev_citysettlementregister', 'the three FR-062 threshold rows') and every count in a document, test or comment outside the registry are unchecked. And the gate is SOFT, so a drift it reports lands in a build's warnings and nothing stops on it<br>Prove it green: `python3 scripts/verify-derived-counts.py` | `Unrouted` ×41, `before-build` ×9 | IMP-0925, IMP-1045, IMP-1048, IMP-1083, IMP-1127, IMP-1151 (+44 earlier — see appendix) |
 | **x45** | `approved-document-internally-inconsistent` | — | `Unrouted` ×45 | IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163 (+39 earlier — see appendix) |
@@ -54,7 +54,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x37** | `stale-claim-contradicting-rechecked-source` | — | `Unrouted` ×35, `Capabilities` ×2 | IMP-1117, IMP-1120, IMP-1143, IMP-1150, IMP-1158, IMP-1211 (+31 earlier — see appendix) |
 | **x35** | `finding-diagnosis-unverified` | — | `Unrouted` ×35 | IMP-0653, IMP-0731, IMP-0754, IMP-0776, IMP-0959, IMP-1182 (+29 earlier — see appendix) |
 | **x31** | `learning-substrate-destroyed` | — | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
-| **x25** | `untriaged-tool-warning` | — | `Unrouted` ×25 | IMP-0962, IMP-1006, IMP-1089, IMP-1090, IMP-1091, IMP-1237 (+19 earlier — see appendix) |
+| **x27** | `untriaged-tool-warning` | — | `Unrouted` ×27 | IMP-1089, IMP-1090, IMP-1091, IMP-1237, IMP-1242, IMP-1250 (+21 earlier — see appendix) |
 | **x22** | `two-invocation-paths-disagree` | — | `before-build` ×22 | IMP-0924, IMP-0939, IMP-1052, IMP-1053, IMP-1093, IMP-1235 (+16 earlier — see appendix) |
 | **x17** | `gate-fires-on-nothing` | — | `before-build` ×17 | IMP-0645, IMP-0682, IMP-0714, IMP-0825, IMP-1039, IMP-1128 (+11 earlier — see appendix) |
 | **x17** | `harness-blocks-destructive-call` | — | `operating` ×14, `Capabilities` ×3 | IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828, IMP-1135 (+11 earlier — see appendix) |
@@ -89,10 +89,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x4** | `gate-invocation-omits-required-arg` | — | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
 | **x4** | `hard-gate-red-on-pre-existing-debt` | — | `Unrouted` ×4 | IMP-0439, IMP-0477, IMP-0722, IMP-0911 |
 | **x4** | `live-verification-capability` | — | `Capabilities` ×4 | IMP-0083, IMP-0555, IMP-0556, IMP-0928 |
+| **x4** | `platform-field-length-limit-unenforced` | — | `before-authoring` ×4 | IMP-0009, IMP-0931, IMP-1121, IMP-1243 |
 | **x4** | `reality-contradicted-repo-document` | — | `Unrouted` ×4 | IMP-1057, IMP-1062, IMP-1086, IMP-1209 |
 | **x4** | `serialisation-default-invalidates-evidence-needle` | — | `Unrouted` ×4 | IMP-0664, IMP-0733, IMP-0755, IMP-1007 |
 | **x4** | `solution-source-edited-outside-dispatch` | — | `Unrouted` ×4 | IMP-0981, IMP-1038, IMP-1043, IMP-1044 |
 | **x4** | `tad-narrative-omits-an-already-existing-column` | — | `Unrouted` ×4 | IMP-0337, IMP-0338, IMP-0688, IMP-1066 |
+| **x4** | `untested-hand-handed-script` | — | `Unrouted` ×4 | IMP-1246, IMP-1247, IMP-1249, IMP-1252 |
 | **x3** | `change-order-sizing-without-precedent` | — | `Capabilities` ×2, `Unrouted` | IMP-0278, IMP-0288, IMP-0759 |
 | **x3** | `digest-cap-hides-a-whole-subject-area` | — | `Unrouted` ×3 | IMP-0383, IMP-0543, IMP-0902 |
 | **x3** | `document-contradicted-by-shipped-artefact` | — | `Unrouted` ×3 | IMP-1033, IMP-1035, IMP-1037 |
@@ -101,7 +103,6 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x3** | `incorporated-document-version-mismatch` | — | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
 | **x3** | `live-definition-drifts-from-source` | — | `Unrouted` ×3 | IMP-0813, IMP-1041, IMP-1088 |
 | **x3** | `pipeline-dispatch-stops-before-declared-post-deploy` | — | `Unrouted` ×3 | IMP-0879, IMP-0906, IMP-0971 |
-| **x3** | `platform-field-length-limit-unenforced` | — | `before-authoring` ×3 | IMP-0009, IMP-0931, IMP-1121 |
 | **x3** | `routed-work-not-reverified-at-apply-time` | — | `Unrouted` ×3 | IMP-0517, IMP-0605, IMP-0630 |
 | **x3** | `supplied-design-asset-assumed-wcag-compliant` | — | `Unrouted` ×2, `Capabilities` | IMP-0385, IMP-0985, IMP-1001 |
 | **x3** | `two-recorded-lessons-contradict-each-other` | — | `Unrouted` ×3 | IMP-0460, IMP-0932, IMP-0983 |
@@ -123,6 +124,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `gate-found-broken` | — | `Unrouted` ×2 | IMP-1058, IMP-1059 |
 | **x2** | `instrument-exists-never-used` | — | `before-commercial` ×2 | IMP-0032, IMP-0545 |
 | **x2** | `item-acceptance-contradicts-approved-design` | — | `Unrouted` ×2 | IMP-0987, IMP-1003 |
+| **x2** | `ledger-cannot-record-a-design-change-honestly` | — | `Unrouted` ×2 | IMP-1175, IMP-1251 |
 | **x2** | `live-definition-overwritten-outside-the-pipeline` | — | `Unrouted` ×2 | IMP-1010, IMP-1020 |
 | **x2** | `live-environment-value-in-evidence-comment` | — | `Unrouted` ×2 | IMP-0658, IMP-0659 |
 | **x2** | `manifest-field-vocabulary-mismatch` | — | `Unrouted` ×2 | IMP-0633, IMP-0634 |
@@ -202,14 +204,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 <a id="kfm-before-authoring"></a>
 ## Before you hand-author a platform artefact
 
-*108 lessons from 108 findings.*
+*110 lessons from 110 findings.*
 
-- A Compose action's secureData.properties is ['inputs'] only: 'outputs' imports but the designer refuses to save (0x80060467). Check 18 of verify-flow-definition-language.py now fails the build on it.  
-  <sub>IMP-1156</sub>
-- Never reference result(), actions(), outputs() or body() of an action inside a Foreach/Until from outside that loop. Diagnose inside the iteration (a leaf catch beside each container: Query over result(), append {in, step, code} to an array variable, then a deliberately failing Compose to re-raise, since Terminate is not allowed in a loop) and read only the variable and result(<the loop>) outside. A clean Draft import proves nothing about save: open and save in the designer (V4) before calling a flow deployable.  
-  <sub>IMP-1098</sub>
-- Import-clean is not designer-saveable. A Switch needs at least one case, a SetVariable needs a non-empty value (use @string('')), and an update of an existing row is UpdateOnlyRecord, not UpdateRecord (upsert).  
-  <sub>IMP-1095</sub>
 - When a FormXml shape is ground-truthed by reading one existing instance, the read must cover EVERY attribute that differs between form types, not only the ones already suspected as unusual (ancestor id, hasmargin) -- the root <forms type> attribute is exactly as guessable as the content inside it, and Microsoft's own error message here (Forms being imported are of an unsupported type 'quickview') suggests the accepted values are a fixed small set that main/quickcreate/etc. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0866</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0867`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -243,16 +239,22 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0221</sub>
 - The intake flow still has SIX Get-a-row-by-id actions using an alternate key in Row ID (AgeBandMap, PostcodeRegionMap, AgeRangeLabelMap, ExceptionalCircumstanceLabelMap, EmploymentStatusLabelMap, CareHoursBandLabelMap). The connector rejects that shape - proven by the scoring flow failing on all 11 of its first runs - so the intake flow will fail on its first live submission from the website. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0112</sub>
+- A Compose action's secureData.properties is ['inputs'] only: 'outputs' imports but the designer refuses to save (0x80060467). Check 18 of verify-flow-definition-language.py now fails the build on it.  
+  <sub>IMP-1156</sub>
+- Never reference result(), actions(), outputs() or body() of an action inside a Foreach/Until from outside that loop. Diagnose inside the iteration (a leaf catch beside each container: Query over result(), append {in, step, code} to an array variable, then a deliberately failing Compose to re-raise, since Terminate is not allowed in a loop) and read only the variable and result(<the loop>) outside. A clean Draft import proves nothing about save: open and save in the designer (V4) before calling a flow deployable.  
+  <sub>IMP-1098</sub>
+- Import-clean is not designer-saveable. A Switch needs at least one case, a SetVariable needs a non-empty value (use @string('')), and an update of an existing row is UpdateOnlyRecord, not UpdateRecord (upsert).  
+  <sub>IMP-1095</sub>
 - When a FormXml (or any split-source) shape correction lands only in the file's own content, ground-truth whether the packer derives the equivalent platform value from the FILE PATH/FOLDER NAME instead of the file's declared attribute -- confirmed here for pac solution pack's <forms type>, which is keyed to the FormXml/<foldername>/ segment. Verify a source-level fix by unzipping the actual packed artifact and checking the packed customizations.xml, not by re-running a gate that also only reads source. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0874</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0875`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - Before authoring or reusing an action name across If/else (or Switch case) branches in a Power Automate cloud flow, ground-truth whether the platform's import-time dependency calculator treats action names as branch-scoped or flow-wide unique -- this session found it is FLOW-WIDE: reusing a name across mutually-exclusive branches throws 'An item with the same key has already been added' at import (FlattenNestedActions flattens all branches into one dictionary before computing dependencies). **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0804</sub>
 
-> **88 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-contract-guessed-not-groundtruthed`** (×68): IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1159, IMP-1180 (+62 earlier — see appendix)
+> **90 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`platform-contract-guessed-not-groundtruthed`** (×69): IMP-1109, IMP-1124, IMP-1131, IMP-1159, IMP-1180, IMP-1253 (+63 earlier — see appendix)
 >   · **`platform-fact-groundtruthed`** (×16): IMP-1016, IMP-1107, IMP-1167, IMP-1184, IMP-1185, IMP-1222 (+10 earlier — see appendix)
->   · **`platform-field-length-limit-unenforced`** (×3): IMP-0009, IMP-0931, IMP-1121
+>   · **`platform-field-length-limit-unenforced`** (×4): IMP-0009, IMP-0931, IMP-1121, IMP-1243
 >   · **`environment-feature-flag-undeclared`** (×1): IMP-0182
 
 
@@ -621,9 +623,9 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 <a id="kfm-unrouted"></a>
 ## Unrouted — no section assigned
 
-*712 lessons from 712 findings, across 263 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
+*722 lessons from 722 findings, across 267 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
 
-> These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×45), `declared-policy-not-mechanically-enforced` (×42), `hand-maintained-count-drifts-from-source` (×41), `gate-reassures-wrongly` (×39), `finding-diagnosis-unverified` (×35), `stale-claim-contradicting-rechecked-source` (×35), `untriaged-tool-warning` (×25), `platform-state-divergence` (×17).
+> These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×45), `declared-policy-not-mechanically-enforced` (×42), `hand-maintained-count-drifts-from-source` (×41), `gate-reassures-wrongly` (×39), `finding-diagnosis-unverified` (×35), `stale-claim-contradicting-rechecked-source` (×35), `untriaged-tool-warning` (×27), `platform-state-divergence` (×17).
 
 
 ---

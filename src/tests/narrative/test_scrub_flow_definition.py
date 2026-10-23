@@ -1112,7 +1112,10 @@ class RuleRows(Agreement):
                     self.assertEqual(rows[key]["value"], rr.SEED_ROWS[key])
                     self.assertIs(rows[key].get("createOnly"), True)
                     self.assertEqual(rows[key]["dataType"], "Text")
-                    self.assertIn("Synthetic examples only", rows[key]["description"])
+                    # The warning that matters to the process owner, in her words (WI-0152 rewrote the text):
+                    # never paste application text into the row. The old fixed phrase was a test literal.
+                    self.assertIn("never paste text from an application", rows[key]["description"])
+                    self.assertEqual(rows[key]["description"], rr.SEED_DESCRIPTIONS[key])
             with self.subTest(name, key="RedactionConfidenceThreshold"):     # ADR-078 item 5
                 self.assertEqual(rows["RedactionConfidenceThreshold"]["value"], rr.THRESHOLD_SEED)
                 self.assertIs(rows["RedactionConfidenceThreshold"].get("createOnly"), True)

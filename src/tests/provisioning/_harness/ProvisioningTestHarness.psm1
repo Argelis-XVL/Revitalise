@@ -532,8 +532,8 @@ function New-SettingsFixture {
                 }
             )
             settingRows = @(
-                @{ key = 'KnockoutThreshold';    dataType = 'Whole Number'; value = '20'; description = 'fixture' },
-                @{ key = 'FeelingScaleInversion'; dataType = 'JSON';        value = '{"0":10}'; description = 'fixture' }
+                @{ key = 'KnockoutThreshold';    category = 'Scoring and eligibility'; dataType = 'Whole Number'; value = '20'; description = 'fixture' },
+                @{ key = 'FeelingScaleInversion'; category = 'Scoring and eligibility'; dataType = 'JSON';        value = '{"0":10}'; description = 'fixture' }
             )
             apps = @(
                 @{

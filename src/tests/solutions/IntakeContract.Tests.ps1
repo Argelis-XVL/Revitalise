@@ -937,12 +937,12 @@ Describe 'ADR-051 item 3 / C.4 — eighteen rev_setting rows, read by one List r
         }
     }
 
-    It 'every map row value fits rev_setting.rev_value (4,000) and every description rev_description (1,000)' {
+    # The description length is covered by the `field-length-limits` build step, which reads the column's MaxLength (IMP-1243).
+    It 'every map row value fits rev_setting.rev_value (4,000)' {
         foreach ($settings in $script:SettingsFiles) {
             foreach ($key in $script:NewMaps.Keys) {
                 $row = @($settings.dataverse.settingRows | Where-Object { $_.key -eq $key })[0]
                 $row.value.Length | Should -BeLessOrEqual 4000 -Because $key
-                $row.description.Length | Should -BeLessOrEqual 1000 -Because $key
             }
         }
     }
