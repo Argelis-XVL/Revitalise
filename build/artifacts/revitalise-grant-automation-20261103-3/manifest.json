@@ -1,0 +1,100 @@
+{
+ "feature": "revitalise-grant-automation",
+ "wbs": [
+  "0.13"
+ ],
+ "items": [
+  "WI-0121"
+ ],
+ "items_note": "WI-0121 was 'reopened' (retraced by pm-agent 2026-11-03T19:59), not 'built', when this build started; included at lead-agent's explicit instruction. Item verification: verify-work-items --scope WI-0121 --at-least built fails until its state moves.",
+ "build_date": "2026-11-03",
+ "build_number": 3,
+ "artifact_path": "build/artifacts/revitalise-grant-automation-20261103-3/",
+ "build_config": "config/revitalise-grant-automation-build.yml",
+ "source_commit": "fca576826f1a29845368727fbbfaacb3cb2ffa16",
+ "source_commit_at_pack_time": "a435c2b5e43fd8e4e4e20db73b6dd8fe96dfce47",
+ "source_tree_dirty_paths": 0,
+ "source_commit_note": "Re-stamped 2026-11-03 after the reviewer committed the source. Packed from a tree with 42 uncommitted paths under src/, provisioning/ and config/; that tree now equals source_commit (git diff and untracked check: 0 paths under those directories; no file there newer than the packed zips; build config sha256 unchanged). source_commit_at_pack_time is kept as recorded.",
+ "build_tool": "pac 2.4.1 via scripts/run-build.py; Vite 7.3.7; Pester",
+ "build_os": "Darwin 27.2.0 (macOS, local)",
+ "constraint_check": "PASS",
+ "preflight": "PASS - 89 steps, 70 gates, all with negative-test coverage",
+ "verification_level": "V2 - packaged; layout accepted by the packer, content unverified",
+ "scoped": false,
+ "skipped_unchanged": [],
+ "platform_limit_gates": [
+  "source-validate",
+  "root-components-resolve",
+  "component-shape",
+  "attribute-type-stability",
+  "tad-coverage",
+  "forms-and-views-reachable",
+  "shipped-content",
+  "field-length-limits",
+  "guid-syntax",
+  "field-security-coverage",
+  "component-shape-packed"
+ ],
+ "unit_tests": "Pester 1524 passed, 0 failed, 1 skipped; command coverage 76.52% (measured); code-app vitest lines 97.19%",
+ "settings_rows": {
+  "dev-scoring-settings": 51,
+  "test-settings": 51,
+  "prd-settings": 51
+ },
+ "warnings": {
+  "total": 3,
+  "resolved": 0,
+  "accepted": 3,
+  "untriaged": 0
+ },
+ "warnings_detail": [
+  {
+   "step": "code-app-build",
+   "signature": "(!) Some chunks are larger than 500 kB after minification. [figures compared: JS 857.73 kB, identical to the 20261023-2 manifest; CSS 150.78 kB; code-app-bundle-budget PASS]",
+   "status": "accepted",
+   "triaged_in": "docs/development/retention-erasure-helper-dev-summary.md#L292"
+  },
+  {
+   "step": "pack-managed",
+   "signature": "Following root components are not defined in customizations: [figures compared: 22 Type= lines, equal to the 22 the row states]",
+   "status": "accepted",
+   "triaged_in": "docs/development/retention-erasure-helper-dev-summary.md#L289"
+  },
+  {
+   "step": "pack-unmanaged",
+   "signature": "Following root components are not defined in customizations: [figures compared: 22 Type= lines, identical to pack-managed]",
+   "status": "accepted",
+   "triaged_in": "docs/development/retention-erasure-helper-dev-summary.md#L289"
+  }
+ ],
+ "soft_gates": {
+  "change-order-requirements": 2,
+  "routing-reconciliation": 125,
+  "post-deploy-completeness": 1,
+  "review-document": 5,
+  "commercial-events": 0,
+  "work-items": 52,
+  "dispatch-share": 0,
+  "open-questions": 3,
+  "document-status-consistency": 2,
+  "derived-counts": 1,
+  "postcode-region-map": 0,
+  "design-doc-mapping-claims": 2,
+  "import-manifest-intake": 7,
+  "dev-summary-artefacts-committed": 62,
+  "constraint-verifiers": 1
+ },
+ "steps_not_executed": [
+  {
+   "step": "auth",
+   "reason": "out-of-context",
+   "level_not_established": "V3",
+   "consecutive_deferrals": 0
+  }
+ ],
+ "build_config_sha256": "4228c32bcf0fa38ac026437554041d3da65fb14d0b9c378f3c801eb413747059",
+ "build_config_drift": "none (re-hashed after run, equal)",
+ "improvement_log_at_start_and_manifest": "14 unread at manifest time (IMP-1252..IMP-1265); 0 deploy-open blockers, 0 governance blockers; start-of-build counts not independently recorded",
+ "improvement_log_entries": [],
+ "status": "SUCCESS"
+}
