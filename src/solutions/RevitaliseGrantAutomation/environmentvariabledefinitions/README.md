@@ -18,6 +18,8 @@ environmentvariabledefinitions/
   rev_DocuSignAcceptanceTemplateId/environmentvariabledefinition.xml <- added 2026-09-06 (wbs:3.2)
   rev_SpoSiteUrl/environmentvariabledefinition.xml                <- added 2026-09-06 (wbs:3.4)
   rev_DocuSignConnectName/environmentvariabledefinition.xml       <- added 2026-10-09 (wbs:3.4)
+  rev_SpoSarFolderUrl/environmentvariabledefinition.xml           <- added 2026-10-26 (wbs:0.13)
+  rev_SarProtectedSender/environmentvariabledefinition.xml        <- added 2026-10-30 (wbs:0.13)
 ```
 
 **`rev_DocuSignAccountId`** and **`rev_DocuSignAcceptanceTemplateId`** (added 2026-09-06,
@@ -101,6 +103,21 @@ managed artifact carries no environment URL, mailbox or tenant identifier at all
   `isrequired` is `1` with no default, so the import pane refuses a blank (a blank would make finance hear
   nothing). Kept apart from `rev_ProcessOwnerUpn` so the two roles can split later with only a value
   change. PRD: the process owner; TST/ACC and DEV: the test finance user.
+- **rev_SpoSarFolderUrl** (added 2026-10-26, `wbs:0.13`, CO-011, TAD rev 33 section 12, `A-SAR-9`) - the
+  site-relative path, inside `rev_SpoSiteUrl`, of the secured subject access request folder that
+  `REV | Retention | Retention & Erasure Helper (SAR extract)` writes the extract and the signed PDF copies to.
+  The folder has its own permissions (the service identity and the process-owner group, nothing else) and is
+  created by hand once per environment, before mode 3's first run there (runbook
+  `docs/training/subject-access-request-procedure.md`). `isrequired` is `1` with no default.
+- **rev_SarProtectedSender** (added 2026-10-30, `wbs:0.13`, CO-011, TAD rev 37, `ADR-091` item 4) - the address of
+  the dedicated licensed mailbox that `REV | Retention | Retention & Erasure Helper (SAR extract)` sends the extract
+  from (*From (Send as)* on `SendEmailV2`, `rev_SharedOutlook`); a tenant mail-flow rule encrypts every message from
+  it. **`isrequired` is `0` with no default, deliberately:** empty is a valid, designed state meaning protected
+  sending is off in that environment, and the flow then sends nothing and tells the process owner to use option A
+  (fail-closed, TAD 4.2 item 8). It stays empty in an environment until the `A-SAR-4`, `A-SAR-13` and `A-SAR-14`
+  checks pass there (`ADR-091` items 4 and 7). The same address in all three environments, supplied by Revitalise's
+  tenant administrator; placeholders `{{SAR_PROTECTED_SENDER_DEV}}` (pipeline dev step), `_TSTACC` and `_PROD`
+  (pac-import files).
 
 ## Directory, file name and shape - all three are ground truth, not a guess
 

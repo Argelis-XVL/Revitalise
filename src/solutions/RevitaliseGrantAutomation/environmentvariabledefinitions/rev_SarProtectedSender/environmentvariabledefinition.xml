@@ -1,0 +1,16 @@
+<environmentvariabledefinition schemaname="rev_SarProtectedSender">
+  <description default="The address of the dedicated licensed mailbox that REV | Retention | Retention &amp; Erasure Helper (SAR extract) sends the subject access request extract from (TAD rev 37, ADR-091, delivery option B). A tenant mail-flow rule encrypts every message from this sender. EMPTY means protected sending is off in this environment: nothing is emailed and the process owner is told to use option A. Fill it only after the A-SAR-4, A-SAR-13 and A-SAR-14 checks have passed in this environment (ADR-091 items 4 and 7). The same address in every environment; supplied by Revitalise's tenant administrator, never committed (C-TECH-047).">
+    <label description="The address of the dedicated licensed mailbox that REV | Retention | Retention &amp; Erasure Helper (SAR extract) sends the subject access request extract from (TAD rev 37, ADR-091, delivery option B). A tenant mail-flow rule encrypts every message from this sender. EMPTY means protected sending is off in this environment: nothing is emailed and the process owner is told to use option A. Fill it only after the A-SAR-4, A-SAR-13 and A-SAR-14 checks have passed in this environment (ADR-091 items 4 and 7). The same address in every environment; supplied by Revitalise's tenant administrator, never committed (C-TECH-047)." languagecode="1033" />
+  </description>
+  <displayname default="SAR Protected Sender">
+    <label description="SAR Protected Sender" languagecode="1033" />
+  </displayname>
+  <hint default="Leave EMPTY until this environment's protected-send check has passed (SAR runbook). Then the dedicated SAR mailbox's address. Empty: every SAR extract is delivered by hand (option A).">
+    <label description="Leave EMPTY until this environment's protected-send check has passed (SAR runbook). Then the dedicated SAR mailbox's address. Empty: every SAR extract is delivered by hand (option A)." languagecode="1033" />
+  </hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

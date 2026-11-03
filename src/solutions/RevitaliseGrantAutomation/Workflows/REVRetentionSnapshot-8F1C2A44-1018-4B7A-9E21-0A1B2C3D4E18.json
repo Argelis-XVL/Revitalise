@@ -1,0 +1,358 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "Helper snapshot child (wbs:0.13, CO-011, TAD 5.12.4, FR-055): given an application id, writes one Not Granted anonymised statistic if the latest review was Deferred and never re-decided; otherwise nothing. See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Button",
+          "description": "Child-flow trigger. Called only by the helper's own flows in this solution, never by a person.",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "title": "Application id",
+                  "type": "string",
+                  "description": "The rev_applicationid of the application about to be deleted. An id only.",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "Deep link to THIS run, for the alert.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Write_the_snapshot_if_due": {
+          "type": "Scope",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.4 snapshot child, called by mode 1 and mode 2 for each application before it is deleted (FR-055).",
+          "actions": {
+            "Get_the_application_for_the_snapshot": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "Status and the condition profile only. Secured both ways: the profile is special category.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@{concat('rev_applicationid eq ', triggerBody()?['text'])}",
+                  "$select": "rev_applicationid,rev_status,rev_conditionprofile,_rev_applicantid_value"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Get_the_latest_review": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Get_the_application_for_the_snapshot": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The application's latest review: its outcome decides whether a snapshot is owed.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_reviews",
+                  "$filter": "@{concat('_rev_applicationid_value eq ', triggerBody()?['text'])}",
+                  "$orderby": "createdon desc",
+                  "$top": 1,
+                  "$select": "rev_outcome,rev_paneldate"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Compose_the_snapshot_is_due": {
+              "type": "Compose",
+              "runAfter": {
+                "Get_the_latest_review": [
+                  "Succeeded"
+                ]
+              },
+              "description": "TAD 5.12.4: due only when the latest review outcome is Deferred (2) and the status is not 7, 8 or 11. A decided application got its snapshot from Finalise Decisions; that cannot be checked here (a snapshot has no reference).",
+              "inputs": "@and(equals(first(body('Get_the_latest_review')?['value'])?['rev_outcome'], 2), not(contains(createArray(7, 8, 11), coalesce(first(body('Get_the_application_for_the_snapshot')?['value'])?['rev_status'], 0))))"
+            },
+            "Check_a_snapshot_is_due": {
+              "type": "If",
+              "runAfter": {
+                "Compose_the_snapshot_is_due": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Writes nothing when no snapshot is owed.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@outputs('Compose_the_snapshot_is_due')",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Get_the_applicant_bands": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "FR-055: only the two coarse bands the snapshot keeps, as REV | Portal | Finalise Decisions reads them (TAD 5.13 step 3).",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_applicants",
+                      "$filter": "@{concat('rev_applicantid eq ', first(body('Get_the_application_for_the_snapshot')?['value'])?['_rev_applicantid_value'])}",
+                      "$select": "rev_agerange,rev_locationarea"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                },
+                "Select_snapshot_condition_areas": {
+                  "type": "Select",
+                  "runAfter": {
+                    "Get_the_applicant_bands": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Profile values 1-10 to the six coarse areas, the same map as Finalise Decisions (A-FD-4). Secured: it reads the profile.",
+                  "inputs": {
+                    "from": "@split(string(coalesce(first(body('Get_the_application_for_the_snapshot')?['value'])?['rev_conditionprofile'], '')), ',')",
+                    "select": "@coalesce(json('{\"1\":\"1\",\"2\":\"1\",\"3\":\"2\",\"4\":\"2\",\"5\":\"3\",\"6\":\"3\",\"7\":\"4\",\"8\":\"5\",\"9\":\"6\",\"10\":\"7\"}')?[trim(string(item()))], '')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Filter_snapshot_condition_areas": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Select_snapshot_condition_areas": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Drops blanks.",
+                  "inputs": {
+                    "from": "@body('Select_snapshot_condition_areas')",
+                    "where": "@not(empty(item()))"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Compose_snapshot_condition_areas": {
+                  "type": "Compose",
+                  "runAfter": {
+                    "Filter_snapshot_condition_areas": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Comma-separated, de-duplicated option values, or null.",
+                  "inputs": "@if(empty(body('Filter_snapshot_condition_areas')), null, join(union(body('Filter_snapshot_condition_areas'), body('Filter_snapshot_condition_areas')), ','))",
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs"
+                      ]
+                    }
+                  }
+                },
+                "Compose_snapshot_month": {
+                  "type": "Compose",
+                  "runAfter": {
+                    "Compose_snapshot_condition_areas": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-055: the first of the month of the deferring panel, else of today. A month label, not a reference to any case.",
+                  "inputs": "@formatDateTime(coalesce(first(body('Get_the_latest_review')?['value'])?['rev_paneldate'], utcNow()), 'yyyy-MM-01')"
+                },
+                "Create_the_not_granted_snapshot": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Compose_snapshot_month": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-055, TAD 5.12.4: one Not Granted (2) row, the same fields Finalise Decisions writes, no amount, no lookup, no reference (TAD 3.3).",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_anonymisedstatistics",
+                      "item/rev_name": "@concat('Decision ', formatDateTime(outputs('Compose_snapshot_month'), 'yyyy-MM'))",
+                      "item/rev_outcome": 2,
+                      "item/rev_agerange": "@first(body('Get_the_applicant_bands')?['value'])?['rev_agerange']",
+                      "item/rev_locationarea": "@first(body('Get_the_applicant_bands')?['value'])?['rev_locationarea']",
+                      "item/rev_conditionareas": "@outputs('Compose_snapshot_condition_areas')",
+                      "item/rev_decisionmonth": "@outputs('Compose_snapshot_month')",
+                      "item/rev_snapshotdate": "@utcNow()"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            }
+          }
+        },
+        "Respond_snapshot_done": {
+          "type": "Response",
+          "kind": "Http",
+          "runAfter": {
+            "Write_the_snapshot_if_due": [
+              "Succeeded"
+            ]
+          },
+          "description": "Tells the caller whether a row was written. No case data.",
+          "inputs": {
+            "statusCode": 200,
+            "body": {
+              "written": "@equals(outputs('Compose_the_snapshot_is_due'), true)"
+            }
+          }
+        },
+        "Alert_snapshot_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Write_the_snapshot_if_due": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: the application id only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (snapshot)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The Not Granted snapshot could not be checked or written. The caller stops before logging or deleting this application.",
+              "text_3": "@{concat('application ', coalesce(triggerBody()?['text'], 'unknown'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Respond_snapshot_failed": {
+          "type": "Response",
+          "kind": "Http",
+          "runAfter": {
+            "Alert_snapshot_failed": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "A-RH-1: a non-success response fails the caller's child-flow action. Always answers.",
+          "inputs": {
+            "statusCode": 500,
+            "body": {
+              "written": false,
+              "error": "The snapshot could not be checked or written."
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

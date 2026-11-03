@@ -577,7 +577,7 @@ tenant_prerequisites:
     # immediately above (rev_setting must exist before it can be seeded) and on the solution
     # import that creates rev_setting's alternate key rev_setting_name.
     - description: >
-        Seed the 48 rev_setting rows in DEV from provisioning/deploymentSettings/
+        Seed the 51 rev_setting rows in DEV from provisioning/deploymentSettings/
         dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
         seed-settings.ps1's own header explains why dev-settings.json must continue not to
         exist). Values are copied from test-settings.json, including the PROVISIONAL
@@ -699,7 +699,7 @@ environments:
           one (TAD risk R-G05). Read the ACL back afterwards; do not trust the set call's
           exit code (IMP-0013's class).
         script: manual   # BLOCKED — see below. ensure-site.ps1 takes only -Env; -LibraryOnly does not exist
-        blocked_on_asserted: 2026-10-16   # re-tested 2026-10-16 (pipeline-agent, read-only, repo only, no live calls): `ls provisioning/sharepoint/templates/` -> README.md only; `grep -n 'param' -A1 provisioning/sharepoint/ensure-site.ps1` -> only -Env; dev-settings.json has no sharepoint block. STILL BLOCKED, cause unchanged from 2026-10-01 note. Live site/library/ACL still NOT probed (needs reviewer-held credential).
+        blocked_on_asserted: 2026-11-03   # re-tested 2026-11-03 (build-agent fix dispatch, read-only, repo only): `ls provisioning/sharepoint/templates/` -> README.md only; `grep -n 'param' -A1 provisioning/sharepoint/ensure-site.ps1` -> only -Env. STILL BLOCKED, cause unchanged. DISCHARGE: `ls provisioning/sharepoint/templates/` lists a PnP template (*.xml/*.pnp) declaring the library AND `grep -n 'LibraryOnly\|\$Library' provisioning/sharepoint/ensure-site.ps1` matches a library-scoped parameter.
         # Prior assertion, retained as history (IMP-0764 evidence needle): re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
         # DISCHARGE: `ls provisioning/sharepoint/templates/` lists a PnP template declaring the
         # library (README.md only on 2026-10-01), AND ensure-site.ps1 accepts a library-scoped
@@ -729,49 +729,23 @@ environments:
           Add the twelve new rev_grant columns to the REV_TrusteeRestricted column-security
           profile's membership set. Profile MEMBERSHIP is not a solution component
           (C-TECH-050) — the profile ships, its members do not.
-        script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-10-16   # re-tested 2026-10-16 (pipeline-agent, read-only, repo only, no live calls): `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 3. STILL BLOCKED, cause unchanged. Discharges when that command returns 0 (real Entra group object ids supplied by the reviewer from the tenant, never invented).
-        # DISCHARGE: the step stays manual on its REDUNDANCY, not on a loader throw. Re-test the
-        # corrected premise with `git ls-files provisioning/deploymentSettings/dev-settings.json`
-        # (tracked since 5bdfbd7) and `grep -n "throw" provisioning/common/provisioning-common.ps1`
-        # (the loader throws only when the file is missing). Repository fact — re-test by grep.
-        blocked_on: >
-          CORRECTED 2026-09-29 (IMP-0947). `Get-ProvisioningSettings -Env dev` no longer throws:
-          `provisioning/deploymentSettings/dev-settings.json` has been a tracked file since
-          2026-09-16 (5bdfbd7), the loader throws only when the file is missing, and
-          ProvisioningCommon.Tests.ps1 no longer asserts a throw for dev. Withdrawn wording,
-          retained: "throws by design: `dev-settings.json` must not exist, and
-          ProvisioningCommon.Tests.ps1 asserts that it throws." What still holds, and is why
-          this step stays manual:
-          IT IS REDUNDANT IN DEV: ensure-schema.ps1 creates the field permissions itself
-          (build #5 recorded "4 CREATED (the 4 new secured field permissions)"), and on
-          2026-08-19 all 51 live field permissions were confirmed to match the 51 secured
-          columns in source exactly, both directions, with no drift. Recorded manual rather
-          than deleted, so the redundancy is a visible decision. IMP-0082.
+        script: provisioning/dataverse/ensure-schema.ps1 -Env dev
+        # blocked_on REMOVED 2026-11-03 (build-agent fix dispatch, re-tested, not re-dated). Prior cause: dev-settings.json
+        # `dataverse.groupTeams[].entraGroupObjectId` were `{{...}}` placeholders (IMP-0771, IMP-0947). RE-TEST 2026-11-03:
+        # `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 0; Get-ProvisioningSettings -Env dev loads
+        # and all four ids match ^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$; read-only `pac env fetch` on team (REV-GrantApplications-DEV) returned
+        # the SAME four azureactivedirectoryobjectid values, teamtype Security Group (1e44ebd6-..., c5f25889-..., a4bb1b01-..., 8842eb3f-...).
+        # So they are genuine Entra group object ids, not team ids. Script is idempotent (CREATED | EXISTS). Live run not performed here.
       - description: >
           Bind REV Admin and REV Service Automation to their group teams so the five new
           rev_grant privileges take effect. Roles are looked up BY NAME (C-TECH-040).
-        script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-10-16   # re-tested 2026-10-16 (pipeline-agent, read-only, repo only, no live calls): `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 3. STILL BLOCKED, cause unchanged. Discharges when that command returns 0 (real Entra group object ids supplied by the reviewer from the tenant, never invented).
-        # DISCHARGE: `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json`
-        # returns 0 (3 on 2026-09-29: its entraGroupObjectId values are still unresolved
-        # placeholders, IMP-0771), after which bind-roles-to-groups.ps1 -Env dev can load its
-        # settings. NOTE the note's second claim — that the bindings ARE already in place — is a
-        # LIVE fact and was NOT re-tested; it needs `systemuserroles`/`teamroles` read back
-        # per C-TECH-064.
-        blocked_on: >
-          CORRECTED 2026-09-29 (IMP-0947). The loader no longer throws for dev:
-          `dev-settings.json` is tracked since 5bdfbd7 and carries `dataverse.groupTeams`. The
-          real block is that those entries' `entraGroupObjectId` values are still `{{...}}`
-          placeholders, which `Get-Setting` refuses. Withdrawn wording, retained: "Same cause as
-          the step above: `Get-ProvisioningSettings -Env dev` throws by design and this script
-          has no dedicated-file path." The bindings themselves ARE in place — verified
-          live on 2026-08-19: two Entra-group-backed group teams exist
-          (`REV-PP-GrantApplications-DEV`, `REV-PP-GrantApplications-Service-DEV`, both
-          `teamtype=2` with an AAD object id) and both REV roles carry ZERO direct
-          user-to-role assignments. So DEV satisfies C-TECH-040 today by a route this config
-          does not describe. Until the script can run for -Env dev, re-binding in DEV is a
-          manual maker-portal action and the verification query is the evidence. IMP-0082.
+        script: provisioning/dataverse/bind-roles-to-groups.ps1 -Env dev
+        # blocked_on REMOVED 2026-11-03 (build-agent fix dispatch, re-tested, not re-dated). Prior cause: dev-settings.json
+        # `dataverse.groupTeams[].entraGroupObjectId` were `{{...}}` placeholders (IMP-0771, IMP-0947). RE-TEST 2026-11-03:
+        # `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 0; Get-ProvisioningSettings -Env dev loads
+        # and all four ids match ^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$; read-only `pac env fetch` on team (REV-GrantApplications-DEV) returned
+        # the SAME four azureactivedirectoryobjectid values, teamtype Security Group (1e44ebd6-..., c5f25889-..., a4bb1b01-..., 8842eb3f-...).
+        # So they are genuine Entra group object ids, not team ids. Script is idempotent (CREATED | EXISTS). Live run not performed here.
       - description: >
           Enable auditing on every table in the solution and set the retention period
           (NFR-014, C-DOM-010, C-DOM-011).
@@ -1240,28 +1214,14 @@ environments:
           it. Roles are looked up BY NAME because role GUIDs differ per environment
           (C-TECH-040, ADR-008) — the sentinel id in the role's source file is irrelevant to
           this step and does not block it.
-        script: manual   # same Get-ProvisioningSettings -Env dev cause as the sibling steps
-        blocked_on_asserted: 2026-10-16   # re-tested 2026-10-16 (pipeline-agent, read-only, repo only, no live calls): `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 3. STILL BLOCKED, cause unchanged. Discharges when that command returns 0 (real Entra group object ids supplied by the reviewer from the tenant, never invented).
-        # DISCHARGE: `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json`
-        # returns 0 (3 on 2026-09-29: the placeholders IMP-0771 records). Then
-        # bind-roles-to-groups.ps1 -Env dev, which reads `dataverse.groupTeams` from that file,
-        # can load its settings. Repository fact — re-test by grep.
-        blocked_on: >
-          CORRECTED 2026-09-29 (IMP-0947). bind-roles-to-groups.ps1 resolves its settings through
-          `Get-ProvisioningSettings -Env dev`, which no longer throws: `dev-settings.json` is
-          tracked since 5bdfbd7. The real block is that its `dataverse.groupTeams` entries still
-          carry `{{...}}` placeholders for `entraGroupObjectId`, which `Get-Setting` refuses.
-          Withdrawn wording, retained: "which throws by design — `dev-settings.json` must not
-          exist, and ProvisioningCommon.Tests.ps1 asserts that it throws. Same cause as the
-          three DEV prerequisite steps already marked dead-as-declared above (IMP-0082)."
-          In DEV, direct role assignment is permitted, so a trustee test account
-          can be given the role in the maker portal for WBS 6.5's access test; that route is
-          NOT available in TST/ACC or PRD.
-
-      # ══ TAD REVISION 5, STEPS 8 AND 9 OF SECTION 12.3 (ADR-038) ═══════════════════════
-      # Step 6 (recreate the trigger registration) is in environment_prerequisites above,
-      # beside the designer step it supersedes. Step 7 (verify by observed effect) is a
-      # verification, not a deploy action, and is in the verification block below.
+        script: provisioning/dataverse/bind-roles-to-groups.ps1 -Env dev
+        # blocked_on REMOVED 2026-11-03 (build-agent fix dispatch, re-tested, not re-dated). Prior cause: dev-settings.json
+        # `dataverse.groupTeams[].entraGroupObjectId` were `{{...}}` placeholders (IMP-0771, IMP-0947). RE-TEST 2026-11-03:
+        # `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json` -> 0; Get-ProvisioningSettings -Env dev loads
+        # and all four ids match ^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$; read-only `pac env fetch` on team (REV-GrantApplications-DEV) returned
+        # the SAME four azureactivedirectoryobjectid values, teamtype Security Group (1e44ebd6-..., c5f25889-..., a4bb1b01-..., 8842eb3f-...).
+        # So they are genuine Entra group object ids, not team ids. Script is idempotent (CREATED | EXISTS). Live run not performed here.
+        # History retained (IMP-0947 evidence needle): CORRECTED 2026-09-29 (IMP-0947). the loader no longer throws for dev; the real block was the `{{...}}` placeholders, now gone.
       - description: >
           STEP 8 of TAD section 12.3 — REVOKE THE STALE PRIVILEGES, THEN READ THE PRIVILEGE SET
           BACK. `provisioning/dataverse/ensure-schema.ps1` adds privileges through
@@ -1579,6 +1539,93 @@ environments:
           (the design said "...when the payment is marked final."): reviewer to accept or re-author.
         script: manual
         owner: reviewer (maker, DEV designer)
+
+      # ══ wbs:0.13 (CO-011), REV | Retention | Retention & Erasure Helper (TAD rev 33/34 section 5.12 to 5.12.4,
+      #    ADR-088, ADR-089, section 12, verification plan 12.11 and 12.12) ══
+      # The table rev_retentionlog, its four option sets, the rev_startedby lookup and the new privileges on
+      # REV Service Automation and REV Admin are created by the ensure-schema.ps1 -Env dev step above (the table is
+      # in Get-RevEntityLogicalNames); the two settings rows by the seed-settings.ps1 -Env dev step; auditing on the
+      # new table by the ensure-auditing.ps1 -Env dev step (dev-auditing-settings.json lists it). Nothing new to
+      # script. The steps below are the environment state an import cannot carry.
+      - description: >
+          Create the SAR folder in DEV inside the designated site (TAD section 12, A-SAR-9): a folder in the
+          signed-acceptance site with its OWN permissions (break inheritance), granted only to the service
+          identity (add files) and the process-owner group (DEV: the reviewer's test process owner). Then set
+          the CURRENT VALUE (never the default, IMP-0121) of rev_SpoSarFolderUrl to its site-relative path, and
+          confirm rev_SpoSiteUrl and rev_SpoSignedAcceptanceUrl already hold current values. No path is written
+          in this repository.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Turn the five helper flows on from the DESIGNER, children first (IMP-0113/IMP-0104): REV | Retention |
+          Retention & Erasure Helper (locate) and (snapshot), then (sweep), (erasure) and (SAR extract). They reuse
+          rev_SharedDataverse, rev_SharedTeams, rev_SharedOutlook, rev_SharedSharePoint and rev_SharedDocuSign:
+          no new binding. Do NOT edit and save them (risk A-R73, IMP-1010). Then share (erasure) and (SAR extract)
+          RUN-ONLY with the process owner, choosing "Use this connection" (the service account) for EVERY
+          connection, never "Provided by run-only user": the helper runs as the service identity (TAD 5.12
+          Runs as). Confirm both appear in the Flow menu of an applicant in REV Grant Administration.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          DEV VERIFICATION of the helper on SYNTHETIC applicants only (TAD 12.11 and 12.12), in ONE session, BEFORE
+          TST/ACC. Record every observed result in docs/development/retention-erasure-helper-dev-summary.md
+          section 10; an assumption not observed stays OPEN. (1) A-ERA-1: run (erasure) with a wrong reference,
+          then a right one; the wrong one fails "ReferenceMismatch" with nothing read. If no text box is offered,
+          stop: CASCADE ARCH_GAP. (2) A-SAR-8: the log row's Started By names the person who ran it; if the run
+          fails "StarterNotIdentified", stop: CASCADE ARCH_GAP. (3) A-ERA-2: erase a synthetic applicant with two
+          applications, a grant with its final payment, a payment and a bank account; count rows before and after.
+          (4) A-ERA-3: a test PDF deleted twice (the second run finds it gone, no error). (5) A-ERA-4 and A-SAR-12:
+          two test emails to and from a test address through the service mailbox; mode 3 lists both, mode 2
+          deletes both. (6) Hold rule D2: a synthetic grant with no final payment stops the run with nothing
+          deleted. (7) Mode 3 on a synthetic applicant with every choice set (A-SAR-6, A-SAR-7, A-SAR-11 after
+          changing the applicant twice): open the extract, check the audit section against the row's Audit
+          History tab, and confirm a trustee or finance test user is DENIED the SAR folder (A-SAR-9).
+          (8) A-RH-1/A-RH-2: the children's responses reach the callers, and the sweep's navigation filters return
+          the expected synthetic rows; run (sweep) by hand once ("Run" in the designer) with synthetic rows whose
+          clocks pass within 8 days. DEV has NO bulk-delete jobs (TAD 3.4.1), so the Deleted path is exercised by
+          deleting a logged synthetic application by hand before the next run.
+        script: manual
+        owner: reviewer (test process owner) with development-agent
+      # ── wbs:0.13 (CO-011), TAD rev 37, ADR-091: SAR delivery option B. rev_SarProtectedSender ships EMPTY and
+      #    STAYS EMPTY in DEV until the check below passes (ADR-091 items 4 and 7). Empty = option A, by design. ──
+      - description: >
+          ADR-091 PREREQUISITE (TAD section 12, rev 37 row; tenant-wide, done once): Revitalise's tenant administrator
+          creates ONE licensed user mailbox used only for SAR extracts, ONE Exchange Online mail-flow rule (the sender
+          is that mailbox, and nothing else -> Apply Office 365 Message Encryption, template Encrypt, priority 0,
+          defer the message if rule processing does not complete; named "REV SAR extract - encrypt, do not disable"),
+          and supplies the address. Do NOT yet grant Send As (A-SAR-13 needs one send before it). Do NOT yet set
+          rev_SarProtectedSender in any environment.
+        script: manual
+        owner: Revitalise tenant administrator
+      - description: >
+          ADR-091 CHECK in DEV, synthetic applicant only, whose email on record is an EXTERNAL non-Microsoft test
+          mailbox the reviewer controls (TAD 12.11 A-SAR-4, A-SAR-13, A-SAR-14). Record every observed result in
+          docs/development/retention-erasure-helper-dev-summary.md section 10. (a) With rev_SarProtectedSender EMPTY,
+          run (SAR extract): no email, the "NOT emailed: use option A" Teams message, the log row's Detail ends
+          "delivery: option A, protected sending off in this environment". (b) A-SAR-13 first half: set the CURRENT
+          VALUE of rev_SarProtectedSender to the address ({{SAR_PROTECTED_SENDER_DEV}}) BEFORE Send As is granted and
+          run again: expect a FAILED send, no email, the option A message, Detail "the protected send failed"; then
+          set it back to empty. (c) Grant Send As on the mailbox to the rev_SharedOutlook connection owner, set the
+          value again and run on a synthetic applicant with a completed signed acceptance PDF: ONE message arrives
+          at the external mailbox with the encryption wrapper, carrying the extract AND every signed PDF copy the run
+          wrote; after a one-time passcode EVERY attachment opens and matches its SAR folder file (A-SAR-4, A-SAR-15
+          (c), A-RH-3); the Detail ends "delivery: option B ... fits: <n> MB of files against a limit of 15 MB"; keep a
+          screenshot and the tenant administrator's message trace showing the rule fired (A-SAR-4). In the run
+          history, read the Size each Add_the_*_file action recorded (A-SAR-15 (a); not secured). (c2) Size gate
+          (ADR-091 item 5, A-SAR-4 (1b)): set the SarEmailMaxAttachmentMB setting to 1 and run on an applicant whose
+          set is larger: NO email, the option A message naming every file and "too large", the Detail "delivery:
+          option A, not emailed, too large: <n> MB ..."; then set it to empty and run once more: the same, with "not
+          measured"; restore 15. (c3) A-SAR-15 (b): send a set near 15 MB; then, only with the reviewer's agreement,
+          one near 20 MB; record where Exchange or the encryption rule refuses it. If 15 is wrong, the process owner
+          changes the setting (no rebuild). (d) A-SAR-14: look in Sent Items of
+          the connection owner's mailbox and of the SAR mailbox (the tenant administrator may need to search the
+          latter); record per mailbox whether a copy exists, whether it carries the attachments, and any retention.
+          THEN: (a) to (c3) pass and (d) found NO copy -> leave the value set in DEV; ACC repeats (c) once. (d) found a
+          copy -> set the value back to EMPTY and return it to the reviewer before it is filled anywhere (ADR-091
+          item 7 (c)). Any of (a) to (c3) fails -> the value stays EMPTY everywhere (option A), no rebuild; an
+          A-SAR-15 failure also returns the design to the architect.
+        script: manual
+        owner: reviewer (test process owner) with Revitalise tenant administrator and development-agent
 
       # ══ IMP-0956 / IMP-0959 — the live flow definition is re-read after the import ══
       - description: >
@@ -2137,7 +2184,7 @@ environments:
           ADR-083, TAD §3.4.1).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
-          Seed/upsert the 48 rev_setting rows — Likert point map, feeling-scale
+          Seed/upsert the 51 rev_setting rows — Likert point map, feeling-scale
           inversion, knockout threshold, borderline band lower and upper, income
           ceiling, income-band upper-bound map, age-band map, age-range label map,
           exceptional-circumstance/employment-status/care-hours-band label maps,
@@ -2229,6 +2276,30 @@ environments:
           environment state and does not travel with an import.
         script: manual
         owner: reviewer (or a session holding live-write permission)
+
+      # ══ wbs:0.13 (CO-011), REV | Retention | Retention & Erasure Helper in TST/ACC (TAD 5.12, section 12) ══
+      # The table, option sets, privileges, settings rows and auditing come from this environment's
+      # ensure-schema.ps1, seed-settings.ps1 and ensure-auditing.ps1 steps; nothing new to script.
+      - description: >
+          BEFORE the helper's first run in TST/ACC: create the SAR folder with its own permissions (the service
+          identity and REV-PP-GrantApplications-Admins-ACC only, A-SAR-9) and enter rev_SpoSarFolderUrl in the Pipelines deployment pane
+          (placeholder SPO_SAR_FOLDER_URL_TSTACC). The helper flows also read rev_SpoSiteUrl, rev_SpoSignedAcceptanceUrl and
+          rev_DocuSignAccountId, which pac-import files do not carry today (the acceptance flows are DEV only,
+          EX-006/EX-007): enter them in the same pane. Then turn the five helper flows on from the designer,
+          children first, and share (erasure) and (SAR extract) RUN-ONLY with REV-PP-GrantApplications-Admins-ACC, "Use this connection" for
+          every connection. Sharing is environment state and does not travel with an import. Run one SAR extract and one erasure on synthetic applicants as the customer walk-through (TAD 4.2 item 10).
+          rev_SarProtectedSender (placeholder SAR_PROTECTED_SENDER_TSTACC) is entered EMPTY until the ADR-091 check
+          has passed in DEV with no sent copy found (A-SAR-14); then enter the address, grant Send As to this
+          environment's rev_SharedOutlook connection owner, and repeat check (c) once on a synthetic applicant. If it
+          fails, set it back to empty (option A).
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          The process owner enters the DPO's mailbox in the ErasureNotificationEmail setting (Settings, category
+          "Data retention and erasure"; seeded "not set", create-only) before the first erasure in TST/ACC. Until
+          then an erasure still runs and its Teams message says the DPO was not emailed.
+        script: manual
+        owner: process owner
 
     smoke_tests:
       - description: Imported solution version matches the artifact (C-TECH-030)
@@ -2497,6 +2568,29 @@ environments:
           environment state and does not travel with an import.
         script: manual
         owner: reviewer (or a session holding live-write permission)
+
+      # ══ wbs:0.13 (CO-011), REV | Retention | Retention & Erasure Helper in PRD (TAD 5.12, section 12) ══
+      # The table, option sets, privileges, settings rows and auditing come from this environment's
+      # ensure-schema.ps1, seed-settings.ps1 and ensure-auditing.ps1 steps; nothing new to script.
+      - description: >
+          BEFORE the helper's first run in PRD: create the SAR folder with its own permissions (the service
+          identity and REV-PP-GrantApplications-Admins-PRD only, A-SAR-9) and enter rev_SpoSarFolderUrl in the Pipelines deployment pane
+          (placeholder SPO_SAR_FOLDER_URL_PROD). The helper flows also read rev_SpoSiteUrl, rev_SpoSignedAcceptanceUrl and
+          rev_DocuSignAccountId, which pac-import files do not carry today (the acceptance flows are DEV only,
+          EX-006/EX-007): enter them in the same pane. Then turn the five helper flows on from the designer,
+          children first, and share (erasure) and (SAR extract) RUN-ONLY with REV-PP-GrantApplications-Admins-PRD, "Use this connection" for
+          every connection. Sharing is environment state and does not travel with an import. SEQUENCING (lead-agent's reading, Dev Summary section 7): until (sweep) is on in PRD, a bulk-delete job run there deletes applications with no FR-055 snapshot, no FR-054 log row and leaves the signed PDFs in SharePoint; (sweep) must be on in PRD before the first real retention clock passes (earliest: withdrawn or incomplete, 6 months after last contact).
+          rev_SarProtectedSender (placeholder SAR_PROTECTED_SENDER_PROD) is entered EMPTY until the ADR-091 check has
+          passed in TST/ACC; then the same address, with Send As granted to PRD's rev_SharedOutlook connection owner.
+          Until then every SAR extract in PRD is delivered by hand (option A).
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          The process owner enters the DPO's mailbox in the ErasureNotificationEmail setting (Settings, category
+          "Data retention and erasure"; seeded "not set", create-only) before the first erasure in PRD. Until
+          then an erasure still runs and its Teams message says the DPO was not emailed.
+        script: manual
+        owner: process owner
 
     smoke_tests:
       - description: Imported solution version matches the artifact

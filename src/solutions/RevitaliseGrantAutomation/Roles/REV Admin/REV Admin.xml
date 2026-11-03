@@ -183,6 +183,11 @@
       <!-- Retire a configuration key. -->
       <RolePrivilege name="prvDeleterev_setting" level="Global" />
       <!-- See what failed and why (FR-010, NFR-016). -->
+      <!-- wbs:0.13 (CO-011), TAD rev 34 section 5.12.3: READ ONLY on the retention evidence log, so the
+           process owner (and the DPO, through her) can see what was deleted, when and under which rule
+           (ADR-089 consequence 4). No create, write or delete: only the helper flows write it, and nobody
+           deletes it (decision D5). -->
+      <RolePrivilege name="prvReadrev_retentionlog" level="Global" />
       <RolePrivilege name="prvReadrev_errorlog" level="Global" />
       <!-- Mark an error resolved and record the resolution note. DOCUMENTED DEVIATION from TAD section 6.2, which grants the Admin role Error Log READ only: rev_resolved and rev_resolvednote exist precisely so a human can close an error, and read-only access leaves both columns unusable. Flagged for reviewer acknowledgement in Dev Summary section 6. -->
       <RolePrivilege name="prvWriterev_errorlog" level="Global" />

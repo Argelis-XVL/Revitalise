@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retention Outcome: a choice on rev_retentionlog (TAD rev 34 section 5.12.3, ADR-089 item 4, wbs:0.13, CO-011).
+     Values 1 to 7 in the order the TAD lists the labels; value 8, Retained (audit), added by the TAD rev 37
+     approval amendment (2026-10-30): the audit history of an erased case, kept to its six-year audit retention (D3); the helper flows write these integers
+     and src/tests/solutions/retention_helper asserts the flows and this file agree. Created through the
+     Dataverse Web API by ensure-schema.ps1, never by solution import (C-TECH-050). A later option takes
+     the next value; values are never renumbered while rows reference them. -->
+<optionset Name="rev_retentionoutcome" localizedName="Retention Outcome">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Scheduled" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Deleted" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Not due" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Overdue" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Retained (hold)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Retained (finance)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="Extract written" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="8">
+      <labels>
+        <label description="Retained (audit)" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The result recorded on a Retention Log row (TAD 5.12.3). Scheduled is written before a deletion and Deleted after it, so a run that stops half-way leaves evidence." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Retention Outcome" languagecode="1033" />
+  </displaynames>
+</optionset>

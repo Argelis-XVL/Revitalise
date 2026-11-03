@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retention Data Type: a choice on rev_retentionlog (TAD rev 34 section 5.12.3, ADR-089 item 4, wbs:0.13, CO-011).
+     Values 1 to 7 in the order the TAD lists the labels; the helper flows write these integers
+     and src/tests/solutions/retention_helper asserts the flows and this file agree. Created through the
+     Dataverse Web API by ensure-schema.ps1, never by solution import (C-TECH-050). A later option takes
+     the next value; values are never renumbered while rows reference them. -->
+<optionset Name="rev_retentiondatatype" localizedName="Retention Data Type">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Applicant (with Bank Account)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Application (with Review, Grant, Payment)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Signed PDF" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Mailbox messages" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="QuickBooks record" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Audit history" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="SAR extract" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="What a Retention Log row records acting on (TAD 5.12.3). Names a kind of record, never a person." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Retention Data Type" languagecode="1033" />
+  </displaynames>
+</optionset>

@@ -133,6 +133,9 @@
          the identical IMP-0090 reason recorded above: a SubArea alone renders the table in
          the app DESIGNER's edit mode only, not in PLAY mode. -->
     <AppModuleComponent type="1" schemaName="rev_localauthorityregister" />
+    <!-- wbs:0.13 (CO-011) - rev_retentionlog, in the SAME change as its sitemap SubArea (Operations group)
+         and its form and view (IMP-0090: a SubArea alone shows the table only in the designer). -->
+    <AppModuleComponent type="1" schemaName="rev_retentionlog" />
     <!-- The sitemap that lays them out. -->
     <AppModuleComponent type="62" schemaName="rev_grantadministration" />
   </AppModuleComponents>

@@ -1,0 +1,1660 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedTeams"
+        },
+        "api": {
+          "name": "shared_teams"
+        }
+      },
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedSharePoint"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "Helper mode 1, weekly sweep (wbs:0.13, CO-011, TAD 5.12.1, ADR-089): logs what the jobs will delete (snapshot first), records each deletion, removes the signed PDF, flags overdue. NO Dataverse delete: the jobs delete (ADR-004). See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_ProcessOwnerUpn": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ProcessOwnerUpn",
+            "description": "Environment variable. The process owner who gets the weekly summary (C-TECH-047)."
+          }
+        },
+        "rev_SpoSiteUrl": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_SpoSiteUrl",
+            "description": "Environment variable. The site holding the signed-acceptance library."
+          }
+        }
+      },
+      "triggers": {
+        "Every_Monday_at_00_30_UTC": {
+          "type": "Recurrence",
+          "description": "TAD 5.12.1: weekly, Monday 00:30 UTC. Weekly, not monthly, because each environment's jobs run on whichever day of the month they were first provisioned. Frequency Week with weekDays (check 16: weekDays only with Week, IMP-1107).",
+          "recurrence": {
+            "frequency": "Week",
+            "interval": 1,
+            "timeZone": "UTC",
+            "schedule": {
+              "weekDays": [
+                "Monday"
+              ],
+              "hours": [
+                "0"
+              ],
+              "minutes": [
+                30
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Compose_retention_periods": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "TAD 5.12.1 step 1: the jobs' own periods in months, keyed by the jobKey of dataverse.bulkDeleteJobs (TAD 3.4.1). A unit test (src/tests/solutions/retention_helper) holds these equal to test-settings.json and prd-settings.json; change both together.",
+          "inputs": {
+            "paidGrantApplications": 72,
+            "rejectedApplications": 12,
+            "withdrawnIncompleteApplications": 6
+          }
+        },
+        "Compose_sweep_constants": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_retention_periods": [
+              "Succeeded"
+            ]
+          },
+          "description": "Format constants of the weekly schedule, not tunables (TAD 5.12.1 trigger, ADR-089 gate interactions): 8 days so a clock passing before the next job run is seen by one weekly run first; 35 days so a job that has stopped shows within five weeks (NFR-010).",
+          "inputs": {
+            "lookAheadDays": 8,
+            "overdueAfterDays": 35
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_sweep_constants": [
+              "Succeeded"
+            ]
+          },
+          "description": "Deep link to THIS run, for the alerts.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Compose_today": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "Today, date only.",
+          "inputs": "@{formatDateTime(utcNow(), 'yyyy-MM-dd')}"
+        },
+        "Compose_overdue_cutoff": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_today": [
+              "Succeeded"
+            ]
+          },
+          "description": "A Scheduled row older than this whose record still exists is Overdue.",
+          "inputs": "@{addDays(utcNow(), mul(-1, outputs('Compose_sweep_constants')?['overdueAfterDays']), 'yyyy-MM-dd')}"
+        },
+        "Initialise_scheduled_count": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Compose_overdue_cutoff": [
+              "Succeeded"
+            ]
+          },
+          "description": "Rows written Scheduled this run.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "scheduledCount",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialise_deleted_count": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_scheduled_count": [
+              "Succeeded"
+            ]
+          },
+          "description": "Rows set Deleted this run.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "deletedCount",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialise_overdue_count": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_deleted_count": [
+              "Succeeded"
+            ]
+          },
+          "description": "Records still there 35 days after their date.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "overdueCount",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialise_overdue_references": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_overdue_count": [
+              "Succeeded"
+            ]
+          },
+          "description": "The overdue references, for the summary. References only.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "overdueReferences",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "Initialise_stale_case_line": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_overdue_references": [
+              "Succeeded"
+            ]
+          },
+          "description": "The summary's stale-case line (decision D4).",
+          "inputs": {
+            "variables": [
+              {
+                "name": "staleCaseLine",
+                "type": "string",
+                "value": "Stale open cases are listed on the first run of each month."
+              }
+            ]
+          }
+        },
+        "Find_applications_due": {
+          "type": "Scope",
+          "runAfter": {
+            "Initialise_stale_case_line": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.1 step 1, pre-pass. Reads only.",
+          "actions": {
+            "List_paid_grants_due": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "paidGrantApplications rule, clock 8 days ahead: Grant Paid (11), grant final payment older than the period. A-RH-2: filters and expands through rev_applicationid. Secured both ways: rev_finalpaymentdate is REV_FinanceOnly.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_grants",
+                  "$filter": "@{concat('rev_finalpaymentdate lt ', addToTime(addDays(utcNow(), outputs('Compose_sweep_constants')?['lookAheadDays']), mul(-1, outputs('Compose_retention_periods')?['paidGrantApplications']), 'Month', 'yyyy-MM-dd'), ' and rev_applicationid/rev_status eq 11')}",
+                  "$select": "rev_grantid,rev_name,rev_finalpaymentdate,rev_signedpdfurl,_rev_applicationid_value",
+                  "$expand": "rev_applicationid($select=rev_name,_rev_applicantid_value)"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Select_paid_applications_due": {
+              "type": "Select",
+              "runAfter": {
+                "List_paid_grants_due": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Rule Paid 6 years (1); the date the clock passes. Secured: its input carries the final payment dates.",
+              "inputs": {
+                "from": "@body('List_paid_grants_due')?['value']",
+                "select": {
+                  "applicationid": "@item()?['_rev_applicationid_value']",
+                  "reference": "@item()?['rev_applicationid']?['rev_name']",
+                  "applicantid": "@item()?['rev_applicationid']?['_rev_applicantid_value']",
+                  "rule": 1,
+                  "scheduledon": "@addToTime(item()?['rev_finalpaymentdate'], outputs('Compose_retention_periods')?['paidGrantApplications'], 'Month', 'yyyy-MM-dd')"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "List_rejected_applications_due": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_paid_applications_due": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The rejectedApplications rule, clock moved 8 days ahead: Rejected (8) whose rev_decisiondate is older than the period. References and dates only.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@{concat('rev_status eq 8 and rev_decisiondate lt ', addToTime(addDays(utcNow(), outputs('Compose_sweep_constants')?['lookAheadDays']), mul(-1, outputs('Compose_retention_periods')?['rejectedApplications']), 'Month', 'yyyy-MM-dd'))}",
+                  "$select": "rev_applicationid,rev_name,_rev_applicantid_value,rev_decisiondate"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_rejected_applications_due": {
+              "type": "Select",
+              "runAfter": {
+                "List_rejected_applications_due": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Rule Rejected 12 months (2).",
+              "inputs": {
+                "from": "@body('List_rejected_applications_due')?['value']",
+                "select": {
+                  "applicationid": "@item()?['rev_applicationid']",
+                  "reference": "@item()?['rev_name']",
+                  "applicantid": "@item()?['_rev_applicantid_value']",
+                  "rule": 2,
+                  "scheduledon": "@addToTime(item()?['rev_decisiondate'], outputs('Compose_retention_periods')?['rejectedApplications'], 'Month', 'yyyy-MM-dd')"
+                }
+              }
+            },
+            "List_withdrawn_incomplete_applications_due": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_rejected_applications_due": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The withdrawnIncompleteApplications rule, clock moved 8 days ahead: Withdrawn (9) or Incomplete (10) whose applicant's rev_lastcontactdate is older than the period. A-RH-2: the rev_applicantid navigation property, as Round Statistics expands it.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@{concat('(rev_status eq 9 or rev_status eq 10) and rev_applicantid/rev_lastcontactdate lt ', addToTime(addDays(utcNow(), outputs('Compose_sweep_constants')?['lookAheadDays']), mul(-1, outputs('Compose_retention_periods')?['withdrawnIncompleteApplications']), 'Month', 'yyyy-MM-dd'))}",
+                  "$select": "rev_applicationid,rev_name,_rev_applicantid_value",
+                  "$expand": "rev_applicantid($select=rev_lastcontactdate)"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_withdrawn_incomplete_applications_due": {
+              "type": "Select",
+              "runAfter": {
+                "List_withdrawn_incomplete_applications_due": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Rule Withdrawn or incomplete 6 months (3).",
+              "inputs": {
+                "from": "@body('List_withdrawn_incomplete_applications_due')?['value']",
+                "select": {
+                  "applicationid": "@item()?['rev_applicationid']",
+                  "reference": "@item()?['rev_name']",
+                  "applicantid": "@item()?['_rev_applicantid_value']",
+                  "rule": 3,
+                  "scheduledon": "@addToTime(item()?['rev_applicantid']?['rev_lastcontactdate'], outputs('Compose_retention_periods')?['withdrawnIncompleteApplications'], 'Month', 'yyyy-MM-dd')"
+                }
+              }
+            },
+            "Compose_applications_due": {
+              "type": "Compose",
+              "runAfter": {
+                "Select_withdrawn_incomplete_applications_due": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every application whose clock passes on or before the next job run: ids, references, rule and date. No personal data.",
+              "inputs": "@union(body('Select_paid_applications_due'), body('Select_rejected_applications_due'), body('Select_withdrawn_incomplete_applications_due'))"
+            },
+            "Select_due_application_ids": {
+              "type": "Select",
+              "runAfter": {
+                "Compose_applications_due": [
+                  "Succeeded"
+                ]
+              },
+              "description": "For the orphaned-applicant test.",
+              "inputs": {
+                "from": "@outputs('Compose_applications_due')",
+                "select": "@item()?['applicationid']"
+              }
+            }
+          }
+        },
+        "Alert_pre_pass_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Find_applications_due": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: no record reference; a run label.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (sweep)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The weekly retention sweep could not list the applications coming due. Nothing was logged this week for them; next week's run picks them up.",
+              "text_3": "@{concat('retention-sweep-', outputs('Compose_today'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Log_the_applications_due": {
+          "type": "Scope",
+          "runAfter": {
+            "Find_applications_due": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.1 steps 2 and 3.",
+          "actions": {
+            "For_each_application_due": {
+              "type": "Foreach",
+              "runAfter": {},
+              "description": "One application at a time.",
+              "foreach": "@outputs('Compose_applications_due')",
+              "actions": {
+                "Find_an_existing_application_row": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "TAD 5.12.1 step 1: an application already logged Scheduled (or Overdue) is skipped, so a weekly re-run writes nothing twice.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_retentionlogs",
+                      "$filter": "@{concat('rev_runtype eq 1 and rev_datatype eq 2 and (rev_outcome eq 1 or rev_outcome eq 4) and rev_recordreference eq ''', items('For_each_application_due')?['reference'], '''')}",
+                      "$select": "rev_retentionlogid",
+                      "$top": 1
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                },
+                "Check_the_application_is_new": {
+                  "type": "If",
+                  "runAfter": {
+                    "Find_an_existing_application_row": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Only new applications.",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@length(body('Find_an_existing_application_row')?['value'])",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Call_the_snapshot_child": {
+                      "type": "Workflow",
+                      "runAfter": {},
+                      "description": "TAD 5.12.1 step 2: the Not Granted snapshot FR-055 needs, written only where TAD 5.13 step 3 says so; otherwise nothing.",
+                      "inputs": {
+                        "host": {
+                          "workflowReferenceName": "8f1c2a44-1018-4b7a-9e21-0a1b2c3d4e18"
+                        },
+                        "body": {
+                          "text": "@items('For_each_application_due')?['applicationid']"
+                        }
+                      }
+                    },
+                    "Find_the_grant_pdf": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {
+                        "Call_the_snapshot_child": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "The signed PDF's path, if the application has a grant with one (named with the grant reference).",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "ListRecords",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "rev_grants",
+                          "$filter": "@{concat('_rev_applicationid_value eq ', items('For_each_application_due')?['applicationid'])}",
+                          "$select": "rev_signedpdfurl",
+                          "$top": 1
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    },
+                    "Log_the_application_as_scheduled": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {
+                        "Find_the_grant_pdf": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "TAD 5.12.1 step 3: Retention sweep (1), the application reference, Application (2), the rule, Scheduled (1), the date the clock passes, the signed PDF path if any. No personal data.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "rev_retentionlogs",
+                          "item/rev_runtype": 1,
+                          "item/rev_recordreference": "@items('For_each_application_due')?['reference']",
+                          "item/rev_datatype": 2,
+                          "item/rev_ruleapplied": "@items('For_each_application_due')?['rule']",
+                          "item/rev_outcome": 1,
+                          "item/rev_scheduledon": "@items('For_each_application_due')?['scheduledon']",
+                          "item/rev_actionedon": "@utcNow()",
+                          "item/rev_signedpdfpath": "@first(body('Find_the_grant_pdf')?['value'])?['rev_signedpdfurl']"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    },
+                    "Count_the_application_scheduled": {
+                      "type": "IncrementVariable",
+                      "runAfter": {
+                        "Log_the_application_as_scheduled": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "For the summary.",
+                      "inputs": {
+                        "name": "scheduledCount",
+                        "value": 1
+                      }
+                    },
+                    "Find_the_applicants_applications": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {
+                        "Count_the_application_scheduled": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "Every application the applicant holds.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "ListRecords",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "rev_applications",
+                          "$filter": "@{concat('_rev_applicantid_value eq ', items('For_each_application_due')?['applicantid'])}",
+                          "$select": "rev_applicationid"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    },
+                    "Find_applications_not_due": {
+                      "type": "Query",
+                      "runAfter": {
+                        "Find_the_applicants_applications": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "Those that are not themselves due.",
+                      "inputs": {
+                        "from": "@body('Find_the_applicants_applications')?['value']",
+                        "where": "@not(contains(body('Select_due_application_ids'), item()?['rev_applicationid']))"
+                      }
+                    },
+                    "Check_the_applicant_is_orphaned": {
+                      "type": "If",
+                      "runAfter": {
+                        "Find_applications_not_due": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "TAD 5.12.1 step 3: a second row for the applicant only if no other application remains that is not itself due.",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@length(body('Find_applications_not_due'))",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Get_the_orphaned_applicant": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {},
+                          "description": "The applicant reference (REV-A-nnnnn) only.",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "ListRecords",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "rev_applicants",
+                              "$filter": "@{concat('rev_applicantid eq ', items('For_each_application_due')?['applicantid'])}",
+                              "$select": "rev_name",
+                              "$top": 1
+                            },
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "exponential",
+                              "count": 4,
+                              "interval": "PT10S"
+                            }
+                          }
+                        },
+                        "Find_an_existing_applicant_row": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {
+                            "Get_the_orphaned_applicant": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "Idempotent on the log: an applicant already Scheduled or Overdue is not logged twice.",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "ListRecords",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "rev_retentionlogs",
+                              "$filter": "@{concat('rev_runtype eq 1 and rev_datatype eq 1 and (rev_outcome eq 1 or rev_outcome eq 4) and rev_recordreference eq ''', first(body('Get_the_orphaned_applicant')?['value'])?['rev_name'], '''')}",
+                              "$select": "rev_retentionlogid",
+                              "$top": 1
+                            },
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "exponential",
+                              "count": 4,
+                              "interval": "PT10S"
+                            }
+                          }
+                        },
+                        "Find_the_applicants_due_applications": {
+                          "type": "Query",
+                          "runAfter": {
+                            "Find_an_existing_applicant_row": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "This applicant's due applications.",
+                          "inputs": {
+                            "from": "@outputs('Compose_applications_due')",
+                            "where": "@equals(item()?['applicantid'], items('For_each_application_due')?['applicantid'])"
+                          }
+                        },
+                        "Select_the_applicants_due_dates": {
+                          "type": "Select",
+                          "runAfter": {
+                            "Find_the_applicants_due_applications": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "Their dates (yyyy-MM-dd sorts as text).",
+                          "inputs": {
+                            "from": "@body('Find_the_applicants_due_applications')",
+                            "select": "@item()?['scheduledon']"
+                          }
+                        },
+                        "Check_the_applicant_is_new": {
+                          "type": "If",
+                          "runAfter": {
+                            "Select_the_applicants_due_dates": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "Only once.",
+                          "expression": {
+                            "and": [
+                              {
+                                "equals": [
+                                  "@length(body('Find_an_existing_applicant_row')?['value'])",
+                                  0
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Log_the_applicant_as_scheduled": {
+                              "type": "OpenApiConnection",
+                              "runAfter": {},
+                              "description": "TAD 5.12.1 step 3: the applicant (with its bank accounts) goes with the orphanedApplicants job after its last application; its date is the latest of its due applications' dates.",
+                              "inputs": {
+                                "host": {
+                                  "connectionName": "shared_commondataserviceforapps",
+                                  "operationId": "CreateRecord",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                },
+                                "parameters": {
+                                  "entityName": "rev_retentionlogs",
+                                  "item/rev_runtype": 1,
+                                  "item/rev_recordreference": "@first(body('Get_the_orphaned_applicant')?['value'])?['rev_name']",
+                                  "item/rev_datatype": 1,
+                                  "item/rev_ruleapplied": 4,
+                                  "item/rev_outcome": 1,
+                                  "item/rev_scheduledon": "@last(sort(body('Select_the_applicants_due_dates')))",
+                                  "item/rev_actionedon": "@utcNow()"
+                                },
+                                "authentication": "@parameters('$authentication')",
+                                "retryPolicy": {
+                                  "type": "exponential",
+                                  "count": 4,
+                                  "interval": "PT10S"
+                                }
+                              }
+                            },
+                            "Count_the_applicant_scheduled": {
+                              "type": "IncrementVariable",
+                              "runAfter": {
+                                "Log_the_applicant_as_scheduled": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "description": "For the summary.",
+                              "inputs": {
+                                "name": "scheduledCount",
+                                "value": 1
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            }
+          }
+        },
+        "Alert_logging_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Log_the_applications_due": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: a run label only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (sweep)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The weekly retention sweep could not snapshot or log every application coming due. Next week's run picks up the rest (every step is idempotent on the log).",
+              "text_3": "@{concat('retention-sweep-', outputs('Compose_today'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Reconcile_scheduled_rows": {
+          "type": "Scope",
+          "runAfter": {
+            "Log_the_applications_due": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "TAD 5.12.1 step 4: records the jobs' deletions and notices a job that has stopped.",
+          "actions": {
+            "List_scheduled_rows": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "TAD 5.12.1 step 4: every sweep row still Scheduled (or Overdue) whose date has passed.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_retentionlogs",
+                  "$filter": "@{concat('rev_runtype eq 1 and (rev_outcome eq 1 or rev_outcome eq 4) and rev_scheduledon lt ', outputs('Compose_today'))}",
+                  "$select": "rev_retentionlogid,rev_recordreference,rev_datatype,rev_scheduledon,rev_signedpdfpath,rev_outcome"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "For_each_scheduled_row": {
+              "type": "Foreach",
+              "runAfter": {
+                "List_scheduled_rows": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One row at a time.",
+              "foreach": "@body('List_scheduled_rows')?['value']",
+              "actions": {
+                "Check_the_row_is_for_an_application": {
+                  "type": "If",
+                  "runAfter": {},
+                  "description": "Application rows and applicant rows are looked up in their own tables.",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@items('For_each_scheduled_row')?['rev_datatype']",
+                          2
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Look_up_the_logged_application": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "description": "Is the application still there? By reference: the log holds text, not a lookup.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "ListRecords",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "rev_applications",
+                          "$filter": "@{concat('rev_name eq ''', items('For_each_scheduled_row')?['rev_recordreference'], '''')}",
+                          "$select": "rev_applicationid",
+                          "$top": 1
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    },
+                    "Check_the_application_is_gone": {
+                      "type": "If",
+                      "runAfter": {
+                        "Look_up_the_logged_application": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "Gone: delete its PDF and mark Deleted. Still there: Overdue after 35 days.",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@length(body('Look_up_the_logged_application')?['value'])",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Check_the_row_has_a_pdf": {
+                          "type": "If",
+                          "runAfter": {},
+                          "description": "Only a row with a logged path.",
+                          "expression": {
+                            "and": [
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@empty(items('For_each_scheduled_row')?['rev_signedpdfpath'])",
+                                    true
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Find_the_logged_pdf": {
+                              "type": "OpenApiConnection",
+                              "runAfter": {},
+                              "description": "A-ERA-3: the file's id from the logged path.",
+                              "inputs": {
+                                "host": {
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "GetFileMetadataByPath",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                                },
+                                "parameters": {
+                                  "dataset": "@parameters('rev_SpoSiteUrl')",
+                                  "path": "@items('For_each_scheduled_row')?['rev_signedpdfpath']"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            },
+                            "Delete_the_logged_pdf": {
+                              "type": "OpenApiConnection",
+                              "runAfter": {
+                                "Find_the_logged_pdf": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "description": "FR-049: the signed PDF of a case the job has deleted. SharePoint Delete file; the only delete in mode 1.",
+                              "inputs": {
+                                "host": {
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "DeleteFile",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                                },
+                                "parameters": {
+                                  "dataset": "@parameters('rev_SpoSiteUrl')",
+                                  "id": "@body('Find_the_logged_pdf')?['Id']"
+                                },
+                                "authentication": "@parameters('$authentication')",
+                                "retryPolicy": {
+                                  "type": "exponential",
+                                  "count": 4,
+                                  "interval": "PT10S"
+                                }
+                              }
+                            },
+                            "Check_the_logged_pdf_was_already_gone": {
+                              "type": "If",
+                              "runAfter": {
+                                "Find_the_logged_pdf": [
+                                  "Failed",
+                                  "TimedOut"
+                                ]
+                              },
+                              "description": "A-ERA-3: a 404 means the file is already gone; anything else fails the row.",
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@outputs('Find_the_logged_pdf')?['statusCode']",
+                                      404
+                                    ]
+                                  }
+                                ]
+                              },
+                              "actions": {},
+                              "else": {
+                                "actions": {
+                                  "Fail_on_the_logged_pdf_lookup": {
+                                    "type": "Compose",
+                                    "runAfter": {},
+                                    "description": "A deliberately failing step: Terminate is not allowed inside a loop (IMP-1098).",
+                                    "inputs": "@int('The signed PDF lookup failed, and not because it was already gone (A-ERA-3).')"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          }
+                        },
+                        "Mark_the_application_row_deleted": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {
+                            "Check_the_row_has_a_pdf": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "Deleted (2); the path is cleared once the file is gone (TAD 5.12.3).",
+                          "inputs": {
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateOnlyRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "rev_retentionlogs",
+                              "recordId": "@items('For_each_scheduled_row')?['rev_retentionlogid']",
+                              "item/rev_outcome": 2,
+                              "item/rev_actionedon": "@utcNow()",
+                              "item/rev_signedpdfpath": null
+                            },
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "exponential",
+                              "count": 4,
+                              "interval": "PT10S"
+                            }
+                          }
+                        },
+                        "Count_the_application_deleted": {
+                          "type": "IncrementVariable",
+                          "runAfter": {
+                            "Mark_the_application_row_deleted": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "For the summary.",
+                          "inputs": {
+                            "name": "deletedCount",
+                            "value": 1
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Check_the_application_is_overdue": {
+                            "type": "If",
+                            "runAfter": {},
+                            "description": "Still there 35 days after its date.",
+                            "expression": {
+                              "and": [
+                                {
+                                  "less": [
+                                    "@items('For_each_scheduled_row')?['rev_scheduledon']",
+                                    "@outputs('Compose_overdue_cutoff')"
+                                  ]
+                                }
+                              ]
+                            },
+                            "actions": {
+                              "Check_the_application_row_is_newly_overdue": {
+                                "type": "If",
+                                "runAfter": {},
+                                "description": "Set once; an already Overdue row keeps the date it became overdue.",
+                                "expression": {
+                                  "and": [
+                                    {
+                                      "not": {
+                                        "equals": [
+                                          "@items('For_each_scheduled_row')?['rev_outcome']",
+                                          4
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                "actions": {
+                                  "Mark_the_application_row_overdue": {
+                                    "type": "OpenApiConnection",
+                                    "runAfter": {},
+                                    "description": "Overdue (4): the job has not deleted it 35 days after its date (NFR-010).",
+                                    "inputs": {
+                                      "host": {
+                                        "connectionName": "shared_commondataserviceforapps",
+                                        "operationId": "UpdateOnlyRecord",
+                                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                      },
+                                      "parameters": {
+                                        "entityName": "rev_retentionlogs",
+                                        "recordId": "@items('For_each_scheduled_row')?['rev_retentionlogid']",
+                                        "item/rev_outcome": 4,
+                                        "item/rev_actionedon": "@utcNow()"
+                                      },
+                                      "authentication": "@parameters('$authentication')",
+                                      "retryPolicy": {
+                                        "type": "exponential",
+                                        "count": 4,
+                                        "interval": "PT10S"
+                                      }
+                                    }
+                                  }
+                                },
+                                "else": {
+                                  "actions": {}
+                                }
+                              },
+                              "Count_the_application_overdue": {
+                                "type": "IncrementVariable",
+                                "runAfter": {
+                                  "Check_the_application_row_is_newly_overdue": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "For the summary, every week until it is gone.",
+                                "inputs": {
+                                  "name": "overdueCount",
+                                  "value": 1
+                                }
+                              },
+                              "Note_the_overdue_application": {
+                                "type": "AppendToStringVariable",
+                                "runAfter": {
+                                  "Count_the_application_overdue": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "References only.",
+                                "inputs": {
+                                  "name": "overdueReferences",
+                                  "value": "@{concat(items('For_each_scheduled_row')?['rev_recordreference'], ' ')}"
+                                }
+                              }
+                            },
+                            "else": {
+                              "actions": {}
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Look_up_the_logged_applicant": {
+                        "type": "OpenApiConnection",
+                        "runAfter": {},
+                        "description": "Is the applicant still there? By reference.",
+                        "inputs": {
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "ListRecords",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          },
+                          "parameters": {
+                            "entityName": "rev_applicants",
+                            "$filter": "@{concat('rev_name eq ''', items('For_each_scheduled_row')?['rev_recordreference'], '''')}",
+                            "$select": "rev_applicantid",
+                            "$top": 1
+                          },
+                          "authentication": "@parameters('$authentication')",
+                          "retryPolicy": {
+                            "type": "exponential",
+                            "count": 4,
+                            "interval": "PT10S"
+                          }
+                        }
+                      },
+                      "Check_the_applicant_is_gone": {
+                        "type": "If",
+                        "runAfter": {
+                          "Look_up_the_logged_applicant": [
+                            "Succeeded"
+                          ]
+                        },
+                        "description": "Gone, still there because of a new application, or overdue.",
+                        "expression": {
+                          "and": [
+                            {
+                              "equals": [
+                                "@length(body('Look_up_the_logged_applicant')?['value'])",
+                                0
+                              ]
+                            }
+                          ]
+                        },
+                        "actions": {
+                          "Mark_the_applicant_row_deleted": {
+                            "type": "OpenApiConnection",
+                            "runAfter": {},
+                            "description": "Deleted (2): the orphanedApplicants job removed it.",
+                            "inputs": {
+                              "host": {
+                                "connectionName": "shared_commondataserviceforapps",
+                                "operationId": "UpdateOnlyRecord",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                              },
+                              "parameters": {
+                                "entityName": "rev_retentionlogs",
+                                "recordId": "@items('For_each_scheduled_row')?['rev_retentionlogid']",
+                                "item/rev_outcome": 2,
+                                "item/rev_actionedon": "@utcNow()"
+                              },
+                              "authentication": "@parameters('$authentication')",
+                              "retryPolicy": {
+                                "type": "exponential",
+                                "count": 4,
+                                "interval": "PT10S"
+                              }
+                            }
+                          },
+                          "Count_the_applicant_deleted": {
+                            "type": "IncrementVariable",
+                            "runAfter": {
+                              "Mark_the_applicant_row_deleted": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "For the summary.",
+                            "inputs": {
+                              "name": "deletedCount",
+                              "value": 1
+                            }
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Find_an_open_application": {
+                              "type": "OpenApiConnection",
+                              "runAfter": {},
+                              "description": "A new application arrived if the applicant now has an open one (statuses 1 to 7).",
+                              "inputs": {
+                                "host": {
+                                  "connectionName": "shared_commondataserviceforapps",
+                                  "operationId": "ListRecords",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                },
+                                "parameters": {
+                                  "entityName": "rev_applications",
+                                  "$filter": "@{concat('_rev_applicantid_value eq ', first(body('Look_up_the_logged_applicant')?['value'])?['rev_applicantid'], ' and rev_status le 7')}",
+                                  "$select": "rev_applicationid",
+                                  "$top": 1
+                                },
+                                "authentication": "@parameters('$authentication')",
+                                "retryPolicy": {
+                                  "type": "exponential",
+                                  "count": 4,
+                                  "interval": "PT10S"
+                                }
+                              }
+                            },
+                            "Check_a_new_application_arrived": {
+                              "type": "If",
+                              "runAfter": {
+                                "Find_an_open_application": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "description": "Not due, or overdue.",
+                              "expression": {
+                                "and": [
+                                  {
+                                    "greater": [
+                                      "@length(body('Find_an_open_application')?['value'])",
+                                      0
+                                    ]
+                                  }
+                                ]
+                              },
+                              "actions": {
+                                "Mark_the_applicant_row_not_due": {
+                                  "type": "OpenApiConnection",
+                                  "runAfter": {},
+                                  "description": "TAD 5.12.1 step 4: Not due (3), not Overdue: the applicant stays because a new application arrived.",
+                                  "inputs": {
+                                    "host": {
+                                      "connectionName": "shared_commondataserviceforapps",
+                                      "operationId": "UpdateOnlyRecord",
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                    },
+                                    "parameters": {
+                                      "entityName": "rev_retentionlogs",
+                                      "recordId": "@items('For_each_scheduled_row')?['rev_retentionlogid']",
+                                      "item/rev_outcome": 3,
+                                      "item/rev_actionedon": "@utcNow()"
+                                    },
+                                    "authentication": "@parameters('$authentication')",
+                                    "retryPolicy": {
+                                      "type": "exponential",
+                                      "count": 4,
+                                      "interval": "PT10S"
+                                    }
+                                  }
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Check_the_applicant_is_overdue": {
+                                    "type": "If",
+                                    "runAfter": {},
+                                    "description": "Still there 35 days after its date with no new application.",
+                                    "expression": {
+                                      "and": [
+                                        {
+                                          "less": [
+                                            "@items('For_each_scheduled_row')?['rev_scheduledon']",
+                                            "@outputs('Compose_overdue_cutoff')"
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    "actions": {
+                                      "Check_the_applicant_row_is_newly_overdue": {
+                                        "type": "If",
+                                        "runAfter": {},
+                                        "description": "Set once.",
+                                        "expression": {
+                                          "and": [
+                                            {
+                                              "not": {
+                                                "equals": [
+                                                  "@items('For_each_scheduled_row')?['rev_outcome']",
+                                                  4
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        },
+                                        "actions": {
+                                          "Mark_the_applicant_row_overdue": {
+                                            "type": "OpenApiConnection",
+                                            "runAfter": {},
+                                            "description": "Overdue (4).",
+                                            "inputs": {
+                                              "host": {
+                                                "connectionName": "shared_commondataserviceforapps",
+                                                "operationId": "UpdateOnlyRecord",
+                                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                              },
+                                              "parameters": {
+                                                "entityName": "rev_retentionlogs",
+                                                "recordId": "@items('For_each_scheduled_row')?['rev_retentionlogid']",
+                                                "item/rev_outcome": 4,
+                                                "item/rev_actionedon": "@utcNow()"
+                                              },
+                                              "authentication": "@parameters('$authentication')",
+                                              "retryPolicy": {
+                                                "type": "exponential",
+                                                "count": 4,
+                                                "interval": "PT10S"
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "else": {
+                                          "actions": {}
+                                        }
+                                      },
+                                      "Count_the_applicant_overdue": {
+                                        "type": "IncrementVariable",
+                                        "runAfter": {
+                                          "Check_the_applicant_row_is_newly_overdue": [
+                                            "Succeeded"
+                                          ]
+                                        },
+                                        "description": "For the summary, every week until it is gone.",
+                                        "inputs": {
+                                          "name": "overdueCount",
+                                          "value": 1
+                                        }
+                                      },
+                                      "Note_the_overdue_applicant": {
+                                        "type": "AppendToStringVariable",
+                                        "runAfter": {
+                                          "Count_the_applicant_overdue": [
+                                            "Succeeded"
+                                          ]
+                                        },
+                                        "description": "References only.",
+                                        "inputs": {
+                                          "name": "overdueReferences",
+                                          "value": "@{concat(items('For_each_scheduled_row')?['rev_recordreference'], ' ')}"
+                                        }
+                                      }
+                                    },
+                                    "else": {
+                                      "actions": {}
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            }
+          }
+        },
+        "Alert_reconcile_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Reconcile_scheduled_rows": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: a run label only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (sweep)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The weekly retention sweep could not reconcile every Scheduled row. Next week's run picks up the rest.",
+              "text_3": "@{concat('retention-sweep-', outputs('Compose_today'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "List_stale_open_cases_monthly": {
+          "type": "If",
+          "runAfter": {
+            "Reconcile_scheduled_rows": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "TAD 5.12.1 step 5: the first Monday of a month falls on day 1 to 7.",
+          "expression": {
+            "and": [
+              {
+                "lessOrEquals": [
+                  "@dayOfMonth(utcNow())",
+                  7
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Get_the_stale_case_setting": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "The RetentionStaleCaseMonths rev_setting (default 12, decision D4). Never a literal here (FR-017).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "$filter": "rev_name eq 'RetentionStaleCaseMonths'",
+                  "$select": "rev_value",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Compose_stale_case_months": {
+              "type": "Compose",
+              "runAfter": {
+                "Get_the_stale_case_setting": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Fails when the row is missing or not a whole number; the step below then says so (ADR-089 consequence 2: a stated blackout, not fail-safe).",
+              "inputs": "@int(trim(first(body('Get_the_stale_case_setting')?['value'])?['rev_value']))"
+            },
+            "List_stale_open_cases": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_stale_case_months": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Applications in statuses 1 to 7 whose applicant has had no contact for the set number of months (A-R110). References only. Mode 1 never changes a status.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@{concat('rev_status le 7 and rev_applicantid/rev_lastcontactdate lt ', addToTime(utcNow(), mul(-1, outputs('Compose_stale_case_months')), 'Month', 'yyyy-MM-dd'))}",
+                  "$select": "rev_name"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_stale_case_references": {
+              "type": "Select",
+              "runAfter": {
+                "List_stale_open_cases": [
+                  "Succeeded"
+                ]
+              },
+              "description": "References only.",
+              "inputs": {
+                "from": "@body('List_stale_open_cases')?['value']",
+                "select": "@item()?['rev_name']"
+              }
+            },
+            "Set_the_stale_case_line": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Select_stale_case_references": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Decision D4: listed for the process owner to close.",
+              "inputs": {
+                "name": "staleCaseLine",
+                "value": "@{if(empty(body('Select_stale_case_references')), concat('Stale open cases (no contact for ', string(outputs('Compose_stale_case_months')), ' months): none.'), concat('Stale open cases (no contact for ', string(outputs('Compose_stale_case_months')), ' months), close each as Withdrawn or Rejected: ', join(body('Select_stale_case_references'), ', ')))}"
+              }
+            },
+            "Set_the_stale_case_line_setting_missing": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Compose_stale_case_months": [
+                  "Failed"
+                ]
+              },
+              "description": "ADR-089 consequence 2.",
+              "inputs": {
+                "name": "staleCaseLine",
+                "value": "Stale open cases: not listed, because the RetentionStaleCaseMonths setting is missing or is not a whole number."
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        },
+        "Alert_stale_case_list_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "List_stale_open_cases_monthly": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: a run label only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (sweep)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The monthly list of stale open cases could not be built.",
+              "text_3": "@{concat('retention-sweep-', outputs('Compose_today'))}",
+              "text_4": "Warning",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Post_the_retention_summary": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "List_stale_open_cases_monthly": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "TAD 5.12.1 step 6: counts, and the references of overdue and stale cases. No names.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_teams",
+              "operationId": "PostMessageToConversation",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+            },
+            "parameters": {
+              "poster": "Flow bot",
+              "location": "Chat with Flow bot",
+              "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+              "body/messageBody": "@{concat('<p><b>Weekly retention sweep</b></p><ul><li>Coming due and logged: ', string(variables('scheduledCount')), '</li><li>Deleted by the retention jobs and recorded (signed PDFs removed): ', string(variables('deletedCount')), '</li><li>Overdue (still there 35 days after their date): ', string(variables('overdueCount')), if(empty(variables('overdueReferences')), '', concat(' - ', trim(variables('overdueReferences')))), '</li></ul><p>', variables('staleCaseLine'), '</p>', if(or(equals(actions('Find_applications_due')?['status'], 'Failed'), equals(actions('Log_the_applications_due')?['status'], 'Failed'), equals(actions('Reconcile_scheduled_rows')?['status'], 'Failed')), '<p>Part of this run failed; see the failure alert. Next week''s run picks it up.</p>', ''), '<p>Counts and references only. The Retention Log in REV Grant Administration has the detail.</p>')}"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Alert_summary_not_sent": {
+          "type": "Workflow",
+          "runAfter": {
+            "Post_the_retention_summary": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: a run label only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (sweep)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The weekly retention summary could not be posted to Teams. The Retention Log holds the detail.",
+              "text_3": "@{concat('retention-sweep-', outputs('Compose_today'))}",
+              "text_4": "Warning",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

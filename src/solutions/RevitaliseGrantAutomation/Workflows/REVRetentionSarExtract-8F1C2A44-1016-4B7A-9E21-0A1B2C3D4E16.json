@@ -1,0 +1,2171 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedTeams"
+        },
+        "api": {
+          "name": "shared_teams"
+        }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedOutlook"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      },
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedSharePoint"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      },
+      "shared_docusign": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDocuSign"
+        },
+        "api": {
+          "name": "shared_docusign"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "Helper mode 3, SAR extract (wbs:0.13, CO-011, TAD 4.2, 5.12, ADR-088, ADR-091). Read-only on business tables. Extract and PDF copies in the SAR folder, one log row; all emailed together when rev_SarProtectedSender is set and they fit, else option A.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_ProcessOwnerUpn": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ProcessOwnerUpn",
+            "description": "Environment variable. The process owner told the extract is ready (C-TECH-047)."
+          }
+        },
+        "rev_ServiceMailbox": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ServiceMailbox",
+            "description": "Environment variable. The service mailbox searched for messages to or from the applicant and referee (A-SAR-12)."
+          }
+        },
+        "rev_SpoSiteUrl": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_SpoSiteUrl",
+            "description": "Environment variable. This environment's designated SharePoint site."
+          }
+        },
+        "rev_SpoSarFolderUrl": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_SpoSarFolderUrl",
+            "description": "Environment variable. The secured SAR folder inside rev_SpoSiteUrl (A-SAR-9)."
+          }
+        },
+        "rev_SarProtectedSender": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_SarProtectedSender",
+            "description": "Environment variable. The dedicated SAR mailbox the extract is sent from (TAD rev 37, ADR-091). Empty: nothing is emailed, option A."
+          }
+        },
+        "rev_DocuSignAccountId": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_DocuSignAccountId",
+            "description": "Environment variable. The DocuSign account, for an envelope with no library copy yet (A-DS-9)."
+          }
+        }
+      },
+      "triggers": {
+        "manual": {
+          "splitOn": "@triggerBody()['rows']",
+          "type": "Request",
+          "kind": "ApiConnection",
+          "description": "When a row is selected on rev_applicant, started by the process owner from the Flow menu after the identity check (TAD 4.2 item 5). One run per applicant. Shape as REV | Portal | Finalise Decisions (A-FD-10).",
+          "inputs": {
+            "operationId": "RecordSelected",
+            "parameters": {
+              "entityName": "rev_applicants"
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "entity": {
+                        "properties": {
+                          "rev_name": {
+                            "title": "Applicant Reference",
+                            "type": "string"
+                          },
+                          "rev_applicantid": {
+                            "title": "Applicant",
+                            "type": "string",
+                            "format": "guid"
+                          }
+                        },
+                        "type": "object",
+                        "required": []
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "rows"
+              ]
+            },
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['shared_commondataserviceforapps']['connectionId']"
+              }
+            }
+          }
+        }
+      },
+      "actions": {
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "Deep link to THIS run, for the alerts.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Initialise_extract": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "The extract's sections, appended store by store. Every append is secured (C-DOM-004), so the run history holds no copy.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "extract",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "Initialise_attachments": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_extract": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 item 5: the email's attachments, one {Name, ContentBytes} per file this run writes, built as one array (the connector's multi-attachment workaround, A-SAR-15). Appends are secured.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "attachments",
+                "type": "array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "Initialise_attachment_files": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_attachments": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 item 5: {Name, Size} of the same files, for the size gate. File names are references; no content.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "attachmentFiles",
+                "type": "array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "Initialise_attachment_bytes": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_attachment_files": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 item 5: the total size in bytes of the files in the set.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "attachmentBytes",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialise_attachment_check": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_attachment_bytes": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 item 5, fail-closed: stays 'not measured' unless every size and the limit were read. Only 'fits' sends.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "attachmentCheck",
+                "type": "string",
+                "value": "not measured: a file size or the SarEmailMaxAttachmentMB setting could not be read"
+              }
+            ]
+          }
+        },
+        "Compose_run_time": {
+          "type": "Compose",
+          "runAfter": {
+            "Initialise_attachment_check": [
+              "Succeeded"
+            ]
+          },
+          "description": "The run's UTC time, in the file name and on the log row (TAD 4.2 item 6).",
+          "inputs": "@{formatDateTime(utcNow(), 'yyyy-MM-ddTHH-mm-ssZ')}"
+        },
+        "Get_the_selected_applicant": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Compose_run_time": [
+              "Succeeded"
+            ]
+          },
+          "description": "IMP-1185: the first read, by the id the trigger delivers. Reference only.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "GetItem",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_applicants",
+              "recordId": "@triggerBody()?['entity']?['rev_applicantid']",
+              "$select": "rev_applicantid,rev_name"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Alert_applicant_not_read": {
+          "type": "Workflow",
+          "runAfter": {
+            "Get_the_selected_applicant": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: the id only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (SAR extract)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The selected applicant could not be read: the trigger delivered no id, or no such applicant exists. Nothing was gathered.",
+              "text_3": "@{concat('applicant ', coalesce(triggerBody()?['entity']?['rev_applicantid'], 'unknown'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_applicant_not_read": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_applicant_not_read": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed whether or not the alert went out.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "ApplicantNotRead",
+              "message": "The selected applicant could not be read. Nothing was gathered."
+            }
+          }
+        },
+        "Identify_the_starter": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Get_the_selected_applicant": [
+              "Succeeded"
+            ]
+          },
+          "description": "A-SAR-8: who started the run, from the trigger's caller header, resolved to a staff user for the log row (TAD 4.2 item 9). Secured: it carries a staff address.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "systemusers",
+              "$filter": "@{concat('internalemailaddress eq ''', replace(coalesce(triggerOutputs()?['headers']?['x-ms-user-email'], ''), '''', ''''''), '''')}",
+              "$select": "systemuserid",
+              "$top": 1
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Alert_starter_lookup_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Identify_the_starter": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (SAR extract)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The person who started the SAR extract could not be looked up. Nothing was gathered.",
+              "text_3": "@{coalesce(body('Get_the_selected_applicant')?['rev_name'], 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_starter_lookup_failed": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_starter_lookup_failed": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "StarterLookupFailed",
+              "message": "The person who started the run could not be looked up. Nothing was gathered."
+            }
+          }
+        },
+        "Check_the_starter_is_known": {
+          "type": "If",
+          "runAfter": {
+            "Identify_the_starter": [
+              "Succeeded"
+            ]
+          },
+          "description": "Fail-safe before any case read.",
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": [
+                    "@empty(body('Identify_the_starter')?['value'])",
+                    true
+                  ]
+                }
+              }
+            ]
+          },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Stop_starter_unknown": {
+                "type": "Terminate",
+                "runAfter": {},
+                "description": "A-SAR-8 fail-safe: the evidence log must name who started a SAR (TAD 4.2 item 9). If the trigger exposes no caller, the run stops before reading anything, and A-SAR-8 is a CASCADE: ARCH_GAP for architect-agent.",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "StarterNotIdentified",
+                    "message": "Who started this run could not be identified, so nothing was gathered (A-SAR-8). Tell the developer."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Call_the_locate_child": {
+          "type": "Workflow",
+          "runAfter": {
+            "Check_the_starter_is_known": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12: the same locate step as mode 2. Secured both ways: the response is the whole case.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1017-4b7a-9e21-0a1b2c3d4e17"
+            },
+            "body": {
+              "text": "@triggerBody()?['entity']?['rev_applicantid']"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Alert_case_not_located": {
+          "type": "Workflow",
+          "runAfter": {
+            "Call_the_locate_child": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (SAR extract)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The applicant's records could not be located (the locate child failed). Nothing was written.",
+              "text_3": "@{coalesce(body('Get_the_selected_applicant')?['rev_name'], 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_case_not_located": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_case_not_located": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed: no partial file is ever written.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "CaseNotLocated",
+              "message": "The applicant's records could not be located. Nothing was written."
+            }
+          }
+        },
+        "Compose_case": {
+          "type": "Compose",
+          "runAfter": {
+            "Call_the_locate_child": [
+              "Succeeded"
+            ]
+          },
+          "description": "The located case. Secured: every section below is built from it.",
+          "inputs": "@body('Call_the_locate_child')",
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "Read_dataverse_rows": {
+          "type": "Scope",
+          "runAfter": {
+            "Compose_case": [
+              "Succeeded"
+            ]
+          },
+          "description": "Store 1 of 9 (TAD 4.2 item 4): the six Dataverse tables of the located case, in its own scope.",
+          "actions": {
+            "Select_reviews_without_trustee_identity": {
+              "type": "Select",
+              "runAfter": {},
+              "description": "TAD 4.2 item 4 and item 7: every review column EXCEPT those naming a trustee (owner, created by, modified by, the two trustee lookups) and their formatted-value annotations. Other people's data the flow can recognise mechanically is left out.",
+              "inputs": {
+                "from": "@coalesce(outputs('Compose_case')?['reviews'], json('[]'))",
+                "select": "@removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(item(), '_ownerid_value'), '_ownerid_value@OData.Community.Display.V1.FormattedValue'), '_ownerid_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_ownerid_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_owninguser_value'), '_owninguser_value@OData.Community.Display.V1.FormattedValue'), '_owninguser_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_owninguser_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_owningteam_value'), '_owningteam_value@OData.Community.Display.V1.FormattedValue'), '_owningteam_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_owningteam_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_owningbusinessunit_value'), '_owningbusinessunit_value@OData.Community.Display.V1.FormattedValue'), '_owningbusinessunit_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_owningbusinessunit_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_createdby_value'), '_createdby_value@OData.Community.Display.V1.FormattedValue'), '_createdby_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_createdby_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_modifiedby_value'), '_modifiedby_value@OData.Community.Display.V1.FormattedValue'), '_modifiedby_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_modifiedby_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_createdonbehalfby_value'), '_createdonbehalfby_value@OData.Community.Display.V1.FormattedValue'), '_createdonbehalfby_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_createdonbehalfby_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_modifiedonbehalfby_value'), '_modifiedonbehalfby_value@OData.Community.Display.V1.FormattedValue'), '_modifiedonbehalfby_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_modifiedonbehalfby_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_rev_trustee1_value'), '_rev_trustee1_value@OData.Community.Display.V1.FormattedValue'), '_rev_trustee1_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_rev_trustee1_value@Microsoft.Dynamics.CRM.associatednavigationproperty'), '_rev_trustee2_value'), '_rev_trustee2_value@OData.Community.Display.V1.FormattedValue'), '_rev_trustee2_value@Microsoft.Dynamics.CRM.lookuplogicalname'), '_rev_trustee2_value@Microsoft.Dynamics.CRM.associatednavigationproperty')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Create_applicant_table": {
+              "type": "Table",
+              "runAfter": {
+                "Select_reviews_without_trustee_identity": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-SAR-7: Create HTML table over the applicant row, every column, choices and lookups as their formatted values.",
+              "inputs": {
+                "from": "@createArray(outputs('Compose_case')?['applicant'])",
+                "format": "HTML"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Create_applications_table": {
+              "type": "Table",
+              "runAfter": {
+                "Create_applicant_table": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every application, every column, including the raw narratives and their redacted counterparts.",
+              "inputs": {
+                "from": "@coalesce(outputs('Compose_case')?['applications'], json('[]'))",
+                "format": "HTML"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Create_reviews_table": {
+              "type": "Table",
+              "runAfter": {
+                "Create_applications_table": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every review, without the trustee-identity columns.",
+              "inputs": {
+                "from": "@body('Select_reviews_without_trustee_identity')",
+                "format": "HTML"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Create_grants_table": {
+              "type": "Table",
+              "runAfter": {
+                "Create_reviews_table": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every grant, every column.",
+              "inputs": {
+                "from": "@coalesce(outputs('Compose_case')?['grants'], json('[]'))",
+                "format": "HTML"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Create_payments_table": {
+              "type": "Table",
+              "runAfter": {
+                "Create_grants_table": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every payment, every column (REV_FinanceOnly included, accepted risk A-R108).",
+              "inputs": {
+                "from": "@coalesce(outputs('Compose_case')?['payments'], json('[]'))",
+                "format": "HTML"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Create_bank_accounts_table": {
+              "type": "Table",
+              "runAfter": {
+                "Create_payments_table": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every bank account, every column (REV_FinanceOnly included, A-R108).",
+              "inputs": {
+                "from": "@coalesce(outputs('Compose_case')?['bankaccounts'], json('[]'))",
+                "format": "HTML"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Append_dataverse_section": {
+              "type": "AppendToStringVariable",
+              "runAfter": {
+                "Create_bank_accounts_table": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Secured: the six tables are the case.",
+              "inputs": {
+                "name": "extract",
+                "value": "@{concat('<h2>1. Applicant</h2>', body('Create_applicant_table'), '<h2>2. Applications</h2>', body('Create_applications_table'), '<h2>3. Reviews (trustee identities removed)</h2>', body('Create_reviews_table'), '<h2>4. Grants</h2>', body('Create_grants_table'), '<h2>5. Payments</h2>', body('Create_payments_table'), '<h2>6. Bank accounts</h2>', body('Create_bank_accounts_table'))}"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "Append_dataverse_not_read": {
+          "type": "AppendToStringVariable",
+          "runAfter": {
+            "Read_dataverse_rows": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Fixed text, no case content: this store's section says it was not read and why (TAD 5.12 Failure), so one unreachable store does not fail the extract.",
+          "inputs": {
+            "name": "extract",
+            "value": "<h2>1-6. Applicant, applications, reviews, grants, payments and bank accounts</h2><p><b>Not read.</b> The Dataverse rows could not be written into the extract. Run the SAR extract again.</p>"
+          }
+        },
+        "Read_audit_history": {
+          "type": "Scope",
+          "runAfter": {
+            "Append_dataverse_not_read": [
+              "Succeeded",
+              "Skipped"
+            ]
+          },
+          "description": "Store 2 of 9: Dataverse audit history (A-SAR-11).",
+          "actions": {
+            "Select_located_row_terms": {
+              "type": "Select",
+              "runAfter": {},
+              "description": "One term per located row. Each table's primary key appears only on its own rows, so the coalesce picks the row's own id. Secured: its input is the case.",
+              "inputs": {
+                "from": "@union(createArray(outputs('Compose_case')?['applicant']), coalesce(outputs('Compose_case')?['applications'], json('[]')), coalesce(outputs('Compose_case')?['reviews'], json('[]')), coalesce(outputs('Compose_case')?['grants'], json('[]')), coalesce(outputs('Compose_case')?['payments'], json('[]')), coalesce(outputs('Compose_case')?['bankaccounts'], json('[]')))",
+                "select": "@concat('_objectid_value eq ', coalesce(item()?['rev_reviewid'], item()?['rev_paymentid'], item()?['rev_grantid'], item()?['rev_bankaccountid'], item()?['rev_applicationid'], item()?['rev_applicantid']))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Compose_audit_filter": {
+              "type": "Compose",
+              "runAfter": {
+                "Select_located_row_terms": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Row ids only.",
+              "inputs": "@{join(body('Select_located_row_terms'), ' or ')}"
+            },
+            "List_the_audit_records": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_audit_filter": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-SAR-11: audit records of every located row, through the audit-read privileges (no audit delete). The user column is not selected: it names trustees and staff (TAD 4.2 item 7). Secured both ways: before and after values.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "audits",
+                  "$filter": "@outputs('Compose_audit_filter')",
+                  "$select": "createdon,objecttypecode,_objectid_value,operation,action,changedata",
+                  "$orderby": "createdon asc"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Select_audit_rows": {
+              "type": "Select",
+              "runAfter": {
+                "List_the_audit_records": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Readable columns (A-SAR-7).",
+              "inputs": {
+                "from": "@body('List_the_audit_records')?['value']",
+                "select": {
+                  "Changed on (UTC)": "@item()?['createdon']",
+                  "Table": "@coalesce(item()?['objecttypecode@OData.Community.Display.V1.FormattedValue'], item()?['objecttypecode'])",
+                  "Record": "@item()?['_objectid_value']",
+                  "Operation": "@coalesce(item()?['operation@OData.Community.Display.V1.FormattedValue'], string(item()?['operation']))",
+                  "Action": "@coalesce(item()?['action@OData.Community.Display.V1.FormattedValue'], string(item()?['action']))",
+                  "Before and after values": "@item()?['changedata']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Create_audit_table": {
+              "type": "Table",
+              "runAfter": {
+                "Select_audit_rows": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The audit section.",
+              "inputs": {
+                "from": "@body('Select_audit_rows')",
+                "format": "HTML"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Append_audit_section": {
+              "type": "AppendToStringVariable",
+              "runAfter": {
+                "Create_audit_table": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Secured: before and after values.",
+              "inputs": {
+                "name": "extract",
+                "value": "@{concat('<h2>7. Audit history of the records above</h2><p>Every recorded change to the rows in sections 1 to 6, kept for six years (TAD 6.5). Who made each change is left out.</p>', body('Create_audit_table'))}"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "Append_audit_not_read": {
+          "type": "AppendToStringVariable",
+          "runAfter": {
+            "Read_audit_history": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Fixed text, no case content: this store's section says it was not read and why (TAD 5.12 Failure), so one unreachable store does not fail the extract.",
+          "inputs": {
+            "name": "extract",
+            "value": "<h2>7. Audit history</h2><p><b>Not read.</b> The flow could not read the audit records (A-SAR-11). The tenant administrator exports them by hand (runbook, fallback A-SAR-1).</p>"
+          }
+        },
+        "Read_quickbooks_section": {
+          "type": "Scope",
+          "runAfter": {
+            "Append_audit_not_read": [
+              "Succeeded",
+              "Skipped"
+            ]
+          },
+          "description": "Store 3 of 9: QuickBooks. Built so the unavailable connection writes the 'not read, and why' line instead of blocking the rest (TAD 5.12 Failure). The QuickBooks lookup by rev_qboreference is added when wbs:7.1 delivers the connection.",
+          "actions": {
+            "Select_quickbooks_rows": {
+              "type": "Select",
+              "runAfter": {},
+              "description": "A-SAR-10 (depends on wbs:7.1): the read-only QuickBooks connection does not exist yet, so this section carries the payment rows' own QuickBooks references, amounts and dates (TAD 4.2 item 4 and item 12).",
+              "inputs": {
+                "from": "@coalesce(outputs('Compose_case')?['payments'], json('[]'))",
+                "select": {
+                  "Payment reference": "@item()?['rev_name']",
+                  "QuickBooks reference": "@item()?['rev_qboreference']",
+                  "Amount": "@item()?['rev_amount']",
+                  "Payment date": "@item()?['rev_paymentdate']",
+                  "Status": "@coalesce(item()?['rev_paymentstatus@OData.Community.Display.V1.FormattedValue'], string(item()?['rev_paymentstatus']))"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Create_quickbooks_table": {
+              "type": "Table",
+              "runAfter": {
+                "Select_quickbooks_rows": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The QuickBooks section.",
+              "inputs": {
+                "from": "@body('Select_quickbooks_rows')",
+                "format": "HTML"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Append_quickbooks_section": {
+              "type": "AppendToStringVariable",
+              "runAfter": {
+                "Create_quickbooks_table": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Secured: payment amounts and dates.",
+              "inputs": {
+                "name": "extract",
+                "value": "@{concat('<h2>8. QuickBooks (the financial record)</h2><p><b>The QuickBooks copy itself was not read:</b> the read-only QuickBooks connection does not exist yet (wbs:7.1). Below are the payment records held in this system with their QuickBooks references, amounts and dates, which are the name, amount and date QuickBooks holds. If the QuickBooks copy itself is asked for, Finance exports it (runbook, fallback A-SAR-5).</p>', body('Create_quickbooks_table'))}"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "Append_quickbooks_not_read": {
+          "type": "AppendToStringVariable",
+          "runAfter": {
+            "Read_quickbooks_section": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Fixed text, no case content: this store's section says it was not read and why (TAD 5.12 Failure), so one unreachable store does not fail the extract.",
+          "inputs": {
+            "name": "extract",
+            "value": "<h2>8. QuickBooks</h2><p><b>Not read.</b> The payment records could not be written into the extract.</p>"
+          }
+        },
+        "Read_service_mailbox": {
+          "type": "Scope",
+          "runAfter": {
+            "Append_quickbooks_not_read": [
+              "Succeeded",
+              "Skipped"
+            ]
+          },
+          "description": "Store 4 of 9: the service mailbox (A-SAR-12). Mode 3 only reads it; nothing is moved or deleted.",
+          "actions": {
+            "Select_referee_addresses": {
+              "type": "Select",
+              "runAfter": {},
+              "description": "The referee's address on each application (TAD 4.2 item 4). Secured: addresses.",
+              "inputs": {
+                "from": "@coalesce(outputs('Compose_case')?['applications'], json('[]'))",
+                "select": "@coalesce(item()?['rev_refereeemail'], '')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Filter_mailbox_addresses": {
+              "type": "Query",
+              "runAfter": {
+                "Select_referee_addresses": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The applicant's and the referees' addresses, de-duplicated, blanks dropped. Secured.",
+              "inputs": {
+                "from": "@union(createArray(coalesce(outputs('Compose_case')?['applicant']?['rev_email'], '')), body('Select_referee_addresses'))",
+                "where": "@not(empty(item()))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Append_mailbox_heading": {
+              "type": "AppendToStringVariable",
+              "runAfter": {
+                "Filter_mailbox_addresses": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Fixed text.",
+              "inputs": {
+                "name": "extract",
+                "value": "<h2>9. Service mailbox</h2><p>Messages in the service mailbox to or from the applicant's and the referee's email addresses.</p>"
+              }
+            },
+            "For_each_mailbox_address": {
+              "type": "Foreach",
+              "runAfter": {
+                "Append_mailbox_heading": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One address at a time.",
+              "foreach": "@body('Filter_mailbox_addresses')",
+              "actions": {
+                "Get_messages_from_the_address": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "A-SAR-12: messages in the service mailbox's Inbox from this address. Secured both ways: message bodies.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_office365",
+                      "operationId": "GetEmailsV3",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                    },
+                    "parameters": {
+                      "folderPath": "Inbox",
+                      "from": "@items('For_each_mailbox_address')",
+                      "fetchOnlyUnread": false,
+                      "includeAttachments": false,
+                      "top": 250,
+                      "mailboxAddress": "@parameters('rev_ServiceMailbox')"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Get_messages_to_the_address": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Get_messages_from_the_address": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "A-SAR-12: messages in Sent Items to this address. Secured both ways.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_office365",
+                      "operationId": "GetEmailsV3",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                    },
+                    "parameters": {
+                      "folderPath": "SentItems",
+                      "to": "@items('For_each_mailbox_address')",
+                      "fetchOnlyUnread": false,
+                      "includeAttachments": false,
+                      "top": 250,
+                      "mailboxAddress": "@parameters('rev_ServiceMailbox')"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Select_mailbox_rows": {
+                  "type": "Select",
+                  "runAfter": {
+                    "Get_messages_to_the_address": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "A-SAR-12: the response field names are read in both the lower-case and the capitalised form, because which one this connector version returns is not verified.",
+                  "inputs": {
+                    "from": "@union(coalesce(body('Get_messages_from_the_address')?['value'], json('[]')), coalesce(body('Get_messages_to_the_address')?['value'], json('[]')))",
+                    "select": {
+                      "Received or sent (UTC)": "@coalesce(item()?['receivedDateTime'], item()?['DateTimeReceived'])",
+                      "From": "@coalesce(item()?['from'], item()?['From'])",
+                      "To": "@coalesce(item()?['toRecipients'], item()?['To'])",
+                      "Subject": "@coalesce(item()?['subject'], item()?['Subject'])",
+                      "Message": "@coalesce(item()?['body'], item()?['Body'])"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Create_mailbox_table": {
+                  "type": "Table",
+                  "runAfter": {
+                    "Select_mailbox_rows": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "One table per address.",
+                  "inputs": {
+                    "from": "@body('Select_mailbox_rows')",
+                    "format": "HTML"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Append_mailbox_messages": {
+                  "type": "AppendToStringVariable",
+                  "runAfter": {
+                    "Create_mailbox_table": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Secured: message content.",
+                  "inputs": {
+                    "name": "extract",
+                    "value": "@{body('Create_mailbox_table')}"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs"
+                      ]
+                    }
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            }
+          }
+        },
+        "Append_mailbox_not_read": {
+          "type": "AppendToStringVariable",
+          "runAfter": {
+            "Read_service_mailbox": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Fixed text, no case content: this store's section says it was not read and why (TAD 5.12 Failure), so one unreachable store does not fail the extract.",
+          "inputs": {
+            "name": "extract",
+            "value": "<h2>9. Service mailbox</h2><p><b>Not read.</b> The flow could not search the service mailbox (A-SAR-12). The process owner searches it by hand (runbook).</p>"
+          }
+        },
+        "Copy_signed_documents": {
+          "type": "Scope",
+          "runAfter": {
+            "Append_mailbox_not_read": [
+              "Succeeded",
+              "Skipped"
+            ]
+          },
+          "description": "Stores 5 and 6 of 9: the signed-acceptance library and DocuSign (A-SAR-6, A-DS-9).",
+          "actions": {
+            "Append_signed_documents_heading": {
+              "type": "AppendToStringVariable",
+              "runAfter": {},
+              "description": "Fixed text.",
+              "inputs": {
+                "name": "extract",
+                "value": "<h2>10. Signed acceptance documents</h2><p>Copies of each grant's signed document are saved beside this file in the SAR folder.</p><ul>"
+              }
+            },
+            "For_each_grant_document": {
+              "type": "Foreach",
+              "runAfter": {
+                "Append_signed_documents_heading": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One grant at a time.",
+              "foreach": "@coalesce(outputs('Compose_case')?['grants'], json('[]'))",
+              "actions": {
+                "Check_the_grant_has_a_library_copy": {
+                  "type": "If",
+                  "runAfter": {},
+                  "description": "Library copy first (TAD 4.2 item 4); the DocuSign document only where none exists yet.",
+                  "expression": {
+                    "and": [
+                      {
+                        "not": {
+                          "equals": [
+                            "@empty(items('For_each_grant_document')?['rev_signedpdfurl'])",
+                            true
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Get_the_signed_pdf_content": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "description": "A-SAR-6: the signed acceptance PDF named by rev_signedpdfurl (with DocuSign's certificate of completion, A-DS-9). Secured both ways: the signed document.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "GetFileContentByPath",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset": "@parameters('rev_SpoSiteUrl')",
+                          "path": "@items('For_each_grant_document')?['rev_signedpdfurl']",
+                          "inferContentType": true
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Save_the_signed_pdf_copy": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {
+                        "Get_the_signed_pdf_content": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "A-SAR-6, A-SAR-9: the copy goes to the secured SAR folder only, named with references, never a name.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "CreateFile",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset": "@parameters('rev_SpoSiteUrl')",
+                          "folderPath": "@parameters('rev_SpoSarFolderUrl')",
+                          "name": "@{concat(body('Get_the_selected_applicant')?['rev_name'], '-SAR-', outputs('Compose_run_time'), '-', items('For_each_grant_document')?['rev_name'], '-signed-acceptance.pdf')}",
+                          "body": "@body('Get_the_signed_pdf_content')"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs",
+                            "outputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Append_signed_pdf_line": {
+                      "type": "AppendToStringVariable",
+                      "runAfter": {
+                        "Save_the_signed_pdf_copy": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "References only.",
+                      "inputs": {
+                        "name": "extract",
+                        "value": "@{concat('<li>', items('For_each_grant_document')?['rev_name'], ': signed acceptance copied from the library.</li>')}"
+                      }
+                    },
+                    "Add_the_signed_pdf_attachment": {
+                      "type": "AppendToArrayVariable",
+                      "runAfter": {
+                        "Append_signed_pdf_line": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "ADR-091 item 5: this copy goes in the email with the extract. A-RH-3: ContentBytes is the file content's $content. Secured: the document.",
+                      "inputs": {
+                        "name": "attachments",
+                        "value": {
+                          "Name": "@{concat(body('Get_the_selected_applicant')?['rev_name'], '-SAR-', outputs('Compose_run_time'), '-', items('For_each_grant_document')?['rev_name'], '-signed-acceptance.pdf')}",
+                          "ContentBytes": "@body('Get_the_signed_pdf_content')?['$content']"
+                        }
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "inputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Add_the_signed_pdf_file": {
+                      "type": "AppendToArrayVariable",
+                      "runAfter": {
+                        "Add_the_signed_pdf_attachment": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "ADR-091 item 5, A-SAR-15: the file name and the Size the create-file response gives. Not secured: a reference and a number, readable in run history.",
+                      "inputs": {
+                        "name": "attachmentFiles",
+                        "value": {
+                          "Name": "@{concat(body('Get_the_selected_applicant')?['rev_name'], '-SAR-', outputs('Compose_run_time'), '-', items('For_each_grant_document')?['rev_name'], '-signed-acceptance.pdf')}",
+                          "Size": "@body('Save_the_signed_pdf_copy')?['Size']"
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Check_the_grant_has_an_envelope": {
+                        "type": "If",
+                        "runAfter": {},
+                        "description": "Envelope sent but not completed, or none at all.",
+                        "expression": {
+                          "and": [
+                            {
+                              "not": {
+                                "equals": [
+                                  "@empty(items('For_each_grant_document')?['rev_docusignenvelopeid'])",
+                                  true
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        "actions": {
+                          "Get_the_envelope_document": {
+                            "type": "OpenApiConnection",
+                            "runAfter": {},
+                            "description": "A-DS-9: no library copy yet, so the envelope's combined document, the same call REV | Acceptance | Completion makes. Secured both ways.",
+                            "inputs": {
+                              "host": {
+                                "connectionName": "shared_docusign",
+                                "operationId": "GetDocumentsV2",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                              },
+                              "parameters": {
+                                "accountId": "@parameters('rev_DocuSignAccountId')",
+                                "envelopeId": "@items('For_each_grant_document')?['rev_docusignenvelopeid']",
+                                "documentId": "Combined with COC : Get all documents as single pdf"
+                              },
+                              "authentication": "@parameters('$authentication')",
+                              "retryPolicy": {
+                                "type": "exponential",
+                                "count": 4,
+                                "interval": "PT10S"
+                              }
+                            },
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            }
+                          },
+                          "Save_the_envelope_copy": {
+                            "type": "OpenApiConnection",
+                            "runAfter": {
+                              "Get_the_envelope_document": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "To the secured SAR folder only.",
+                            "inputs": {
+                              "host": {
+                                "connectionName": "shared_sharepointonline",
+                                "operationId": "CreateFile",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                              },
+                              "parameters": {
+                                "dataset": "@parameters('rev_SpoSiteUrl')",
+                                "folderPath": "@parameters('rev_SpoSarFolderUrl')",
+                                "name": "@{concat(body('Get_the_selected_applicant')?['rev_name'], '-SAR-', outputs('Compose_run_time'), '-', items('For_each_grant_document')?['rev_name'], '-envelope.pdf')}",
+                                "body": "@body('Get_the_envelope_document')"
+                              },
+                              "authentication": "@parameters('$authentication')",
+                              "retryPolicy": {
+                                "type": "exponential",
+                                "count": 4,
+                                "interval": "PT10S"
+                              }
+                            },
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs",
+                                  "outputs"
+                                ]
+                              }
+                            }
+                          },
+                          "Append_envelope_line": {
+                            "type": "AppendToStringVariable",
+                            "runAfter": {
+                              "Save_the_envelope_copy": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "References only.",
+                            "inputs": {
+                              "name": "extract",
+                              "value": "@{concat('<li>', items('For_each_grant_document')?['rev_name'], ': the DocuSign envelope document copied (not yet completed, no library copy).</li>')}"
+                            }
+                          },
+                          "Add_the_envelope_attachment": {
+                            "type": "AppendToArrayVariable",
+                            "runAfter": {
+                              "Append_envelope_line": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-091 item 5: this copy goes in the email with the extract. A-RH-3: ContentBytes is the file content's $content. Secured: the document.",
+                            "inputs": {
+                              "name": "attachments",
+                              "value": {
+                                "Name": "@{concat(body('Get_the_selected_applicant')?['rev_name'], '-SAR-', outputs('Compose_run_time'), '-', items('For_each_grant_document')?['rev_name'], '-envelope.pdf')}",
+                                "ContentBytes": "@body('Get_the_envelope_document')?['$content']"
+                              }
+                            },
+                            "runtimeConfiguration": {
+                              "secureData": {
+                                "properties": [
+                                  "inputs"
+                                ]
+                              }
+                            }
+                          },
+                          "Add_the_envelope_file": {
+                            "type": "AppendToArrayVariable",
+                            "runAfter": {
+                              "Add_the_envelope_attachment": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-091 item 5, A-SAR-15: the file name and the Size the create-file response gives. Not secured: a reference and a number, readable in run history.",
+                            "inputs": {
+                              "name": "attachmentFiles",
+                              "value": {
+                                "Name": "@{concat(body('Get_the_selected_applicant')?['rev_name'], '-SAR-', outputs('Compose_run_time'), '-', items('For_each_grant_document')?['rev_name'], '-envelope.pdf')}",
+                                "Size": "@body('Save_the_envelope_copy')?['Size']"
+                              }
+                            }
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "Append_no_document_line": {
+                              "type": "AppendToStringVariable",
+                              "runAfter": {},
+                              "description": "References only.",
+                              "inputs": {
+                                "name": "extract",
+                                "value": "@{concat('<li>', items('For_each_grant_document')?['rev_name'], ': no signed document exists.</li>')}"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            },
+            "Append_signed_documents_close": {
+              "type": "AppendToStringVariable",
+              "runAfter": {
+                "For_each_grant_document": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Fixed text.",
+              "inputs": {
+                "name": "extract",
+                "value": "</ul>"
+              }
+            }
+          }
+        },
+        "Append_signed_documents_not_read": {
+          "type": "AppendToStringVariable",
+          "runAfter": {
+            "Copy_signed_documents": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Fixed text, no case content: this store's section says it was not read and why (TAD 5.12 Failure), so one unreachable store does not fail the extract.",
+          "inputs": {
+            "name": "extract",
+            "value": "<h2>10. Signed acceptance documents</h2><p><b>Not read.</b> The signed documents could not all be copied into the SAR folder (A-SAR-6). Copy them from the library by hand (runbook).</p>"
+          }
+        },
+        "Select_website_entry_ids": {
+          "type": "Select",
+          "runAfter": {
+            "Append_signed_documents_not_read": [
+              "Succeeded",
+              "Skipped"
+            ]
+          },
+          "description": "The website entry id of each application (TAD 4.2 item 4, A-R107). Not personal data; secured with the case it is read from.",
+          "inputs": {
+            "from": "@coalesce(outputs('Compose_case')?['applications'], json('[]'))",
+            "select": "@coalesce(item()?['rev_sourcesubmissionid'], 'none')"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Append_statements_section": {
+          "type": "AppendToStringVariable",
+          "runAfter": {
+            "Select_website_entry_ids": [
+              "Succeeded"
+            ]
+          },
+          "description": "Fixed wording plus the website entry ids. TAD 4.2 item 4.",
+          "inputs": {
+            "name": "extract",
+            "value": "@{concat('<h2>11. Stores described, not copied</h2><p><b>AI Builder call records (live environment only).</b> When the narrative questions are checked for names and addresses, the text is sent to Microsoft AI Builder, which keeps a copy of what was sent for at most 30 days, after which it is deleted automatically. The text itself is in section 2 above. If you want that copy itself, ask us and our administrator will export it.</p><p><b>Teams notifications.</b> Our system sends the process owner short notifications about an application (its reference, its status, or the reason a step stopped). They are generated from the records in sections 1 to 6 and hold nothing more.</p><p><b>Our website.</b> The application form on our website keeps the entry you submitted. Website entry ids: ', join(body('Select_website_entry_ids'), ', '), '. We handle the website copy separately.</p><p><b>Not searched, and why.</b> The error log (it holds record references only), the anonymised statistics (not personal data) and the automation run history (secured, so it holds no copy of this extract).</p>')}"
+          }
+        },
+        "Compose_extract_file_name": {
+          "type": "Compose",
+          "runAfter": {
+            "Append_statements_section": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 4.2 item 6: the applicant reference and the run's UTC time. No name.",
+          "inputs": "@{concat(body('Get_the_selected_applicant')?['rev_name'], '-SAR-', outputs('Compose_run_time'), '.html')}"
+        },
+        "Compose_stores_read": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_extract_file_name": [
+              "Succeeded"
+            ]
+          },
+          "description": "From each store's scope status only; a fixed vocabulary, never case content (FR-054).",
+          "inputs": "@{concat(if(equals(actions('Read_dataverse_rows')?['status'], 'Succeeded'), 'Dataverse rows read', 'Dataverse rows NOT read'), '; ', if(equals(actions('Read_audit_history')?['status'], 'Succeeded'), 'audit read', 'audit NOT read'), '; ', if(equals(actions('Read_quickbooks_section')?['status'], 'Succeeded'), 'QuickBooks: payment rows only, connection not built (wbs:7.1)', 'QuickBooks NOT read'), '; ', if(equals(actions('Read_service_mailbox')?['status'], 'Succeeded'), 'mailbox read', 'mailbox NOT read'), '; ', if(equals(actions('Copy_signed_documents')?['status'], 'Succeeded'), 'signed documents copied', 'signed documents NOT copied'), '; statements written')}"
+        },
+        "Compose_extract_document": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_stores_read": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 4.2 item 6: one readable file, a section per store. Secured: it is the extract.",
+          "inputs": "@{concat('<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Subject access request extract ', body('Get_the_selected_applicant')?['rev_name'], '</title></head><body><h1>Subject access request extract</h1><p>Applicant reference: ', body('Get_the_selected_applicant')?['rev_name'], '<br/>Prepared (UTC): ', outputs('Compose_run_time'), '<br/>Stores: ', outputs('Compose_stores_read'), '</p>', variables('extract'), '</body></html>')}",
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "Write_the_extract_file": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Compose_extract_document": [
+              "Succeeded"
+            ]
+          },
+          "description": "A-SAR-9: the ONE extract file, in the secured SAR folder only (TAD 4.2 item 2). Secured both ways.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_sharepointonline",
+              "operationId": "CreateFile",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+            },
+            "parameters": {
+              "dataset": "@parameters('rev_SpoSiteUrl')",
+              "folderPath": "@parameters('rev_SpoSarFolderUrl')",
+              "name": "@outputs('Compose_extract_file_name')",
+              "body": "@outputs('Compose_extract_document')"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Alert_extract_not_written": {
+          "type": "Workflow",
+          "runAfter": {
+            "Write_the_extract_file": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only. A partial file is never announced as an extract.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (SAR extract)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The SAR extract file could not be written to the SAR folder. No extract-ready message was sent; run it again.",
+              "text_3": "@{coalesce(body('Get_the_selected_applicant')?['rev_name'], 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_extract_not_written": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_extract_not_written": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "ExtractNotWritten",
+              "message": "The extract could not be written. Run the SAR extract again."
+            }
+          }
+        },
+        "Log_the_sar_run": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Write_the_extract_file": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-054, TAD 4.2 item 9: SAR extract (3), the reference, data type 7, rule 7, Extract written (7), the time, the starter (A-SAR-8); rev_detail from the fixed list only. Record_the_delivery adds the delivery (ADR-091).",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_retentionlogs",
+              "item/rev_runtype": 3,
+              "item/rev_recordreference": "@body('Get_the_selected_applicant')?['rev_name']",
+              "item/rev_datatype": 7,
+              "item/rev_ruleapplied": 7,
+              "item/rev_outcome": 7,
+              "item/rev_scheduledon": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+              "item/rev_actionedon": "@utcNow()",
+              "item/rev_detail": "@substring(concat(outputs('Compose_extract_file_name'), ' | ', outputs('Compose_stores_read')), 0, min(2000, length(concat(outputs('Compose_extract_file_name'), ' | ', outputs('Compose_stores_read')))))",
+              "item/rev_startedby@odata.bind": "@concat('/systemusers(', first(body('Identify_the_starter')?['value'])?['systemuserid'], ')')"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Alert_sar_run_not_logged": {
+          "type": "Workflow",
+          "runAfter": {
+            "Log_the_sar_run": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (SAR extract)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The extract was written but the run could not be logged (FR-054). No extract-ready message was sent; tell the developer before delivering.",
+              "text_3": "@{coalesce(body('Get_the_selected_applicant')?['rev_name'], 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_sar_run_not_logged": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_sar_run_not_logged": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "SarRunNotLogged",
+              "message": "The extract was written but not logged. Nothing was announced."
+            }
+          }
+        },
+        "Tell_the_process_owner_the_extract_is_ready": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Log_the_sar_run": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 4.2 item 2: the reference and the file name only, never content. Delivery follows (ADR-091 item 5).",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_teams",
+              "operationId": "PostMessageToConversation",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+            },
+            "parameters": {
+              "poster": "Flow bot",
+              "location": "Chat with Flow bot",
+              "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+              "body/messageBody": "@{concat('<p><b>Subject access request extract ready</b></p><p>Applicant reference: ', body('Get_the_selected_applicant')?['rev_name'], '<br/>File in the SAR folder: ', outputs('Compose_extract_file_name'), '<br/>', outputs('Compose_stores_read'), '</p><p>Delivery: where protected sending is on in this environment, the flow now emails the file and the signed document copies, encrypted, in one message to the email on record (option B). If it cannot, or they are too large to email together, nothing is sent and a second message tells you to use option A. The Retention Log row records which happened. Then follow the SAR procedure: delete the working copy and close the register.</p>')}"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Alert_ready_message_not_sent": {
+          "type": "Workflow",
+          "runAfter": {
+            "Tell_the_process_owner_the_extract_is_ready": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (SAR extract)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The extract was written and logged, but the Teams message could not be sent. Open the SAR folder for the file.",
+              "text_3": "@{coalesce(body('Get_the_selected_applicant')?['rev_name'], 'unknown')}",
+              "text_4": "Warning",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Add_the_extract_attachment": {
+          "type": "AppendToArrayVariable",
+          "runAfter": {
+            "Tell_the_process_owner_the_extract_is_ready": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "ADR-091 item 5: the extract joins the set. A-RH-3: base64 of the file written. Secured: it is the extract.",
+          "inputs": {
+            "name": "attachments",
+            "value": {
+              "Name": "@outputs('Compose_extract_file_name')",
+              "ContentBytes": "@base64(outputs('Compose_extract_document'))"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "Add_the_extract_file": {
+          "type": "AppendToArrayVariable",
+          "runAfter": {
+            "Add_the_extract_attachment": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 item 5, A-SAR-15: the extract's name and the Size its create-file response gives.",
+          "inputs": {
+            "name": "attachmentFiles",
+            "value": {
+              "Name": "@outputs('Compose_extract_file_name')",
+              "Size": "@body('Write_the_extract_file')?['Size']"
+            }
+          }
+        },
+        "Measure_the_attachments": {
+          "type": "Scope",
+          "runAfter": {
+            "Add_the_extract_file": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 item 5 size gate: total of every file's Size against SarEmailMaxAttachmentMB. Any failure here leaves attachmentCheck 'not measured', which never sends.",
+          "actions": {
+            "For_each_attachment_file": {
+              "type": "Foreach",
+              "runAfter": {},
+              "description": "Adds each file's size. A missing or non-numeric Size fails int(), so the loop fails and the set counts as over the limit (A-SAR-15).",
+              "foreach": "@variables('attachmentFiles')",
+              "actions": {
+                "Add_the_file_size": {
+                  "type": "IncrementVariable",
+                  "runAfter": {},
+                  "description": "A-SAR-15: Size in bytes. int(string()) fails on a missing or non-numeric value.",
+                  "inputs": {
+                    "name": "attachmentBytes",
+                    "value": "@int(string(items('For_each_attachment_file')?['Size']))"
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            },
+            "Get_the_attachment_limit_setting": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "The SarEmailMaxAttachmentMB rev_setting (default 15, ADR-091 item 5). Never a literal here (FR-017).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "$filter": "rev_name eq 'SarEmailMaxAttachmentMB'",
+                  "$select": "rev_value",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Compose_attachment_limit_mb": {
+              "type": "Compose",
+              "runAfter": {
+                "Get_the_attachment_limit_setting": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Fails when the row is missing, empty or not a whole number: then nothing is sent (ADR-091 item 5).",
+              "inputs": "@int(trim(first(body('Get_the_attachment_limit_setting')?['value'])?['rev_value']))"
+            },
+            "Set_the_attachment_check": {
+              "type": "SetVariable",
+              "runAfter": {
+                "For_each_attachment_file": [
+                  "Succeeded"
+                ],
+                "Compose_attachment_limit_mb": [
+                  "Succeeded"
+                ]
+              },
+              "description": "'fits' only when every file is in both arrays and the total is within the limit; else 'too large'. Sizes and the limit only, never content. MB rounded up to 0.1.",
+              "inputs": {
+                "name": "attachmentCheck",
+                "value": "@{concat(if(and(equals(length(variables('attachments')), length(variables('attachmentFiles'))), lessOrEquals(variables('attachmentBytes'), mul(outputs('Compose_attachment_limit_mb'), 1048576))), 'fits', 'too large'), ': ', string(div(div(add(mul(variables('attachmentBytes'), 10), 1048575), 1048576), 10)), '.', string(mod(div(add(mul(variables('attachmentBytes'), 10), 1048575), 1048576), 10)), ' MB of files against a limit of ', string(outputs('Compose_attachment_limit_mb')), ' MB')}"
+              }
+            }
+          }
+        },
+        "Select_attachment_file_names": {
+          "type": "Select",
+          "runAfter": {
+            "Measure_the_attachments": [
+              "Succeeded",
+              "Failed",
+              "TimedOut",
+              "Skipped"
+            ]
+          },
+          "description": "The file names for the option A messages: references only.",
+          "inputs": {
+            "from": "@variables('attachmentFiles')",
+            "select": "@item()?['Name']"
+          }
+        },
+        "Compose_delivery_route": {
+          "type": "Compose",
+          "runAfter": {
+            "Select_attachment_file_names": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 items 4-5: a fixed token. 'send' only when rev_SarProtectedSender and the email on record are non-empty after trim and the set fits; 'off', 'no email' or 'too large' otherwise. Secured: reads the email.",
+          "inputs": "@{if(empty(trim(coalesce(parameters('rev_SarProtectedSender'), ''))), 'off', if(empty(trim(coalesce(outputs('Compose_case')?['applicant']?['rev_email'], ''))), 'no email', if(startsWith(variables('attachmentCheck'), 'fits'), 'send', 'too large')))}",
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "Check_protected_delivery_is_on": {
+          "type": "If",
+          "runAfter": {
+            "Compose_delivery_route": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 item 5: send only on the 'send' route. Every other path ends with no email and the option A message (TAD 4.2 item 8: the extract is never sent unencrypted).",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@outputs('Compose_delivery_route')",
+                  "send"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Send_the_extract_protected": {
+              "type": "OpenApiConnection",
+              "description": "ADR-091 item 5, option B. A-SAR-13: From (Send as) = the protected sender, encrypted by the tenant rule (A-SAR-4). The extract and every PDF copy, one array (A-RH-3, A-SAR-15). No retry. No sent-copy read or delete (A-SAR-14). Secured.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_office365",
+                  "operationId": "SendEmailV2",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                },
+                "parameters": {
+                  "emailMessage/From": "@trim(parameters('rev_SarProtectedSender'))",
+                  "emailMessage/To": "@trim(outputs('Compose_case')?['applicant']?['rev_email'])",
+                  "emailMessage/ReplyTo": "@parameters('rev_ServiceMailbox')",
+                  "emailMessage/Subject": "@{concat('Your subject access request to Revitalise, reference ', body('Get_the_selected_applicant')?['rev_name'])}",
+                  "emailMessage/Body": "@{concat('<p>You asked Revitalise for a copy of the personal data we hold about you (a subject access request). The attached files are that copy, reference ', body('Get_the_selected_applicant')?['rev_name'], ', prepared on ', outputs('Compose_run_time'), ' (UTC): one file with every section, and a copy of each signed grant acceptance document.</p><p>This email is encrypted. To open it you may be asked to sign in, or to enter a one-time passcode sent to this address.</p><p>If you have any questions about this copy, reply to this email.</p><p>Revitalise</p>')}",
+                  "emailMessage/Attachments": "@variables('attachments')",
+                  "emailMessage/Importance": "Normal"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Tell_the_process_owner_the_send_failed": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Send_the_extract_protected": [
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "description": "ADR-091 item 5, fail-closed: the send failed or timed out, so nothing was sent, no retry and no other sender. The reference and the file name only.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_teams",
+                  "operationId": "PostMessageToConversation",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                },
+                "parameters": {
+                  "poster": "Flow bot",
+                  "location": "Chat with Flow bot",
+                  "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+                  "body/messageBody": "@{concat('<p><b>Subject access request extract NOT emailed: use option A</b></p><p>Applicant reference: ', body('Get_the_selected_applicant')?['rev_name'], '<br/>Files in the SAR folder: ', join(body('Select_attachment_file_names'), ', '), '</p><p>The protected send failed, so nothing was sent and it will not be retried. Deliver the files by hand (option A), as the SAR procedure says.</p>')}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Tell_the_process_owner_to_use_option_a": {
+                "type": "OpenApiConnection",
+                "description": "ADR-091 items 4 and 5: protected sending is off (the setting is empty), there is no email on record, or the set is too large or not measured, so nothing was sent. References and file names only.",
+                "inputs": {
+                  "host": {
+                    "connectionName": "shared_teams",
+                    "operationId": "PostMessageToConversation",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                  },
+                  "parameters": {
+                    "poster": "Flow bot",
+                    "location": "Chat with Flow bot",
+                    "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+                    "body/messageBody": "@{concat('<p><b>Subject access request extract NOT emailed: use option A</b></p><p>Applicant reference: ', body('Get_the_selected_applicant')?['rev_name'], '<br/>Files in the SAR folder: ', join(body('Select_attachment_file_names'), ', '), '</p><p>', if(equals(outputs('Compose_delivery_route'), 'off'), 'Protected sending is not switched on in this environment (SAR Protected Sender is empty).', if(equals(outputs('Compose_delivery_route'), 'too large'), concat('The files are too large to email together, or their size could not be checked (', variables('attachmentCheck'), '). Nothing is ever emailed in part.'), 'The applicant has no email address on record.')), ' Nothing was sent. Deliver the files by hand (option A), as the SAR procedure says.</p>')}"
+                  },
+                  "authentication": "@parameters('$authentication')",
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 4,
+                    "interval": "PT10S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Compose_delivery_outcome": {
+          "type": "Compose",
+          "runAfter": {
+            "Check_protected_delivery_is_on": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "ADR-091 item 5: which delivery happened, for rev_detail. A fixed vocabulary from the send's status, the route token and the size check (sizes and the limit only), never content (TAD 5.12.3).",
+          "inputs": "@{if(equals(actions('Send_the_extract_protected')?['status'], 'Succeeded'), concat('delivery: option B, emailed from the protected sender, ', variables('attachmentCheck')), if(equals(outputs('Compose_delivery_route'), 'send'), 'delivery: option A, the protected send failed and nothing was sent', if(equals(outputs('Compose_delivery_route'), 'off'), 'delivery: option A, protected sending off in this environment', if(equals(outputs('Compose_delivery_route'), 'too large'), concat('delivery: option A, not emailed, ', variables('attachmentCheck')), 'delivery: option A, no email on record'))))}"
+        },
+        "Record_the_delivery": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Compose_delivery_outcome": [
+              "Succeeded"
+            ]
+          },
+          "description": "ADR-091 item 5: the evidence row's rev_detail records which delivery happened. The fixed list only: file name, stores read, delivery (TAD 5.12.3). The log row is the only row mode 3 writes or updates.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "UpdateOnlyRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_retentionlogs",
+              "recordId": "@body('Log_the_sar_run')?['rev_retentionlogid']",
+              "item/rev_detail": "@substring(concat(outputs('Compose_extract_file_name'), ' | ', outputs('Compose_stores_read'), ' | ', outputs('Compose_delivery_outcome')), 0, min(2000, length(concat(outputs('Compose_extract_file_name'), ' | ', outputs('Compose_stores_read'), ' | ', outputs('Compose_delivery_outcome')))))"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Alert_delivery_not_recorded": {
+          "type": "Workflow",
+          "runAfter": {
+            "Record_the_delivery": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (SAR extract)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The extract was written and logged, but the log row could not be updated with how it was delivered (FR-054). Check the Teams messages for this reference: an option A message means nothing was emailed.",
+              "text_3": "@{coalesce(body('Get_the_selected_applicant')?['rev_name'], 'unknown')}",
+              "text_4": "Warning",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

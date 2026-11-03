@@ -1,0 +1,1923 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedTeams"
+        },
+        "api": {
+          "name": "shared_teams"
+        }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedOutlook"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      },
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedSharePoint"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "Helper mode 2, erasure (wbs:0.13, CO-011, TAD 5.12.2, ADR-089). Typed confirmation, hold rule D2, snapshots and Scheduled log rows, then PDFs, mailbox messages and ONE delete of the applicant row; then outcomes and emails. See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_ProcessOwnerUpn": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ProcessOwnerUpn",
+            "description": "Environment variable. The process owner told of a hold or a completed erasure (C-TECH-047)."
+          }
+        },
+        "rev_ServiceMailbox": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ServiceMailbox",
+            "description": "Environment variable. The service mailbox whose messages to or from the applicant and referee are deleted (A-ERA-4)."
+          }
+        },
+        "rev_SpoSiteUrl": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_SpoSiteUrl",
+            "description": "Environment variable. The site holding the signed-acceptance library."
+          }
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "ApiConnection",
+          "description": "When a row is selected on rev_applicant (Flow menu), with one text input: the applicant reference, typed (A-ERA-1). No splitOn: exactly one applicant or the run stops. Identity is checked by the process owner first (runbook).",
+          "inputs": {
+            "operationId": "RecordSelected",
+            "parameters": {
+              "entityName": "rev_applicants"
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "entity": {
+                        "properties": {
+                          "rev_name": {
+                            "title": "Applicant Reference",
+                            "type": "string"
+                          },
+                          "rev_applicantid": {
+                            "title": "Applicant",
+                            "type": "string",
+                            "format": "guid"
+                          }
+                        },
+                        "type": "object",
+                        "required": []
+                      }
+                    }
+                  }
+                },
+                "text": {
+                  "title": "Type the applicant reference (REV-A-nnnnn) to confirm the erasure",
+                  "type": "string",
+                  "description": "The erasure deletes the applicant and every record linked to it. Type the selected applicant's reference exactly; anything else stops the run with nothing changed.",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "rows",
+                "text"
+              ]
+            },
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['shared_commondataserviceforapps']['connectionId']"
+              }
+            }
+          }
+        }
+      },
+      "actions": {
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "Deep link to THIS run, for the alerts.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Compose_selected_rows": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "The rows the process owner selected (ids and references only). No splitOn: an erasure runs on exactly one applicant.",
+          "inputs": "@triggerBody()?['rows']"
+        },
+        "Compose_typed_reference": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_selected_rows": [
+              "Succeeded"
+            ]
+          },
+          "description": "A-ERA-1: the reference the process owner typed into the trigger's text input, read from the trigger body (the class flow-reads-no-trigger-body targets in another flow; here the typed value IS the control).",
+          "inputs": "@{toUpper(trim(coalesce(triggerBody()?['text'], '')))}"
+        },
+        "Check_one_applicant_and_the_typed_reference": {
+          "type": "If",
+          "runAfter": {
+            "Compose_typed_reference": [
+              "Succeeded"
+            ]
+          },
+          "description": "The confirmation: exactly one applicant selected, and the typed reference equals its reference. An empty reference on the row never matches.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(outputs('Compose_selected_rows'))",
+                  1
+                ]
+              },
+              {
+                "not": {
+                  "equals": [
+                    "@empty(first(outputs('Compose_selected_rows'))?['entity']?['rev_name'])",
+                    true
+                  ]
+                }
+              },
+              {
+                "equals": [
+                  "@outputs('Compose_typed_reference')",
+                  "@toUpper(trim(coalesce(first(outputs('Compose_selected_rows'))?['entity']?['rev_name'], '')))"
+                ]
+              }
+            ]
+          },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Stop_reference_does_not_match": {
+                "type": "Terminate",
+                "runAfter": {},
+                "description": "TAD 5.12.2 trigger, A-ERA-1: a mismatch stops the run before anything is read.",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "ReferenceMismatch",
+                    "message": "Nothing was read or changed. Select exactly one applicant and type its reference (REV-A-nnnnn) exactly."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Get_the_applicant_to_erase": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Check_one_applicant_and_the_typed_reference": [
+              "Succeeded"
+            ]
+          },
+          "description": "IMP-1185: the first read, by the id the trigger delivered, after the confirmation. Secured both ways: the email address.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "GetItem",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_applicants",
+              "recordId": "@first(outputs('Compose_selected_rows'))?['entity']?['rev_applicantid']",
+              "$select": "rev_applicantid,rev_name,rev_email"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Alert_applicant_to_erase_not_read": {
+          "type": "Workflow",
+          "runAfter": {
+            "Get_the_applicant_to_erase": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: the id only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The selected applicant could not be read. Nothing was changed.",
+              "text_3": "@{concat('applicant ', coalesce(first(outputs('Compose_selected_rows'))?['entity']?['rev_applicantid'], 'unknown'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_applicant_to_erase_not_read": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_applicant_to_erase_not_read": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "ApplicantNotRead",
+              "message": "The selected applicant could not be read. Nothing was changed."
+            }
+          }
+        },
+        "Compose_applicant_reference": {
+          "type": "Compose",
+          "runAfter": {
+            "Get_the_applicant_to_erase": [
+              "Succeeded"
+            ]
+          },
+          "description": "The applicant reference (REV-A-nnnnn): what every log row, alert and message names.",
+          "inputs": "@body('Get_the_applicant_to_erase')?['rev_name']"
+        },
+        "Check_the_reference_on_the_row": {
+          "type": "If",
+          "runAfter": {
+            "Compose_applicant_reference": [
+              "Succeeded"
+            ]
+          },
+          "description": "Re-checks the typed reference against the row itself.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@toUpper(trim(coalesce(outputs('Compose_applicant_reference'), '')))",
+                  "@outputs('Compose_typed_reference')"
+                ]
+              }
+            ]
+          },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Stop_reference_changed": {
+                "type": "Terminate",
+                "runAfter": {},
+                "description": "Defence in depth: the row read from Dataverse must carry the reference typed, not only the trigger's copy.",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "ReferenceMismatch",
+                    "message": "Nothing was changed: the applicant's reference does not match what was typed."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Identify_the_erasure_starter": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Check_the_reference_on_the_row": [
+              "Succeeded"
+            ]
+          },
+          "description": "A-SAR-8: who started the erasure, for every log row (TAD 5.12.3 rev_startedby). Secured: a staff address.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "systemusers",
+              "$filter": "@{concat('internalemailaddress eq ''', replace(coalesce(triggerOutputs()?['headers']?['x-ms-user-email'], ''), '''', ''''''), '''')}",
+              "$select": "systemuserid",
+              "$top": 1
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Alert_erasure_starter_lookup_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Identify_the_erasure_starter": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The person who started the erasure could not be looked up. Nothing was changed.",
+              "text_3": "@{coalesce(outputs('Compose_applicant_reference'), 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_erasure_starter_lookup_failed": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_erasure_starter_lookup_failed": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "StarterLookupFailed",
+              "message": "The person who started the run could not be looked up. Nothing was changed."
+            }
+          }
+        },
+        "Check_the_erasure_starter_is_known": {
+          "type": "If",
+          "runAfter": {
+            "Identify_the_erasure_starter": [
+              "Succeeded"
+            ]
+          },
+          "description": "Fail-safe before the case is read.",
+          "expression": {
+            "and": [
+              {
+                "not": {
+                  "equals": [
+                    "@empty(body('Identify_the_erasure_starter')?['value'])",
+                    true
+                  ]
+                }
+              }
+            ]
+          },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Stop_erasure_starter_unknown": {
+                "type": "Terminate",
+                "runAfter": {},
+                "description": "A-SAR-8 fail-safe: an erasure's evidence names who started it. If the trigger exposes no caller the run stops before anything is changed, and A-SAR-8 is a CASCADE: ARCH_GAP.",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "StarterNotIdentified",
+                    "message": "Who started this run could not be identified, so nothing was changed (A-SAR-8). Tell the developer."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Compose_starter_bind": {
+          "type": "Compose",
+          "runAfter": {
+            "Check_the_erasure_starter_is_known": [
+              "Succeeded"
+            ]
+          },
+          "description": "The rev_startedby lookup bind, a staff user id.",
+          "inputs": "@{concat('/systemusers(', first(body('Identify_the_erasure_starter')?['value'])?['systemuserid'], ')')}"
+        },
+        "Compose_erasure_date": {
+          "type": "Compose",
+          "runAfter": {
+            "Compose_starter_bind": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.3: rev_scheduledon is the run date for modes 2 and 3.",
+          "inputs": "@{formatDateTime(utcNow(), 'yyyy-MM-dd')}"
+        },
+        "Call_the_locate_child_for_erasure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Compose_erasure_date": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.2 step 1: the same locate child as mode 3. Secured both ways.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1017-4b7a-9e21-0a1b2c3d4e17"
+            },
+            "body": {
+              "text": "@body('Get_the_applicant_to_erase')?['rev_applicantid']"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Alert_case_to_erase_not_located": {
+          "type": "Workflow",
+          "runAfter": {
+            "Call_the_locate_child_for_erasure": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The applicant's records could not be located. Nothing was changed.",
+              "text_3": "@{coalesce(outputs('Compose_applicant_reference'), 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_case_to_erase_not_located": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_case_to_erase_not_located": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "CaseNotLocated",
+              "message": "The applicant's records could not be located. Nothing was changed."
+            }
+          }
+        },
+        "Compose_case_to_erase": {
+          "type": "Compose",
+          "runAfter": {
+            "Call_the_locate_child_for_erasure": [
+              "Succeeded"
+            ]
+          },
+          "description": "The located case. Secured.",
+          "inputs": "@body('Call_the_locate_child_for_erasure')",
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "Find_grants_without_final_payment": {
+          "type": "Query",
+          "runAfter": {
+            "Compose_case_to_erase": [
+              "Succeeded"
+            ]
+          },
+          "description": "Decision D2 (approved: \"It only erases when final payment is checked.\"): any grant whose rev_finalpaymentdate is not set. Secured: grant rows.",
+          "inputs": {
+            "from": "@coalesce(outputs('Compose_case_to_erase')?['grants'], json('[]'))",
+            "where": "@empty(item()?['rev_finalpaymentdate'])"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Check_the_hold_rule": {
+          "type": "If",
+          "runAfter": {
+            "Find_grants_without_final_payment": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.2 step 2: a case with a grant is erased only when every grant has its final payment recorded; otherwise the run stops. A case with no grant is unaffected. No other hold is evaluated by the flow.",
+          "expression": {
+            "and": [
+              {
+                "greater": [
+                  "@length(body('Find_grants_without_final_payment'))",
+                  0
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Log_the_hold": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "TAD 5.12.2 step 2: one row, rule Hold (6), outcome Retained (hold) (5). Nothing is deleted.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_retentionlogs",
+                  "item/rev_runtype": 2,
+                  "item/rev_recordreference": "@outputs('Compose_applicant_reference')",
+                  "item/rev_datatype": 1,
+                  "item/rev_ruleapplied": 6,
+                  "item/rev_outcome": 5,
+                  "item/rev_scheduledon": "@outputs('Compose_erasure_date')",
+                  "item/rev_actionedon": "@utcNow()",
+                  "item/rev_startedby@odata.bind": "@outputs('Compose_starter_bind')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Select_held_grant_references": {
+              "type": "Select",
+              "runAfter": {
+                "Log_the_hold": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Grant references only out; secured because its input is the held grant rows.",
+              "inputs": {
+                "from": "@body('Find_grants_without_final_payment')",
+                "select": "@item()?['rev_name']"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Email_the_requester_about_the_hold": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_held_grant_references": [
+                  "Succeeded"
+                ]
+              },
+              "description": "TAD 5.12.2 step 2: fixed runbook wording, from the service mailbox, no case content. Secured: the address.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_office365",
+                  "operationId": "SendEmailV2",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                },
+                "parameters": {
+                  "emailMessage/To": "@body('Get_the_applicant_to_erase')?['rev_email']",
+                  "emailMessage/Subject": "Your request to erase your personal data",
+                  "emailMessage/Body": "<p>Thank you for your request to erase the personal data Revitalise holds about you.</p><p>We cannot erase it yet, because a grant we awarded you has not been fully paid. Once the final payment has been made and recorded, we will erase your data and write to you to confirm what was erased and what we must keep, why, and until when.</p><p>If you have any questions, reply to this email.</p><p>Revitalise</p>"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Tell_the_process_owner_about_the_hold": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Email_the_requester_about_the_hold": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "description": "Decision D2: references only.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_teams",
+                  "operationId": "PostMessageToConversation",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                },
+                "parameters": {
+                  "poster": "Flow bot",
+                  "location": "Chat with Flow bot",
+                  "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+                  "body/messageBody": "@{concat('<p><b>Erasure held (nothing deleted)</b></p><p>Applicant reference: ', outputs('Compose_applicant_reference'), '<br/>Grant(s) with no final payment recorded: ', join(body('Select_held_grant_references'), ', '), '</p><p>', if(equals(actions('Email_the_requester_about_the_hold')?['status'], 'Succeeded'), 'The requester has been emailed that the erasure waits for the final payment.', 'The requester could NOT be emailed: tell them by hand.'), ' Run the erasure again once the final payment is recorded.</p>')}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Stop_held_for_final_payment": {
+              "type": "Terminate",
+              "runAfter": {
+                "Tell_the_process_owner_about_the_hold": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "description": "The run ends here; nothing was deleted.",
+              "inputs": {
+                "runStatus": "Succeeded"
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        },
+        "Alert_hold_not_recorded": {
+          "type": "Workflow",
+          "runAfter": {
+            "Check_the_hold_rule": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The erasure was held for a missing final payment, but the hold could not be recorded or announced. Nothing was deleted.",
+              "text_3": "@{coalesce(outputs('Compose_applicant_reference'), 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Prepare_the_erasure": {
+          "type": "Scope",
+          "runAfter": {
+            "Check_the_hold_rule": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.2 steps 3 and 4: snapshots, then one Scheduled row per record, so a run that fails half-way leaves evidence of what it was doing.",
+          "actions": {
+            "For_each_application_to_erase": {
+              "type": "Foreach",
+              "runAfter": {},
+              "description": "One application at a time.",
+              "foreach": "@coalesce(outputs('Compose_case_to_erase')?['applications'], json('[]'))",
+              "actions": {
+                "Call_the_snapshot_child_for_erasure": {
+                  "type": "Workflow",
+                  "runAfter": {},
+                  "description": "TAD 5.12.2 step 3: the Not Granted snapshot (FR-055) before the application goes.",
+                  "inputs": {
+                    "host": {
+                      "workflowReferenceName": "8f1c2a44-1018-4b7a-9e21-0a1b2c3d4e18"
+                    },
+                    "body": {
+                      "text": "@items('For_each_application_to_erase')?['rev_applicationid']"
+                    }
+                  }
+                },
+                "Log_the_application_erasure": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Call_the_snapshot_child_for_erasure": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "TAD 5.12.2 step 4: Scheduled (1), written before anything is deleted.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_retentionlogs",
+                      "item/rev_runtype": 2,
+                      "item/rev_recordreference": "@items('For_each_application_to_erase')?['rev_name']",
+                      "item/rev_datatype": 2,
+                      "item/rev_ruleapplied": 5,
+                      "item/rev_outcome": 1,
+                      "item/rev_scheduledon": "@outputs('Compose_erasure_date')",
+                      "item/rev_actionedon": "@utcNow()",
+                      "item/rev_startedby@odata.bind": "@outputs('Compose_starter_bind')"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            },
+            "Log_the_applicant_erasure": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "For_each_application_to_erase": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The applicant row (with its bank accounts): Scheduled.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_retentionlogs",
+                  "item/rev_runtype": 2,
+                  "item/rev_recordreference": "@outputs('Compose_applicant_reference')",
+                  "item/rev_datatype": 1,
+                  "item/rev_ruleapplied": 5,
+                  "item/rev_outcome": 1,
+                  "item/rev_scheduledon": "@outputs('Compose_erasure_date')",
+                  "item/rev_actionedon": "@utcNow()",
+                  "item/rev_startedby@odata.bind": "@outputs('Compose_starter_bind')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "For_each_grant_pdf_to_log": {
+              "type": "Foreach",
+              "runAfter": {
+                "Log_the_applicant_erasure": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One grant at a time.",
+              "foreach": "@coalesce(outputs('Compose_case_to_erase')?['grants'], json('[]'))",
+              "actions": {
+                "Check_the_grant_has_a_pdf_to_log": {
+                  "type": "If",
+                  "runAfter": {},
+                  "description": "Only a grant with a signed PDF in the library.",
+                  "expression": {
+                    "and": [
+                      {
+                        "not": {
+                          "equals": [
+                            "@empty(items('For_each_grant_pdf_to_log')?['rev_signedpdfurl'])",
+                            true
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Log_the_signed_pdf_erasure": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "description": "One row per signed PDF, with its path (named with the grant reference).",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "rev_retentionlogs",
+                          "item/rev_runtype": 2,
+                          "item/rev_recordreference": "@items('For_each_grant_pdf_to_log')?['rev_name']",
+                          "item/rev_datatype": 3,
+                          "item/rev_ruleapplied": 5,
+                          "item/rev_outcome": 1,
+                          "item/rev_scheduledon": "@outputs('Compose_erasure_date')",
+                          "item/rev_actionedon": "@utcNow()",
+                          "item/rev_startedby@odata.bind": "@outputs('Compose_starter_bind')",
+                          "item/rev_signedpdfpath": "@items('For_each_grant_pdf_to_log')?['rev_signedpdfurl']"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            },
+            "Log_the_mailbox_erasure": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "For_each_grant_pdf_to_log": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The service-mailbox messages: Scheduled.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_retentionlogs",
+                  "item/rev_runtype": 2,
+                  "item/rev_recordreference": "@outputs('Compose_applicant_reference')",
+                  "item/rev_datatype": 4,
+                  "item/rev_ruleapplied": 5,
+                  "item/rev_outcome": 1,
+                  "item/rev_scheduledon": "@outputs('Compose_erasure_date')",
+                  "item/rev_actionedon": "@utcNow()",
+                  "item/rev_startedby@odata.bind": "@outputs('Compose_starter_bind')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            }
+          }
+        },
+        "Alert_erasure_not_prepared": {
+          "type": "Workflow",
+          "runAfter": {
+            "Prepare_the_erasure": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The erasure stopped while writing snapshots or log rows. Nothing has been deleted yet; run it again.",
+              "text_3": "@{coalesce(outputs('Compose_applicant_reference'), 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_erasure_not_prepared": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_erasure_not_prepared": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "ErasureNotPrepared",
+              "message": "Nothing was deleted. Run the erasure again."
+            }
+          }
+        },
+        "Compose_reply_address": {
+          "type": "Compose",
+          "runAfter": {
+            "Prepare_the_erasure": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.2 step 5: the requester's address, kept for the reply because the row is about to go. Secured.",
+          "inputs": "@body('Get_the_applicant_to_erase')?['rev_email']",
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "Delete_the_copies_and_the_case": {
+          "type": "Scope",
+          "runAfter": {
+            "Compose_reply_address": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.2 steps 6 and 7 in one scope. A failure before step 7 leaves the case in place with Scheduled rows; every step is idempotent, so the process owner re-runs.",
+          "actions": {
+            "For_each_signed_pdf_to_delete": {
+              "type": "Foreach",
+              "runAfter": {},
+              "description": "Step 6: the signed PDFs (FR-049 on erasure).",
+              "foreach": "@coalesce(outputs('Compose_case_to_erase')?['grants'], json('[]'))",
+              "actions": {
+                "Check_the_grant_has_a_pdf_to_delete": {
+                  "type": "If",
+                  "runAfter": {},
+                  "description": "Only a grant with a signed PDF.",
+                  "expression": {
+                    "and": [
+                      {
+                        "not": {
+                          "equals": [
+                            "@empty(items('For_each_signed_pdf_to_delete')?['rev_signedpdfurl'])",
+                            true
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Find_the_pdf_to_delete": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "description": "A-ERA-3: the file's id from its path (named with the grant reference).",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "GetFileMetadataByPath",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset": "@parameters('rev_SpoSiteUrl')",
+                          "path": "@items('For_each_signed_pdf_to_delete')?['rev_signedpdfurl']"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "Delete_the_signed_pdf": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {
+                        "Find_the_pdf_to_delete": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "A-ERA-3, FR-051: SharePoint Delete file.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "DeleteFile",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset": "@parameters('rev_SpoSiteUrl')",
+                          "id": "@body('Find_the_pdf_to_delete')?['Id']"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S"
+                        }
+                      }
+                    },
+                    "Check_the_pdf_was_already_gone": {
+                      "type": "If",
+                      "runAfter": {
+                        "Find_the_pdf_to_delete": [
+                          "Failed",
+                          "TimedOut"
+                        ]
+                      },
+                      "description": "A-ERA-3: a 404 means already gone (idempotent re-run, TAD 5.12.2 Failure); any other failure stops the scope.",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@outputs('Find_the_pdf_to_delete')?['statusCode']",
+                              404
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {},
+                      "else": {
+                        "actions": {
+                          "Fail_on_the_pdf_lookup": {
+                            "type": "Compose",
+                            "runAfter": {},
+                            "description": "A deliberately failing step: Terminate is not allowed inside a loop (IMP-1098), so this re-raises the failure to the enclosing scope.",
+                            "inputs": "@int('The signed PDF lookup failed, and not because it was already gone (A-ERA-3).')"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            },
+            "Select_applicant_mailbox_target": {
+              "type": "Select",
+              "runAfter": {
+                "For_each_signed_pdf_to_delete": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The applicant's address, with no reference filter.",
+              "inputs": {
+                "from": "@createArray(outputs('Compose_case_to_erase')?['applicant'])",
+                "select": {
+                  "address": "@coalesce(item()?['rev_email'], '')",
+                  "reference": ""
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Select_referee_mailbox_targets": {
+              "type": "Select",
+              "runAfter": {
+                "Select_applicant_mailbox_target": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Each referee's address, filtered to the application's reference.",
+              "inputs": {
+                "from": "@coalesce(outputs('Compose_case_to_erase')?['applications'], json('[]'))",
+                "select": {
+                  "address": "@coalesce(item()?['rev_refereeemail'], '')",
+                  "reference": "@item()?['rev_name']"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Filter_mailbox_targets": {
+              "type": "Query",
+              "runAfter": {
+                "Select_referee_mailbox_targets": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Blank addresses dropped.",
+              "inputs": {
+                "from": "@union(body('Select_applicant_mailbox_target'), body('Select_referee_mailbox_targets'))",
+                "where": "@not(empty(item()?['address']))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "For_each_mailbox_target_to_purge": {
+              "type": "Foreach",
+              "runAfter": {
+                "Filter_mailbox_targets": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Step 6: the service-mailbox messages.",
+              "foreach": "@body('Filter_mailbox_targets')",
+              "actions": {
+                "Get_messages_from_the_target": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "A-SAR-12: Inbox messages from this address. Secured both ways.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_office365",
+                      "operationId": "GetEmailsV3",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                    },
+                    "parameters": {
+                      "folderPath": "Inbox",
+                      "from": "@items('For_each_mailbox_target_to_purge')?['address']",
+                      "fetchOnlyUnread": false,
+                      "includeAttachments": false,
+                      "top": 250,
+                      "mailboxAddress": "@parameters('rev_ServiceMailbox')"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Get_messages_to_the_target": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Get_messages_from_the_target": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "A-SAR-12: Sent Items messages to this address. Secured both ways.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_office365",
+                      "operationId": "GetEmailsV3",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                    },
+                    "parameters": {
+                      "folderPath": "SentItems",
+                      "to": "@items('For_each_mailbox_target_to_purge')?['address']",
+                      "fetchOnlyUnread": false,
+                      "includeAttachments": false,
+                      "top": 250,
+                      "mailboxAddress": "@parameters('rev_ServiceMailbox')"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Filter_messages_to_delete": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Get_messages_to_the_target": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "TAD 5.12.2 step 6: every message to or from the applicant; a referee's message only when its subject carries this application's reference.",
+                  "inputs": {
+                    "from": "@union(coalesce(body('Get_messages_from_the_target')?['value'], json('[]')), coalesce(body('Get_messages_to_the_target')?['value'], json('[]')))",
+                    "where": "@or(empty(items('For_each_mailbox_target_to_purge')?['reference']), contains(coalesce(item()?['subject'], item()?['Subject'], ''), items('For_each_mailbox_target_to_purge')?['reference']))"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "For_each_message_to_delete": {
+                  "type": "Foreach",
+                  "runAfter": {
+                    "Filter_messages_to_delete": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "One message at a time.",
+                  "foreach": "@body('Filter_messages_to_delete')",
+                  "actions": {
+                    "Delete_the_message": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {},
+                      "description": "A-ERA-4: Outlook Delete email, running as the service identity.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_office365",
+                          "operationId": "DeleteEmail_V2",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                        },
+                        "parameters": {
+                          "messageId": "@coalesce(items('For_each_message_to_delete')?['id'], items('For_each_message_to_delete')?['Id'])",
+                          "mailboxAddress": "@parameters('rev_ServiceMailbox')"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "Check_the_message_was_already_gone": {
+                      "type": "If",
+                      "runAfter": {
+                        "Delete_the_message": [
+                          "Failed",
+                          "TimedOut"
+                        ]
+                      },
+                      "description": "A-ERA-4: a 404 means already gone (idempotent re-run, TAD 5.12.2 Failure); any other failure stops the scope.",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@outputs('Delete_the_message')?['statusCode']",
+                              404
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {},
+                      "else": {
+                        "actions": {
+                          "Fail_on_the_message_delete": {
+                            "type": "Compose",
+                            "runAfter": {},
+                            "description": "A deliberately failing step: Terminate is not allowed inside a loop (IMP-1098), so this re-raises the failure to the enclosing scope.",
+                            "inputs": "@int('The message delete failed, and not because it was already gone (A-ERA-4).')"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "concurrency": {
+                      "repetitions": 1
+                    }
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            },
+            "Delete_the_applicant_row": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "For_each_mailbox_target_to_purge": [
+                  "Succeeded"
+                ]
+              },
+              "description": "TAD 5.12.2 step 7, A-ERA-2: ONE Dataverse delete. The parental cascades remove applications, reviews, grants, payments and bank accounts (TAD 3.3). The only Dataverse delete in the helper.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "DeleteRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applicants",
+                  "recordId": "@body('Get_the_applicant_to_erase')?['rev_applicantid']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            }
+          }
+        },
+        "Alert_erasure_stopped": {
+          "type": "Workflow",
+          "runAfter": {
+            "Delete_the_copies_and_the_case": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The erasure stopped before or while deleting. The log rows read Scheduled. Run the erasure again: a file or message already gone is not an error.",
+              "text_3": "@{coalesce(outputs('Compose_applicant_reference'), 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_erasure_stopped": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_erasure_stopped": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Stops the run Failed.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "ErasureStopped",
+              "message": "The erasure did not finish. Run it again."
+            }
+          }
+        },
+        "Record_the_outcomes": {
+          "type": "Scope",
+          "runAfter": {
+            "Delete_the_copies_and_the_case": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.2 step 8.",
+          "actions": {
+            "Select_erasure_log_reference_terms": {
+              "type": "Select",
+              "runAfter": {},
+              "description": "One term per reference of the erased case (applicant, applications, grants). Secured: its input is the case.",
+              "inputs": {
+                "from": "@union(createArray(outputs('Compose_case_to_erase')?['applicant']), coalesce(outputs('Compose_case_to_erase')?['applications'], json('[]')), coalesce(outputs('Compose_case_to_erase')?['grants'], json('[]')))",
+                "select": "@concat('rev_recordreference eq ''', item()?['rev_name'], '''')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "List_scheduled_erasure_rows": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Select_erasure_log_reference_terms": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every Scheduled erasure row of this case, including rows left by an earlier run that stopped half-way, so a re-run leaves none behind.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_retentionlogs",
+                  "$filter": "@{concat('rev_runtype eq 2 and rev_outcome eq 1 and (', join(body('Select_erasure_log_reference_terms'), ' or '), ')')}",
+                  "$select": "rev_retentionlogid"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "For_each_log_row_to_mark_deleted": {
+              "type": "Foreach",
+              "runAfter": {
+                "List_scheduled_erasure_rows": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every Scheduled row of this case.",
+              "foreach": "@body('List_scheduled_erasure_rows')?['value']",
+              "actions": {
+                "Mark_the_log_row_deleted": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "Deleted (2); the PDF path is cleared once the file is gone (TAD 5.12.3).",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateOnlyRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_retentionlogs",
+                      "recordId": "@items('For_each_log_row_to_mark_deleted')?['rev_retentionlogid']",
+                      "item/rev_outcome": 2,
+                      "item/rev_actionedon": "@utcNow()",
+                      "item/rev_signedpdfpath": null
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            },
+            "For_each_paid_grant_to_log": {
+              "type": "Foreach",
+              "runAfter": {
+                "For_each_log_row_to_mark_deleted": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One row per paid grant (after the hold rule every grant has its final payment).",
+              "foreach": "@coalesce(outputs('Compose_case_to_erase')?['grants'], json('[]'))",
+              "actions": {
+                "Log_the_quickbooks_record_kept": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "TAD 5.12.2 step 8, ADR-088 item 6: QuickBooks record kept, Retained (finance) (6), until final payment + 72 months; Finance deletes it outside this solution. 72 months is the paidGrantApplications period, held equal by a unit test.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_retentionlogs",
+                      "item/rev_runtype": 2,
+                      "item/rev_recordreference": "@items('For_each_paid_grant_to_log')?['rev_name']",
+                      "item/rev_datatype": 5,
+                      "item/rev_ruleapplied": 5,
+                      "item/rev_outcome": 6,
+                      "item/rev_scheduledon": "@outputs('Compose_erasure_date')",
+                      "item/rev_actionedon": "@utcNow()",
+                      "item/rev_startedby@odata.bind": "@outputs('Compose_starter_bind')",
+                      "item/rev_retaineduntil": "@addToTime(items('For_each_paid_grant_to_log')?['rev_finalpaymentdate'], 72, 'Month', 'yyyy-MM-dd')"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              }
+            },
+            "Log_the_audit_history_kept": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "For_each_paid_grant_to_log": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Decision D3 (a), TAD 5.12.2 step 8 (rev 37 approval amendment): audit history kept to its six-year retention, access-restricted. Outcome Retained (audit) (8), retained until the erasure date + 6 years.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_retentionlogs",
+                  "item/rev_runtype": 2,
+                  "item/rev_recordreference": "@outputs('Compose_applicant_reference')",
+                  "item/rev_datatype": 6,
+                  "item/rev_ruleapplied": 5,
+                  "item/rev_outcome": 8,
+                  "item/rev_scheduledon": "@outputs('Compose_erasure_date')",
+                  "item/rev_actionedon": "@utcNow()",
+                  "item/rev_startedby@odata.bind": "@outputs('Compose_starter_bind')",
+                  "item/rev_retaineduntil": "@addToTime(outputs('Compose_erasure_date'), 6, 'Year', 'yyyy-MM-dd')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            }
+          }
+        },
+        "Alert_outcomes_not_recorded": {
+          "type": "Workflow",
+          "runAfter": {
+            "Record_the_outcomes": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The case was erased, but the log rows could not all be updated. The requester and the DPO are still told; correct the log by hand.",
+              "text_3": "@{coalesce(outputs('Compose_applicant_reference'), 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Select_erased_application_references": {
+          "type": "Select",
+          "runAfter": {
+            "Record_the_outcomes": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "References only out; secured because its input is the application rows.",
+          "inputs": {
+            "from": "@coalesce(outputs('Compose_case_to_erase')?['applications'], json('[]'))",
+            "select": "@item()?['rev_name']"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Select_kept_quickbooks_lines": {
+          "type": "Select",
+          "runAfter": {
+            "Select_erased_application_references": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-052: what is kept, why and until when. Secured: payment dates.",
+          "inputs": {
+            "from": "@coalesce(outputs('Compose_case_to_erase')?['grants'], json('[]'))",
+            "select": "@concat('<li>The payment record for grant ', item()?['rev_name'], ' is kept in our finance system (QuickBooks) until ', formatDateTime(addToTime(item()?['rev_finalpaymentdate'], 72, 'Month'), 'd MMMM yyyy'), ', because the law requires charities to keep financial records for six years. Our finance team deletes it after that date.</li>')"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Find_envelopes_to_void": {
+          "type": "Query",
+          "runAfter": {
+            "Select_kept_quickbooks_lines": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12.2 step 10: a DocuSign envelope still in progress (grant status Acceptance Issued, 2); the connector has no void action, so the process owner voids it by hand.",
+          "inputs": {
+            "from": "@coalesce(outputs('Compose_case_to_erase')?['grants'], json('[]'))",
+            "where": "@and(not(empty(item()?['rev_docusignenvelopeid'])), equals(item()?['rev_status'], 2))"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Select_envelope_grant_references": {
+          "type": "Select",
+          "runAfter": {
+            "Find_envelopes_to_void": [
+              "Succeeded"
+            ]
+          },
+          "description": "References only out; secured because its input is grant rows.",
+          "inputs": {
+            "from": "@body('Find_envelopes_to_void')",
+            "select": "@item()?['rev_name']"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Email_the_requester_the_outcome": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Select_envelope_grant_references": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-052, TAD 5.12.2 step 9: fixed wording from the runbook, dates computed, references only, no case content. Secured: the address.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_office365",
+              "operationId": "SendEmailV2",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "emailMessage/To": "@outputs('Compose_reply_address')",
+              "emailMessage/Subject": "We have erased your personal data",
+              "emailMessage/Body": "@{concat('<p>As you asked, Revitalise has erased the personal data we held about you in our grant application system.</p><p>Erased: your applicant record (', outputs('Compose_applicant_reference'), ') and your application(s) ', join(body('Select_erased_application_references'), ', '), ', with their reviews, grants, payments and bank details, the signed acceptance documents we stored and the emails in our grants mailbox.</p><p>What we keep, why, and until when:</p><ul>', join(body('Select_kept_quickbooks_lines'), ''), '<li>A record of each change made to your data (the audit history) is kept, with access restricted, until six years after the change and is then deleted automatically.</li><li>If you signed an acceptance through DocuSign in the last 30 days, DocuSign keeps that envelope until its retention setting deletes it, 30 days after it closed.</li><li>Text you wrote in your application may have been sent to Microsoft AI Builder to remove names and addresses; any copy is deleted automatically within 30 days.</li><li>Our website keeps the application form entry you submitted; we handle the website copy separately.</li></ul><p>If you have any questions, reply to this email.</p><p>Revitalise</p>')}"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
+          }
+        },
+        "Alert_requester_not_told": {
+          "type": "Workflow",
+          "runAfter": {
+            "Email_the_requester_the_outcome": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The case was erased, but the confirmation email to the requester could not be sent. Tell the requester by hand (runbook wording).",
+              "text_3": "@{coalesce(outputs('Compose_applicant_reference'), 'unknown')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Get_the_dpo_notification_setting": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Email_the_requester_the_outcome": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "TAD 5.12.2 step 10: the DPO's mailbox, a rev_setting the process owner edits (never a literal address, C-TECH-047).",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_settings",
+              "$filter": "rev_name eq 'ErasureNotificationEmail'",
+              "$select": "rev_value",
+              "$top": 1
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Check_the_dpo_address_is_set": {
+          "type": "If",
+          "runAfter": {
+            "Get_the_dpo_notification_setting": [
+              "Succeeded"
+            ]
+          },
+          "description": "Sends only when the setting holds an address; otherwise the Teams message says it is not set.",
+          "expression": {
+            "and": [
+              {
+                "contains": [
+                  "@coalesce(first(body('Get_the_dpo_notification_setting')?['value'])?['rev_value'], '')",
+                  "@@"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Email_the_dpo": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "TAD 5.12.2 step 10, SDD 6.6 \"the DPO is notified\": references only.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_office365",
+                  "operationId": "SendEmailV2",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                },
+                "parameters": {
+                  "emailMessage/To": "@first(body('Get_the_dpo_notification_setting')?['value'])?['rev_value']",
+                  "emailMessage/Subject": "@{concat('Erasure carried out: ', outputs('Compose_applicant_reference'))}",
+                  "emailMessage/Body": "@{concat('<p>An erasure request has been carried out in the grant application system.</p><p>Applicant reference: ', outputs('Compose_applicant_reference'), '<br/>Application references: ', join(body('Select_erased_application_references'), ', '), '<br/>Date: ', outputs('Compose_erasure_date'), '</p><p>The Retention Log in REV Grant Administration records each record deleted and what is kept. This message holds references only.</p>')}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        },
+        "Tell_the_process_owner_the_erasure_is_done": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Check_the_dpo_address_is_set": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "TAD 5.12.2 step 10: references, and any envelope to void by hand. No names.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_teams",
+              "operationId": "PostMessageToConversation",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+            },
+            "parameters": {
+              "poster": "Flow bot",
+              "location": "Chat with Flow bot",
+              "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+              "body/messageBody": "@{concat('<p><b>Erasure carried out</b></p><p>Applicant reference: ', outputs('Compose_applicant_reference'), '<br/>Application references: ', join(body('Select_erased_application_references'), ', '), '</p><p>', if(equals(actions('Email_the_requester_the_outcome')?['status'], 'Succeeded'), 'The requester has been emailed.', 'The requester could NOT be emailed: tell them by hand.'), ' ', if(equals(actions('Email_the_dpo')?['status'], 'Succeeded'), 'The DPO has been emailed.', 'The DPO was NOT emailed: the Erasure notification email setting is not set, or the email failed.'), '</p>', if(empty(body('Select_envelope_grant_references')), '', concat('<p>Void these DocuSign envelopes by hand (still in progress): ', join(body('Select_envelope_grant_references'), ', '), '</p>')))}"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Alert_erasure_messages_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Tell_the_process_owner_the_erasure_is_done": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: reference only.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (erasure)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The case was erased, but the DPO setting could not be read or the process owner could not be told.",
+              "text_3": "@{coalesce(outputs('Compose_applicant_reference'), 'unknown')}",
+              "text_4": "Warning",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

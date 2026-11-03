@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Workflow metadata for REV | Retention | Retention &amp; Erasure Helper (SAR extract), mode 3 (wbs:0.13, CO-011,
+  TAD rev 33 sections 4.2 and 5.12, ADR-088). Started from the Flow menu on an applicant. Read-only.
+  Subprocess 0: nothing calls it.
+
+  IMPORTS SWITCHED OFF, SAME REASON AS EVERY OTHER FLOW IN THIS SOLUTION: StateCode 0 / StatusCode 1 is
+  Draft. The connection references must first be bound to service-account connections (interactive OAuth
+  consent, TAD section 12.1), and the pipeline config turns the flow on as a named post_deploy step.
+  Category 5 is a modern cloud flow. PrimaryEntity is none: a Dataverse trigger, where there is one, is
+  expressed inside the definition JSON.
+-->
+<Workflow WorkflowId="{8f1c2a44-1016-4b7a-9e21-0a1b2c3d4e16}" Name="REV | Retention | Retention &amp; Erasure Helper (SAR extract)">
+  <JsonFileName>/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutoDelete>0</AsyncAutoDelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>0</StateCode>
+  <StatusCode>1</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName description="REV | Retention | Retention &amp; Erasure Helper (SAR extract)" languagecode="1033" />
+  </LocalizedNames>
+</Workflow>

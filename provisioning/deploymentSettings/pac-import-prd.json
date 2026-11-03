@@ -39,6 +39,16 @@
       "SchemaName": "rev_DocuSignConnectName",
       "Value": "REV Acceptance Completion - PRD",
       "_comment": "Name of the DocuSign Connect configuration the acceptance completion trigger registers on the DocuSign account. One per environment so each registration can be told apart in DocuSign Admin; not an identifier or secret, so it is a literal value."
+    },
+    {
+      "SchemaName": "rev_SpoSarFolderUrl",
+      "Value": "{{SPO_SAR_FOLDER_URL_PROD}}",
+      "_comment": "Site-relative path of PRD's secured SAR folder inside rev_SpoSiteUrl, where the SAR extract is written (wbs:0.13, CO-011, TAD section 12, A-SAR-9). The folder is created by hand with its own permissions before the helper's first run here; no path is committed."
+    },
+    {
+      "SchemaName": "rev_SarProtectedSender",
+      "Value": "{{SAR_PROTECTED_SENDER_PROD}}",
+      "_comment": "The dedicated SAR mailbox the SAR extract is sent from (delivery option B; wbs:0.13, CO-011, TAD rev 37, ADR-091). Replace with an EMPTY string until the A-SAR-4 check has passed in TST/ACC and then in PRD, and A-SAR-14 is answered: empty means nothing is emailed and the process owner uses option A. Then the address Revitalise's tenant administrator supplies; no address is committed."
     }
   ],
 

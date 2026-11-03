@@ -241,6 +241,44 @@
       <RolePrivilege name="prvReadWorkflow" level="Global" />
       <!-- Required of the identity that owns and runs the flows for trigger registration and run-history writes. -->
       <RolePrivilege name="prvWriteWorkflow" level="Global" />
+      <!-- ===== REV | Retention | Retention & Erasure Helper (wbs:0.13, CO-011, TAD rev 33/34 section 5.12 to
+           5.12.4 and section 12, ADR-088, ADR-089, A-ERA-2, A-SAR-11, risk A-R111) =====
+           rev_retentionlog: create, read, update (TAD 5.12.3). NO delete, by decision D5: the evidence log
+           is kept indefinitely and nobody holds delete on it. Append because rev_startedby is a lookup the
+           flow sets, and prvAppendToUser for the systemuser end of that lookup (both names read live from
+           DEV's privilege table 2026-10-26, E1). Organisation-owned, so no Assign or Share exists. -->
+      <RolePrivilege name="prvCreaterev_retentionlog" level="Global" />
+      <RolePrivilege name="prvReadrev_retentionlog" level="Global" />
+      <RolePrivilege name="prvWriterev_retentionlog" level="Global" />
+      <RolePrivilege name="prvAppendrev_retentionlog" level="Global" />
+      <RolePrivilege name="prvAppendToUser" level="Global" />
+      <!-- Read every review of the applicant's applications (the locate child, TAD 5.12). This role held no
+           rev_review privilege at all until this change, although REV | Portal | Finalise Decisions reads
+           and stamps reviews as this identity. -->
+      <RolePrivilege name="prvReadrev_review" level="Global" />
+      <!-- WRITE on rev_review for REV | Portal | Finalise Decisions (wbs:6.6, reviewer decision 2026-10-30, IMP-1257):
+           its Stamp_the_review (UpdateOnlyRecord) sets rev_outcome and rev_finalisedon, scalar columns only, so no
+           Append is needed. Without it that flow fails where this identity holds only this role (TST/ACC, PRD). -->
+      <RolePrivilege name="prvWriterev_review" level="Global" />
+      <!-- DELETE on rev_applicant and its parental-cascade children, for helper mode 2 only (erasure, FR-051,
+           ADR-089 item 7). Mode 2 issues ONE delete, on rev_applicant; the cascades (Other/Relationships/)
+           remove applications, reviews, grants, payments and bank accounts. Which child privileges the
+           platform checks during a cascade is not verified (A-ERA-2), so all five are granted; DEV closes
+           it by erasing a synthetic applicant and counting rows. Mitigations on the unattended identity:
+           the typed-reference confirmation, the start-by-a-person-only trigger and the evidence log
+           (ADR-089 consequence 7). Mode 1 and mode 3 contain no Dataverse delete (unit-tested). -->
+      <RolePrivilege name="prvDeleterev_applicant" level="Global" />
+      <RolePrivilege name="prvDeleterev_application" level="Global" />
+      <RolePrivilege name="prvDeleterev_review" level="Global" />
+      <RolePrivilege name="prvDeleterev_grant" level="Global" />
+      <RolePrivilege name="prvDeleterev_payment" level="Global" />
+      <RolePrivilege name="prvDeleterev_bankaccount" level="Global" />
+      <!-- AUDIT READ for helper mode 3 (SAR extract, ADR-088 item 3, A-SAR-11, accepted risk A-R108): read the
+           audit records of the located rows. Read only - prvDeleteAudit and prvDeleteAuditPartitions are NOT
+           granted (TAD 6.5, C-DOM-012). Names read live from DEV 2026-10-26 (E1); which of the two the
+           connector's ListRecords on audits needs is what A-SAR-11 closes. -->
+      <RolePrivilege name="prvReadAuditSummary" level="Global" />
+      <RolePrivilege name="prvReadRecordAuditHistory" level="Global" />
       <!-- ===== Platform baseline - see WARNING above ===== -->
       <!-- Read own personal settings - required to open any model-driven app. -->
       <RolePrivilege name="prvReadUserSettings" level="Local" />
@@ -306,10 +344,12 @@
            by provisioning/dataverse/seed-settings.ps1 under the separate deployment identity,
            and changed by the process owner. Least privilege (C-DOM-020). Recorded in
            Dev Summary section 6 for reviewer acknowledgement. -->
-      <!-- No prvDeleterev_applicant / prvDeleterev_application. No Phase 1 flow deletes a
-           record: retention is enforced by native recurring bulk-delete jobs that run as
-           system jobs, not under this role (ADR-004). The erasure helper flow that will need
-           delete is Phase 4. Least privilege until then (C-DOM-020). -->
+      <!-- SUPERSEDED 2026-10-26 (wbs:0.13, ADR-089 item 7): the delete privileges on rev_applicant and its
+           cascade children are now GRANTED above, for helper mode 2 only. Retention itself is still
+           enforced by the native recurring bulk-delete jobs, which run as system jobs (ADR-004); helper
+           mode 1 deletes no Dataverse row. Previously read: "No prvDeleterev_applicant /
+           prvDeleterev_application. No Phase 1 flow deletes a record ... The erasure helper flow that
+           will need delete is Phase 4. Least privilege until then (C-DOM-020)." -->
       <!-- No prvDeleterev_errorlog. Same reason as the Admin role: an identity that can delete
            its own error rows can hide its own failures. -->
       <!-- No prvAssign / prvShare on any table. This identity never hands a record to anyone. -->

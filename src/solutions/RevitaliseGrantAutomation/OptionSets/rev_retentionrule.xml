@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retention Rule: a choice on rev_retentionlog (TAD rev 34 section 5.12.3, ADR-089 item 4, wbs:0.13, CO-011).
+     Values 1 to 7 in the order the TAD lists the labels; the helper flows write these integers
+     and src/tests/solutions/retention_helper asserts the flows and this file agree. Created through the
+     Dataverse Web API by ensure-schema.ps1, never by solution import (C-TECH-050). A later option takes
+     the next value; values are never renumbered while rows reference them. -->
+<optionset Name="rev_retentionrule" localizedName="Retention Rule">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Paid 6 years" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Rejected 12 months" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Withdrawn or incomplete 6 months" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Orphaned applicant" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Erasure request" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Hold" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="SAR access" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="Why a Retention Log row was written: the retention rule or request that applied (TAD 5.12.3, FR-054)." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Retention Rule" languagecode="1033" />
+  </displaynames>
+</optionset>

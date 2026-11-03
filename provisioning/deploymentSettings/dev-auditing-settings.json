@@ -52,7 +52,8 @@
         "rev_roundstatisticsrequest",
         "rev_roundstatisticsresult",
         "rev_citysettlementregister",
-        "rev_localauthorityregister"
+        "rev_localauthorityregister",
+        "rev_retentionlog"
       ]
     }
   }

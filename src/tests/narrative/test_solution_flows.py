@@ -94,10 +94,14 @@ DATAVERSE = "shared_commondataserviceforapps"
 # new write operation cannot slip past the loop check by being unknown to it.
 READ_OPS = {"GetItem", "ListRecords", "SubscribeWebhookTrigger",
             "aibuilderpredict_entityextraction", "aibuilderpredict_customprompt"}
-WRITE_OPS = {"UpdateRecord": "update", "UpdateOnlyRecord": "update", "CreateRecord": "create"}
+# DeleteRecord added 2026-10-26 (wbs:0.13, CO-011): REV | Retention | Retention & Erasure Helper (erasure) deletes
+# rev_applicant once (ADR-089 item 7). A delete fires a trigger listening for deletes (2, 5, 6, 7) on that table. The
+# PARENTAL CASCADE it starts (applications, reviews, grants, payments, bank accounts) is not modelled here: no flow in
+# the solution triggers on a delete of any of those tables, which test_no_flow_triggers_on_a_delete holds true.
+WRITE_OPS = {"UpdateRecord": "update", "UpdateOnlyRecord": "update", "CreateRecord": "create", "DeleteRecord": "delete"}
 # subscriptionRequest/message: 1 create, 2 delete, 3 update, 4 create or update, 5 create or delete,
 # 6 update or delete, 7 all three.
-FIRES_ON = {"create": {1, 4, 5, 7}, "update": {3, 4, 6, 7}}
+FIRES_ON = {"create": {1, 4, 5, 7}, "update": {3, 4, 6, 7}, "delete": {2, 5, 6, 7}}
 
 # The 14 actions the 2026-10-07 Solution Checker report (build 20261007-2) names on this flow, as triaged in
 # the narrative Dev Summary §4.11. If the flow gains or loses a write to rev_applications, this set and that
@@ -164,7 +168,7 @@ def writes_of(definition):
         if op not in WRITE_OPS:
             raise AssertionError(f"{name}: Dataverse operation {op} is not classified as a read or a write")
         cols = {_column_of(k) for k in params if k.startswith("item/")}
-        whole_body = "item" in params
+        whole_body = "item" in params or WRITE_OPS[op] == "delete"
         out.append((name, WRITE_OPS[op], _table_of(params["entityName"]), None if whole_body else cols))
     return out
 
@@ -237,6 +241,15 @@ class NoTriggerLoop(unittest.TestCase):
         """The triage row names 14 actions. A new write to rev_applications must be re-triaged."""
         self.assertEqual({n for n, _, t, _ in writes_of(DEFINITION) if t == "rev_application"}, CHECKER_FLAGGED)
         self.assertEqual(len(CHECKER_FLAGGED), 14)
+
+    def test_no_flow_triggers_on_a_delete(self):
+        """The erasure's one delete cascades to five tables the loop check does not model (comment at WRITE_OPS); that is
+        sound only while no row trigger in the solution listens for a delete."""
+        for name, d in all_flows().items():
+            trig = trigger_of(d)
+            if trig is not None:
+                with self.subTest(name):
+                    self.assertFalse(trig[1] & FIRES_ON["delete"], f"{name} fires on a delete")
 
     def test_no_flow_in_the_solution_is_on_a_trigger_loop(self):
         """Self-loops and loops through another flow (this flow and REVSafeguardingActionCompletion both

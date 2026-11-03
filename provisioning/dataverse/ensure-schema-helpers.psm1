@@ -128,10 +128,14 @@ function Get-RevEntityLogicalNames {
     # discovered separately via the OptionSets/*.xml glob in Get-RevOptionSetDefinitions, so
     # that part does NOT depend on this list) - an omission here would silently skip this
     # table's attributes (step 2) AND its alternate key (step 4), exactly as IMP-0038 predicted.
+    # rev_retentionlog appended for wbs:0.13 (CO-011, TAD rev 34 section 5.12.3, ADR-089 item 4) - the
+    # SEVENTH table on this hand-kept list. No EntityKeys block; one lookup (rev_startedby, systemuser),
+    # created through Get-RevSyntheticRelationship below. Its four global option sets are found by the
+    # OptionSets/*.xml glob and do not depend on this list.
     return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant', 'rev_review',
              'rev_provider', 'rev_bankaccount', 'rev_payment', 'rev_anonymisedstatistic', 'rev_roundfinance',
              'rev_roundstatisticsrequest', 'rev_roundstatisticsresult', 'rev_citysettlementregister',
-             'rev_localauthorityregister')
+             'rev_localauthorityregister', 'rev_retentionlog')
 }
 
 # ── Label / managed-property builders ────────────────────────────────────────────────
@@ -856,7 +860,10 @@ function Get-RevSyntheticRelationship {
         rev_overriddenby              = 'systemuser'
         rev_trustee1                  = 'systemuser'
         rev_trustee2                  = 'systemuser'
-        # EF-27, 2026-09-17: who completed the safeguarding action. Same shape as
+            # wbs:0.13 (CO-011, TAD rev 34 section 5.12.3, rev 33 A-SAR-8): the staff member who started an
+        # erasure or a SAR extract, on the retention evidence log. Same shape as rev_overriddenby.
+        rev_startedby                 = 'systemuser'
+    # EF-27, 2026-09-17: who completed the safeguarding action. Same shape as
         # rev_overriddenby (points at the out-of-box systemuser table, not a solution-owned
         # one) and declaring <LookupTypes> in Entity.xml for it fails solution import outright,
         # confirmed live 2026-08-14 — see the comment on the attribute itself.

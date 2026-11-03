@@ -321,3 +321,48 @@ Describe 'REV | Portal | Finalise Decisions - stamp last, and failure behaviour'
         $script:Inner['Get_the_application']['runtimeConfiguration']['secureData']['properties'] | Should -Be @('inputs', 'outputs')
     }
 }
+
+Describe 'REV | Portal | Finalise Decisions - the run-as role covers every Dataverse operation (wbs:6.6, IMP-1257)' {
+    # The flow runs as the service identity, which in TST/ACC and PRD holds only REV Service Automation. Derived from
+    # the definition, so a Dataverse operation added later on a table the role does not cover fails here, not live.
+    # Until 2026-10-30 the role held no privilege on rev_review although Stamp_the_review updates it.
+    BeforeAll {
+        $script:ServiceRole = Get-Content (Join-Path (Get-SolutionRoot) 'Roles' 'REV Service Automation' 'REV Service Automation.xml') -Raw
+        $script:VerbOf = @{ GetItem = 'Read'; ListRecords = 'Read'; UpdateOnlyRecord = 'Write'; UpdateRecord = 'Write'; CreateRecord = 'Create'; DeleteRecord = 'Delete' }
+        function script:Get-DataverseOps($actions) {
+            foreach ($name in $actions.Keys) {
+                $a = $actions[$name]
+                $op = $null
+                if ($a['inputs'] -is [System.Collections.IDictionary] -and $a['inputs']['host']) { $op = $a['inputs']['host']['operationId'] }
+                if ($op -and $script:VerbOf.ContainsKey($op)) {
+                    [pscustomobject]@{ Action = $name; Verb = $script:VerbOf[$op]; Set = $a['inputs']['parameters']['entityName'] }
+                }
+                foreach ($k in 'actions') { if ($a[$k]) { Get-DataverseOps $a[$k] } }
+                if ($a['else'] -and $a['else']['actions']) { Get-DataverseOps $a['else']['actions'] }
+                if ($a['cases']) { foreach ($c in $a['cases'].Values) { if ($c['actions']) { Get-DataverseOps $c['actions'] } } }
+                if ($a['default'] -and $a['default']['actions']) { Get-DataverseOps $a['default']['actions'] }
+            }
+        }
+        $script:Ops = @(Get-DataverseOps $script:Actions)
+    }
+
+    It 'finds the review stamp among the operations (the derivation reads nested scopes)' {
+        $stamp = $script:Ops | Where-Object { $_.Action -eq 'Stamp_the_review' }
+        $stamp.Verb | Should -Be 'Write'
+        $stamp.Set  | Should -Be 'rev_reviews'
+    }
+
+    It 'grants REV Service Automation read and write on rev_review' {
+        $script:ServiceRole | Should -Match 'name="prvReadrev_review"'
+        $script:ServiceRole | Should -Match 'name="prvWriterev_review"'
+    }
+
+    It 'grants REV Service Automation the privilege for every Dataverse operation the flow makes' {
+        $missing = foreach ($o in $script:Ops) {
+            $table = $o.Set -replace 's$', ''
+            $priv = 'prv{0}{1}' -f $o.Verb, $table
+            if ($script:ServiceRole -notmatch ('name="{0}"' -f [regex]::Escape($priv))) { '{0} ({1})' -f $priv, $o.Action }
+        }
+        $missing | Should -BeNullOrEmpty
+    }
+}

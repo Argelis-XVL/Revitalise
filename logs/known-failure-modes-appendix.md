@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1249 entries)
-Generated: 2026-10-23
+Source: `logs/improvement-log.jsonl` (1262 entries)
+Generated: 2026-11-03
 
 ## What this file is, and who reads it
 
@@ -23,12 +23,12 @@ every dispatch; it is not a judgement that what it hides is settled.
 
 The digest shows the 6 most recent ids per class. These are all of them, oldest first.
 
-- **`platform-contract-guessed-not-groundtruthed`** (×96): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026, IMP-1064, IMP-1071, IMP-1092, IMP-1095, IMP-1096, IMP-1098, IMP-1099, IMP-1100, IMP-1105, IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1180, IMP-1253
+- **`platform-contract-guessed-not-groundtruthed`** (×97): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026, IMP-1064, IMP-1071, IMP-1092, IMP-1095, IMP-1096, IMP-1098, IMP-1099, IMP-1100, IMP-1105, IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1180, IMP-1253, IMP-1254
 - **`gate-cannot-fail`** (×61): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055, IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153, IMP-1179
+- **`approved-document-internally-inconsistent`** (×50): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163, IMP-1255, IMP-1259, IMP-1260, IMP-1261, IMP-1263
 - **`hand-maintained-count-drifts-from-source`** (×50): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925, IMP-1045, IMP-1048, IMP-1083, IMP-1127, IMP-1151
-- **`approved-document-internally-inconsistent`** (×45): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163
+- **`declared-policy-not-mechanically-enforced`** (×46): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160, IMP-1208, IMP-1257, IMP-1258, IMP-1266
 - **`platform-fact-groundtruthed`** (×45): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940, IMP-1016, IMP-1085, IMP-1087, IMP-1107, IMP-1167, IMP-1184, IMP-1185, IMP-1222
-- **`declared-policy-not-mechanically-enforced`** (×43): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951, IMP-0963, IMP-0966, IMP-1148, IMP-1160, IMP-1208
 - **`gate-scope-mismatch`** (×41): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912, IMP-0972, IMP-0984, IMP-0992, IMP-1046, IMP-1047, IMP-1054, IMP-1132, IMP-1154, IMP-1155, IMP-1177, IMP-1178, IMP-1181, IMP-1194, IMP-1204, IMP-1236
 - **`gate-reassures-wrongly`** (×39): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798, IMP-1130, IMP-1134, IMP-1195, IMP-1203
 - **`no-assertion-on-shipped-content`** (×38): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846, IMP-0949, IMP-0973, IMP-0975, IMP-0976, IMP-0979, IMP-1049, IMP-1133
@@ -327,7 +327,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*90 lesson(s) the digest does not render, in the same order it ranked them.*
+*91 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - Fluent v9's createLightTheme does not guarantee AA: colorBrandBackground and colorBrandBackgroundStatic are brand[80] behind a hard-coded white, so a brand whose shade 80 is under 4.5:1 against white ships a failing primary button. Compute white-on-brand[80] before adopting any ramp, and if it is under 4.5:1 move BOTH rest tokens to brand[70] and shift Hover/Pressed/Selected one step too (brand[60]/[30]/[50]), or rest and hover become the same colour and the button loses all hover feedback. Never accept a general statement that a palette 'is accessible' — compute each pair, including pairs a human told you were fine.  
   <sub>IMP-0352 · `platform-contract-guessed-not-groundtruthed`</sub>
@@ -360,6 +360,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0006 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Write a literal string that begins with @ in a flow definition as @@ (a bare @ is an expression and fails at run time); execute a new flow with src/tests/narrative/wdl_sim.py before presenting it.  
+  <sub>IMP-1254 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Check-before-create must use the same key the platform enforces uniqueness on.  
   <sub>IMP-1253 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A test that restates a platform field limit as a literal must read it from Entity.xml like verify-field-length-limits.py does, or be deleted in favour of that gate.  
@@ -772,7 +774,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*722 lesson(s), in the order the digest would have ranked them.*
+*734 lesson(s), in the order the digest would have ranked them.*
 
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
@@ -978,6 +980,30 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- A state rule stated only in an agent file is a convention; if the ledger tool is the write path, it must enforce the precondition or encode the sanctioned exception.  
+  <sub>IMP-1266 · `declared-policy-not-mechanically-enforced`</sub>
+- A dependency-advisory gate that reads live data fails a build for time alone; the fix (npm audit fix, lockfile only) belongs to development-agent, and a periodic audit outside builds would surface it earlier.  
+  <sub>IMP-1265 · `calendar-expiry-halts-build-with-no-source-change`</sub>
+- A calendar-aged note should warn in the days before it fails, and notes dated the same day should be re-tested together, so the build is not the first place the expiry is seen.  
+  <sub>IMP-1264 · `calendar-expiry-halts-build-with-no-source-change`</sub>
+- When a primary delivery route gains attachments, gate the whole set by a tunable size limit and send all of it or none of it; never a partial set.  
+  <sub>IMP-1263 · `approved-document-internally-inconsistent`</sub>
+- When estimating a Power Automate change that accumulates values, count one InitializeVariable per variable, one append per branch that produces a value, and a loop plus increment for any sum.  
+  <sub>IMP-1262 · `change-order-sizing-without-precedent`</sub>
+- When a design adds an automated route alongside a manual fallback, list the artefacts each route delivers side by side and make them match, or state the difference as a decision.  
+  <sub>IMP-1261 · `approved-document-internally-inconsistent`</sub>
+- Size a column that holds a server-relative path or a composed list from its longest realistic value, say the basis in the row, and state required level and choice-set scope in the table.  
+  <sub>IMP-1260 · `approved-document-internally-inconsistent`</sub>
+- When a design gates a step on a tenant capability, name the mechanism and its fail-closed check, not only whether the capability exists.  
+  <sub>IMP-1259 · `approved-document-internally-inconsistent`</sub>
+- When you add a privilege a flow needs, add a test that derives the flow's Dataverse operations from its definition, so the next operation added is checked too.  
+  <sub>IMP-1258 · `declared-policy-not-mechanically-enforced`</sub>
+- When a flow performs a Dataverse operation as the service identity, check REV Service Automation grants that privilege on that table; nothing else checks it before TST/ACC.  
+  <sub>IMP-1257 · `declared-policy-not-mechanically-enforced`</sub>
+- When sizing a flow by action count in this solution, count the failure path too (an alert and a stop per guarded read, a not-read branch per store): it roughly doubles the functional count.  
+  <sub>IMP-1256 · `change-order-sizing-without-precedent`</sub>
+- When a TAD revision designs a new table in any section, add its section 3.1 block in the same revision; verify-tad-coverage.py reads section 3.1 only and fails the build on the first source change.  
+  <sub>IMP-1255 · `approved-document-internally-inconsistent`</sub>
 - Before routing a change to wording in a file, grep logs/improvement-log.jsonl for evidence_grep entries naming that file and re-point their needles in the same change.  
   <sub>IMP-1252 · `untested-hand-handed-script`</sub>
 - When a design correction changes what a built item's clause says, record the correction at the item's source_ref (the change order or plan line) in the same change; the ledger cannot amend a clause past ready until a supersede transition exists.  

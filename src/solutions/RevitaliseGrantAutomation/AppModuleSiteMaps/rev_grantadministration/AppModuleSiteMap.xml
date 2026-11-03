@@ -374,6 +374,13 @@
             <Title LCID="1033" Title="Local Authority Register" />
           </Titles>
         </SubArea>
+        <!-- wbs:0.13 (CO-011), TAD rev 34 section 5.12.3, ADR-089 consequence 4: the process owner and the DPO
+             open the retention evidence log here. Default SubArea (no Url) opens AllRetentionLogs.xml. -->
+        <SubArea Id="rev_sub_retentionlog" Entity="rev_retentionlog" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+          <Titles>
+            <Title LCID="1033" Title="Retention Log" />
+          </Titles>
+        </SubArea>
       </Group>
 
     </Area>

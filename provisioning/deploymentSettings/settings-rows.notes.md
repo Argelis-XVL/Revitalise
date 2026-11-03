@@ -249,11 +249,15 @@ with the connector's `UpdateEnvelopeRecipient` (`emailNotificationSubject`,
   process owner and stop. It does not fall back to the applicant's wording, because that wording
   tells the reader a referee signature follows theirs.
 
-**Values per environment.** DEV and TST/ACC carry **provisional test wording** written by
-development-agent, marked as such in each row's description. PRD carries the pending token
-`{{PENDING_ACCEPTANCE_EMAIL_WORDING}}` in both rows, so `seed-settings.ps1 -Env prd` aborts before
-any write rather than emailing real applicants test text. **The wording is Emily's to supply**
-(`ADR-068` item 3); replace all three environments' values when she does.
+**Values per environment.** Emily Sheardown's wording (email of 2026-10-29, "Re: Docusign Agreements: Email
+texts") in all three environments, identical. Her first template, which asks the applicant for referee details,
+is not a setting: that step stays manual (no automation in V1). Changes made to her drafts when they were
+entered: `Dear XXX` became `{applicantName}` / `{refereeName}`; the referee's "the individual named in this
+email" became `{applicantName}`, because nothing else in the email names them; one sentence was added to the
+referee body giving the access-code rule (`ADR-068` item 4), which her draft did not have; both sign-offs read
+"The Grant Application Team / Revitalise Charity"; bullets are `- ` lines because the DocuSign body is plain
+text. Emily gave no subject lines, so the subjects are still development-agent's. The PRD pending token
+`{{PENDING_ACCEPTANCE_EMAIL_WORDING}}` and its two `_unresolved` entries were removed on 2026-10-30.
 
 ## TitleLabelMap
 

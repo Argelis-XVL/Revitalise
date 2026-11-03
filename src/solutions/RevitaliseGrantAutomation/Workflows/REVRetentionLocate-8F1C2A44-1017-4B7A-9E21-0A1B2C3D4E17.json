@@ -1,0 +1,438 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "Helper locate child (wbs:0.13, CO-011, TAD 5.12, ADR-088): given an applicant id, returns the applicant and every application, review, grant, payment and bank account linked to it. Read-only. See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Button",
+          "description": "Child-flow trigger. Called only by the helper's own flows in this solution, never by a person.",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "title": "Applicant id",
+                  "type": "string",
+                  "description": "The rev_applicantid of the applicant to locate. An id only, never a name.",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "Deep link to THIS run, for the alert. workflow() in Failure Alert would return Failure Alert itself.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Locate_the_case": {
+          "type": "Scope",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD 5.12 locate step, shared by mode 2 and mode 3 so both find the same rows from the same applicant. Reads only; writes nothing.",
+          "actions": {
+            "Get_the_applicant_row": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "The applicant row, every column (no $select: a column added later is gathered without a change here, TAD 5.12 mode 3). Secured both ways: the whole row is personal data (C-DOM-004).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applicants",
+                  "$filter": "@{concat('rev_applicantid eq ', triggerBody()?['text'])}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "List_the_applications": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Get_the_applicant_row": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every application of the applicant, every column. Secured both ways.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@{concat('_rev_applicantid_value eq ', triggerBody()?['text'])}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Select_application_filter_terms": {
+              "type": "Select",
+              "runAfter": {
+                "List_the_applications": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One OData term per application id. The same column name is the application lookup on both rev_review and rev_grant. Secured: its input is the application rows.",
+              "inputs": {
+                "from": "@body('List_the_applications')?['value']",
+                "select": "@concat('_rev_applicationid_value eq ', item()?['rev_applicationid'])"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Compose_application_filter": {
+              "type": "Compose",
+              "runAfter": {
+                "Select_application_filter_terms": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Ids only. With no application the filter names the zero GUID, which matches nothing, so the reads below return an empty list instead of failing on an empty $filter.",
+              "inputs": "@{if(empty(body('Select_application_filter_terms')), '_rev_applicationid_value eq 00000000-0000-0000-0000-000000000000', join(body('Select_application_filter_terms'), ' or '))}"
+            },
+            "List_the_reviews": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_application_filter": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every review of those applications, every column (mode 3 removes the trustee-identity columns itself). Secured both ways.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_reviews",
+                  "$filter": "@outputs('Compose_application_filter')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "List_the_grants": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "List_the_reviews": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every grant of those applications, every column. Secured both ways (finance columns).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_grants",
+                  "$filter": "@outputs('Compose_application_filter')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Select_payment_filter_terms": {
+              "type": "Select",
+              "runAfter": {
+                "List_the_grants": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One OData term per grant id. Secured: its input is the grant rows.",
+              "inputs": {
+                "from": "@body('List_the_grants')?['value']",
+                "select": "@concat('_rev_grantid_value eq ', item()?['rev_grantid'])"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Compose_payment_filter": {
+              "type": "Compose",
+              "runAfter": {
+                "Select_payment_filter_terms": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Ids only; the zero GUID when there is no grant.",
+              "inputs": "@{if(empty(body('Select_payment_filter_terms')), '_rev_grantid_value eq 00000000-0000-0000-0000-000000000000', join(body('Select_payment_filter_terms'), ' or '))}"
+            },
+            "List_the_payments": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_payment_filter": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every payment of those grants, every column (REV_FinanceOnly columns read through the service team's profile membership, TAD 6). Secured both ways.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_payments",
+                  "$filter": "@outputs('Compose_payment_filter')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Select_bank_account_filter_terms": {
+              "type": "Select",
+              "runAfter": {
+                "List_the_payments": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The bank account each payment names; a payment naming none falls back to the applicant term, a harmless duplicate. Secured: its input is the payment rows.",
+              "inputs": {
+                "from": "@body('List_the_payments')?['value']",
+                "select": "@if(empty(item()?['_rev_bankaccountid_value']), concat('_rev_applicantid_value eq ', triggerBody()?['text']), concat('rev_bankaccountid eq ', coalesce(item()?['_rev_bankaccountid_value'], '')))"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Compose_bank_account_filter": {
+              "type": "Compose",
+              "runAfter": {
+                "Select_bank_account_filter_terms": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every bank account of the applicant, and every bank account a payment of theirs names (TAD 4.2 item 4). Ids only.",
+              "inputs": "@{concat('_rev_applicantid_value eq ', triggerBody()?['text'], if(empty(body('Select_bank_account_filter_terms')), '', concat(' or ', join(body('Select_bank_account_filter_terms'), ' or '))))}"
+            },
+            "List_the_bank_accounts": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_bank_account_filter": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Every such bank account, every column. Secured both ways.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_bankaccounts",
+                  "$filter": "@outputs('Compose_bank_account_filter')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "Respond_with_the_case": {
+          "type": "Response",
+          "kind": "Http",
+          "runAfter": {
+            "Locate_the_case": [
+              "Succeeded"
+            ]
+          },
+          "description": "Hands the rows to the caller. Secured: the body is the whole case. A-RH-1: the caller reads this body as body('<child action>').",
+          "inputs": {
+            "statusCode": 200,
+            "body": {
+              "found": "@not(empty(body('Get_the_applicant_row')?['value']))",
+              "applicant": "@first(body('Get_the_applicant_row')?['value'])",
+              "applications": "@body('List_the_applications')?['value']",
+              "reviews": "@body('List_the_reviews')?['value']",
+              "grants": "@body('List_the_grants')?['value']",
+              "payments": "@body('List_the_payments')?['value']",
+              "bankaccounts": "@body('List_the_bank_accounts')?['value']"
+            }
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs"
+              ]
+            }
+          }
+        },
+        "Alert_locate_failed": {
+          "type": "Workflow",
+          "runAfter": {
+            "Locate_the_case": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: the applicant id only, never a value.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Retention | Retention & Erasure Helper (locate)",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "The applicant's records could not be located: a Dataverse read failed. Nothing was changed.",
+              "text_3": "@{concat('applicant ', coalesce(triggerBody()?['text'], 'unknown'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Respond_locate_failed": {
+          "type": "Response",
+          "kind": "Http",
+          "runAfter": {
+            "Alert_locate_failed": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "A-RH-1: a non-success response makes the caller's child-flow action fail, so the caller stops instead of working from an empty case. Always answers, so the caller never waits for a timeout.",
+          "inputs": {
+            "statusCode": 500,
+            "body": {
+              "found": false,
+              "error": "The applicant's records could not be located."
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

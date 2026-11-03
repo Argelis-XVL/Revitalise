@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Retention Log's only view and its default: every row, newest first (TAD 5.12.3, ADR-089
+     consequence 4: the DPO and the process owner open the log in the app and see what was deleted,
+     when and under which rule, and nothing about the person). wbs:0.13, CO-011. -->
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{cf7401cd-1a5a-4893-8d3c-bc42b0676d1a}</savedqueryid>
+    <name>All Retention Log Rows</name>
+    <description>Every retention deletion, erasure action and subject access request extract, newest first.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>1</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_retentionlog</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_retentionlogid">
+        <cell name="rev_name" width="150" />
+        <cell name="rev_runtype" width="130" />
+        <cell name="rev_recordreference" width="150" />
+        <cell name="rev_datatype" width="200" />
+        <cell name="rev_ruleapplied" width="170" />
+        <cell name="rev_outcome" width="130" />
+        <cell name="rev_scheduledon" width="110" />
+        <cell name="rev_actionedon" width="150" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_retentionlog">
+      <attribute name="rev_name" />
+      <attribute name="rev_runtype" />
+      <attribute name="rev_recordreference" />
+      <attribute name="rev_datatype" />
+      <attribute name="rev_ruleapplied" />
+      <attribute name="rev_outcome" />
+      <attribute name="rev_scheduledon" />
+      <attribute name="rev_actionedon" />
+    <order attribute="createdon" descending="true" />
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

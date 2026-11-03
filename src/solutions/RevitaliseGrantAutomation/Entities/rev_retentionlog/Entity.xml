@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_retentionlog - the retention and erasure evidence log (TAD rev 34 section 5.12.3, ADR-089 item 4,
+  FR-054, wbs:0.13, CO-011). Written by all three modes of REV | Retention | Retention & Erasure Helper.
+  Organisation-owned, audited, no column secured: the row names no data subject (C-DOM-004); it names
+  only a record reference and, for an erasure or SAR, the staff member who started it (D5).
+
+  Who can do what (TAD 5.12.3): REV Service Automation create, read, update; REV Admin read; nobody
+  holds delete, and the table is never in a bulk-delete job (decision D5, kept indefinitely).
+
+  An entity the import cannot create: provisioning/dataverse/ensure-schema.ps1 creates it before the
+  first solution import in every environment (C-TECH-050), which is why it is in that script's
+  Get-RevEntityLogicalNames list.
+-->
+<Entity>
+  <Name LocalizedName="Retention Log" OriginalName="Retention Log">rev_retentionlog</Name>
+  <EntityInfo>
+    <entity Name="rev_retentionlog">
+      <LocalizedNames>
+        <LocalizedName description="Retention Log" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Retention Logs" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="A record of every retention deletion, erasure action and subject access request extract: the record reference, data type, date and rule applied. Holds no personal data about the applicant." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <AutoNumberFormat>RL-{DATETIMEUTC:yyyy}-{SEQNUM:6}</AutoNumberFormat>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Log Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A unique, system-generated reference for this log row." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_runtype">
+          <Type>picklist</Type>
+          <Name>rev_runtype</Name>
+          <LogicalName>rev_runtype</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_retentionruntype</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Run Type" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Which part of the retention and erasure helper wrote this row: the weekly retention sweep, an erasure request or a subject access request extract." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_recordreference">
+          <Type>nvarchar</Type>
+          <Name>rev_recordreference</Name>
+          <LogicalName>rev_recordreference</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>40</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Record Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The reference of the record acted on (REV-yyyy-nnn, REV-A-nnnnn or GR-yyyy-nnnnn). Plain text, not a lookup, so it stays readable after the record itself is deleted. A reference only, never a name." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_datatype">
+          <Type>picklist</Type>
+          <Name>rev_datatype</Name>
+          <LogicalName>rev_datatype</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_retentiondatatype</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Data Type" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The kind of record acted on, such as an application with its reviews, grant and payments." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_ruleapplied">
+          <Type>picklist</Type>
+          <Name>rev_ruleapplied</Name>
+          <LogicalName>rev_ruleapplied</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_retentionrule</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Rule Applied" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Why this row was written: the retention rule or the request that applied." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_outcome">
+          <Type>picklist</Type>
+          <Name>rev_outcome</Name>
+          <LogicalName>rev_outcome</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_retentionoutcome</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Outcome" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The result: Scheduled before a deletion, Deleted after it, Overdue when a deletion did not happen in time, or a reason the record was kept." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_scheduledon">
+          <Type>datetime</Type>
+          <Name>rev_scheduledon</Name>
+          <LogicalName>rev_scheduledon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Scheduled On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="For the weekly sweep, the date the retention period ends. For an erasure or a subject access request, the date of the run." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_actionedon">
+          <Type>datetime</Type>
+          <Name>rev_actionedon</Name>
+          <LogicalName>rev_actionedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>datetime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Actioned On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="When the outcome on this row was set." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_retaineduntil">
+          <Type>datetime</Type>
+          <Name>rev_retaineduntil</Name>
+          <LogicalName>rev_retaineduntil</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Retained Until" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="For a record that is kept, the date until which it is kept (FR-052)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_signedpdfpath">
+          <Type>nvarchar</Type>
+          <Name>rev_signedpdfpath</Name>
+          <LogicalName>rev_signedpdfpath</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Signed PDF Path" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The location of the grant's signed acceptance PDF in SharePoint. The file is named with the grant reference, never a name. Cleared once the file has been deleted." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_detail">
+          <Type>nvarchar</Type>
+          <Name>rev_detail</Name>
+          <LogicalName>rev_detail</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Detail" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Composed by the flow from a fixed list only: the subject access request file name (reference and time) and the stores read. Never free text from a case." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_startedby">
+          <Type>lookup</Type>
+          <Name>rev_startedby</Name>
+          <LogicalName>rev_startedby</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <!-- No <LookupTypes>: a plain N:1 to the out-of-box systemuser table has no declared
+               relationship under Other/Relationships/. ensure-schema.ps1's
+               Get-RevSyntheticRelationship names its target (systemuser) in code, exactly as for
+               rev_application.rev_overriddenby (TAD 5.12.3, rev 33 A-SAR-8). -->
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Started By" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The staff member who started an erasure or a subject access request extract. Never the person the data is about. Empty for the weekly sweep." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_retentionlogs</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <!-- D-018: without these two elements the FormXml and SavedQueries folders pack to nothing. -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

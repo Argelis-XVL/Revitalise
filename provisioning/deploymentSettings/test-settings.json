@@ -323,7 +323,8 @@
         "rev_roundstatisticsrequest",
         "rev_roundstatisticsresult",
         "rev_citysettlementregister",
-        "rev_localauthorityregister"
+        "rev_localauthorityregister",
+        "rev_retentionlog"
       ]
     },
     "bulkDeleteJobs": [
@@ -651,7 +652,7 @@
         "displayName": "Acceptance email: applicant",
         "dataType": "JSON",
         "category": "Acceptance emails and reminders",
-        "value": "{\"subject\": \"Revitalise grant acceptance - {grantReference}\", \"body\": \"Dear {applicantName},\\n\\nWe are pleased to tell you that your grant application {applicationReference} has been accepted.\\n\\nPlease review and sign your grant acceptance. Your referee, {refereeName}, will also be asked to sign.\\n\\nThank you.\\n\\nRevitalise Grant Applications Team\"}",
+        "value": "{\"subject\": \"Revitalise grant acceptance - {grantReference}\", \"body\": \"Dear {applicantName},\\n\\nWe’re delighted to let you know that the Trustees of Revitalise Charity have approved your grant application!\\n\\nTo accept your grant and allow us to arrange payment, we just need both you and your referee to review and sign the document via DocuSign.\\n\\nBy signing, you are confirming that the information provided in your application is true and correct, and that you meet the eligibility criteria for Revitalise funding.\\n\\nWho can receive a Revitalise grant?\\n\\nOur grants support disabled people aged 18 or over and unpaid family carers who care for someone aged 18 or over. We are unable to fund paid carers or support workers.\\n\\nWe use the Equality Act 2010 definition of disability, which considers whether a person has a physical or mental impairment that has a substantial and long-term adverse effect on their ability to carry out normal day-to-day activities.\\n\\nWhat happens next?\\n\\nWe have also sent the form directly to your nominated referee, who will be asked to verify the information provided and confirm your eligibility for support.\\n\\nAs a reminder, referees must be independent of the applicant and can include a doctor, district nurse, social worker, charity worker or faith leader. If you were referred to us by another registered charity, an officer of that charity may also act as your referee. Unfortunately, relatives and friends cannot act as referees.\\n\\nOnce both you and your referee have completed the form, we can move forward with arranging your grant payment.\\n\\nYour booking details\\n\\nIn the meantime, if you haven’t already shared these with us, please could you send us the following details about your booking?\\n\\n- Lead name on the booking:\\n- Booking reference number:\\n- Invoice or booking confirmation: If available\\n\\nOnce we have received your completed forms and booking details, we will contact your accommodation provider directly to ensure everything is in place for payment.\\n\\nIf you have any questions or need any support along the way, please don’t hesitate to contact us at enquiries@revitalise.org.uk. We’re always happy to help.\\n\\nThank you, and we hope your respite break gives you the opportunity to take some much-needed time to rest, recharge and enjoy.\\n\\nBest wishes,\\nThe Grant Application Team\\nRevitalise Charity\"}",
         "description": "The email the applicant receives from DocuSign asking them to sign the acceptance agreement. Used by the acceptance process each time it sends an agreement. Enter it as JSON with a subject and a body, for example {\"subject\": \"...\", \"body\": \"...\"}. Write {grantReference} where the grant reference should appear and it is replaced for each applicant. The subject must be 100 characters or fewer once the reference is filled in. If the row is missing, or the subject or body is empty or too long, nothing is sent: the process stops and raises an alert naming what is wrong, so no agreement goes out until it is fixed."
       },
       {
@@ -659,7 +660,7 @@
         "displayName": "Acceptance email: referee",
         "dataType": "JSON",
         "category": "Acceptance emails and reminders",
-        "value": "{\"subject\": \"Revitalise grant acceptance - referee signature - {grantReference}\", \"body\": \"Dear {refereeName},\\n\\nYou are receiving this message because we have accepted a grant application for {applicantName} and you have been named as their referee.\\n\\nYou can open the agreement with the last 6 numbers of your phone number.\\n\\nThank you.\\n\\nRevitalise Grant Applications Team\"}",
+        "value": "{\"subject\": \"Revitalise grant acceptance - referee signature - {grantReference}\", \"body\": \"Dear {refereeName},\\n\\nI’m writing on behalf of Revitalise, a charity providing grants to help disabled people and their family carers access essential respite breaks.\\n\\nWe’re delighted to share that the Trustees of Revitalise Charity have awarded a grant to {applicantName}. As part of our grant process, they have nominated you as their referee to help us verify the information provided in their application and confirm their eligibility for support.\\n\\nWhat does this involve?\\n\\nWe would be grateful if you could review and sign the document via DocuSign. By signing, you are confirming that, to the best of your knowledge, the information provided in the application is accurate and that the applicant meets our eligibility criteria.\\n\\nTo open the form, DocuSign will ask you for an access code. Your access code is the last 6 numbers of your phone number.\\n\\nReferees must be independent of the applicant and may include a doctor, district nurse, social worker, charity worker or faith leader. Where an applicant has been referred to us by another registered charity, an officer of that charity may also act as their referee. Please note that a relative or friend cannot act as a referee.\\n\\nWho can receive a Revitalise grant?\\n\\nOur grants support disabled people aged 18 or over and unpaid family carers who care for someone aged 18 or over. We are unable to fund paid carers or support workers.\\n\\nWe use the Equality Act 2010 definition of disability, which considers whether a person has a physical or mental impairment that has a substantial and long-term adverse effect on their ability to carry out normal day-to-day activities.\\n\\nIf you have any questions about Revitalise, our grants programme or the form itself, please contact us at enquiries@revitalise.org.uk. We’ll be very happy to provide further information or assistance.\\n\\nThank you for taking the time to support this application and help us provide opportunities for disabled people and their family carers to take a much-needed break.\\n\\nBest wishes,\\nThe Grant Application Team\\nRevitalise Charity\"}",
         "description": "The email the referee receives from DocuSign asking them to sign the acceptance agreement. Used by the acceptance process each time it sends an agreement. Enter it as JSON with a subject and a body, for example {\"subject\": \"...\", \"body\": \"...\"}. Write {grantReference} where the grant reference should appear and it is replaced for each applicant. The subject must be 100 characters or fewer once the reference is filled in. The body must explain the rule for the access code the referee needs (the last 6 digits of their phone number) and must never contain the digits themselves. If the row is missing, or the subject or body is empty or too long, nothing is sent: the process stops and raises an alert."
       },
       {
@@ -777,6 +778,33 @@
         "value": "true",
         "createOnly": true,
         "description": "Switches on or off the rule that rejects applicants who were funded by Revitalise less than 12 months ago. Used by the scoring process: while it is true, an application where the applicant said they were funded by Revitalise before, and answered No to that being more than 12 months ago, is automatically rejected as Auto-reject, whatever its score, and the reason is recorded. While it is false the answers are ignored. A blank answer never rejects. Enter true or false and nothing else: any other value stops scoring with an alert, so a typing slip cannot silently switch the rule off. You edit this value in the app and a release never overwrites it."
+      },
+      {
+        "key": "RetentionStaleCaseMonths",
+        "displayName": "Stale open case months",
+        "dataType": "Whole Number",
+        "category": "Data retention and erasure",
+        "value": "12",
+        "createOnly": true,
+        "description": "How many months without contact before an open application is listed as stale in the retention summary. Used by the weekly retention sweep: on the first run of each month it lists, by reference only, every application that is still open (Submitted to Approved) whose applicant has not been in contact for this many months, so you can close it as Withdrawn or Rejected and start its retention clock. The sweep never changes a status itself. Enter a whole number of months. If this row is missing or not a whole number, the list is left out and the summary says the setting is missing. You edit this value in the app and a release never overwrites it."
+      },
+      {
+        "key": "ErasureNotificationEmail",
+        "displayName": "Erasure notification email",
+        "dataType": "Text",
+        "category": "Data retention and erasure",
+        "value": "not set",
+        "createOnly": true,
+        "description": "The mailbox told when an erasure request has been carried out: the Data Protection Officer's mailbox. Used by the erasure flow: after it deletes an applicant's records it emails this address the references it deleted, with no names and no case content. Enter one email address. While this reads 'not set', or holds anything that is not an email address, no email is sent and the Teams message to you says so, so set it before the first erasure. You edit this value in the app and a release never overwrites it."
+      },
+      {
+        "key": "SarEmailMaxAttachmentMB",
+        "displayName": "SAR email attachment limit (MB)",
+        "dataType": "Whole Number",
+        "category": "Data retention and erasure",
+        "value": "15",
+        "createOnly": true,
+        "description": "The largest total size, in megabytes, of the files the subject access request flow may email to a person in one encrypted message. Used by the subject access request flow: where protected sending is switched on, it emails the extract and a copy of every signed grant acceptance document together, but only if their sizes added up are no more than this number. If they are larger, nothing at all is emailed, never only some of the files, and a Teams message tells you to deliver the files from the SAR folder by hand. The same happens if this row is missing, empty or not a whole number. 15 leaves room for the encryption, because Revitalise's mail system accepts encrypted messages up to about 25 MB once attachments are encoded. Enter a whole number of megabytes. Raise it only after a test has shown larger messages arrive. You edit this value in the app and a release never overwrites it."
       }
     ],
     "apps": [

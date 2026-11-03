@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retention Run Type: a choice on rev_retentionlog (TAD rev 34 section 5.12.3, ADR-089 item 4, wbs:0.13, CO-011).
+     Values 1 to 3 in the order the TAD lists the labels; the helper flows write these integers
+     and src/tests/solutions/retention_helper asserts the flows and this file agree. Created through the
+     Dataverse Web API by ensure-schema.ps1, never by solution import (C-TECH-050). A later option takes
+     the next value; values are never renumbered while rows reference them. -->
+<optionset Name="rev_retentionruntype" localizedName="Retention Run Type">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Retention sweep" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Erasure" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="SAR extract" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="Which mode of the Retention and Erasure helper wrote a Retention Log row (TAD 5.12.3, ADR-089 item 4, wbs:0.13)." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Retention Run Type" languagecode="1033" />
+  </displaynames>
+</optionset>
