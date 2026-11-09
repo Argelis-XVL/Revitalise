@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (1249 entries)
-Generated: 2026-10-23
+Source: `logs/improvement-log.jsonl` (1250 entries)
+Generated: 2026-11-09
 
 ## What this file is, and who reads it
 
@@ -23,7 +23,7 @@ every dispatch; it is not a judgement that what it hides is settled.
 
 The digest shows the 6 most recent ids per class. These are all of them, oldest first.
 
-- **`platform-contract-guessed-not-groundtruthed`** (×96): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026, IMP-1064, IMP-1071, IMP-1092, IMP-1095, IMP-1096, IMP-1098, IMP-1099, IMP-1100, IMP-1105, IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1180, IMP-1253
+- **`platform-contract-guessed-not-groundtruthed`** (×97): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908, IMP-1008, IMP-1011, IMP-1014, IMP-1019, IMP-1021, IMP-1022, IMP-1023, IMP-1025, IMP-1026, IMP-1064, IMP-1071, IMP-1092, IMP-1095, IMP-1096, IMP-1098, IMP-1099, IMP-1100, IMP-1105, IMP-1106, IMP-1109, IMP-1124, IMP-1131, IMP-1156, IMP-1159, IMP-1180, IMP-1253, IMP-1254
 - **`gate-cannot-fail`** (×61): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863, IMP-0990, IMP-1018, IMP-1036, IMP-1055, IMP-1060, IMP-1122, IMP-1123, IMP-1152, IMP-1153, IMP-1179
 - **`hand-maintained-count-drifts-from-source`** (×50): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925, IMP-1045, IMP-1048, IMP-1083, IMP-1127, IMP-1151
 - **`approved-document-internally-inconsistent`** (×45): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945, IMP-1161, IMP-1163
@@ -327,7 +327,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*90 lesson(s) the digest does not render, in the same order it ranked them.*
+*91 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - Fluent v9's createLightTheme does not guarantee AA: colorBrandBackground and colorBrandBackgroundStatic are brand[80] behind a hard-coded white, so a brand whose shade 80 is under 4.5:1 against white ships a failing primary button. Compute white-on-brand[80] before adopting any ramp, and if it is under 4.5:1 move BOTH rest tokens to brand[70] and shift Hover/Pressed/Selected one step too (brand[60]/[30]/[50]), or rest and hover become the same colour and the button loses all hover feedback. Never accept a general statement that a palette 'is accessible' — compute each pair, including pairs a human told you were fine.  
   <sub>IMP-0352 · `platform-contract-guessed-not-groundtruthed`</sub>
@@ -360,6 +360,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0006 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Before an integration row names a connector, confirm it on the Microsoft connector reference and confirm the auth scope on the vendor's docs; a 'read-only' claim names the mechanism that enforces it.  
+  <sub>IMP-1254 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Check-before-create must use the same key the platform enforces uniqueness on.  
   <sub>IMP-1253 · `platform-contract-guessed-not-groundtruthed`</sub>
 - A test that restates a platform field limit as a literal must read it from Entity.xml like verify-field-length-limits.py does, or be deleted in favour of that gate.  
