@@ -1,16 +1,24 @@
 {
-  "captured_at": "2026-10-01T08:21:50+0200",
+  "captured_at": "2026-11-13T20:51:59+0100",
   "trigger": "auto",
-  "session_id": "2d33a38e-46cc-461e-b212-a0ddf04d7d87",
+  "session_id": "d464f487-98ff-48cb-af36-23b6cf71f8f5",
   "git": {
-    "branch": "deploy-first-learning-and-item-closure",
-    "head": "4eb731e Trustee Portal fixes and updates to layout.",
+    "branch": "retention-automation",
+    "head": "8a3bb76 Re-stamp build 20261103-3 manifest to source commit fca5768",
     "status_short": [
-      "M config/gate-baselines.json",
-      " M config/revitalise-grant-automation-build.yml",
+      "M .claude/settings.json",
+      " m .engine",
+      "A  build/artifacts/revitalise-grant-automation-20261105-1/manifest.json",
       " M config/revitalise-grant-automation-pipeline.yml",
       " M contract/known-exceptions.json",
-      " M logs/commercial-events.jsonl",
+      " M contract/tad-deferrals.json",
+      " M docs/Import/MANIFEST.yml",
+      " M docs/architecture/revitalise-grant-automation-architecture.md",
+      " M docs/deployments/revitalise-grant-automation-deployment-summary.md",
+      " M docs/development/retention-erasure-helper-dev-summary.md",
+      " M docs/plans/revitalise-grant-automation-plan.md",
+      " M logs/build.log",
+      " M logs/handover/latest.json",
       " M logs/improvement-log.jsonl",
       " M logs/known-failure-modes-appendix.md",
       " M logs/known-failure-modes.md",
@@ -18,51 +26,48 @@
       " M logs/pm.log",
       " M logs/routing.log",
       " M logs/work-items.jsonl",
-      " M src/code-apps/trustee-review-portal/src/dataverse/roundStatistics.test.ts",
-      " M src/code-apps/trustee-review-portal/src/dataverse/roundStatistics.ts",
-      " M src/code-apps/trustee-review-portal/src/dataverse/types.ts",
-      " M src/code-apps/trustee-review-portal/src/domain/visibility.ts",
-      " M src/code-apps/trustee-review-portal/src/pages/LandingPage.test.tsx",
-      " M src/code-apps/trustee-review-portal/src/test/harness.tsx",
-      " M src/tests/build/BuildGates.Tests.ps1",
-      "?? Designsystem/Design-2.0/",
-      "?? \"Designsystem/Revitalise Design System (1)/\"",
-      "?? config/code-app-variant-parity.json",
-      "?? docs/architecture/trustee-portal-design-2-architecture.md",
-      "?? docs/development/trustee-portal-design-2-dev-summary.md",
-      "?? scripts/verify-code-app-variant-parity.py",
-      "?? src/code-apps/trustee-review-portal-cards/",
-      "?? src/code-apps/trustee-review-portal/src/pages/LandingPage.freshness.test.tsx"
+      " M scripts/generate-known-failure-modes.py",
+      " M src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json",
+      " M src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.notes.md",
+      " M src/tests/narrative/wdl_sim.py",
+      " M src/tests/solutions/RetentionHelper.Tests.ps1",
+      " M src/tests/solutions/_harness/WdlExpression.psm1",
+      " M src/tests/solutions/retention_helper/test_retention_helper_flows.py",
+      "?? contract/change-orders/ESTIMATE-V2-2026-11-13.md",
+      "?? docs/Import/2026-11-13-stress-test-feedback-part-1.md",
+      "?? docs/improvements/2026-11-13-improvement-review.md",
+      "?? docs/plans/stress-test-feedback-2026-11-plan.md",
+      "?? logs/handover/6ac86fa6-1d56-49b8-8b38-7a682fc782ec.json"
     ]
   },
   "log_tails": {
     "logs/routing.log": [
-      "[2026-09-30 23:59] [LEAD] [trustee-portal-design-2] GATE_RECEIVED:development-agent \u2014 CODE REVIEW REQUIRED Dev Summary Revision 2; 51 items built; CONSTRAINT CHECK PASS; IMP-0997..1001. Lead verified: parity PASS with --config, 36 screenshot files in scratchpad/fidelity, style inventory at dev summary \u00a711 L199. Next: independent fidelity-audit workflow (test-agent type, read-only) before the reviewer's APPROVED. items:WI-0055..WI-0105 wbs:6.3 unbilled",
-      "[2026-10-01 08:08] [LEAD] [trustee-portal-design-2] NOTE \u2014 reviewer (session account Anna Southern) verbatim: \"Keep the font that is currently used in the app.\" Body font stays Aptos in the card app (Dev Summary Rev 2 decision 2, ADR-035/036).",
-      "[2026-10-01 08:08] [LEAD] [system] BASELINES RENEWED \u2014 reviewer (session account Anna Southern) verbatim: \"Renew them for now to unblock the build\". config/gate-baselines.json: 8 entries expired 2026-09-30 moved to 2026-10-14, each with a renewed{} record (4x provisioning-test-presence IMP-0439, tad-coverage status:error IMP-0454 and threshold-unset IMP-0481, pipeline-config tst_acc and prd fieldpermissions IMP-0649). Reason, owner and clears_when unchanged. Re-run: provisioning-test-presence exit 0, pipeline-config exit 0, tad-coverage exit 0.",
-      "[2026-10-01 08:08] [LEAD] [trustee-portal-design-2] RE-DISPATCHED:workflow design2-fidelity-audit \u2014 first run (wf_bb7dd7dc-19b) failed 7/7 at start on the account session limit (reset 03:10), no results; resumed from the same script.",
-      "[2026-10-01 08:15] [LEAD] [trustee-portal-design-2] GATE_RECEIVED:workflow design2-fidelity-audit (wf_bb7dd7dc-19b, 14/14 agents) \u2014 71 confirmed deviations, 11 refuted, 0 unverified, 29 inventory rows marked 'match' that are not. Of the 71: 7 body font (decided: keep Aptos), 15 permitted (a/b/c), 34 unexcused, 15 claimed-but-unrecorded. Full result: scratchpad/fidelity-audit-result.json. RESUMED:development-agent to fix. items:WI-0055..WI-0105 wbs:6.3 unbilled"
+      "[2026-11-13 19:52] [LEAD] [revitalise-grant-automation] GATE_RECEIVED:plan-agent \u2014 FR-126 trustees read via flow only, FR-124 warning to REV Admin holders, PD-3 REJECTED; OQ-070 (money-average k=5: all-time vs in-round) to reviewer",
+      "[2026-11-13 19:52] [LEAD] [revitalise-grant-automation] RESUMED:architect-agent \u2014 tier:strategic (unchanged). TAD rev 39 draft 4: FR-124 REV Admin warning, PD-3 rejected, FR-126 service-account publish, IMP-1289 trustee profile vs no-trustee-in-column-security-profile, IMP-1290 rev_wellbeinganswer11 removed; OQ-070 open; register review parked unapplied",
+      "[2026-11-13 19:55] [LEAD] [revitalise-grant-automation] GATE_RECEIVED:architect-agent \u2014 TAD rev 39 draft 4: REV Admin Teams warning with state-change dedupe, PD-3 removed, FR-127 enforced in-app (form locks, no import priv), no rev_review column security (5 register rows no longer needed), 19 cols; D5 + OQ-070 open; BLOCKED provisional on 3 anonymised register rows; IMP-1291",
+      "[2026-11-13 19:55] [LEAD] [revitalise-grant-automation] RESUMED:improvement-agent \u2014 trigger:reviewer, tier:strategic (unchanged). Revise parked review: drop row 5 (rev_review secured cols) per TAD draft 4; keyword NOT given",
+      "[2026-11-13 19:57] [LEAD] [revitalise-grant-automation] GATE_RECEIVED:improvement-agent \u2014 review rev 2 parked: row 5 withdrawn; rows 1-3 on approval, row 4 with build; decisions 1 (wellbeing no rows) + 2 (3 anonymised cols stay unsecured); awaiting APPROVE IMPROVEMENTS"
     ],
     "logs/build.log": [
-      "[2026-09-30 09:40] [BUILD] [revitalise-grant-automation] SUCCESS - build/artifacts/revitalise-grant-automation-20260930-2 (V2, wbs:6.8,4.2,4.3)",
-      "[2026-09-30 11:08] [BUILD] [revitalise-grant-automation] SUCCESS \u2014 build/artifacts/revitalise-grant-automation-20260930-3/ (wbs:6.8 items:WI-0052)",
-      "[2026-09-30 14:49] [BUILD] [revitalise-grant-automation] SUCCESS \u2014 build/artifacts/revitalise-grant-automation-20260930-4/ (V2, wbs:6.8 items:WI-0005,WI-0008)",
-      "[2026-09-30 15:58] [BUILD] [revitalise-grant-automation] SUCCESS \u2014 build/artifacts/revitalise-grant-automation-20260930-5 (wbs:6.8 items:WI-0008)",
-      "[2026-09-30 17:50] [BUILD] [revitalise-grant-automation] SUCCESS \u2014 build/artifacts/revitalise-grant-automation-20260930-6/ (V2, wbs:6.8 items:WI-0013,WI-0053)"
+      "[2026-11-03 20:00] [BUILD] [revitalise-grant-automation] FAILED \u2014 wbs:0.13 halted at step pipeline-config-preflight (4 aged blocked_on notes, also red at HEAD)",
+      "[2026-11-03 20:04] [BUILD] [revitalise-grant-automation] FAILED \u2014 build/artifacts/revitalise-grant-automation-20261103-2 \u2014 code-app-audit (2 HIGH npm advisories, undici and zod, new since lockfile)",
+      "[2026-11-03 20:20] [BUILD] [revitalise-grant-automation] SUCCESS \u2014 build/artifacts/revitalise-grant-automation-20261103-3 (V2, full run, DEV only); wbs:0.13; items WI-0121 packaged; source tree dirty (42 paths), git_head a435c2b",
+      "[2026-11-03 20:31] [BUILD] [revitalise-grant-automation] RESTAMP \u2014 build/artifacts/revitalise-grant-automation-20261103-3/ manifest source_commit a435c2b -> fca5768, dirty 42 -> 0, commit 8a3bb76 wbs:0.13",
+      "[2026-11-05 06:28] [BUILD] [revitalise-grant-automation] wbs:0.13 SUCCESS (V2 packaged, full run, 7 dirty src/config paths) \u2014 build/artifacts/revitalise-grant-automation-20261105-1"
     ],
     "logs/pipeline.log": [
-      "[2026-09-30 20:08] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE ATTEMPTED: pac solution import -Env dev (build revitalise-grant-automation-20260930-6) \u2014 SUCCEEDED. Not refused. Async (--async --max-async-wait-time 30, 900 s wrapper) op f4486671-f9bc-f111-aaae-7ced8d43e1b4 completed in 1m33.9s, then Published All Customizations. importjob (queried by solutionname and date, not inferred) d783df28-6241-403d-baa1-c2b024c408fc progress 100.00, started 6:01 PM completed 6:04 PM UTC. Census: 233 success, 6 warning (all 'original workflow definition has been deactivated and replaced', 0x80045042, IMP-0113 class, triaged), 0 errors. REV flow statecodes post-import: 6 Activated (1001,1002,1004,1005,1007,1010) / 4 Draft (1003,1006,1008,1009), identical to pre.",
-      "[2026-09-30 20:08] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE BEGUN: pac code push --solutionName RevitaliseGrantAutomation -Env dev (build revitalise-grant-automation-20260930-6)",
-      "[2026-09-30 20:10] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE ATTEMPTED: pac code push --solutionName RevitaliseGrantAutomation -Env dev (build revitalise-grant-automation-20260930-6) \u2014 SUCCEEDED. Not refused. Pushed from src/code-apps/trustee-review-portal; dist/ diffed identical to artifact code-app/ (bundle index-BHFze4c4.js, css index-DCW3-vBZ.css) before push. Verified by query: canvasapp 70869c95-92e5-442f-b5b9-44b3d3e549f6 appversion 2026-09-30T14:04:47Z -> 2026-09-30T18:08:51Z, lastpublishtime 9/30/2026 6:08 PM UTC; pac code list shows 1 app.",
-      "[2026-09-30 20:10] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE ATTEMPTED: python3 scripts/verify-live-flow-definitions.py --env dev (build revitalise-grant-automation-20260930-6) \u2014 SUCCEEDED (read-only, exit 0): 10 flows in source, 10 read live, 0 differences, none modified after the 18:04 UTC import. Run after the code push, immediately before the V3 claim.",
-      "[2026-09-30 20:10] [PIPELINE] [revitalise-grant-automation] [DEV] PARTIAL \u2014 build revitalise-grant-automation-20260930-6, wbs:6.8, items:WI-0013,WI-0053, DEV only, no promotion. Provenance PASS. Import DONE (importjob d783df28-6241-403d-baa1-c2b024c408fc, 233 success / 6 known warnings / 0 errors, async op 1m33.9s; the one changed member was the Round Statistics flow). Declared post_deploy: operation:code-app-push DONE (appversion 14:04:47Z -> 18:08:51Z UTC, bundle index-BHFze4c4.js); operation:flow-definition-reread DONE (10/10 match, 0 differences, after the push); 18 manual entries not in this slice, reviewer-owned, unchanged. verify-post-deploy-completeness --pending exit 0. REV flow statecodes identical pre/post (6 Activated / 4 Draft). Access preflight FAIL (credential reviewer-held); provisioning/dataverse/* excluded, owner reviewer; idempotency re-import not run (no deploy_command for dev). PARTIAL because the test report \u00a78 post-import check (one Round Statistics flow run; result row Complete; anomaly as JSON literal true/false/null) was NOT run: it needs a write to rev_roundstatisticsrequest (the Refresh figures click, or a keyed PATCH needing PROVISION_APP_ID and certificate), which this session does not hold; owner reviewer. Result row pre-state: CURRENT, Complete, computed 15:33Z under the old definition, month 2026-09 anomaly null. LEVEL: DEPLOYED (V3); V4 and V5 outstanding, reviewer. WI-0013, WI-0053 -> deployed:dev. IMPROVEMENT LOG: none."
+      "[2026-11-05 06:48] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE BEGUN: pac code push --solutionName RevitaliseGrantAutomation -Env dev (from src/code-apps/trustee-review-portal) (build revitalise-grant-automation-20261105-1)",
+      "[2026-11-05 06:48] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE ATTEMPTED: pac code push --solutionName RevitaliseGrantAutomation -Env dev (from src/code-apps/trustee-review-portal) (build revitalise-grant-automation-20261105-1) \u2014 SUCCEEDED (\"App pushed successfully\"; dist byte-identical to artifact code-app; canvasapp b0483396)",
+      "[2026-11-05 06:48] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE BEGUN: python3 scripts/verify-live-flow-definitions.py --env dev (read-only) -Env dev (build revitalise-grant-automation-20261105-1)",
+      "[2026-11-05 06:49] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE ATTEMPTED: python3 scripts/verify-live-flow-definitions.py --env dev (read-only) -Env dev (build revitalise-grant-automation-20261105-1) \u2014 SUCCEEDED (18 flows in source, 18 read live, 0 differences; import 2026-11-05 05:47 UTC)",
+      "[2026-11-05 06:49] [PIPELINE] [revitalise-grant-automation] [DEV] PARTIAL \u2014 build revitalise-grant-automation-20261105-1, wbs:0.13, item WI-0121 deployed:dev, DEV only, no promotion, dirty-tree artifact (provenance PASS). Level DEPLOYED (V3), nothing V4. Import + idempotency re-run SUCCEEDED; code-app-push SUCCEEDED (b0483396 appversion 2026-11-05T05:48:38Z); flow-definition-reread DONE 18/18 equal to source (1016 at ADR-092, 1018 restored). Flows 1014/1015/1017/1018 stayed Activated, 1016 Draft; ZZ PROBE A-SAR-16 flow (not in source) still Activated. SarEmailMaxAttachmentMB=15 read live. NOT RUN, owner reviewer (no PROVISION credential): verify-environment-access, ensure-schema, seed-settings, bind-roles-to-groups, verify-role-bindings, verify-solution-components, ensure-auditing, intake-callback capture/compare. Outstanding V4: 1016 designer open-Save-Turn on, then check (a) option A run and size-gate run."
     ],
     "logs/pm.log": [
-      "2026-09-30 06:46 pm-agent ITEM INTAKE WI-0052 trustee-portal-nav-order",
-      "[2026-09-30 17:17] [PM] [trustee-portal-visual-refresh] [ITEMS] \u2014 WI-0053 bug created+ready (pink rectangle, wbs 6.8); WI-0013 acceptance extended with reviewer 2026-09-30 quote",
-      "[2026-09-30 20:50] [PM] [trustee-portal-design-2] [ITEMS] \u2014 epic WI-0054 + 25 items WI-0055..WI-0079 from Design-2.0 README, all ready, wbs:6.3, UNBILLED marked in titles only (ledger has no billing field); surface = new separate Code App",
-      "[2026-09-30 22:45] [PM] [trustee-portal-design-2] [ITEMS] \u2014 WI-0080..WI-0105 (26 items, ready, wbs:6.3, UNBILLED) for the other screens from ui_kits/trustee-review-portal JSX; EX-008 and CE-0013 extended",
-      "[2026-09-30 23:10] [PM] [trustee-portal-design-2] [ITEMS] \u2014 acceptance of WI-0080..WI-0105 amended (link) to match APPROVED TAD Revision 3 + 3.1; ADR/section cited per clause; Days tile out of card app; nine content questions resolved"
+      "[2026-10-23 06:46] [COMMERCIAL] [revitalise-grant-automation] [CHANGE-ORDER] \u2014 CO-012 amended in place: 50 live rows per reviewer, 2 extra unverified (likely CO-011 keys); ROM unchanged 7-10h",
+      "[2026-10-23 06:48] [COMMERCIAL] [revitalise-grant-automation] [CHANGE-ORDER] \u2014 CO-012 CLOSED no change order: authorised_by Xander Lykopoulos, relayed_by lead-agent, keyword \"c.\" (option c, fold into wbs:2.2); advice against recorded; CE-0024",
+      "[2026-11-13 14:40] [COMMERCIAL] [revitalise-grant-automation] [CHANGE-ORDER] \u2014 V2 estimate only, no change order: ST-05b 6-9h, ST-12b 14-26h (DP lawful-basis gate), ST-14 14-22h; contract/change-orders/ESTIMATE-V2-2026-11-13.md",
+      "[2026-11-13 14:42] [PM] [revitalise-grant-automation] [ITEMS] \u2014 stress-test feedback part 1 intake: epic WI-0155, 13 items WI-0156..WI-0168 ready; EX-014 records the reviewer-authorised start of 6.8 rework (ST-08+ST-10, ST-09) before 6.7; task 3.7 batch test becomes five single sends under FR-122 (one grant per run), contract text unchanged",
+      "[2026-11-13 15:01] [PM] [revitalise-grant-automation] [ITEMS] \u2014 CORRECTS the earlier ITEMS line on task 3.7: the five-single-sends note is withdrawn. Under FR-122 as corrected, 3.7 is one multi-select send of five approved grants incl. one without referee details: four envelopes correct, the fifth skipped and reported, a re-run sends no duplicates. Also: WI-0159 acceptance and WI-0160 scope replaced; WI-0164 dropped and WI-0165 withdrawn pending Emily's testing (both deferred, reasons carry the distinction)"
     ]
   }
 }

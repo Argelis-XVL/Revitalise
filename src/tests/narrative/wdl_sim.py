@@ -26,6 +26,25 @@ Anything outside the subset raises Unsupported, so a new function cannot pass si
 
 It also RECORDS every action's evaluated inputs and outputs and every variable assignment, so the
 tests can assert the run-history closure (C-DOM-004): no text where secureData does not hide it.
+
+result() ON A LOOP is the shape MEASURED in DEV on 2026-11-04 (A-SAR-16, TAD rev 38 ADR-092, IMP-1269),
+not the shape Microsoft Learn shows:
+  * an array with one record per FIRST-LEVEL child, in definition order;
+  * each record {name, outputs: [one record per iteration], startTime, endTime, trackingId,
+    clientTrackingId, clientKeywords, code: "NotSpecified", status, repetitionCount, billableCount};
+  * each per-iteration record {name, inputs, outputs, startTime, endTime, trackingId, clientTrackingId,
+    clientKeywords, code: "OK", status, billableCount};
+  * a Compose's inputs and outputs are the plain value, EVEN WHEN THE COMPOSE SECURES ITS INPUTS: secureData
+    does not travel through result(), so the consumer of result() must secure itself;
+  * a connector's inputs are {host: {apiId, connectionReferenceName, operationId}, parameters} and its
+    outputs {statusCode, headers, body}, so rows sit at outputs.body.value, per iteration.
+NOT measured, and modelled here as the stricter or the previous reading: a loop of zero iterations
+(result() is []), a failed iteration (its record gains `error`, and the child's record takes status
+Failed and the first failed iteration's `error`, as this executor reported before), and the outputs of
+any per-iteration child other than a Compose or a connector (what outputs() returns for it).
+result() on a Scope, If or Switch is unchanged: {name, status, error} per immediate child.
+actions('<name>') returns {name, status, outputs, error}; for an action that never ran, {name, status:
+Skipped} and so a null ['outputs'] without an error (A-SAR-16 (4), measured).
 """
 from __future__ import annotations
 
@@ -661,11 +680,31 @@ class Engine:
         return {"name": "flow", "tags": {"environmentName": "env"}, "run": {"name": "run-1"}}
 
     def f_result(self, name):
-        """Immediate children only. For a loop, every iteration's children (the reading under which
-        a failed iteration stays visible after later iterations succeed)."""
+        """Immediate children only. For a loop, the measured shape in the module docstring: one record
+        per first-level child, each holding every iteration's record (inputs and outputs included)."""
         if name not in self.children:
             raise WdlError(f"result({name!r}) of an action that has not run")
         return copy.deepcopy(self.children[name])
+
+    def f_actions(self, name):
+        r = self.results.get(name)
+        if r is None:
+            return {"name": name, "status": "Skipped"}
+        out = {"name": name, "status": r.get("status"), "outputs": copy.deepcopy(r.get("outputs"))}
+        if r.get("error") is not None:
+            out["error"] = copy.deepcopy(r["error"])
+        return out
+
+    def f_addProperty(self, obj, prop, value):
+        """Learn: adds a property to an object; the property must not already exist."""
+        if not isinstance(obj, dict):
+            raise WdlError("addProperty() of a non-object")
+        self._need_str(prop)
+        if prop in obj:
+            raise WdlError(f"addProperty(): {prop!r} already exists")
+        out = dict(obj)
+        out[prop] = value
+        return out
 
     # ── conditions in object form ──────────────────────────────────────────────────────────────
     def condition(self, expr):
@@ -848,17 +887,61 @@ class Engine:
             raise Unsupported(f"{name}: only sequential loops are simulated, and this flow needs them sequential")
         status = "Succeeded"
         self.children[name] = []
-        for it in items:
+        kids = list(a["actions"])                      # first-level children, in definition order
+        per_child = {k: [] for k in kids}
+        for n, it in enumerate(items):
             self.item_stack.append((name, it))
+            start = len(self.records)
             try:
                 if self.run_container(name, a["actions"], fresh=False) == "Failed":
                     status = "Failed"
             finally:
                 self.item_stack.pop()
+            ran = {r.name: r for r in self.records[start:] if r.name in per_child}
+            for k in kids:
+                per_child[k].append(self._iteration_record(k, a["actions"][k], ran.get(k), n))
             if status == "Failed" and self.stop_loops_on_failure:
                 break
+        # The measured shape (module docstring, A-SAR-16): one record per first-level child.
+        self.children[name] = [self._loop_child_record(k, per_child[k]) for k in kids] if per_child[kids[0]] else []
         self.results[name] = {"status": status}
         return status
+
+    _SIM_TIME = "2026-01-01T00:00:00.0000000Z"
+
+    def _iteration_record(self, child, adef, rec, n):
+        """One iteration of one first-level loop child, as result() returns it (A-SAR-16, measured)."""
+        status = rec.status if rec is not None else self.results.get(child, {}).get("status", "Skipped")
+        out = {"name": child}
+        if rec is not None:
+            if adef["type"] == "OpenApiConnection":
+                host = adef["inputs"]["host"]
+                out["inputs"] = {"host": {"apiId": host.get("apiId"), "connectionReferenceName": host.get("connectionName"),
+                                          "operationId": host.get("operationId")},
+                                 "parameters": copy.deepcopy(rec.inputs)}
+            else:
+                out["inputs"] = copy.deepcopy(rec.inputs)
+            if status == "Succeeded":
+                out["outputs"] = copy.deepcopy(self.results.get(child, {}).get("outputs"))
+        out.update({"startTime": self._SIM_TIME, "endTime": self._SIM_TIME, "trackingId": f"sim-{child}-{n}",
+                    "clientTrackingId": "sim-run", "clientKeywords": [],
+                    "code": "OK" if status == "Succeeded" else (rec.error or {}).get("code", "NotSpecified") if rec else "NotSpecified",
+                    "status": status, "billableCount": 1})
+        if rec is not None and rec.error is not None:
+            out["error"] = copy.deepcopy(rec.error)
+        return out
+
+    def _loop_child_record(self, child, iterations):
+        statuses = [i["status"] for i in iterations]
+        status = ("Failed" if any(s in ("Failed", "TimedOut") for s in statuses)
+                  else "Succeeded" if "Succeeded" in statuses else "Skipped")
+        rec = {"name": child, "outputs": iterations, "startTime": self._SIM_TIME, "endTime": self._SIM_TIME,
+               "trackingId": f"sim-{child}", "clientTrackingId": "sim-run", "clientKeywords": [], "code": "NotSpecified",
+               "status": status, "repetitionCount": len(iterations), "billableCount": len(iterations)}
+        failed = next((i for i in iterations if "error" in i), None)
+        if failed is not None:   # not measured: the executor's previous reading, kept for the failure finders
+            rec["error"] = copy.deepcopy(failed["error"])
+        return rec
 
     def a_Until(self, name, a, rec):
         limit = int(a.get("limit", {}).get("count", 60))
@@ -883,7 +966,7 @@ class Engine:
         params = self.value(a["inputs"]["parameters"])
         rec.inputs = params
         body = self.connector(name, a["inputs"]["host"]["operationId"], params)
-        out = {"statusCode": 200, "body": body}
+        out = {"statusCode": 200, "headers": {}, "body": body}   # the measured outputs shape (A-SAR-16)
         self._store(name, out, body, rec)
         return "Succeeded"
 

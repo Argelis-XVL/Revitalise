@@ -22,7 +22,16 @@
       "Bash(echo \"digest-check exit $?\")",
       "Bash(python3 scripts/generate-known-failure-modes.py)",
       "Bash(echo \"gen exit $?\")",
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(pwsh -NoProfile -Command 'Get-Module -ListAvailable ExchangeOnlineManagement | Select Name,Version | ft -auto')",
+      "Bash(pwsh -NoProfile -Command 'Install-Module ExchangeOnlineManagement -Scope CurrentUser -Force -AllowClobber; Get-Module -ListAvailable ExchangeOnlineManagement | Select Name,Version | ft -auto')",
+      "Bash(pwsh -NoProfile -File \"/private/tmp/claude-501/-Users-xvl-Library-CloudStorage-OneDrive-SharedLibraries-ArgelisConsultancy-Revitalise-Respite-Holidays---Optimisation-Grant-Application-Process-Repository-Revitalise/039feb8f-b031-4e7f-9c3f-5065939f60c1/scratchpad/irm-check.ps1\")",
+      "Bash(pwsh -NoProfile -Command '$PSVersionTable.PSVersion.ToString\\(\\); Install-Module AIPService -Scope CurrentUser -Force -AllowClobber; $m = Get-Module AIPService -ListAvailable; $m | Select Name,Version,CompatiblePSEditions | fl; Import-Module AIPService; Get-Command -Module AIPService Connect-AipService,Get-AipService,Enable-AipService | Select Name')",
+      "Bash(pwsh -NoProfile -File \"/private/tmp/claude-501/-Users-xvl-Library-CloudStorage-OneDrive-SharedLibraries-ArgelisConsultancy-Revitalise-Respite-Holidays---Optimisation-Grant-Application-Process-Repository-Revitalise/039feb8f-b031-4e7f-9c3f-5065939f60c1/scratchpad/aip-check.ps1\")",
+      "Bash(pwsh -NoProfile -Command '\\(Get-Command Connect-AipService\\).ParameterSets | % { $_.Name + \": \" + \\(\\($_.Parameters | ? { $_.Name -notin [System.Management.Automation.PSCmdlet]::CommonParameters }\\).Name -join \", \"\\) }')",
+      "Bash(pwsh -NoProfile -Command 'Install-Module Az.Accounts -Scope CurrentUser -Force -AllowClobber; Get-Module Az.Accounts -ListAvailable | Select Name,Version | ft -auto')",
+      "Bash(pwsh -NoProfile -Command 'Import-Module Az.Accounts -MinimumVersion 5.0; Update-AzConfig -EnableLoginByWam $false -Scope CurrentUser | Select Key,Value | ft -auto')",
+      "Bash(grep -v -e \"Announcements\" -e \"login experience\" -e \"azpsissue\" -e \"Az version\" -e \"Update-PSResource\" -e \"breaking changes\" -e '^$')"
     ],
     "deny": [
       "Agent(claude)",

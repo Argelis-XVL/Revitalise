@@ -326,3 +326,15 @@ files:
       examples are real applications is an existing open item (Dev Summary Iteration 8, section
       8.6 item 8), not restated here. No repository document copies their text; the tests read
       them from this file.
+  - name: "2026-11-13-stress-test-feedback-part-1.md"
+    class: requirements
+    sha256: aa326e322b0e1795373557987861c67662f46b0ded986cfca6c3852e700cbcbd
+    bytes: 4508
+    contains_commercial_terms: false
+    intaked_by: plan-agent
+    note: >-
+      Stress-test feedback part 1 (test period), relayed by the reviewer 2026-11-13: 7 note rows and
+      13 missing rows from the call with the process owner. Triaged in
+      docs/plans/stress-test-feedback-2026-11-plan.md (APPROVED 2026-11-13, rows ST-01 to ST-20);
+      adopted by SDD Amendment A-15 (FR-120 to FR-126). Work-item intake by pm-agent. No personal
+      data of applicants; no commercial terms.

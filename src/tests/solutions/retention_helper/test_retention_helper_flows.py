@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Executes and inspects the five `REV | Retention | Retention & Erasure Helper` definitions (wbs:0.13, CO-011,
-TAD rev 33/34 sections 4.2 and 5.12 to 5.12.4, ADR-088, ADR-089). Test-only.
+TAD rev 33/34/38 sections 4.2 and 5.12 to 5.12.4, ADR-088, ADR-089, ADR-091, ADR-092). Test-only.
 
 WHAT THIS PROVES. The SHIPPED definitions are (a) read as values, for the properties the TAD makes checkable from
 source: mode 3 and the locate child are read-only, mode 1 contains no Dataverse delete, mode 2 holds the only
 Dataverse delete, the retention periods equal `dataverse.bulkDeleteJobs`, `rev_detail` is never written from a
-case column, every content-carrying action is secured (C-DOM-004); and (b) RUN, action by action, by the
-repository's WDL executor (`src/tests/narrative/wdl_sim.py`) against an in-memory Dataverse, SharePoint, mailbox
-and Teams, with the child flows run as real definitions in place of the call.
+case column, every content-carrying action is secured (C-DOM-004), no variable action carries secureData in ANY
+flow (IMP-1267), and every consumer of result() over a loop with a secured child secures itself in ANY flow
+(IMP-1269); and (b) RUN, action by action, by the repository's WDL executor (`src/tests/narrative/wdl_sim.py`)
+against an in-memory Dataverse, SharePoint, mailbox and Teams, with the child flows run as real definitions in
+place of the call. Mode 3's run history is checked for content in every recorded input and output, under the
+platform's own hiding rules (ADR-092 "What it protects"), with result() in the shape A-SAR-16 measured.
 
 WHAT THIS DOES NOT PROVE (V2 at most; nothing ran on the platform). The stand-ins speak the shapes the definitions
 assume, so every OPEN row of the Dev Summary section 10 stays open until the DEV run of TAD section 12.11/12.12:
@@ -24,7 +27,10 @@ assume, so every OPEN row of the Dev Summary section 10 stays open until the DEV
   A-SAR-14 where Exchange keeps a copy of the sent message. Delivery option B's send step is always built; the
   per-environment setting turns it on (TAD rev 37), so these tests run both with the setting empty and filled.
   The email carries the extract and every signed PDF copy, or nothing (TAD rev 37 second amendment): the size gate
-  is run under, at and over SarEmailMaxAttachmentMB, and with the limit or a file size missing or not a number.
+  is run under, at and over SarEmailMaxAttachmentMB, and with the limit or a file size missing or not a number;
+  a failed signed-document copy sends nothing and says why (ADR-092 item 7).
+A-SAR-16 (result() on a loop, actions() of a Compose that did or did not run) is CLOSED by the reviewer's DEV probe
+of 2026-11-04; the executor reproduces the shape it measured, and `ResultIsTheMeasuredShape` pins it.
 The executor evaluates if() eagerly, the stricter of the two readings the platform leaves open.
 """
 from __future__ import annotations
@@ -55,6 +61,8 @@ def load(stem):
 SWEEP, ERASURE, SAR = load("REVRetentionSweep"), load("REVRetentionErasure"), load("REVRetentionSarExtract")
 LOCATE, SNAPSHOT = load("REVRetentionLocate"), load("REVRetentionSnapshot")
 ALL = {"sweep": SWEEP, "erasure": ERASURE, "sar": SAR, "locate": LOCATE, "snapshot": SNAPSHOT}
+# every cloud flow in the solution, for the two platform rules that hold whatever the flow (IMP-1267, IMP-1269)
+EVERY_FLOW = {p.name.split("-")[0]: json.loads(p.read_text(encoding="utf-8")) for p in sorted(WF.glob("*.json"))}
 LOCATE_ID, SNAPSHOT_ID = "8f1c2a44-1017-4b7a-9e21-0a1b2c3d4e17", "8f1c2a44-1018-4b7a-9e21-0a1b2c3d4e18"
 ALERT_ID = "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
 NOW = datetime(2026, 11, 2, 0, 30, tzinfo=timezone.utc)   # a Monday, day 2: the first run of the month
@@ -119,57 +127,124 @@ class ReadOnlyAndDeleteBoundaries(unittest.TestCase):
         self.assertEqual(p["emailMessage/ReplyTo"], "@parameters('rev_ServiceMailbox')")
         self.assertEqual(a["inputs"]["retryPolicy"], {"type": "none"}, "a retried send could duplicate (ADR-091 item 5)")
         self.assertNotIn("emailMessage/Sensitivity", p, "Sensitivity is left empty: the label route is rejected (ADR-091 item 6)")
-        self.assertEqual(p["emailMessage/Attachments"], "@variables('attachments')",
-                         "one array, built per file and passed whole: the connector's multi-attachment workaround (ADR-091 item 5)")
+        self.assertEqual(p["emailMessage/Attachments"], "@outputs('Compose_the_attachments')",
+                         "one array, built once and passed whole: the connector's multi-attachment workaround (ADR-091 item 5, ADR-092 item 5)")
         check = defn(SAR)["actions"]["Check_protected_delivery_is_on"]
         self.assertIn("Send_the_extract_protected", check["actions"])
         self.assertEqual(check["expression"], {"and": [{"equals": ["@outputs('Compose_delivery_route')", "send"]}]})
 
-    def test_the_route_is_send_only_with_a_sender_an_address_and_a_set_that_fits(self):
+    def test_the_route_is_send_only_after_every_copy_with_a_sender_an_address_and_a_set_that_fits(self):
         route = defn(SAR)["actions"]["Compose_delivery_route"]["inputs"]
-        self.assertEqual(set(re.findall(r"'([^']*)'", route)) - {"rev_SarProtectedSender", "applicant", "rev_email", "Compose_case", "attachmentCheck"},
-                         {"", "off", "no email", "send", "too large", "fits"}, "a fixed token, never content")
+        refs = {"Copy_signed_documents", "status", "rev_SarProtectedSender", "applicant", "rev_email", "Compose_case", "attachmentCheck"}
+        self.assertEqual(set(re.findall(r"'([^']*)'", route)) - refs,
+                         {"", "Succeeded", "copy failed", "off", "no email", "send", "too large", "fits"}, "a fixed token, never content")
+        self.assertTrue(route.startswith("@{if(not(equals(actions('Copy_signed_documents')?['status'], 'Succeeded')), 'copy failed', "),
+                        "ADR-092 item 7: 'send' is reachable only when every signed-document copy was made")
         self.assertIn("empty(trim(coalesce(parameters('rev_SarProtectedSender'), '')))", route)
         self.assertIn("if(startsWith(variables('attachmentCheck'), 'fits'), 'send', 'too large')", route,
                       "'send' needs the size check to have said fits; anything else is too large (ADR-091 item 5)")
 
-    # ── the size gate (TAD rev 37 second amendment, ADR-091 item 5): one message or none ──
+    # ── the size gate (TAD rev 37 second amendment, ADR-091 item 5; ADR-092 items 4 to 6): one message or none ──
     @staticmethod
-    def appends(flow, var):
-        return [(n, a) for n, a, _ in walk(defn(flow)["actions"]) if a.get("type") == "AppendToArrayVariable" and a["inputs"]["name"] == var]
+    def loop_of(name):
+        """The Foreach a first-level action sits in, and that action."""
+        for n, a, _ in walk(defn(SAR)["actions"]):
+            if a.get("type") == "Foreach" and name in a["actions"]:
+                return n, a
+        raise AssertionError(f"{name} is not a first-level child of any loop")
 
     def test_every_file_the_run_writes_is_attached_and_measured(self):
-        """Derived from the definition: one attachment and one {Name, Size} per CreateFile, the same name, the Size from
-        that very create-file response (A-SAR-15), and the content from the file that was written."""
+        """Derived from the definition. Each PDF CreateFile is a first-level child of a flat loop whose sibling Compose
+        records {Name, ContentBytes, Size}: the same name, the content the write was given (A-RH-3), the Size of that
+        very create-file response (A-SAR-15). The loop's record of that Compose is filtered out of result() by name, and
+        both loops' records feed Select_document_copies, which feeds the attachments and the sizes. The extract joins
+        both beside them. Nothing reaches the email or the size gate through a variable (ADR-092 item 1)."""
+        a = defn(SAR)["actions"]
         writes = {n: p for n, _, op, p, _ in connector_actions(SAR) if op == "CreateFile"}
         # count-coupled by design (C-TECH-067): TAD 4.2 item 6 fixes these three writes; a fourth file must fail here
         self.assertEqual(len(writes), 3, "the extract, a library copy, an envelope copy")
-        att = dict(self.appends(SAR, "attachments"))
-        files = dict(self.appends(SAR, "attachmentFiles"))
-        self.assertEqual((len(att), len(files)), (len(writes), len(writes)))
-        names_att = sorted(a["inputs"]["value"]["Name"] for a in att.values())
-        names_files = sorted(a["inputs"]["value"]["Name"] for a in files.values())
-        self.assertEqual(names_att, names_files)
-        self.assertEqual(names_files, sorted(p["name"] for p in writes.values()))
-        self.assertEqual(sorted(a["inputs"]["value"]["Size"] for a in files.values()),
-                         sorted(f"@body('{n}')?['Size']" for n in writes))
-        for a in att.values():
-            self.assertEqual(set(a["inputs"]["value"]), {"Name", "ContentBytes"}, "the connector's attachment shape (A-RH-3)")
+        docs = a["Copy_signed_documents"]["actions"]
+        copies = docs["Select_document_copies"]["inputs"]["from"]
+        pdf_writes = {n: p for n, p in writes.items() if n != "Write_the_extract_file"}
+        self.assertEqual(len(pdf_writes), 2)
+        for create, p in pdf_writes.items():
+            with self.subTest(create=create):
+                loop_name, loop = self.loop_of(create)
+                composes = [(n, x) for n, x in loop["actions"].items() if x["type"] == "Compose"]
+                self.assertEqual(len(composes), 1, "one record of the copy per iteration")
+                (cname, comp), = composes
+                self.assertEqual(comp["runAfter"], {create: ["Succeeded"]}, "recorded only once the copy is written")
+                self.assertEqual(comp["runtimeConfiguration"]["secureData"]["properties"], ["inputs"])
+                v = comp["inputs"]
+                self.assertEqual(set(v), {"Name", "ContentBytes", "Size"})
+                self.assertEqual(v["Name"], p["name"], "the attachment is named as the file written")
+                source = re.fullmatch(r"@body\('([^']+)'\)", p["body"]).group(1)
+                self.assertEqual(v["ContentBytes"], f"@body('{source}')?['$content']", "the content the write was given (A-RH-3)")
+                self.assertEqual(v["Size"], f"@body('{create}')?['Size']", "the Size of this very write (A-SAR-15)")
+                self.assertTrue(all(x["type"] != "If" for x in loop["actions"].values()), "flat: no If around content (ADR-092 item 4)")
+                filters = [(n, x) for n, x in docs.items() if x["type"] == "Query" and x["inputs"]["from"] == f"@result('{loop_name}')"]
+                self.assertEqual(len(filters), 1)
+                (fname, flt), = filters
+                self.assertEqual(flt["inputs"]["where"], f"@equals(item()?['name'], '{cname}')")
+                self.assertIn(f"coalesce(first(body('{fname}'))?['outputs'], json('[]'))", copies)
+        self.assertEqual(docs["Select_document_copies"]["inputs"]["select"], "@item()?['outputs']", "each iteration's Compose output (A-SAR-16)")
+        chk = a["Check_protected_delivery_is_on"]["actions"]
+        self.assertEqual(chk["Select_document_attachments"]["inputs"],
+                         {"from": "@body('Select_document_copies')", "select": {"Name": "@item()?['Name']", "ContentBytes": "@item()?['ContentBytes']"}},
+                         "the connector's attachment shape (A-RH-3)")
+        self.assertEqual(chk["Compose_the_attachments"]["inputs"],
+                         "@union(createArray(addProperty(addProperty(json('{}'), 'Name', outputs('Compose_extract_file_name')), "
+                         "'ContentBytes', base64(outputs('Compose_extract_document')))), body('Select_document_attachments'))")
+        self.assertEqual(writes["Write_the_extract_file"]["name"], "@outputs('Compose_extract_file_name')")
+        self.assertEqual(writes["Write_the_extract_file"]["body"], "@outputs('Compose_extract_document')")
+        sizes = a["Measure_the_attachments"]["actions"]["Select_attachment_sizes"]["inputs"]
+        self.assertEqual(sizes, {"from": "@union(body('Select_document_copies'), createArray(body('Write_the_extract_file')))",
+                                 "select": "@item()?['Size']"}, "every file of the set is measured, the extract included")
 
     def test_the_check_is_set_once_inside_the_gate_and_only_after_both_reads(self):
         sets = [(n, a, path) for n, a, path in walk(defn(SAR)["actions"]) if a.get("type") == "SetVariable" and a["inputs"]["name"] == "attachmentCheck"]
         self.assertEqual([(n, path) for n, _, path in sets], [("Set_the_attachment_check", "/Measure_the_attachments/Set_the_attachment_check")])
         (_, a, _), = sets
-        self.assertEqual(a["runAfter"], {"For_each_attachment_file": ["Succeeded"], "Compose_attachment_limit_mb": ["Succeeded"]})
+        self.assertEqual(a["runAfter"], {"For_each_attachment_size": ["Succeeded"], "Compose_attachment_limit_mb": ["Succeeded"]})
         value = a["inputs"]["value"]
         self.assertEqual(set(re.findall(r"(?:outputs|body|actions|variables)\('([^']+)'\)", value)),
-                         {"attachments", "attachmentFiles", "attachmentBytes", "Compose_attachment_limit_mb"}, "sizes and the limit only")
+                         {"attachmentBytes", "Compose_attachment_limit_mb"}, "sizes and the limit only")
         self.assertIn("lessOrEquals(variables('attachmentBytes'), mul(outputs('Compose_attachment_limit_mb'), 1048576))", value)
         init = defn(SAR)["actions"]["Initialise_attachment_check"]["inputs"]["variables"][0]["value"]
         self.assertFalse(init.startswith("fits"), "until measured, the set counts as over the limit")
-        inc = defn(SAR)["actions"]["Measure_the_attachments"]["actions"]["For_each_attachment_file"]["actions"]["Add_the_file_size"]
-        self.assertEqual(inc["inputs"]["value"], "@int(string(items('For_each_attachment_file')?['Size']))",
+        loop = defn(SAR)["actions"]["Measure_the_attachments"]["actions"]["For_each_attachment_size"]
+        self.assertEqual(loop["foreach"], "@body('Select_attachment_sizes')")
+        self.assertEqual(loop["actions"]["Add_the_file_size"]["inputs"]["value"], "@int(string(items('For_each_attachment_size')))",
                          "a missing or non-numeric Size fails the loop: over the limit")
+
+    def test_no_variable_carries_content(self):
+        """ADR-092 item 1: variables remain for the byte total and the check's fixed text only."""
+        names = {v["name"] for n, a, _ in walk(defn(SAR)["actions"]) if a.get("type") == "InitializeVariable" for v in a["inputs"]["variables"]}
+        self.assertEqual(names, {"attachmentBytes", "attachmentCheck"})
+        kinds = {a["type"] for n, a, _ in walk(defn(SAR)["actions"]) if a.get("type", "").endswith("Variable")}
+        self.assertEqual(kinds, {"InitializeVariable", "IncrementVariable", "SetVariable"}, "no append: nothing accumulates content")
+
+    def test_each_store_section_is_one_secured_compose_and_not_read_is_chosen_at_assembly(self):
+        """ADR-092 items 2 and 3: the last action of each store's scope is its section Compose; the extract takes each
+        through actions()?['outputs'] with that store's fixed 'Not read' text as the coalesce default."""
+        a = defn(SAR)["actions"]
+        stores = {"Read_dataverse_rows": "dataverse", "Read_audit_history": "audit", "Read_quickbooks_section": "quickbooks",
+                  "Read_service_mailbox": "mailbox", "Copy_signed_documents": "signed_documents"}
+        doc = a["Compose_extract_document"]["inputs"]
+        for scope, key in stores.items():
+            with self.subTest(scope=scope):
+                acts = a[scope]["actions"]
+                last = [n for n in acts if not any(n in (x.get("runAfter") or {}) for x in acts.values())]
+                self.assertEqual(last, [f"Compose_{key}_section"])
+                self.assertEqual(acts[last[0]]["runtimeConfiguration"]["secureData"]["properties"], ["inputs"])
+                m = re.search(rf"coalesce\(actions\('Compose_{key}_section'\)\?\['outputs'\], '((?:[^']|'')*)'\)", doc)
+                self.assertTrue(m, f"{key} is assembled with its fixed default")
+                self.assertIn("Not read.", m.group(1))
+                self.assertNotRegex(m.group(1), r"(body|outputs|variables|item)\(", "the default is fixed text")
+        for scope in list(stores)[1:]:
+            self.assertEqual(sorted(next(iter(a[scope]["runAfter"].values()))), ["Failed", "Skipped", "Succeeded", "TimedOut"],
+                             "each store runs whatever state the one before ended in")
+        self.assertFalse([n for n in a if n.startswith("Append_")], "no 'not read' append is left")
 
     def test_the_limit_is_read_by_key_and_seeded_beside_the_stale_case_setting(self):
         self.assertIn("rev_name eq 'SarEmailMaxAttachmentMB'", json.dumps(defn(SAR)))
@@ -298,10 +373,17 @@ class SecuredRunHistory(unittest.TestCase):
 
     CONTENT_OPS = {"GetEmailsV3", "GetFileContentByPath", "GetDocumentsV2", "CreateFile"}
     PERSONAL = ("rev_email", "rev_refereeemail", "rev_conditionprofile", "rev_finalpaymentdate", "internalemailaddress")
-    CONTENT_SOURCES = ("Compose_case", "Compose_case_to_erase", "Create_", "variables('extract')", "Compose_reply_address",
-                       "Compose_extract_document", "variables('attachments')",
+    # ADR-092: content now travels through result() of the flat loops, the secured Filters and Selects after them, the
+    # section Composes read with actions(), and one attachments Compose. No variable is a source any more.
+    CONTENT_SOURCES = ("Compose_case", "Compose_case_to_erase", "Create_", "Compose_reply_address",
+                       "Compose_extract_document", "Compose_the_attachments", "result(", "_section')?['outputs']",
+                       "Filter_grants_with", "Filter_mailbox", "Filter_library_copy_records", "Filter_envelope_copy_records",
+                       "Select_document_copies", "Select_document_attachments", "Select_mailbox_tables", "Select_signed_document_lines",
                        "Get_messages", "List_the_audit_records", "Get_the_signed_pdf_content", "Get_the_envelope_document",
                        "Find_grants_without_final_payment", "Find_envelopes_to_void")
+    # ADR-092 item 6: the ONE action over content left unsecured on purpose, allowed by its exact shape (a projection
+    # whose only value is Size), never by a name or a function: a number per file cannot carry a row.
+    SIZE_ONLY = {"from": "@union(body('Select_document_copies'), createArray(body('Write_the_extract_file')))", "select": "@item()?['Size']"}
 
     @staticmethod
     def secured(a):
@@ -327,8 +409,9 @@ class SecuredRunHistory(unittest.TestCase):
             if op == "SendEmailV2" and "parameters(" not in p.get("emailMessage/To", "") and "first(body('Get_the_dpo" not in p.get("emailMessage/To", ""):
                 return {"inputs"}
             return None
-        # the size gate counts the attachments array (ADR-091 item 5); a length carries no content
-        text = json.dumps(a.get("inputs")).replace("length(variables('attachments'))", "length(...)")
+        text = json.dumps(a.get("inputs"))
+        if t == "Select" and a.get("inputs") == self.SIZE_ONLY:
+            return None
         if t in ("Select", "Query"):
             frm = json.dumps(a["inputs"]["from"])
             if any(s in frm for s in self.CONTENT_SOURCES) or any(c in frm for c in ("Get_the_applicant_row", "List_the_")):
@@ -364,6 +447,89 @@ class SecuredRunHistory(unittest.TestCase):
         del defn(d)["actions"]["Read_dataverse_rows"]["actions"]["Create_reviews_table"]["runtimeConfiguration"]
         bad = [n for n, a, _ in walk(defn(d)["actions"]) if (need := self.must_secure(n, a)) and not need <= self.secured(a)]
         self.assertEqual(bad, ["Create_reviews_table"])
+
+    def test_the_size_select_is_allowed_by_its_shape_only(self):
+        d = copy.deepcopy(SAR)
+        sizes = defn(d)["actions"]["Measure_the_attachments"]["actions"]["Select_attachment_sizes"]
+        self.assertIsNone(self.must_secure("Select_attachment_sizes", sizes))
+        sizes["inputs"]["select"] = {"Size": "@item()?['Size']", "Name": "@item()?['Name']"}
+        self.assertEqual(self.must_secure("Select_attachment_sizes", sizes), {"inputs", "outputs"},
+                         "a second projected value is no longer the Size template")
+
+    # ── two platform rules, over EVERY flow in Workflows/, not only the helper's five ──
+    VARIABLE_TYPES = ("InitializeVariable", "SetVariable", "AppendToStringVariable", "AppendToArrayVariable",
+                      "IncrementVariable", "DecrementVariable")
+
+    def variable_actions_with_secure_data(self, flows):
+        return [(label, path) for label, flow in flows.items() for _, a, path in walk(defn(flow)["actions"])
+                if a.get("type") in self.VARIABLE_TYPES and "secureData" in (a.get("runtimeConfiguration") or {})]
+
+    def test_no_variable_action_carries_secure_data_in_any_flow(self):
+        """IMP-1267 (V4, DEV 2026-11-04): the designer refuses to save a variable action carrying secureData
+        (SecureDataPropertyNotSupported); the import accepted it. Learn: no variable action can be secured."""
+        self.assertGreater(len(EVERY_FLOW), len(ALL), "every flow in Workflows/ is scanned, not only the helper's")
+        self.assertEqual(self.variable_actions_with_secure_data(EVERY_FLOW), [])
+
+    def test_the_variable_rule_can_fail(self):
+        d = copy.deepcopy(SAR)
+        defn(d)["actions"]["Initialise_attachment_bytes"]["runtimeConfiguration"] = {"secureData": {"properties": ["inputs"]}}
+        self.assertEqual(self.variable_actions_with_secure_data({"sar": d}), [("sar", "/Initialise_attachment_bytes")])
+
+    @staticmethod
+    def _own_text(a):
+        """An action's own inputs, without the actions nested in it, and without a condition's expression: only the
+        branch taken shows in run history (IMP-1269)."""
+        t = a.get("type")
+        if t in ("If", "Switch", "Until"):
+            return ""
+        if t == "Foreach":
+            return json.dumps(a.get("foreach"))
+        if t == "Scope":
+            return ""
+        return json.dumps(a.get("inputs"))
+
+    @staticmethod
+    def _has_secured_descendant(a):
+        return any(SecuredRunHistory.secured(x) for _, x, _ in walk(a.get("actions")))
+
+    def unsecured_result_consumers(self, flows):
+        """IMP-1269: secureData does not travel through result() (A-SAR-16, measured), nor through a Compose's outputs
+        (Learn), so the consumer must secure itself: a Compose its inputs, anything else both ways. A Foreach cannot
+        be secured, so it may not consume either at all."""
+        bad = []
+        for label, flow in flows.items():
+            everything = {n: a for n, a, _ in walk(defn(flow)["actions"])}
+            loops = {n for n, a in everything.items() if a.get("type") in ("Foreach", "Until") and self._has_secured_descendant(a)}
+            secured_composes = {n for n, a in everything.items() if a.get("type") == "Compose" and "inputs" in self.secured(a)}
+            for name, a, path in walk(defn(flow)["actions"]):
+                text = self._own_text(a)
+                hits = [l for l in re.findall(r"result\('([^']+)'\)", text) if l in loops]
+                hits += [c for c in re.findall(r"actions\('([^']+)'\)\?\['outputs'\]", text) if c in secured_composes]
+                if not hits:
+                    continue
+                need = {"inputs"} if a["type"] == "Compose" else {"inputs", "outputs"}
+                if a["type"] == "Foreach" or not need <= self.secured(a):
+                    bad.append((label, path, sorted(set(hits))))
+        return bad
+
+    def test_every_consumer_of_a_loop_result_with_a_secured_child_is_secured_in_any_flow(self):
+        self.assertEqual(self.unsecured_result_consumers(EVERY_FLOW), [])
+        # the rule has subjects: mode 3's three Filters over result() and the extract over actions()?['outputs']
+        consumers = [n for n, a, _ in walk(defn(SAR)["actions"])
+                     if re.search(r"result\('|actions\('Compose_\w+_section'\)\?\['outputs'\]", self._own_text(a))]
+        self.assertEqual(sorted(consumers), ["Compose_extract_document", "Filter_envelope_copy_records",
+                                             "Filter_library_copy_records", "Filter_mailbox_table_records"])
+
+    def test_the_result_rule_can_fail(self):
+        for target, path in (("Filter_mailbox_table_records", ("Read_service_mailbox",)),
+                             ("Compose_extract_document", ())):
+            with self.subTest(target=target):
+                d = copy.deepcopy(SAR)
+                acts = defn(d)["actions"]
+                for step in path:
+                    acts = acts[step]["actions"]
+                del acts[target]["runtimeConfiguration"]
+                self.assertEqual([p.rsplit("/", 1)[-1] for _, p, _ in self.unsecured_result_consumers({"sar": d})], [target])
 
 
 class TriggersAndSettings(unittest.TestCase):
@@ -486,9 +652,6 @@ class Engine(wdl_sim.Engine):
         out = dict(obj)
         out.pop(prop, None)
         return out
-
-    def f_actions(self, name):
-        return {"status": self.results.get(name, {}).get("status", "Skipped")}
 
     def a_Table(self, name, a, rec):
         rows = self.value(a["inputs"]["from"])
@@ -949,6 +1112,40 @@ class ErasureMode2(unittest.TestCase):
         self.assertFalse(w.log(rev_outcome=1), "the re-run leaves no Scheduled row behind, its own or the stopped run's")
 
 
+def run_history_leaks(eng, flow, sentinels):
+    """(action, side, sentinel) for every recorded input or output that would show content in run history.
+
+    The platform's hiding rules, as ADR-092 states them from Learn and A-SAR-16 measured them: an action's inputs are
+    hidden when it secures them, or when its own inputs explicitly use the outputs of an action that secures its
+    outputs and is not a Compose, Parse JSON or Response; its outputs are hidden when it secures them, or, for a
+    Compose, its inputs. Nothing else is hidden: in particular not result() (IMP-1269)."""
+    everything = {n: a for n, a, _ in walk(defn(flow)["actions"])}
+
+    def sec(a):
+        return set(((a.get("runtimeConfiguration") or {}).get("secureData") or {}).get("properties") or [])
+
+    def own(a):
+        return json.dumps(a.get("foreach") if a.get("type") == "Foreach" else a.get("inputs"))
+
+    hidden_sources = {n for n, a in everything.items() if "outputs" in sec(a) and a["type"] not in ("Compose", "ParseJson", "Response")}
+    leaks = []
+    for r in eng.records:
+        a = everything[r.name]
+        refs = set(re.findall(r"(?:body|outputs)\('([^']+)'\)", own(a)))
+        hide_in = "inputs" in sec(a) or bool(refs & hidden_sources)
+        hide_out = "outputs" in sec(a) or (a["type"] == "Compose" and "inputs" in sec(a))
+        for side, value, hidden in (("inputs", r.inputs, hide_in), ("outputs", r.outputs, hide_out)):
+            text = wdl_sim.to_str(value)
+            for s in sentinels:
+                if not hidden and s in text:
+                    leaks.append((r.name, side, s))
+    for var, value in eng.assignments:
+        for s in sentinels:
+            if s in wdl_sim.to_str(value):
+                leaks.append(("variable " + var, "value", s))
+    return leaks
+
+
 class SarExtractMode3(unittest.TestCase):
     """TAD 4.2 and 5.12 mode 3."""
 
@@ -1085,19 +1282,21 @@ class SarExtractMode3(unittest.TestCase):
         self.assertIn("delivery: option A, protected sending off in this environment", w.log()[0]["rev_detail"])
 
     def test_the_size_gate_mutations_fail(self):
-        """Mutation check: removing a per-file append, or letting 'send' through without 'fits', must be caught."""
+        """Mutation check: leaving a file out of the measured set, or letting 'send' through without 'fits', must be caught."""
         global SAR
         saved = SAR
         try:
-            # (1) the signed PDF is written but not added to the measured list: the static derivation fails
+            # (1) the extract is attached but not measured: the static derivation fails ...
             SAR = copy.deepcopy(saved)
-            lib = defn(SAR)["actions"]["Copy_signed_documents"]["actions"]["For_each_grant_document"]["actions"]["Check_the_grant_has_a_library_copy"]["actions"]
-            del lib["Add_the_signed_pdf_file"]
+            sizes = defn(SAR)["actions"]["Measure_the_attachments"]["actions"]["Select_attachment_sizes"]["inputs"]
+            sizes["from"] = "@body('Select_document_copies')"
             with self.assertRaises(AssertionError):
                 ReadOnlyAndDeleteBoundaries("test_every_file_the_run_writes_is_attached_and_measured").test_every_file_the_run_writes_is_attached_and_measured()
-            # and executed, the length check refuses the send rather than under-measuring the set
-            w = self.sized(sizes={"-signed-acceptance.pdf": 16 * 1048576})
-            self.assertFalse([c for c in w.calls if c[1] == "SendEmailV2"])
+            # ... and executed, a set one byte over the limit is under-measured and sent, which the boundary test refuses
+            w = self.sized(sizes={"-signed-acceptance.pdf": 15 * 1048576 - 1000, ".html": 1001})
+            self.assertTrue([c for c in w.calls if c[1] == "SendEmailV2"], "the mutation is live: the extract's bytes are not counted")
+            with self.assertRaises(AssertionError):
+                self.assert_nothing_sent_option_a(w, "too large")
             # (2) the route ignores the check: the over-limit run would send, so the executed test above must fail
             SAR = copy.deepcopy(saved)
             r = defn(SAR)["actions"]["Compose_delivery_route"]
@@ -1165,6 +1364,182 @@ class SarExtractMode3(unittest.TestCase):
         self.assertEqual(w.messages, [])
         self.assertEqual(w.log(), [])
         self.assertTrue(w.alerts)
+
+    # ── TAD rev 38, ADR-092 ──
+    def test_a_failed_signed_document_copy_sends_nothing_and_says_why(self):
+        """ADR-092 item 7 (reviewer, Decision B: "keep as is and inform Process Owner to send manual"), Consequence 7
+        traced: the copy fails -> Copy_signed_documents Failed -> the route is 'copy failed' -> no SendEmailV2 -> the
+        option A message gives the reason -> rev_detail records it. The extract still carries every other store."""
+        w = World()
+        w.sender = "sar@example.org"
+        a, _, _ = case(w)
+        w.fail.add("Save_the_signed_pdf_copy")
+        status, eng = self.run_sar(w, a)
+        self.assertEqual(status, "Succeeded", [(r.name, r.error) for r in eng.records if r.status == "Failed"])
+        self.assertFalse([c for c in w.calls if c[1] == "SendEmailV2"], "no partial email: nothing is sent at all")
+        ready, option_a = w.messages
+        self.assertIn("NOT emailed: use option A", option_a)
+        self.assertIn("could not all be copied into the SAR folder", option_a)
+        self.assertIn("send the extract and the documents yourself", option_a)
+        for text in ("pat@", "Pat", "mother"):
+            self.assertNotIn(text, option_a)
+        (row,) = w.log()
+        self.assertIn("signed documents NOT copied", row["rev_detail"])
+        self.assertIn("delivery: option A, the signed-document copy failed and nothing was sent", row["rev_detail"])
+        (doc,) = [b for f, n, b in w.created_files if n.endswith(".html")]
+        self.assertIn("<h2>10. Signed acceptance documents</h2><p><b>Not read.</b>", doc)
+        self.assertIn("I care for my mother.", doc)
+        self.assertIn("<h2>9. Service mailbox</h2>", doc)
+
+    def test_a_copy_failure_outranks_an_empty_sender(self):
+        """With sending off as well, the process owner is still told the documents must be copied by hand."""
+        w = World()   # the setting ships empty: sending is off
+        a, _, _ = case(w, signed=False)
+        w.fail.add("Get_the_envelope_document")
+        self.assertEqual(self.run_sar(w, a)[0], "Succeeded")
+        self.assertIn("could not all be copied", w.messages[-1])
+        self.assertNotIn("not switched on", w.messages[-1])
+        self.assertIn("the signed-document copy failed", w.log()[0]["rev_detail"])
+
+    def test_an_unreadable_mailbox_writes_its_not_read_line(self):
+        w = World()
+        a, _, _ = case(w)
+        w.fail.add("Get_messages_to_the_address")
+        self.assertEqual(self.run_sar(w, a)[0], "Succeeded")
+        (doc,) = [b for f, n, b in w.created_files if n.endswith(".html")]
+        self.assertIn("<h2>9. Service mailbox</h2><p><b>Not read.</b>", doc)
+        self.assertNotIn("My application", doc)
+        self.assertIn("mailbox NOT read", w.log()[0]["rev_detail"])
+
+    def test_every_mailbox_table_is_gathered_through_result(self):
+        """Store 9 after ADR-092 item 4: one table per address (the applicant and the referee), read back after the
+        loop from result() in the measured shape."""
+        w = World()
+        a, _, _ = case(w)
+        self.assertEqual(self.run_sar(w, a)[0], "Succeeded")
+        (doc,) = [b for f, n, b in w.created_files if n.endswith(".html")]
+        section = doc[doc.index("<h2>9. Service mailbox</h2>"):doc.index("<h2>10.")]
+        self.assertEqual(section.count("<table>"), 2)
+        for text in ("My application", "Re: My application", "Reference REV-2026-007", "Another applicant"):
+            self.assertIn(text, section)
+
+    def test_several_grants_each_copied_listed_and_attached(self):
+        """Two flat loops over two lists (ADR-092 item 4): a library copy, an envelope copy and a grant with neither."""
+        w = World()
+        w.sender = "sar@example.org"
+        a, app, _ = case(w)
+        w.add("rev_grants", rev_name="GR-2026-00004", _rev_applicationid_value=app, rev_docusignenvelopeid="env-2")
+        w.add("rev_grants", rev_name="GR-2026-00005", _rev_applicationid_value=app)
+        status, eng = self.run_sar(w, a)
+        self.assertEqual(status, "Succeeded", [(r.name, r.error) for r in eng.records if r.status == "Failed"])
+        (sent,) = w.sent
+        import base64
+        attached = {x["Name"]: base64.b64decode(x["ContentBytes"]) for x in sent["emailMessage/Attachments"]}
+        self.assertEqual(attached, {n: World.raw(b) for f, n, b in w.created_files})
+        pdfs = sorted(n for n in attached if n.endswith(".pdf"))
+        self.assertEqual(len(pdfs), 2)
+        self.assertTrue(pdfs[0].endswith("-GR-2026-00003-signed-acceptance.pdf") and pdfs[1].endswith("-GR-2026-00004-envelope.pdf"), pdfs)
+        self.assertTrue(sent["emailMessage/Attachments"][0]["Name"].endswith(".html"), "the extract first")
+        (doc,) = [b for f, n, b in w.created_files if n.endswith(".html")]
+        for line in ("<li>GR-2026-00003: signed acceptance copied from the library.</li>",
+                     "<li>GR-2026-00004: the DocuSign envelope document copied (not yet completed, no library copy).</li>",
+                     "<li>GR-2026-00005: no signed document exists.</li>"):
+            self.assertIn(line, doc)
+
+    # ── the run-history closure (C-DOM-004), executed ──
+    SENTINELS = ("I care for my mother.", "pat@example.org", "12345678", "Strong case", "My application", "I support",
+                 "QB-77", "%PDF signed", "JVBERiBzaWduZWQ=", "envelope-pdf:", "ZW52ZWxvcGUtcGRmOm")
+
+    def test_run_history_holds_no_content(self):
+        """ADR-092 'What it protects': content appears only where the action secures it, or in inputs the platform
+        hides because they explicitly use a secured non-Compose action's outputs. Every recorded input and output of a
+        full option B run is checked, the per-iteration content result() carries included (IMP-1269)."""
+        for signed in (True, False):
+            with self.subTest(signed=signed):
+                w = World()
+                w.sender = "sar@example.org"
+                a, _, _ = case(w, signed=signed)
+                status, eng = self.run_sar(w, a)
+                self.assertEqual(status, "Succeeded")
+                self.assertEqual(len(w.sent), 1)
+                self.assertEqual(run_history_leaks(eng, SAR, self.SENTINELS), [])
+
+    def test_the_closure_catches_an_unsecured_consumer_of_result(self):
+        """IMP-1269's measured leak, reproduced: the Filter over result() unsecured shows the mailbox content."""
+        d = copy.deepcopy(SAR)
+        del defn(d)["actions"]["Read_service_mailbox"]["actions"]["Filter_mailbox_table_records"]["runtimeConfiguration"]
+        w = World()
+        a, _, _ = case(w)
+        eng = w.engine(d, {"entity": {"rev_applicantid": a, "rev_name": "REV-A-00042"}}, STARTER)
+        self.assertEqual(eng.run(), "Succeeded")
+        leaks = run_history_leaks(eng, d, self.SENTINELS)
+        self.assertTrue([x for x in leaks if x[0] == "Filter_mailbox_table_records"], leaks)
+
+
+class ResultIsTheMeasuredShape(unittest.TestCase):
+    """A-SAR-16, closed by the reviewer's DEV probe 2026-11-04 ("All steps have passed."). The executor runs a replica
+    of the probe flow `ZZ PROBE A-SAR-16 delete me` and must return what DEV returned: the record shape, a secured
+    Compose's value and a secured List rows' rows inside result(), and actions() of an action that ran or did not."""
+
+    PROBE = {"actions": {
+        "Compose_items": {"type": "Compose", "runAfter": {}, "inputs": ["a", "b"]},
+        "Apply_to_each": {"type": "Foreach", "runAfter": {"Compose_items": ["Succeeded"]}, "foreach": "@outputs('Compose_items')",
+                          "runtimeConfiguration": {"concurrency": {"repetitions": 1}},
+                          "actions": {
+                              "Compose_secret": {"type": "Compose", "runAfter": {}, "inputs": "@concat('secret-', item())",
+                                                 "runtimeConfiguration": {"secureData": {"properties": ["inputs"]}}},
+                              "List_rows": {"type": "OpenApiConnection", "runAfter": {"Compose_secret": ["Succeeded"]},
+                                            "inputs": {"host": {"connectionName": "shared_commondataserviceforapps", "operationId": "ListRecords",
+                                                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"},
+                                                       "parameters": {"entityName": "rev_settings", "$select": "rev_name", "$top": 1}},
+                                            "runtimeConfiguration": {"secureData": {"properties": ["inputs", "outputs"]}}}}},
+        "Condition_never": {"type": "If", "runAfter": {"Apply_to_each": ["Succeeded"]}, "expression": "@equals(1, 2)",
+                            "actions": {"Compose_never": {"type": "Compose", "runAfter": {}, "inputs": "x"}}},
+        "Compose_secret_outside": {"type": "Compose", "runAfter": {"Condition_never": ["Succeeded"]}, "inputs": "secret-outside",
+                                   "runtimeConfiguration": {"secureData": {"properties": ["inputs"]}}},
+        "Compose_check": {"type": "Compose", "runAfter": {"Compose_secret_outside": ["Succeeded"]}, "inputs": {
+            "2a": "@contains(string(result('Apply_to_each')), 'secret-b')",
+            "2b": "@contains(string(result('Apply_to_each')), '\"rev_name\":')",
+            "2c": "@equals(first(result('Apply_to_each'))?['name'], 'Compose_secret')",
+            "4a": "@equals(coalesce(actions('Compose_never')?['outputs'], 'not run'), 'not run')",
+            "4b": "@equals(actions('Compose_secret_outside')?['outputs'], 'secret-outside')"}}}}
+
+    def run_probe(self, items=("a", "b")):
+        w = World().setting("SomeSetting", "1")
+        probe = copy.deepcopy(self.PROBE)
+        probe["actions"]["Compose_items"]["inputs"] = list(items)
+        eng = Engine(probe, {}, connector=w.connector, child_flow=w.child)
+        self.assertEqual(eng.run(), "Succeeded")
+        return eng
+
+    def test_the_probe_checks_pass_in_the_executor(self):
+        eng = self.run_probe()
+        self.assertEqual(eng.results["Compose_check"]["outputs"], {"2a": True, "2b": True, "2c": True, "4a": True, "4b": True})
+
+    def test_the_record_shape_is_the_measured_one(self):
+        res = self.run_probe().f_result("Apply_to_each")
+        self.assertEqual([r["name"] for r in res], ["Compose_secret", "List_rows"], "one record per first-level child, definition order")
+        for r in res:
+            self.assertEqual(set(r), {"name", "outputs", "startTime", "endTime", "trackingId", "clientTrackingId", "clientKeywords",
+                                      "code", "status", "repetitionCount", "billableCount"})
+            self.assertEqual((r["code"], r["status"], r["repetitionCount"], len(r["outputs"])), ("NotSpecified", "Succeeded", 2, 2))
+            for it in r["outputs"]:
+                self.assertEqual(set(it), {"name", "inputs", "outputs", "startTime", "endTime", "trackingId", "clientTrackingId",
+                                           "clientKeywords", "code", "status", "billableCount"})
+                self.assertEqual((it["name"], it["code"], it["status"]), (r["name"], "OK", "Succeeded"))
+        compose, rows = res
+        self.assertEqual([(i["inputs"], i["outputs"]) for i in compose["outputs"]], [("secret-a", "secret-a"), ("secret-b", "secret-b")],
+                         "a secured Compose's value comes back plain: secureData does not travel through result()")
+        it = rows["outputs"][0]
+        self.assertEqual(it["inputs"]["host"], {"apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                                                "connectionReferenceName": "shared_commondataserviceforapps", "operationId": "ListRecords"})
+        self.assertEqual(it["inputs"]["parameters"]["entityName"], "rev_settings")
+        self.assertEqual(set(it["outputs"]), {"statusCode", "headers", "body"})
+        self.assertEqual(it["outputs"]["body"]["value"][0]["rev_name"], "SarEmailMaxAttachmentMB", "rows at outputs.body.value")
+
+    def test_a_loop_of_no_iteration_reads_as_nothing_gathered(self):
+        """Not measured: the executor returns [] and mode 3's Selects coalesce to an empty list either way."""
+        self.assertEqual(self.run_probe(items=()).f_result("Apply_to_each"), [])
 
 
 class SweepMode1(unittest.TestCase):

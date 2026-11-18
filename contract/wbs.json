@@ -557,7 +557,7 @@
       ],
       "phase": "Phase 2",
       "deliverable": "Feedback log",
-      "claimed_status": "Done",
+      "claimed_status": null,
       "actual_hours": null,
       "delta": null
     },

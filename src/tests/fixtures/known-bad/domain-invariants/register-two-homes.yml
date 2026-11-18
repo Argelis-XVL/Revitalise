@@ -1,0 +1,14 @@
+# A registered column declared on TWO entities, each with its own row (IMP-1288). The copy onto
+# rev_fixturelog is declared, so DUPLICATE-ENTITY must NOT fire for it. The fixture still fails
+# overall (rev_fixture's row is unsecured and unaudited); the test asserts only the label.
+meta:
+  owner: fixture
+columns:
+  - name: rev_fixturecondition
+    entity: rev_fixture
+    basis: "Art. 9 — health condition (fixture)"
+    secured: required
+  - name: rev_fixturecondition
+    entity: rev_fixturelog
+    basis: "Art. 9 — health condition, declared second home (fixture)"
+    secured: required

@@ -318,6 +318,35 @@ columns:
     basis: "Art. 9 — health condition of the supported person, free text (FR-089)"
     secured: required
 
+  # ── Anonymised statistics: Article 9 content held without identifiers ──────
+  # ADDED 2026-11-15 by improvement review 2026-11-13 (IMP-1286). rev_anonymisedstatistic was
+  # classed "not personal data" (SDD §7.1) and so never reached this file, although it has held
+  # grouped condition areas since v0.2. An anonymised copy of an Article 9 field is still an
+  # Article 9 field for this register: it is adjudicated where it is stored. The source columns
+  # keep their own rows (rev_applicant.rev_ethnicgroup stays secured; rev_application's
+  # rev_exceptionalcircumstance stays a panel-visible exception).
+  #
+  # WHY `secured: exception` AND NOT `required`: the row carries no name, address, reference or
+  # lookup, so column security would protect no identifiable person. The exception holds ONLY
+  # while that stays true. TAD rev 39 ADR-096 item 9 (PD-4) also limits reading the rows to the
+  # process owner and the service identity, because the rows hold combinations of attributes;
+  # until that role change is built, REV Trustee and REV Finance still hold Read on the table.
+  # WHAT WOULD REVERSE IT: an identifier, lookup or reference number added to the table. Then
+  # make these rows `secured: required` and tell the reviewer.
+  #
+  # PENDING (row 4 of the same review, approved 2026-11-15, NOT yet applied): rev_ethnicgroup and
+  # rev_exceptionalcircumstance on rev_anonymisedstatistic join this block, with the same reason,
+  # in the same change that adds those columns to Entity.xml. domain-invariants fails by name
+  # until they are here (DUPLICATE-ENTITY), so the order is enforced, not remembered.
+  - name: rev_conditionareas
+    entity: rev_anonymisedstatistic
+    basis: "Art. 9 — health: grouped condition areas, held anonymised (FR-055, FR-126; SDD §7.1 Anonymised row)"
+    secured: exception
+    reason: >
+      anonymised; no identifier on the row. Retained indefinitely as a statistic (FR-055); the
+      exception lapses if any identifier, lookup or reference is added to rev_anonymisedstatistic.
+    owner: "Reviewer (Xander Lykopoulos): storage ruled 2026-11-13 (SDD §7.1, FR-126); unsecured posture confirmed by APPROVE IMPROVEMENTS on docs/improvements/2026-11-13-improvement-review.md"
+
 # ── COLUMN-SECURED, ARTICLE 9 ADJUDICATION NOT YET RECORDED ──────────────────
 #
 # ⚠️ THIS BLOCK IS A DEBT, NOT A CLEARANCE. Read the next paragraph before using it.
@@ -519,3 +548,11 @@ pending_adjudication:
   # personal data — they are process-control flags/labels (a release gate, a visibility
   # switch, a round label), the same category as rev_statusoverridden or rev_finalisedon,
   # neither of which appears in this register either.
+  #
+  # Considered and NOT added, 2026-11-15 (TAD rev 39 ADR-096, improvement review 2026-11-13):
+  # rev_anonymisedstatistic's rev_wellbeinganswer1..10 and rev_feelingscaleanswer, rev_gender,
+  # rev_applicanttype. SDD §7.1 calls the wellbeing answers health-related, not Article 9, and
+  # their rev_application sources are unregistered scored inputs of FR-016 — registering a copy
+  # by name would bar the scoring flow from its own inputs. rev_gender is ordinary personal data
+  # (its own Entity.xml says so); applicant type is a reporting dimension. Reverse only by
+  # adjudicating the rev_application source columns first.

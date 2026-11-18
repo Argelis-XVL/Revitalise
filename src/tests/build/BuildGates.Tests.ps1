@@ -673,6 +673,16 @@ Describe 'Build gate: domain-invariants (C-DOM-030 / C-DOM-031 / C-DOM-032)' {
         ($out -join "`n") | Should -Match 'DUPLICATE-ENTITY'
     }
 
+    It "'domain-invariants' accepts a column the register declares on two entities, each in its own row (IMP-1288)" {
+        # The same copy as the case above, now DECLARED on both entities. Before IMP-1288 the
+        # check kept one entity per name, so the last row won and the original was flagged.
+        # The fixture still fails overall (rev_fixture's row is unsecured and unaudited); this
+        # asserts only that DUPLICATE-ENTITY does not fire.
+        $out = & python3 (Join-Path $script:Scripts 'verify-domain-invariants.py') `
+            $script:DomainFixture '--register' (Join-Path $script:DomainFixture 'register-two-homes.yml') 2>&1
+        ($out -join "`n") | Should -Not -Match 'DUPLICATE-ENTITY'
+    }
+
     It "'domain-invariants' fails on a target directory that does not exist (IMP-0007)" {
         Invoke-Python 'verify-domain-invariants.py' @(
             (Join-Path $script:RepoRoot 'src/solutions/NoSuchSolution')

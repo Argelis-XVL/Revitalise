@@ -5,12 +5,14 @@ build configuration)
 **TAD Reference:** `docs/architecture/revitalise-grant-automation-architecture.md` rev 33/34, and rev 36/37 approved
 2026-10-30 with the approval amendment: §4.2 (item 8), §5.12, §5.12.1, §5.12.2 (step 8), §5.12.3, §5.12.4, `ADR-088`,
 `ADR-089`, `ADR-091` (item 5 as amended twice at approval), §12 (rev 33, rev 34 and rev 37 rows), §12.11 (`A-SAR-4`,
-`A-SAR-13`, `A-SAR-14`, `A-SAR-15`), §12.12
+`A-SAR-13`, `A-SAR-14`, `A-SAR-15`), §12.12; **rev 38 approved 2026-11-04: `ADR-092`, §5.12 mode 3 *Run history* and
+*Size*, §12.11 `A-SAR-16`** (§16)
 **SDD Reference:** `docs/plans/revitalise-grant-automation-plan.md` (FR-048 to FR-055, §10)
 **Change order:** [CO-011](../../contract/change-orders/CO-011.md), approved **unbilled** (`EX-013`)
 **WBS task id:** `wbs:0.13` (exists in `contract/change-orders/` only); the QuickBooks step depends on `wbs:7.1`
 **Date:** 2026-10-26; revised 2026-10-30 (reviewer decisions 1 and 3, §13); revised again 2026-10-30 (TAD rev 36/37, §14);
-revised a third time 2026-10-30 (TAD rev 37 second amendment: signed PDFs attached, size gate, §15)
+revised a third time 2026-10-30 (TAD rev 37 second amendment: signed PDFs attached, size gate, §15); revised
+2026-11-04 (TAD rev 38, `ADR-092`: mode 3 rebuilt with no content in any variable, §16)
 **Status:** DRAFT
 **Branch:** `retention-automation`
 
@@ -41,6 +43,10 @@ the repository's workflow-language simulator against in-memory stores (V2), and 
    read), or if the send fails, it sends nothing, never part of the set, does not retry and tells the process owner
    to use option A, naming every file. The log row records which. The setting ships
    empty everywhere, so every environment starts on option A until the DEV check passes (§14).
+   **Rebuilt 2026-11-04 (TAD rev 38, `ADR-092`, §16):** no variable holds content, because the designer refuses
+   secureData on any variable action (`IMP-1267`). Each store's section is one secured Compose, loops are flat and
+   read back with `result()` into secured Filters and Selects, and a failed signed-document copy sends nothing and
+   tells the process owner why.
 4. **Two child flows**: *locate* (the applicant's whole case, shared by modes 2 and 3) and *snapshot* (the FR-055 Not
    Granted statistic, shared by modes 1 and 2).
 5. **`rev_retentionlog`**, the evidence log every mode writes: references, rule, outcome and dates, never personal
@@ -52,7 +58,7 @@ the repository's workflow-language simulator against in-memory stores (V2), and 
 |---|---|---|---|
 | [Workflows/REVRetentionSweep-…1014.json](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSweep-8F1C2A44-1014-4B7A-9E21-0A1B2C3D4E14.json) (+ `.json.data.xml`, `.notes.md`) | Cloud flow, new | Mode 1, weekly Recurrence, 80 actions | FR-048, FR-049, FR-054, FR-055, NFR-010 · `wbs:0.13` |
 | [Workflows/REVRetentionErasure-…1015.json](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionErasure-8F1C2A44-1015-4B7A-9E21-0A1B2C3D4E15.json) (+ data, notes) | Cloud flow, new | Mode 2, When a row is selected + typed reference, 83 actions; audit-history row *Retained (audit)* (§14) | FR-051, FR-052, FR-054, FR-055 · `wbs:0.13` |
-| [Workflows/REVRetentionSarExtract-…1016.json](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json) (+ data, notes) | Cloud flow, new | Mode 3, When a row is selected, read-only on business tables, 101 actions (option B delivery block, §14; attachments and size gate, §15) | FR-053, FR-054 · `wbs:0.13` (QuickBooks step `wbs:7.1`) |
+| [Workflows/REVRetentionSarExtract-…1016.json](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json) (+ data, notes) | Cloud flow, new | Mode 3, When a row is selected, read-only on business tables, **94 actions** (rebuilt to `ADR-092`, §16; was 101: option B delivery block, §14; attachments and size gate, §15) | FR-053, FR-054 · `wbs:0.13` (QuickBooks step `wbs:7.1`) |
 | [Workflows/REVRetentionLocate-…1017.json](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionLocate-8F1C2A44-1017-4B7A-9E21-0A1B2C3D4E17.json) (+ data, notes) | Child flow, new | Returns the applicant's whole case, 17 actions | FR-051, FR-053 · `wbs:0.13` |
 | [Workflows/REVRetentionSnapshot-…1018.json](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSnapshot-8F1C2A44-1018-4B7A-9E21-0A1B2C3D4E18.json) (+ data, notes) | Child flow, new | One Not Granted statistic where owed, 15 actions | FR-055 · `wbs:0.13` |
 | [Entities/rev_retentionlog/Entity.xml](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_retentionlog/Entity.xml#L179), main form, `AllRetentionLogs.xml` view | Table, new | 12 columns per TAD §5.12.3, organisation-owned, audited, nothing secured; `rev_signedpdfpath` and `rev_detail` 2000 characters (§14) | FR-054 · `wbs:0.13` |
@@ -69,7 +75,9 @@ the repository's workflow-language simulator against in-memory stores (V2), and 
 | `provisioning/deploymentSettings/pac-import-{tstacc,prd}.json` | Deployment values, changed | `rev_SpoSarFolderUrl` placeholders; `rev_SarProtectedSender` placeholders `{{SAR_PROTECTED_SENDER_TSTACC}}` / `_PROD`, each commented "replace with an empty string until the check passes" | C-TECH-047, `ADR-091` item 4 |
 | `config/revitalise-grant-automation-pipeline.yml` | Pipeline, changed | 5 DEV (two of them the `ADR-091` prerequisite and check, carrying `{{SAR_PROTECTED_SENDER_DEV}}`; the check gains the attachment, size-gate and `A-SAR-15` parts, §15), 2 TST/ACC and 2 PRD steps; two row-count sentences 48 → 50 → 51 | §12 |
 | [docs/training/subject-access-request-procedure.md](../training/subject-access-request-procedure.md) | Runbook, new | SAR, erasure and the weekly summary, for the process owner | `ADR-088` item 8 |
-| `src/tests/solutions/retention_helper/test_retention_helper_flows.py`, `src/tests/solutions/RetentionHelper.Tests.ps1` | Tests, new | 57 Python tests (static and executed), 12 Pester tests | — |
+| `src/tests/solutions/retention_helper/test_retention_helper_flows.py`, `src/tests/solutions/RetentionHelper.Tests.ps1` | Tests, new | 74 Python tests (static and executed), 15 Pester tests (rewritten 2026-11-04 for `ADR-092`, §16; were 57 and 12) | — |
+| `src/tests/narrative/wdl_sim.py`, `src/tests/solutions/_harness/WdlExpression.psm1` (revision 2026-11-04) | Test executors, changed | `result()` on a loop returns the shape `A-SAR-16` measured (per-iteration inputs and outputs); `actions()` and `addProperty()` added to the Python executor; `result()`, `actions()`, `union()` and `New-WdlForeachResult` to the PowerShell one (§16) | `ADR-092` gate interactions |
+| `config/revitalise-grant-automation-pipeline.yml` (revision 2026-11-04) | Pipeline, changed | `ADR-091` check (c): the sizes are read from `Select_attachment_sizes` (was the `Add_the_*_file` appends) | `A-SAR-15` (a) |
 | `src/tests/solutions/FinaliseDecisions.Tests.ps1` (revision 2026-10-30) | Test, changed | 3 tests: every Dataverse operation Finalise Decisions makes, derived from its definition, has its privilege on REV Service Automation; shown to fail without `prvWriterev_review` | `wbs:6.6` |
 | `src/tests/narrative/test_solution_flows.py` | Test, changed | `DeleteRecord` classified for the trigger-loop proof; a test that no flow triggers on a delete | — |
 | TAD §3.1 | Design document, changed | A `rev_retentionlog` block folded in from §5.12.3 (no design change) so the coverage gate reads it | C-TECH-066 |
@@ -102,10 +110,10 @@ an environment at 400 or with seven values, ensure-schema would print EXISTS and
 |---|---|---|---|
 | sweep (mode 1) | Recurrence, Week, Monday 00:30 UTC | 80 | 33 |
 | erasure (mode 2) | When a row is selected on `rev_applicant`, one typed text input, no splitOn | 83 | 40 |
-| SAR extract (mode 3) | When a row is selected on `rev_applicant`, one run per row | 101 | 42 (TAD rev 37 amended: about 84) |
+| SAR extract (mode 3) | When a row is selected on `rev_applicant`, one run per row | 94 (101 before `ADR-092`) | 42 (TAD rev 37 amended: about 84; rev 38: about 92) |
 | locate (child) | Child flow, one text input (applicant id) | 17 | 8 |
 | snapshot (child) | Child flow, one text input (application id) | 15 | 7 |
-| **Total** | | **296** | **about 130** |
+| **Total** | | **289** | **about 130** |
 
 The difference is the failure path the TAD itself specifies (a Failure Alert and a stop after each guarded read, a
 "not read" branch per store, log look-ups that make re-runs idempotent, counters for the summary), not extra
@@ -127,6 +135,11 @@ Each definition's reasoning, action by action, is in its `.notes.md` beside it. 
   `rev_detail` is written from a fixed vocabulary only, the `rev_detail` update, and a Failure Alert if that update
   fails, as for every other write in the flow. The send has retry policy **none**, *Sensitivity* empty, and is the
   flow's only send; the flow adds no mailbox action that reads or deletes a sent copy (`ADR-091` item 7, tested).
+* **Mode 3 after `ADR-092` (§16)** is 94 actions against the TAD's "about 92": no variable carries content, each store
+  ends in one secured section Compose, a section that did not run is replaced at assembly by its fixed "Not read"
+  line, the mailbox and the two document loops are flat and read back through `result()`, and the attachments are one
+  secured Compose built on the `send` route only. The two bullets below describe the build before it and are kept
+  as history.
 * **Mode 3's attachments and size gate (`ADR-091` item 5, second amendment)** are 17 actions against the TAD's "about
   3". Four variables, because one InitializeVariable may declare only one (`IMP-0821`); per written file (library
   copy, envelope copy, extract) one append of `{Name, ContentBytes}` to the attachments array that is passed whole to
@@ -180,7 +193,7 @@ tad-coverage, audited-tables), and the HARD `unit-tests` step runs every `*.Test
 
 | Control | Implementation |
 |---|---|
-| Run history holds no content (C-DOM-004) | Secure inputs and outputs on every content-carrying action; a test derives the set mechanically and has a case proving it can fail |
+| Run history holds no content (C-DOM-004) | Content only in actions that can be secured (`ADR-092`): secure inputs and outputs on every content-carrying action, no variable carrying content, every consumer of `result()` secured itself (`IMP-1269`); tests derive the set mechanically, scan every flow for secureData on a variable action and for an unsecured `result()` consumer, and run mode 3 checking every recorded input and output for content, each with a case proving it can fail |
 | The log names no data subject (C-DOM-004, FR-054) | References, rule, outcome, dates; `rev_detail` only from the file name and the stores-read list (tested); the only person named is the staff member who started a run |
 | Mode 3 read-only (`ADR-088` item 1) | No delete, no business-table update; the only Dataverse writes are the log row and its `rev_detail` update, files only to the SAR folder (tested) |
 | The extract is never sent unencrypted (TAD §4.2 item 8, `ADR-091`) | One send, From = `rev_SarProtectedSender` only, on the `send` route only, no retry; empty setting, no address or a failed send → no email and the option A message (tested both ways, mutation-checked). What the flow cannot see, the tenant rule switched off later, is `A-R112`, accepted by the reviewer |
@@ -201,7 +214,7 @@ incomplete, six months after last contact. The PRD pipeline step repeats this.
 
 | Item | State |
 |---|---|
-| **Delivery option B: built** (§14) | The ARCH_GAP raised in the first 2026-10-30 revision is answered by TAD rev 37 (`ADR-091`, Accepted). Built as designed; live only after the DEV check |
+| **Delivery option B: built, then rebuilt to `ADR-092`** (§14, §16) | The ARCH_GAP raised in the first 2026-10-30 revision is answered by TAD rev 37 (`ADR-091`, Accepted) and built. On 2026-11-04 the designer refused to turn the flow on (`SecureDataPropertyNotSupported` on an `AppendToArrayVariable`, `IMP-1267`); TAD rev 38 (`ADR-092`, Accepted) moved content out of variables, the reviewer's DEV probe closed `A-SAR-16`, and mode 3 is rebuilt (§16). Live only after the next DEV import, a designer turn-on (V4) and the `ADR-091` check. *Previously read: "Built as designed; live only after the DEV check"* |
 | **Signed documents under option B** (`IMP-1261`) | **Answered and built** (reviewer 2026-10-30, *"Also attach the signed pdf's off course"*; TAD rev 37 second amendment). The one email carries the extract and every signed PDF copy, all or nothing, under the `SarEmailMaxAttachmentMB` gate (§15). Option B no longer delivers less than option A. The size ceiling itself is open (`A-SAR-15`). *Previously read: "a reviewer question … the runbook tells the process owner to send the signed copies by the option A route meanwhile"* |
 | **QuickBooks lookup** | Section built from the payment rows with a "not read" statement; the lookup is added with `wbs:7.1` |
 | **Audit history row outcome** | **Settled** (reviewer, *"Build Retained (audit)"*): outcome 8, retained until the erasure date + 6 years (§14) |
@@ -251,8 +264,9 @@ Expected pack notice: the standing "root components are not defined in customiza
 | A-SAR-4 | **(rewritten 2026-10-30, TAD rev 37; extended by the second amendment)** A message the flow sends with *From (Send as)* = `rev_SarProtectedSender` arrives at an external address encrypted, the attachments readable only after the recipient authenticates, **and with the signed PDFs attached as well, every attachment opens and matches its SAR folder file**; and with the setting empty, **or the set over `SarEmailMaxAttachmentMB`**, nothing is sent. *Previously read: "until confirmed, mode 3 sends nothing … the mechanism is not designed"; the send step is no longer chosen at build time: it is always built and the setting turns it on* | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E2 (mail-flow rule, Microsoft Learn), simulator for the empty-setting half | Nothing has been sent; the mailbox and rule do not exist yet | DEV, pipeline `ADR-091` check (a), (c) and (c2): empty setting → no email and the option A message; filled after Send As → encrypted arrival at an external test mailbox, every attachment matches, message trace shows the rule fired; limit set to 1 (then empty) → no email, the option A message naming every file, `rev_detail` too large (then not measured) with the total; restore 15. Fails: the setting stays empty everywhere, no rebuild | OPEN |
 | A-SAR-13 | `SendEmailV2`'s `emailMessage/From` sends as the dedicated mailbox when the `rev_SharedOutlook` connection owner has Send As on it, and fails (nothing sent) when the permission is missing | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E2 (connector reference); no other flow in source sets it | No mailbox exists yet | DEV, check (b) then (c): before Send As, a failed send and the option A message; after, check (c). Order not possible: read the first half from any failed send's run history | OPEN |
 | A-SAR-14 | A send as `rev_SarProtectedSender` may leave a copy of the extract email, attachment included, in Sent Items of the connection owner's mailbox, the dedicated mailbox, or both; the flow neither reads nor deletes it (`ADR-091` item 7) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E4, nothing verified | Nothing has been sent | DEV, check (d): per mailbox, whether a copy exists, carries the attachment, and any retention. A copy found: setting back to empty and to the reviewer before it is filled anywhere | OPEN |
-| A-SAR-15 | **(TAD rev 37 second amendment, `ADR-091` item 5)** (a) The SharePoint create-file response carries `Size` in bytes for each file written to the SAR folder, and when it does the gate sums it; when it does not, `int(string())` fails, the set counts as over the limit and nothing is sent; (b) one `SendEmailV2` message carrying the extract and several PDFs totalling up to 15 MB of raw files is accepted by Exchange and the encryption rule (encrypted-message limit 25 MB, E2), and a larger set fails to send (fail-closed: option A); (c) several attachments in one `SendEmailV2`, built as one array, arrive intact | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E2 (Exchange Online limits, the connector reference, read by the architect 2026-10-30); simulator for the gate's arithmetic and every fail-closed branch | Nothing has been sent; no flow in source reads a create-file `Size` | DEV, pipeline `ADR-091` check (c) and (c3): (a) read the `Size` each unsecured `Add_the_*_file` action recorded in run history; (b) a set near 15 MB, then, with the reviewer's agreement, one near 20 MB, recording where it fails; if 15 is wrong the process owner changes the setting, no rebuild; (c) open every attachment. Any of (a) to (c) fails: `rev_SarProtectedSender` stays empty (option A) and the design returns to the architect | OPEN |
-| A-RH-3 | `emailMessage/Attachments` takes an array of `{Name, ContentBytes}` with `ContentBytes` base64, passed whole as `@variables('attachments')`; `base64()` of the extract string gives a file that opens identical to the SAR folder copy; **and a PDF's `ContentBytes` is its get-content body's `$content` (SharePoint `GetFileContentByPath`, DocuSign `GetDocumentsV2`), which opens identical to the copy the same body wrote** (extended 2026-10-30, §15) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E4 (no flow in source attaches a file; the simulator decodes it as written) | No send has run | DEV, check (c): open every received attachment, the extract and each PDF, and compare it with its SAR folder file. The designer shows a different shape, or a PDF arrives unreadable: copy the shape from the designer, CASCADE none (a shape fix) | OPEN |
+| A-SAR-15 | **(TAD rev 37 second amendment, `ADR-091` item 5)** (a) The SharePoint create-file response carries `Size` in bytes for each file written to the SAR folder, and when it does the gate sums it (from 2026-11-04 through the in-loop Composes and the Size-only `Select_attachment_sizes`, `ADR-092` item 6); when it does not, `int(string())` fails, the set counts as over the limit and nothing is sent; (b) one `SendEmailV2` message carrying the extract and several PDFs totalling up to 15 MB of raw files is accepted by Exchange and the encryption rule (encrypted-message limit 25 MB, E2), and a larger set fails to send (fail-closed: option A); (c) several attachments in one `SendEmailV2`, built as one array, arrive intact | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E2 (Exchange Online limits, the connector reference, read by the architect 2026-10-30); simulator for the gate's arithmetic and every fail-closed branch | Nothing has been sent; no flow in source reads a create-file `Size` | DEV, pipeline `ADR-091` check (c) and (c3): (a) read the sizes the unsecured `Select_attachment_sizes` recorded in run history (*previously: each `Add_the_*_file` append*); (b) a set near 15 MB, then, with the reviewer's agreement, one near 20 MB, recording where it fails; if 15 is wrong the process owner changes the setting, no rebuild; (c) open every attachment. Any of (a) to (c) fails: `rev_SarProtectedSender` stays empty (option A) and the design returns to the architect | OPEN |
+| A-RH-3 | `emailMessage/Attachments` takes an array of `{Name, ContentBytes}` with `ContentBytes` base64, passed whole as `@outputs('Compose_the_attachments')` (a secured Compose since `ADR-092` item 5, 2026-11-04; *previously read: "`@variables('attachments')`"*); `base64()` of the extract string gives a file that opens identical to the SAR folder copy; **and a PDF's `ContentBytes` is its get-content body's `$content` (SharePoint `GetFileContentByPath`, DocuSign `GetDocumentsV2`), which opens identical to the copy the same body wrote** (extended 2026-10-30, §15) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E4 (no flow in source attaches a file; the simulator decodes it as written) | No send has run | DEV, check (c): open every received attachment, the extract and each PDF, and compare it with its SAR folder file. The designer shows a different shape, or a PDF arrives unreadable: copy the shape from the designer, CASCADE none (a shape fix) | OPEN |
+| A-SAR-16 | **(TAD rev 38, `ADR-092` item 9)** In a cloud flow, `result('<For each>')` read after the loop returns, per first-level child and per iteration, that child's inputs and outputs even when the child secures them; a Filter array secured both ways over it shows nothing in run history; `actions('<action that did not run>')?['outputs']` is null without an error and for a secured Compose that ran it is the value; a `For each` over a secured action's output hides its items. And the reverse, measured: `secureData` does NOT travel through `result()`, so an unsecured consumer shows the content (`IMP-1269`) | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | **E1 — measured in DEV 2026-11-04** (about 21:23 local) by the reviewer, Xander Lykopoulos, on the throwaway flow `ZZ PROBE A-SAR-16 delete me` (§12.11 recipe plus `PASS_`/`FAIL_` Composes in each If and a 4b check), verbatim *"All steps have passed."*: **(1)** saved in the designer and turned on — PASS; **(2a)** `contains(string(result('Apply_to_each')), 'secret-b')` true, a secured Compose's value inside `result()` — PASS; **(2b)** `contains(…, '"rev_name":')` true, a secured List rows' rows inside `result()` — PASS; **(2c)** `first(result('Apply_to_each'))?['name']` is `Compose_secret`, the record shape — PASS; **(3)** the secured Filter and `Compose_secret` show hidden, and the For each record shows no child content — PASS; **(4a)** `actions('Compose_never')?['outputs']` null without an error — PASS; **(4b)** `actions('<secured Compose that ran>')?['outputs']` is the value — PASS; **(5)** the second loop's iteration inputs hidden — PASS. The shape measured: one record per first-level child in definition order, `{name, outputs: [per iteration], startTime, endTime, trackingId, clientTrackingId, clientKeywords, code: NotSpecified, status, repetitionCount, billableCount}`; per iteration `{name, inputs, outputs, …, code: OK, status, billableCount}`; a Compose's inputs and outputs the plain value; a connector's inputs `{host, parameters}` and outputs `{statusCode, headers, body}`. An information-only unsecured Compose over `string(result(…))` showed `secret-a`, `secret-b` and the List rows' inputs, headers and rows in plain run history (`IMP-1269`) | — | Done | **CLOSED — VERIFIED 2026-11-04.** The rebuild follows the measured shape (§16); both test executors reproduce it; the probe flow is the reviewer's to delete |
 | A-SAR-6 | Get file content using path reads the signed PDF named by `rev_signedpdfurl` (the value Completion stores) and Create file writes it unchanged to the SAR folder | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E4 | Not used by any flow in source | DEV: mode 3 on a test applicant with a completed test envelope; compare the copy with the library file | OPEN |
 | A-SAR-7 | Create HTML table over Dataverse rows with no `$select` gives readable choices and lookups (formatted-value annotations come back) and an empty list gives an empty table, not a failure | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E4 | Not used in source | DEV: open the extract of a test applicant with every choice set and one with no grant | OPEN |
 | A-SAR-8 | The When-a-row-is-selected trigger carries the starter's address in the `x-ms-user-email` header; when it does the log names the starter, when it does not both modes stop before reading the case | `src/solutions/RevitaliseGrantAutomation/Workflows/REVRetentionSarExtract-8F1C2A44-1016-4B7A-9E21-0A1B2C3D4E16.json` | E4 | Finalise Decisions uses the trigger but reads no user | DEV: run mode 3 as a named test process owner; the log row's Started By names her. Fails "StarterNotIdentified": CASCADE ARCH_GAP | OPEN |
@@ -278,7 +292,10 @@ library copy, stays registered in `revitalise-grant-automation-dev-summary.md`.
 | Revision 2026-10-30: REV Service Automation `prvWriterev_review`, runbook, mode 3 notes | V1 | macOS, local | `RetentionHelper.Tests.ps1` + `FinaliseDecisions.Tests.ps1` 49/49 pass (the new derived test fails with the privilege removed, restored after); run-source-gates 19/19 PASS; both assumption gates PASS; `verify-build-config.py` exit 0; `verify-improvement-log.py --check` exit 0 |
 | Revision 2026-10-30 (2), TAD rev 36/37: option B delivery block, `rev_SarProtectedSender`, outcome 8, 2000-character columns | V1, plus execution in the simulator; **V2** (unmanaged pack) | macOS, local | 47 Python + 12 Pester retention tests pass; six mutations of the new block each fail a test (route forced to send, retry added, From changed, failure branch removed, send unsecured, cap back to 400); full `unit-tests` suite 1524 passed, 0 failed; run-source-gates 19/19 PASS (after condensing four descriptions the 256-character gate caught); `pac solution pack --packagetype Unmanaged` → "Packed Solution.", the packed zip carries `rev_SarProtectedSender`, outcome 8 and `MaxLength 2000` |
 | Revision 2026-10-30 (3), TAD rev 37 second amendment: attachments array, size gate, `SarEmailMaxAttachmentMB` seed | V1, plus execution in the simulator; V2 (unmanaged pack), §15 | macOS, local | see §15 for the commands and their results |
-| Anything on the platform | **not reached** | — | No import, no run. V3 and above wait for the build and the DEV session |
+| Revision 2026-11-04, TAD rev 38 (`ADR-092`): mode 3 rebuilt, both executors' `result()`, the flow tests | V1, plus execution in the simulator | macOS, local | see §16 for the commands and their results |
+| `A-SAR-16` (the platform contract `ADR-092` rests on) | **E1, measured in DEV** by the reviewer on a throwaway probe flow, 2026-11-04 | DEV | §10 `A-SAR-16`: (1), (2a)-(2c), (3), (4a)-(4b), (5) all PASS, verbatim *"All steps have passed."* |
+| Mode 3 itself on the platform | **not reached** for the rebuilt definition | — | Build 20261103-3 imported the old definition into DEV (V3); the designer refused to turn it on (V4 failed, `IMP-1267`). The rebuilt definition waits for the next build, import and designer turn-on |
+| Anything else on the platform | **not reached** | — | V3 and above wait for the build and the DEV session |
 
 Human open-and-save (V4): **not yet performed**.
 
@@ -298,9 +315,13 @@ selected-row trigger or a mailbox read); nothing was created.
 
 ## 12. Work Items — close-out record (C-TECH-079)
 
-No items carried. The dispatch named `wbs:0.13` and `CO-011`; no work item exists for them in `logs/work-items.jsonl`.
+No items carried until 2026-11-04. The dispatch named `wbs:0.13` and `CO-011`; no work item exists for them in
+`logs/work-items.jsonl`.
 
-Scope check: not applicable (no ids carried). Deferred: none.
+**Revision 2026-11-04 (§16):** the dispatch carried `WI-0121` (the seven Automation #2 settings rows, `wbs:2.7`),
+which travels with this branch's builds. It is already `deployed:dev`; none of its four clauses names anything this
+revision changed (settings files, `seed-settings.ps1`, the pipeline's seed step), so it was not moved.
+`verify-work-items.py --check --scope WI-0121 --at-least built`: exit 0. Deferred: none.
 
 ---
 
@@ -366,6 +387,76 @@ are not stale, so it is not edited and needs no amendment. WI-0121's evidence dr
 | `pac solution pack --packagetype Unmanaged` | "Packed Solution."; the packed mode 3 definition carries `Measure_the_attachments` and `SarEmailMaxAttachmentMB`; the root-components notice is unchanged at 22 `Type=` lines |
 | `verify-improvement-log.py` then `--check` | OK; 3 warnings, none a blocker (IMP-1261 now fixed by IMP-1263 and awaiting its review) |
 
+## 16. Revision 2026-11-04 — TAD rev 38, `ADR-092`: no content in any variable
+
+The reviewer's designer turn-on of mode 3 in DEV failed on 2026-11-04 (`SecureDataPropertyNotSupported` on
+`Add_the_extract_attachment`, an `AppendToArrayVariable`; `IMP-1267`). TAD rev 38 (`ADR-092`, Accepted 2026-11-04,
+Decision A *"Agreed"*, Decision B *"Agreed, keep as is and inform Process Owner to send manual"*) moved content out of
+variables and made the rebuild wait for the `A-SAR-16` probe. The reviewer ran it in DEV the same evening and every
+step passed (§10). Built against the shape it measured:
+
+| # | `ADR-092` item | What this revision did |
+|---|---|---|
+| 1 | 1. No variable carries content | `extract`, `attachments` and `attachmentFiles` removed with every `AppendToStringVariable` and `AppendToArrayVariable` (14 actions). `attachmentBytes` and `attachmentCheck` remain. A test fails any flow in `Workflows/` with secureData on a variable action |
+| 2 | 2. One secured Compose per section | `Compose_dataverse_section`, `_audit_`, `_quickbooks_`, `_mailbox_`, `_signed_documents_section`, each the last action of its scope, secure inputs |
+| 3 | 3. "Not read" at assembly | `Compose_extract_document` takes `coalesce(actions('Compose_<store>_section')?['outputs'], '<fixed text>')` per store, the same five texts as before. The four `Append_*_not_read` actions are gone; each store scope runs after the one before in any of the four states. The statements section is written inline in the same Compose (it was an append) |
+| 4 | 4. Flat loops, read back with `result()` | Mailbox: `Compose_mailbox_table` added as the loop's last child; after the loop `Filter_mailbox_table_records` keeps its record from `result()` and `Select_mailbox_tables` projects each iteration's `outputs`. Documents: two grant-list Filters (library copy; envelope only), then two loops of get, save and one Compose of `{Name, ContentBytes, Size}`, then a Filter over each loop's `result()` and `Select_document_copies`. Every Filter and Select after a loop is secured both ways (`IMP-1269`). The section's lines come from the grant list (`Select_signed_document_lines`), never from loop output |
+| 5 | 5. One attachments Compose | On the `send` route only: `Select_document_attachments` projects `{Name, ContentBytes}`, `Compose_the_attachments` (secure inputs) puts the extract first; the send passes `@outputs('Compose_the_attachments')` |
+| 6 | 6. One Size-only Select, unsecured | `Select_attachment_sizes` over the copies and the extract's create-file response, `select: @item()?['Size']`; the measuring loop increments `int(string(item))`. The flow test allows it by this exact shape and no other; changing the projection makes it require securing (tested). The old "both arrays the same length" condition is gone: both now come from one Select |
+| 7 | 7. A failed copy sends nothing, and says why | `Compose_delivery_route` returns `copy failed` first when `Copy_signed_documents` did not succeed; the option A message gives the reason and tells the process owner to copy the documents and send by hand; `rev_detail` records `delivery: option A, the signed-document copy failed and nothing was sent`. No new action. If the attachments cannot be built on the `send` route, the send is skipped and the "send failed" message still goes (its `runAfter` gained `Skipped`) |
+| 8 | 8. §5.12.2 step 5 | Nothing to build: flow 1015 already uses `Compose_reply_address` (re-checked: no variable action carries secureData in any flow) |
+| 9 | 9. Probe first | Done: `A-SAR-16` closed, §10 |
+
+**Choices made where the ADR is silent or the measurement is narrower, for the reviewer to see.**
+(a) **The mailbox loop's read-back child is a Compose, not `Create_mailbox_table`.** The ADR names the Table, but the
+probe measured a Compose's per-iteration record (value as `outputs`) and a connector's, not a Table's. One Compose per
+loop reads a measured shape at the cost of one action. (b) **`Select_document_file_names`** makes the PDF file names
+from the two grant lists before the loops, so the option A message names the files on every route, the copy-failed
+one included (where some may be missing from the folder, which the message says). (c) **`copy failed` outranks every
+other reason**, including sending switched off: the process owner must copy the documents by hand whatever else is
+true. (d) **The attachments are built inside the `send` branch**, so nothing outside it reads an action that may not
+have run. (e) **94 actions** against the TAD's "about 92": (a) and (b) are the two over.
+
+**Executors (`ADR-092` gate interactions).** `wdl_sim.py`: `result()` on a `For each` returns the measured shape
+(one record per first-level child, per-iteration `{name, inputs, outputs, …, code: OK, status}`; a Compose's value
+plain, a connector's inputs `{host, parameters}` and outputs `{statusCode, headers, body}`); `actions()` returns
+`{name, status, outputs}` and `{name, status: Skipped}` for an action that never ran; `addProperty()` added.
+**Not measured and stated in its docstring:** zero iterations (returns `[]`; the flow coalesces either way) and the
+failure case, where the executor keeps its previous reading (`IMP-1271`). `WdlExpression.psm1`: `result()`,
+`actions()`, `union()` and `New-WdlForeachResult`, which builds the same shape. The narrative and payment suites,
+which share `wdl_sim.py`, still pass.
+
+**Tests (74 Python, 15 Pester in the retention files).** Rewritten for the design: the send passes the attachments
+Compose; the route needs every copy; every PDF write is derived to its in-loop Compose (same name, its `$content`,
+its own `Size`), its Filter over `result()` and `Select_document_copies`, and the extract is in both the attachments
+and the sizes; the check reads the bytes and the limit only; no variable carries content; each store ends in its
+section Compose and the extract coalesces it with fixed text. New, over **every flow in `Workflows/`**: no variable
+action carries secureData, and every consumer of `result()` over a loop with a secured child, or of
+`actions('<secured Compose>')?['outputs']`, secures itself (conditions exempt, a `For each` never allowed); each with
+a case proving it can fail. Executed: a failed copy sends nothing and gives the reason, also with sending off; an
+unreadable mailbox gets its line; one table per address through `result()`; three grants of three kinds, both
+copies attached and identical, extract first, a line each; **the run-history closure**, every recorded input and
+output of a full option B run (library and envelope) checked for eleven content markers under the platform's hiding
+rules, with a mutation showing the `IMP-1269` leak is caught; the probe replayed in the executor (the five checks,
+the record shape, zero iterations). Pester: the shipped Filters and Selects evaluated over `New-WdlForeachResult`,
+and a section that never ran coalescing to its fixed line.
+
+**Gate and test results for this revision** (second run, after this document was saved):
+
+| Command | Result |
+|---|---|
+| `python3 -m unittest discover -s src/tests/solutions/retention_helper -p 'test_*.py'` | 74 tests OK |
+| `python3 -m unittest discover -s src/tests/narrative -p 'test_*.py'`; `… -s src/tests/solutions/capture_payment …` | 230 OK; 51 OK |
+| `Invoke-Pester` `RetentionHelper.Tests.ps1` + `FinaliseDecisions.Tests.ps1` | 54 passed, 0 failed |
+| `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1` (the `unit-tests` step's suite) | 1527 passed, 0 failed, 1 skipped; exit 0 |
+| `python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation`; `--selftest` | OK, 18 flows, checks 1-18; selftest exit 0 |
+| `python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml` | 19/19 PASS (70 of 89 steps not covered, as it prints) |
+| `verify-assumption-markers.py`, `verify-assumption-register.py`, `verify-build-config.py`, `verify-pipeline-config.py` | PASS, PASS, exit 0, exit 0 |
+| `verify-improvement-log.py` then `--check`; `generate-known-failure-modes.py` | OK; regenerated |
+
+**Not done here, by instruction:** the build, the DEV import and the designer turn-on (build-agent and
+pipeline-agent next); flow 1018's designer-save drift in DEV (overwritten by that import). The TAD was not edited.
+
 ## Hours proposal
 
 None. CO-011 is approved **unbilled** (`EX-013`): no worklog session is proposed for `0.13`, and none is to be logged.
@@ -385,6 +476,8 @@ None. CO-011 is approved **unbilled** (`EX-013`): no worklog session is proposed
 | IMP-1261 | `delivery-route-delivers-less-than-fallback` (instance of `approved-document-internally-inconsistent`) | friction | When a design adds an automated route beside a manual fallback, list what each route delivers side by side and make them match, or state the difference as a decision |
 | IMP-1262 | `flow-size-estimate-omits-variable-plumbing` (instance of `change-order-sizing-without-precedent`) | friction | When estimating a flow change that accumulates values, count one InitializeVariable per variable, one append per producing branch, and a loop plus increment for a sum |
 | IMP-1263 | `delivery-route-delivers-less-than-fallback` (`fixes` IMP-1261) | friction | When a delivery route gains attachments, gate the whole set by a tunable size limit and send all of it or none |
+| IMP-1270 | `platform-contract-guessed-not-groundtruthed` (`fixes` IMP-1267, IMP-1269) | friction | When a test executor stands in for a platform function, give it the shape a DEV probe measured and write the closure test against it |
+| IMP-1271 | `platform-contract-guessed-not-groundtruthed` | friction | When result() of a loop is read for its failure, read the failed iteration from the per-child record's outputs array; measure the failure case once in DEV |
 
 Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`
 
@@ -405,8 +498,8 @@ Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`
 - [x] Every tool warning triaged; no diagnostic components
 - [x] Accessibility: one view and one read-only form on a model-driven table, standard controls
 - [x] No dead code or debug statements
-- [x] Unit tests written (57 Python, 12 Pester)
-- [x] Every carried work item is built or deferred (none carried)
+- [x] Unit tests written (74 Python, 15 Pester; §16)
+- [x] Every carried work item is built or deferred (WI-0121 carried on 2026-11-04, already `deployed:dev`, §12)
 
 ## Approval
 **Reviewed by:** ___________  **Date:** ___________  **Response:** `APPROVED`

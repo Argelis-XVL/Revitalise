@@ -113,3 +113,51 @@ Describe 'REV | Retention | Retention & Erasure Helper - provisioning reaches th
         }
     }
 }
+
+Describe 'REV | Retention | SAR extract - loop output read back through result() (TAD rev 38, ADR-092, A-SAR-16)' {
+    # The shipped expressions of the Filters and Selects after mode 3's loops, evaluated by the PowerShell harness over
+    # result() in the shape measured in DEV on 2026-11-04 (New-WdlForeachResult). The Python suite runs the whole flow;
+    # this pins the second evaluator to the same shape (knowledge note: every platform throw lands in both evaluators).
+    BeforeAll {
+        Import-Module (Join-Path $PSScriptRoot '_harness' 'WdlExpression.psm1') -Force
+        $path = Get-ChildItem (Join-Path $script:Root 'Workflows') -Filter 'REVRetentionSarExtract-*.json' | Where-Object { $_.Name -notlike '*.data.xml' }
+        $script:Sar = (Get-Content $path.FullName -Raw | ConvertFrom-Json -AsHashtable).properties.definition.actions
+        $script:Docs = $script:Sar['Copy_signed_documents']['actions']
+        $script:Mail = $script:Sar['Read_service_mailbox']['actions']
+    }
+
+    It 'gathers one table per address from the per-iteration Compose outputs' {
+        $loop = $script:Mail['For_each_mailbox_address']['actions'].Keys
+        $res = New-WdlForeachResult -Children @($loop) -Iterations @(
+            @{ Compose_mailbox_table = @{ inputs = '<table>a</table>'; outputs = '<table>a</table>' } },
+            @{ Compose_mailbox_table = @{ inputs = '<table>b</table>'; outputs = '<table>b</table>' } })
+        $kept = Invoke-WdlQuery -Inputs $script:Mail['Filter_mailbox_table_records']['inputs'] -Results @{ For_each_mailbox_address = $res }
+        $kept.Count | Should -Be 1
+        $kept[0]['name'] | Should -Be 'Compose_mailbox_table'
+        $tables = Invoke-WdlSelect -Inputs $script:Mail['Select_mailbox_tables']['inputs'] -Outputs @{ Filter_mailbox_table_records = $kept }
+        $tables | Should -Be @('<table>a</table>', '<table>b</table>')
+    }
+
+    It 'gathers every PDF copy from both loops as {Name, ContentBytes, Size}' {
+        $lib = New-WdlForeachResult -Children @($script:Docs['For_each_library_copy']['actions'].Keys) -Iterations @(
+            @{ Get_the_signed_pdf_content = @{ inputs = @{}; outputs = @{ statusCode = 200; headers = @{}; body = @{ '$content' = 'QQ==' } } }
+               Save_the_signed_pdf_copy = @{ inputs = @{}; outputs = @{ statusCode = 200; headers = @{}; body = @{ Size = 1 } } }
+               Compose_signed_pdf_attachment = @{ inputs = [ordered]@{ Name = 'x-signed-acceptance.pdf'; ContentBytes = 'QQ=='; Size = 1 }
+                                                  outputs = [ordered]@{ Name = 'x-signed-acceptance.pdf'; ContentBytes = 'QQ=='; Size = 1 } } })
+        $env = New-WdlForeachResult -Children @($script:Docs['For_each_envelope_copy']['actions'].Keys) -Iterations @()
+        $libKept = Invoke-WdlQuery -Inputs $script:Docs['Filter_library_copy_records']['inputs'] -Results @{ For_each_library_copy = $lib }
+        $envKept = Invoke-WdlQuery -Inputs $script:Docs['Filter_envelope_copy_records']['inputs'] -Results @{ For_each_envelope_copy = $env }
+        $envKept.Count | Should -Be 0
+        $copies = Invoke-WdlSelect -Inputs $script:Docs['Select_document_copies']['inputs'] `
+            -Outputs @{ Filter_library_copy_records = $libKept; Filter_envelope_copy_records = $envKept }
+        $copies.Count | Should -Be 1
+        $copies[0]['Name'] | Should -Be 'x-signed-acceptance.pdf'
+        $copies[0]['Size'] | Should -Be 1
+    }
+
+    It 'reads a section Compose that never ran as null, so the fixed Not read line is used' {
+        (Invoke-WdlExpression -Value "@coalesce(actions('Compose_audit_section')?['outputs'], 'not read')") | Should -Be 'not read'
+        (Invoke-WdlExpression -Value "@coalesce(actions('Compose_audit_section')?['outputs'], 'not read')" `
+            -Actions @{ Compose_audit_section = @{ name = 'Compose_audit_section'; status = 'Succeeded'; outputs = '<h2>7.' } }) | Should -Be '<h2>7.'
+    }
+}

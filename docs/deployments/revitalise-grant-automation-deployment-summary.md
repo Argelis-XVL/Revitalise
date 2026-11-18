@@ -2198,3 +2198,100 @@ Authorised by the reviewer, Xander Lykopoulos, 2026-10-20: "Deploy to dev." DEV 
 **Warnings:** 5 accepted in the manifest (root-component class), 0 untriaged; the `Type=` line count rose from 21 to 22 (the new line is `rev_FinanceAlertUpn`).
 
 **Findings:** IMP-1178 (reread script fails on a business-rule data file).
+
+## Addendum, 2026-11-03 (build `revitalise-grant-automation-20261103-3`) — wbs:0.13, Retention & Erasure Helper (CO-011, unbilled), DEV ONLY
+
+**Level reached: DEPLOYED (V3). Nothing V4.** Stage word: `PARTIAL`. No promotion; the build is unscoped, but ACC/PRD stay behind their own gates.
+
+| Item | Result |
+|---|---|
+| Provenance (`verify-artifact-provenance.py`, `--env dev`) | PASS |
+| Improvement-log gate (`--check --target-env dev`) | exit 0 (15 unread, 0 blockers) |
+| Access preflight (`verify-environment-access.ps1 -Env dev`) | NOT RUN in this session (no `PROVISION_*`). The reviewer ran it, and `ensure-schema.ps1 -Env dev`, in their own terminal and reports success; this session did not see the output. Substitute read: `pac org who` as `svc_grantapplications@revitalise.org.uk` (UserId 137f408b-2393-f111-b8db-70a8a5069b66) |
+| `rev_retentionlog` live (`pac env fetch`) | PRESENT, 0 rows. Absent at the 2026-11-03 20:33 HELD |
+| Solution import | SUCCEEDED, published |
+| Idempotency re-run | SUCCEEDED, clean |
+| Code app push (`trustee-review-portal`, canvasapp b0483396) | SUCCEEDED; appversion `2026-10-23T12:10:05Z` -> `2026-11-03T20:59:41Z` (re-queried before and after) |
+| Flow definitions re-read (`verify-live-flow-definitions.py --env dev`) | PASS, 18 of 18 match source, none modified after the import (2026-11-03 20:58 UTC) |
+| Flow statecodes | Pre-state 16 category-5 workflows (11 Activated, 5 Draft). Post: 21 rows. The 11 Activated and the 5 Draft pre-existing flows unchanged; 5 new `REV | Retention | ...` helper flows (locate, snapshot, sweep, erasure, SAR extract) present and **Draft** |
+| `rev_SarProtectedSender` (environment variable definition) | Definition present, **no value and no default** (read live). The fail-closed option A state is the live state |
+| `SarEmailMaxAttachmentMB` `rev_setting` row | **ABSENT** live. `seed-settings.ps1 -Env dev` (pre_deploy, 51 rows) needs `PROVISION_*`; owner reviewer |
+| Assumption-register gate | 18 rows OPEN, no `OVERRIDE` keyword given. Proceeded on the reviewer's verbatim "Yes, deploy to dev." (routing.log 2026-11-03 20:32). None closed by this dispatch; see below |
+
+### Retention DEV checks: why none could run from this session
+
+All five helper flows are Draft. Turning a flow on is a designer step (IMP-0113 / IMP-0104), and every check below is a run of a flow through its row-selected or manual trigger by a named person. This session has neither. The setting rows the size gate reads are also absent. So every row is **WAITING, not failed**.
+
+| Check | Status | What it needs, and from whom |
+|---|---|---|
+| (a) option A fail-closed, `rev_SarProtectedSender` empty | WAITING. Precondition read live: variable has no value | Helper flows turned on in the designer; one mode 3 run on a synthetic applicant, by the test process owner |
+| (c2) size gate: limit 1 MB, then empty, then restored to 15 | WAITING | `SarEmailMaxAttachmentMB` row seeded (reviewer, `seed-settings.ps1`); then the three-state run |
+| A-ERA-1 to A-ERA-4, A-RH-1 to A-RH-3, A-SAR-6 to A-SAR-9, A-SAR-11, A-SAR-12, A-SAR-15 (a) | WAITING | Same runs, plus the SAR folder (post_deploy step, owner reviewer) |
+| (b), (c), (c3), (d); A-SAR-4, A-SAR-13, A-SAR-14, A-SAR-15 (b) and (c); A-ERA-5 | WAITING on Revitalise's tenant administrator | Mailbox, licence, encryption rule, Send As; DocuSign administrator for A-ERA-5 |
+| A-SAR-10 | WAITING on `wbs:7.1` | QuickBooks connection |
+
+### Reviewer's next commands (zsh, own terminal; PROVISION credentials)
+
+```
+export PROVISION_APP_ID=<app id>  PROVISION_CERT_THUMBPRINT=<thumbprint>
+pwsh -NoProfile -File provisioning/dataverse/seed-settings.ps1 -Env dev
+pwsh -NoProfile -File provisioning/dataverse/bind-roles-to-groups.ps1 -Env dev
+pwsh -NoProfile -File provisioning/dataverse/verify-role-bindings.ps1 -Env dev
+pwsh -NoProfile -File provisioning/dataverse/verify-solution-components.ps1 -Env dev
+pwsh -NoProfile -File provisioning/entra/verify-intake-callback-url.ps1 -Env dev -Mode Compare -SnapshotPath intake-callback-dev-before.json
+```
+
+Verify afterwards with: a `pac env fetch` on `rev_setting` for `SarEmailMaxAttachmentMB` (expect value 15). The Compare step has no before snapshot (the pre_deploy capture was not run), so it cannot prove the callback URL unchanged; read its output accordingly.
+
+### Not run, with owner
+
+`seed-settings.ps1` (pre_deploy), `bind-roles-to-groups.ps1`, `verify-role-bindings.ps1`, `verify-solution-components.ps1`, `intake-callback-url-capture` and `-compare`, `ensure-auditing.ps1`: reviewer, credential. All manual post_deploy entries for the helper (SAR folder, turn the five flows on, DEV verification, tenant prerequisite, ADR-091 check): owners as declared in the pipeline config.
+
+### Items
+
+WI-0121: `deployed:dev` (deploy record: `deploy` component, build 20261103-3). Its 51-row seed (`seed-settings.ps1`) has not reached DEV, so the settings half of that item is outstanding until the reviewer runs it above.
+
+## Addendum, 2026-11-05 (build `revitalise-grant-automation-20261105-1`) — wbs:0.13, Retention & Erasure Helper, SAR extract rebuilt to TAD rev 38 / ADR-092, DEV ONLY
+
+**Level reached: DEPLOYED (V3). Nothing V4.** Stage word: `PARTIAL`. No promotion. The build is unscoped (full run) but was cut from a dirty tree (7 uncommitted src/config paths at git_head 8a3bb76); `verify-artifact-provenance.py --env dev` PASSED it, so C-TECH-030 did not refuse it for DEV. It must be committed and rebuilt clean before any later environment.
+
+| Item | Result |
+|---|---|
+| Provenance (`--env dev`) | PASS |
+| Improvement-log gate (`--check --target-env dev`) | exit 0, 5 warnings (IMP-1267 and IMP-1269 are fixed by IMP-1270 but not yet processed in a review) |
+| Access preflight | NOT RUN: no `PROVISION_*` in this session. Substitute read: `pac org who` as `svc_grantapplications@revitalise.org.uk` (UserId 137f408b-2393-f111-b8db-70a8a5069b66), PASS. Reviewer ran seed-settings, bind-roles-to-groups, verify-role-bindings on 2026-11-04 (routing.log); not seen by this session |
+| `SarEmailMaxAttachmentMB` (`pac env fetch`) | value 15 present live |
+| Solution import | SUCCEEDED, published |
+| Idempotency re-run | SUCCEEDED, clean |
+| Code app push (canvasapp b0483396) | SUCCEEDED; dist byte-identical to the artifact's `code-app`; appversion `2026-11-05T05:48:38Z` after |
+| Flow definitions re-read (`verify-live-flow-definitions.py --env dev`) | PASS, 18 of 18 equal to source, none modified after the import (2026-11-05 05:47 UTC). Flow 1018 (snapshot, designer-saved 2026-11-04) is back to source; 1016 now carries the ADR-092 definition |
+
+### Flow state before and after (pac env fetch, category 5)
+
+| Flow | Before | After |
+|---|---|---|
+| 1014 sweep, 1015 erasure, 1017 locate, 1018 snapshot | Activated (turned on 2026-11-04) | **Activated** (modifiedon 2026-11-05 05:47 UTC; the import rewrote them and they stayed on) |
+| 1016 SAR extract | Draft | **Draft** |
+| 1001 Intake, 1010 LA Watch, Integrated Search, SLA monitoring, Search knowledge | Draft | Draft |
+| Remaining REV flows | Activated | Activated |
+
+Anomaly to report, not touched: `ZZ PROBE A-SAR-16 delete me` (id 8f1c2a44-9916-4b7a-9e21-0a1b2c3d4f16) is Activated in DEV, is not in source, and survives the import. It is a reviewer-made probe. Owner: reviewer, delete it when finished.
+
+### Retention DEV checks executable from this session
+
+None beyond the reads above. Every remaining check runs a flow through a designer-turned-on trigger as a named person, and flow 1016 is Draft. `verify-solution-components.ps1`, `verify-role-bindings.ps1`, `ensure-auditing.ps1` and the intake-callback capture/compare need `PROVISION_*` (owner reviewer). The Compare step still has no before snapshot.
+
+### Reviewer's next steps
+
+1. Flow 1016 (SAR extract): in the DEV designer open it, **Save**, then **Turn on** (V4). Then re-run `python3 scripts/verify-live-flow-definitions.py --env dev` and re-import on any difference (IMP-1020). A designer save is a write.
+2. Check (a), option A fail-closed fallback: one mode 3 run on a synthetic applicant with `rev_SarProtectedSender` empty.
+3. Size-gate check against a synthetic applicant: limit 1 MB, then empty, then restored to 15; confirm the row reads 15 afterwards with `pac env fetch` on `rev_setting`.
+4. Delete the `ZZ PROBE` flow when done.
+
+### Not run, with owner
+
+`verify-environment-access.ps1`, `ensure-schema.ps1`, `seed-settings.ps1` (this dispatch), `bind-roles-to-groups.ps1`, `verify-role-bindings.ps1`, `verify-solution-components.ps1`, `ensure-auditing.ps1`, `intake-callback-url-capture` and `-compare`: reviewer, credential. All manual post_deploy entries for the helper (SAR folder, tenant prerequisite, ADR-091 check, DEV verification): owners as declared in the pipeline config. Assumption-register gate: rows still OPEN, none closed by this dispatch; proceeded on the lead-agent handoff instruction to deploy.
+
+### Items
+
+WI-0121: `deployed:dev` (deploy record: `deploy` component, build 20261105-1).

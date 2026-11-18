@@ -1,0 +1,46 @@
+{
+  "captured_at": "2026-11-03T21:32:40+0100",
+  "trigger": "auto",
+  "session_id": "6ac86fa6-1d56-49b8-8b38-7a682fc782ec",
+  "git": {
+    "branch": "retention-automation",
+    "head": "8a3bb76 Re-stamp build 20261103-3 manifest to source commit fca5768",
+    "status_short": [
+      "M .claude/settings.json",
+      " m .engine",
+      " M logs/build.log",
+      " M logs/pipeline.log",
+      " M logs/routing.log"
+    ]
+  },
+  "log_tails": {
+    "logs/routing.log": [
+      "[2026-11-03 20:21] [LEAD] [revitalise-grant-automation] GATE_RECEIVED:build-agent \u2014 20261103-3 PACKAGED V2, manifest OK (source_commit a435c2b + 42 dirty paths, staged not committed); constraint PASS; WI-0121 packaged from reopened (exception, tool precondition gap noted); derived-counts 1 drift uninvestigated; HANDOFF READY to pipeline-agent \u2014 held for reviewer (commit + deploy go-ahead)",
+      "[2026-11-03 20:30] [LEAD] [revitalise-grant-automation] REVIEWER (verbatim): \"1. agreed... commit these changes\" \"2. agreed with that being reasonable, log it for improvement review.\" \"3. Yes, deploy to dev.\" \u2014 IMP-1266 logged (WI-0121 reopened->packaged accepted by ledger tool; class declared-policy-not-mechanically-enforced)",
+      "[2026-11-03 20:31] [LEAD] [revitalise-grant-automation] COMMITTED fca5768 on retention-automation (reviewer \"commit these changes\"; .claude/settings.json local permission additions and .engine pycache excluded; manifest held for re-stamp); ROUTED_TO:build-agent \u2014 re-stamp manifest 20261103-3 to fca5768 and commit it; tier:mechanical",
+      "[2026-11-03 20:32] [LEAD] [revitalise-grant-automation] GATE_RECEIVED:build-agent \u2014 manifest re-stamped to fca5768 (dirty 0), committed 8a3bb76, verify-build-manifest-note OK, WI-0121 packaged OK; ROUTED_TO:pipeline-agent \u2014 deploy 20261103-3 to DEV only (reviewer \"Yes, deploy to dev.\"); retention DEV checks; ADR-091 option B stays off until tenant prerequisites; 20 MB test agreed; tier:standard",
+      "[2026-11-03 20:34] [LEAD] [revitalise-grant-automation] GATE_RECEIVED:pipeline-agent \u2014 DEPLOYMENT HELD (DEV), nothing written: session holds no PROVISION_APP_ID/CERT; rev_retentionlog absent in DEV so ensure-schema must precede import (IMP-0781); 0 of 18 assumptions closed; REVIEWER ACTION REQUIRED (ensure-schema with cert; known-failure-modes L560 records app id/thumbprint in keychain; Auto Mode refuses cert/keychain calls per L378)"
+    ],
+    "logs/build.log": [
+      "[2026-10-23 13:47] [BUILD] [revitalise-grant-automation] SUCCESS \u2014 build/artifacts/revitalise-grant-automation-20261023-2 (V2, full run, DEV only); wbs:2.2; items WI-0150..0153 packaged",
+      "[2026-11-03 20:00] [BUILD] [revitalise-grant-automation] FAILED \u2014 wbs:0.13 halted at step pipeline-config-preflight (4 aged blocked_on notes, also red at HEAD)",
+      "[2026-11-03 20:04] [BUILD] [revitalise-grant-automation] FAILED \u2014 build/artifacts/revitalise-grant-automation-20261103-2 \u2014 code-app-audit (2 HIGH npm advisories, undici and zod, new since lockfile)",
+      "[2026-11-03 20:20] [BUILD] [revitalise-grant-automation] SUCCESS \u2014 build/artifacts/revitalise-grant-automation-20261103-3 (V2, full run, DEV only); wbs:0.13; items WI-0121 packaged; source tree dirty (42 paths), git_head a435c2b",
+      "[2026-11-03 20:31] [BUILD] [revitalise-grant-automation] RESTAMP \u2014 build/artifacts/revitalise-grant-automation-20261103-3/ manifest source_commit a435c2b -> fca5768, dirty 42 -> 0, commit 8a3bb76 wbs:0.13"
+    ],
+    "logs/pipeline.log": [
+      "[2026-10-23 14:10] [PIPELINE] [revitalise-grant-automation] [DEV] WRITE ATTEMPTED: pac code push --solutionName RevitaliseGrantAutomation -Env dev (from src/code-apps/trustee-review-portal) (build revitalise-grant-automation-20261023-2) \u2014 SUCCEEDED (\"App pushed successfully\"; dist byte-identical to artifact code-app; canvasapp b0483396 appversion 2026-10-22T18:37:30Z -> 2026-10-23T12:10:05Z)",
+      "[2026-10-23 14:10] [PIPELINE] [revitalise-grant-automation] [DEV] PARTIAL \u2014 build revitalise-grant-automation-20261023-2, wbs:2.2: solution import + idempotency re-run SUCCEEDED, code-app-push SUCCEEDED (appversion 2026-10-23T12:10:05Z), flow-definition-reread DONE read-only (13/13 match source, PASS), intake-callback-url-compare NOT RUN (no credential, no before snapshot; owner reviewer), pre_deploy intake capture and seed-settings and ensure-schema NOT RUN here (reviewer ran schema+seed earlier; credential absent); live AllSettings view and Settings form control rev_category confirmed by fetch; 15 flow statecodes unchanged as a set; items WI-0150..WI-0153 deployed:dev; level V3, V4 outstanding (A-SETCAT-1..3 overridden by reviewer)",
+      "[2026-11-03 20:33] [PIPELINE] [revitalise-grant-automation] [DEV] PREFLIGHT: verify-environment-access.ps1 -Env dev \u2014 FAIL PROVISION_APP_ID not set in this session (PROVISION_CERT_THUMBPRINT also unset); ensure-schema, bind-roles-to-groups, verify-role-bindings, seed-settings excluded, owner reviewer. Substitute read: pac org who as svc_grantapplications@revitalise.org.uk on REV-GrantApplications-DEV (UserId 137f408b-2393-f111-b8db-70a8a5069b66) \u2014 PASS. Provenance PASS (build 20261103-3), improvement-log --check --target-env dev exit 0.",
+      "[2026-11-03 20:33] [PIPELINE] [revitalise-grant-automation] [DEV] HELD \u2014 build revitalise-grant-automation-20261103-3, wbs:0.13, item WI-0121: NO WRITE BEGUN. Live read (pac env fetch) found table rev_retentionlog ABSENT from DEV (MetadataCache: entity not found); the artifact's import adds a schema-shaping component and ensure-schema.ps1 -Env dev (environment_prerequisites) needs PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT, which this session does not hold. Import deferred per pipeline-agent activation step 6 (IMP-0781 class). Pre-state captured (read-only): 16 category-5 workflows, 4 Draft (Watch, Intake WordPress, Integrated Search API, SLA/Search knowledge flows as before), all REV flows modifiedon 2026-10-23; no retention flows present. Owner of ensure-schema: reviewer. Assumption register: 18 OPEN rows, closeable only in DEV after import; none closed.",
+      "[2026-11-03 20:33] [PIPELINE] [revitalise-grant-automation] [DEV] CORRECTION to the HELD line above: the pre-state read 16 category-5 workflows of which 5 are Draft (Integrated Search API trigger, SLA monitoring, Search knowledge article, LA Register Watch, Intake WordPress), 11 Activated; the line said 4 Draft."
+    ],
+    "logs/pm.log": [
+      "[2026-10-22 12:52] [PM] [external-dependencies] [BASELINE] \u2014 Automation #5 precondition corrected outstanding -> satisfied (source present: REVNarrativeScrubFreeText); reviewer \"4. Yes.\" 2026-10-22",
+      "[2026-10-22 15:40] [COMMERCIAL] [revitalise-grant-automation] [CHANGE-ORDER] \u2014 CO-011 APPROVED, UNBILLED (CE-0022, CE-0023, EX-013): whole Retention & Erasure helper modes 1-3, new wbs:0.13, 25-37h. authorised_by Xander Lykopoulos, relayed_by lead-agent, keyword \"Approve change order C0-011\" (C0 = typo for CO, stated by lead-agent). No hours billable; no worklog session.",
+      "[2026-10-23 06:44] [COMMERCIAL] [revitalise-grant-automation] [CHANGE-ORDER] \u2014 CO-012 drafted PROPOSED: settings descriptions plain-language + Category choice column; ROM 7-10h; billing undecided; awaiting reviewer",
+      "[2026-10-23 06:46] [COMMERCIAL] [revitalise-grant-automation] [CHANGE-ORDER] \u2014 CO-012 amended in place: 50 live rows per reviewer, 2 extra unverified (likely CO-011 keys); ROM unchanged 7-10h",
+      "[2026-10-23 06:48] [COMMERCIAL] [revitalise-grant-automation] [CHANGE-ORDER] \u2014 CO-012 CLOSED no change order: authorised_by Xander Lykopoulos, relayed_by lead-agent, keyword \"c.\" (option c, fold into wbs:2.2); advice against recorded; CE-0024"
+    ]
+  }
+}

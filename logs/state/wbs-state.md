@@ -10,10 +10,11 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 
 | Derived state | Tasks |
 |---|---|
-| `complete` | 31 |
+| `complete` | 30 |
 | `manual_only` | 20 |
 | `complete_pending_manual` | 6 |
 | `not_started` | 4 |
+| `partial` | 1 |
 
 ## Disagreements between the claim and the evidence
 
@@ -37,6 +38,6 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 | `6.5` Share app to trustee role + access tes | Phase 3 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
 | `6.6` Build finalise-decisions flow | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `8.1` Finalise finance tables | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
-| `8.2` Build finance security role | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
+| `8.2` Build finance security role | Phase 4 | (blank) | `partial` | **UNDERCLAIM** | grep (?s)"name":\s*"REV_FinanceOnly".{0,400}"REV Finance": no match in 1 file(s) |
 | `8.3` Build payment capture form | Phase 4 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
 | `8.4` Wire Payment to Grant + payee logic | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |

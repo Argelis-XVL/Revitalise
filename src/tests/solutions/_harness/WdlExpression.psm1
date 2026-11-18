@@ -20,7 +20,19 @@
     cannot pass silently.
 
     Context: -Outputs maps an action name to what body()/outputs() return; -Trigger is what
-    triggerOutputs() returns; -Item is the current item(); -Variables backs variables().
+    triggerOutputs() returns; -Item is the current item(); -Variables backs variables(); -Results maps
+    a container name to what result() returns; -Actions maps an action name to what actions() returns.
+
+    result() ON A LOOP: build the context value with New-WdlForeachResult, which produces the shape
+    MEASURED in DEV on 2026-11-04 (A-SAR-16, TAD rev 38 ADR-092, IMP-1269) and not the one Learn shows:
+    one record per first-level child in definition order, { name, outputs = @(one record per iteration),
+    startTime, endTime, trackingId, clientTrackingId, clientKeywords, code = 'NotSpecified', status,
+    repetitionCount, billableCount }, each iteration { name, inputs, outputs, startTime, endTime,
+    trackingId, clientTrackingId, clientKeywords, code = 'OK', status, billableCount }. A Compose's inputs
+    and outputs are its plain value even when it secures its inputs; a connector's outputs are
+    { statusCode, headers, body }. The Python executor (src/tests/narrative/wdl_sim.py) builds the same
+    shape; keep the two in step. actions() of an action not in -Actions returns { name, status =
+    'Skipped' }, so ?['outputs'] is null without an error (A-SAR-16 (4), measured).
 #>
 
 Set-StrictMode -Version Latest
@@ -215,6 +227,23 @@ function Invoke-WdlFunction {
             if (-not $Ctx.Outputs.ContainsKey($A[0])) { throw "WDL test context: no output supplied for action '$($A[0])'" }
             return , ($Ctx.Outputs[$A[0]])
         }
+        'result'    {
+            if (-not $Ctx.Results.ContainsKey($A[0])) { throw "WDL test context: no result() supplied for '$($A[0])'" }
+            return , ($Ctx.Results[$A[0]])
+        }
+        'actions'   {
+            if ($Ctx.Actions.ContainsKey($A[0])) { return , ($Ctx.Actions[$A[0]]) }
+            return , ([ordered]@{ name = $A[0]; status = 'Skipped' })
+        }
+        'union'     {
+            $seen = [System.Collections.Generic.HashSet[string]]::new()
+            $list = [System.Collections.Generic.List[object]]::new()
+            foreach ($arr in $A) {
+                if ($null -eq $arr) { throw 'WDL: union() of null' }
+                foreach ($x in @($arr)) { if ($seen.Add((ConvertTo-WdlString $x))) { $list.Add($x) } }
+            }
+            return , $list.ToArray()
+        }
         'triggerOutputs' { return , ($Ctx.Trigger) }
         'item'      { return , ($Ctx.Item) }
         'variables' { return , ($Ctx.Variables[$A[0]]) }
@@ -286,9 +315,11 @@ function Invoke-WdlExpression {
         [hashtable]$Outputs = @{},
         $Trigger = @{},
         $Item = $null,
-        [hashtable]$Variables = @{}
+        [hashtable]$Variables = @{},
+        [hashtable]$Results = @{},
+        [hashtable]$Actions = @{}
     )
-    $ctx = @{ Outputs = $Outputs; Trigger = $Trigger; Item = $Item; Variables = $Variables }
+    $ctx = @{ Outputs = $Outputs; Trigger = $Trigger; Item = $Item; Variables = $Variables; Results = $Results; Actions = $Actions }
     return , (Resolve-WdlValue -Value $Value -Ctx $ctx)
 }
 
@@ -326,20 +357,59 @@ function Invoke-WdlText {
 
 function Invoke-WdlSelect {
     <# A Select action's inputs, applied the way the platform does: `select` once per `from` item. #>
-    param([Parameter(Mandatory)]$Inputs, [hashtable]$Outputs = @{}, $Trigger = @{}, [hashtable]$Variables = @{})
-    $from = Invoke-WdlExpression -Value $Inputs['from'] -Outputs $Outputs -Trigger $Trigger -Variables $Variables
+    param([Parameter(Mandatory)]$Inputs, [hashtable]$Outputs = @{}, $Trigger = @{}, [hashtable]$Variables = @{},
+          [hashtable]$Results = @{}, [hashtable]$Actions = @{})
+    $from = Invoke-WdlExpression -Value $Inputs['from'] -Outputs $Outputs -Trigger $Trigger -Variables $Variables -Results $Results -Actions $Actions
     return , @(foreach ($it in @($from)) {
-        Invoke-WdlExpression -Value $Inputs['select'] -Outputs $Outputs -Trigger $Trigger -Item $it -Variables $Variables
+        Invoke-WdlExpression -Value $Inputs['select'] -Outputs $Outputs -Trigger $Trigger -Item $it -Variables $Variables -Results $Results -Actions $Actions
     })
 }
 
 function Invoke-WdlQuery {
     <# A Query (Filter array) action's inputs: the `from` items for which `where` is true. #>
-    param([Parameter(Mandatory)]$Inputs, [hashtable]$Outputs = @{}, $Trigger = @{}, [hashtable]$Variables = @{})
-    $from = Invoke-WdlExpression -Value $Inputs['from'] -Outputs $Outputs -Trigger $Trigger -Variables $Variables
+    param([Parameter(Mandatory)]$Inputs, [hashtable]$Outputs = @{}, $Trigger = @{}, [hashtable]$Variables = @{},
+          [hashtable]$Results = @{}, [hashtable]$Actions = @{})
+    $from = Invoke-WdlExpression -Value $Inputs['from'] -Outputs $Outputs -Trigger $Trigger -Variables $Variables -Results $Results -Actions $Actions
     return , @(foreach ($it in @($from)) {
-        if (Invoke-WdlExpression -Value $Inputs['where'] -Outputs $Outputs -Trigger $Trigger -Item $it -Variables $Variables) { $it }
+        if (Invoke-WdlExpression -Value $Inputs['where'] -Outputs $Outputs -Trigger $Trigger -Item $it -Variables $Variables -Results $Results -Actions $Actions) { $it }
     })
 }
 
-Export-ModuleMember -Function @('Invoke-WdlExpression', 'Invoke-WdlSelect', 'Invoke-WdlQuery')
+function New-WdlForeachResult {
+    <#
+      What result('<For each>') returns, in the shape measured in DEV (A-SAR-16, see the header).
+      -Children: the loop's first-level action names, in definition order.
+      -Iterations: one hashtable per iteration, child name -> @{ inputs = ...; outputs = ...; status = 'Succeeded' }
+      (status defaults to Succeeded). A child missing from an iteration is recorded as Skipped with no inputs or
+      outputs. No iteration at all returns an empty array (not measured; the flows coalesce either reading).
+    #>
+    param([Parameter(Mandatory)][string[]]$Children, [object[]]$Iterations = @())
+    $t = '2026-01-01T00:00:00.0000000Z'
+    if (@($Iterations).Count -eq 0) { return , ([object[]]@()) }
+    return , @(foreach ($child in $Children) {
+        $n = 0
+        $its = @(foreach ($iter in $Iterations) {
+            $rec = [ordered]@{ name = $child }
+            $status = 'Skipped'
+            if ($iter.ContainsKey($child)) {
+                $c = $iter[$child]
+                $status = if ($c.ContainsKey('status')) { $c['status'] } else { 'Succeeded' }
+                $rec['inputs'] = $c['inputs']
+                if ($status -eq 'Succeeded') { $rec['outputs'] = $c['outputs'] }
+            }
+            $rec['startTime'] = $t; $rec['endTime'] = $t; $rec['trackingId'] = "sim-$child-$n"
+            $rec['clientTrackingId'] = 'sim-run'; $rec['clientKeywords'] = @()
+            $rec['code'] = if ($status -eq 'Succeeded') { 'OK' } else { 'NotSpecified' }
+            $rec['status'] = $status; $rec['billableCount'] = 1
+            $n++
+            $rec
+        })
+        $statuses = @($its | ForEach-Object { $_['status'] })
+        $agg = if ($statuses -contains 'Failed' -or $statuses -contains 'TimedOut') { 'Failed' } elseif ($statuses -contains 'Succeeded') { 'Succeeded' } else { 'Skipped' }
+        [ordered]@{ name = $child; outputs = $its; startTime = $t; endTime = $t; trackingId = "sim-$child"
+                    clientTrackingId = 'sim-run'; clientKeywords = @(); code = 'NotSpecified'; status = $agg
+                    repetitionCount = $its.Count; billableCount = $its.Count }
+    })
+}
+
+Export-ModuleMember -Function @('Invoke-WdlExpression', 'Invoke-WdlSelect', 'Invoke-WdlQuery', 'New-WdlForeachResult')

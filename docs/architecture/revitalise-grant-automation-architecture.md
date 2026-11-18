@@ -3,7 +3,7 @@
 **Feature Slug:** revitalise-grant-automation
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **Date:** 2026-08-10
-**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.** **Rev 18 (2026-10-05: design-document corrections, middle name and suffix dropped from the helper name) is presented for review and not yet approved.** **Rev 19 (2026-10-05: Automation #5 detector re-designed, `ADR-071`/`ADR-072`, `ADR-012` amended) was approved 2026-10-06** (Xander Lykopoulos, verbatim *"Approve architecture"*, logged in `logs/routing.log`). **Rev 20 (2026-10-06: Automation #5 uses the postcode register, `ADR-073`, and reads its tunable redaction rules and prompt categories from `rev_setting`, `ADR-074`) was approved 2026-10-06** (Xander Lykopoulos). His words were not the keyword `APPROVED` but an instruction to build *"as currently designed"*; lead-agent read that as approval of rev 20, and the verbatim text is in the Approval section so a reader can disagree. Residency (`IMP-1063`) is parked at the customer and does not block building; it is still not decided (§12, `A-R82`). **Rev 21 (2026-10-14, a deterministic neutral-term stage) was returned for revision on 2026-10-16 and is superseded by rev 22.** **Rev 22 (2026-10-16: Automation #5 simplified to about 80 actions — the extractor labels, one prompt rewrites, a second corrects spelling, three fixed checks decide the write, `ADR-075`; `ADR-071` to `ADR-074` superseded in part) was **approved 2026-10-16** (Xander Lykopoulos, verbatim *"Approved Design revision 22"*, relayed by lead-agent).** **Rev 23 (2026-10-16: the rewrite rules Emily may change move into four `rev_setting` rows, the single source of the prompt's rules and of checks P2 and P3, `ADR-076`; `ADR-075` items 3 and 8 amended) was **approved 2026-10-16** (Xander Lykopoulos, verbatim *"Approved for revision 23"*, relayed by lead-agent).** Hosting in Switzerland is settled by the client's legal office (2026-10-16); where a prompt is processed is stated separately in `ADR-075`. **Rev 16 (2026-10-05: §5.8 rewritten to the Create Envelope design the 3–4 October DEV hotfixes settled, `ADR-069`; the referee's name and address columns, `ADR-070`, superseding `ADR-043`) was **approved 2026-10-05** (Xander Lykopoulos, verbatim *"Approved for development"*, logged in `logs/routing.log`); the approval amendment below records his answers.** **Rev 24 (2026-10-19: applicant-then-referee signing order restored, `ADR-077`; `p_type` removal applied to §5.8) **approved 2026-10-19 (the reviewer), with the flow-side order check dropped and `ADR-077` Accepted.** **Rev 25 (2026-10-19: Automation #5 — every scrubbed application is released by the process owner and `RedactionAutoRelease` is retired, `ADR-078`; Dev Summary Iteration 11 recorded in `ADR-075` items 2 and 7 and in `ADR-076`'s `RedactionNameRules` seed) was **approved 2026-10-19** (Xander Lykopoulos, verbatim *"1. Approved"*, relayed by lead-agent).** **Rev 26 (2026-10-19: Automation #2 — five auto-reject rules, every one tunable in `rev_setting`, every reason that fired written for Emily, `ADR-079`; SDD Amendment A-10 rev 2) was **approved 2026-10-19** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent), including `ADR-079` item 6 (the four existing FR-017 rows become create-only) and the carried SOFT warning C-DOM-005.** Independent of rev 25 (Automation #5). **Rev 27 (2026-10-20: Automation #6 — Finalise Decisions is started by the process owner from the review list in the Grant Administration app, one run per selected review, `ADR-080`; flow #8's trigger wording corrected; the reviewer's answers on three business rules recorded) was **approved 2026-10-20** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent, including the carried SOFT warning C-DOM-005).** **Rev 28 (2026-10-20: `REV | Finance | Capture Payment` authorised as `wbs:8.6` and designed against FR-107 to FR-111, `ADR-081`; SDD Amendment A-12, change order `CO-010`) was **approved 2026-10-20** (Xander Lykopoulos, verbatim *"APPROVED"* after three numbered answers, relayed by lead-agent); the approval folds in his answers: `A-R100` accepted, `rev_FinanceAlertUpn` is the process owner (Janine in test), and a final payment must carry a date and is marked Issued by the flow. It is independent of the rev 27 entry above, which belongs to a separate dispatch (Automation #6).** **Rev 28, amendment b (2026-10-20: the same flow also moves the grant's own status, `rev_grant.rev_status`, from Acceptance Signed (3) to Paid (4), and back on reversal; `ADR-081` items 3 and 9 amended, FR-113) is recorded as approved by the reviewer** (verbatim *"Obviously the final payment should change the grant status as well."*, relayed by lead-agent); it adds no component and no revision number, so it does not collide with other revisions. **Rev 28, amendment c (2026-10-20: the payment's Issued mark and the date-required rule move out of the flow into ONE table-scope business rule on `rev_payment`; `ADR-081` items 6 to 8 rewritten, `A-CP-8` withdrawn, `A-CP-9` reworked, `A-CP-7` narrowed, `A-R102` closed by design pending verification, `A-R104` added) is recorded as approved by the reviewer** (verbatim *"4"*, his choice of option 4 after build 20261020-4 was blocked by the `NoTriggerLoop` check, relayed by lead-agent); it adds no component class and no revision number: the form business rule of item 8 was already counted as the one new workflow component, and its scope changes from one form to the table. **Rev 28, amendment d (2026-10-20: small edits to the exported payment rule are allowed, closed by a DEV import and the affected `A-CP-9` checks; the as-authored `Rev-Payment-Issued` accepted with its differences; `ADR-081` item 8) is recorded as approved by the reviewer** (verbatim *"Amend-ADR-081: Yes, that is allowed."*, relayed by lead-agent); no component, no revision number. **Rev 29 (2026-10-20: Automation #5 — a GP practice the extractor misses is labelled `[GP PRACTICE]` before the rewrite, `ADR-075` amended; `ADR-076` line-1 erratum) was **approved 2026-10-20** (Xander Lykopoulos, verbatim *"LAbel the name and approved for development"*, relayed by lead-agent, including the carried SOFT warning C-DOM-005).** **Rev 30 (2026-10-21: Automation #5 — one extractor call per batch of columns, one prompt that rewrites and corrects spelling, the action ceiling raised to 125, `ADR-082`; `ADR-075` amended by note) was **approved 2026-10-21** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent).** **Rev 31 (2026-10-22: the volume figure becomes about 1,000 applications a year, `A-R16` gains the credit purchase routes and §6.3's Azure-subscription statement is reconciled with §12; two retention jobs are designed, a 6-year paid-grant job and a 30-day `msdyn_aievent` job in PRD only, `ADR-083`) was **approved 2026-10-22** (Xander Lykopoulos, verbatim *"2. Approved"*, relayed by lead-agent, re-accepting the carried SOFT warning C-DOM-005; the `aiEvents` cadence confirmed, verbatim *"1. Yes, daily."*). `ADR-083` is `Accepted`.** **Rev 32 (2026-10-22: SDD Amendment A-14 — trustees read benefit status, benefit provider and employment status through a new read-only column security profile, `REV_TrusteeFinancialEligibility`; the design lives in `docs/architecture/trustee-portal-design-2-architecture.md` Revision 4, `ADR-084` to `ADR-087`) was **approved 2026-10-22** (Xander Lykopoulos, verbatim *"Approved."*, relayed by lead-agent, accepting the SOFT warning C-DOM-005). It is independent of rev 31.** **Rev 33 (2026-10-22: a subject access request is answered by §5.12 mode 3 of the Retention & Erasure helper — one trigger by the process owner, the flow running as the service identity gathers every reachable store, payments, bank details, QuickBooks and audit included, into one extract in the secured SAR folder; the exposure is a reviewer-accepted risk, `A-R108`; `ADR-088`; QuickBooks is out of erasure until Finance deletes it after six years, outside this solution; `A-R22` closed by design) was **approved 2026-10-22** (Xander Lykopoulos, verbatim *"Approved."*, relayed by lead-agent), with delivery decided as option B, verbatim *"Option B. the file is saved in the SAR folder and send protected email. If protected email is not possible then Option A."* `ADR-088` is `Accepted`. In the same reply the reviewer accepted `A-NS-45` (c) as a risk (`A-R109`) and placed the website's Gravity Forms copy outside this solution (`A-R107` closed for this solution).** **Rev 34 (2026-10-22: helper modes 1 and 2 and the retention evidence log designed to the same level as mode 3, so change order `CO-011` can be sized for the whole Retention & Erasure helper; `ADR-089`) was **approved 2026-10-22** (Xander Lykopoulos, relayed by lead-agent, verbatim *"Approved."*, with D1 to D5 answered). `ADR-089` is `Accepted`; the helper is `wbs:0.13` under `CO-011`, approved unbilled.** **Rev 35 (2026-10-23: the settings table gains a Category column on a new global choice set, the settings list is sorted by it, and the seed script writes description and category on create-only rows without touching their value, `ADR-090`; `wbs:2.2`, change order `CO-012` closed with no change order) was **approved 2026-10-23** (Xander Lykopoulos, relayed by lead-agent, verbatim *"Option A. GroupBy is available in the table view. So the Process Owner can select this."* and *"Approved."*). `ADR-090` is `Accepted`; decision (A) taken as recommended; (B) and (C) were not separately answered (Approval).** **Rev 36 (2026-10-30: editorial, the §3.1 entry for `rev_retentionlog` is the architect's own; no design change) was **approved 2026-10-30** (Xander Lykopoulos, verbatim *"Approved Revision 36"*, relayed by lead-agent). Rev 37 (2026-10-30: the protected-email mechanism for SAR delivery option B, `ADR-091`; `wbs:0.13`, `CO-011`) was **approved 2026-10-30** (verbatim *"Revision 37 approved"*); `ADR-091` is `Accepted`; its decisions A (accept `A-R112`) and B (dedicated mailbox) were not separately answered and are taken as recommended (Approval). Amended at that approval, same day, no new revision number: the retention log's built differences are settled by the reviewer (`rev_signedpdfpath` and `rev_detail` 2000 characters, no required column, global choice sets), `rev_outcome` gains *Retained (audit)*, and one open assumption, `A-SAR-14`, records where Exchange may keep a copy of the sent extract. **Second amendment, same day:** the option B email also carries every signed PDF copy, all or nothing, with a size gate (`SarEmailMaxAttachmentMB`, `A-SAR-15`, `ADR-091` item 5), verbatim *"Also attach the signed pdf's off course"*.** Two earlier drafts the same day were corrected by the reviewer: the first withdrew mode 3 (verbatim *"So, not withdrawn from the design."*), the second left payments, bank details, QuickBooks and audit to two other people (verbatim *"Have two people handle one request is ridiculous."*).
+**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below. **Rev 14 (2026-10-02: `ADR-011` re-decided, §5 Dataverse write-shape rule) is presented for review and not yet approved.** **Rev 15 (2026-10-02: Create Envelope split into draft / fill / send, `ADR-067`; referee signing bound to the named person, `ADR-068`) is presented for review separately from rev 14 and not yet approved.** **Rev 18 (2026-10-05: design-document corrections, middle name and suffix dropped from the helper name) is presented for review and not yet approved.** **Rev 19 (2026-10-05: Automation #5 detector re-designed, `ADR-071`/`ADR-072`, `ADR-012` amended) was approved 2026-10-06** (Xander Lykopoulos, verbatim *"Approve architecture"*, logged in `logs/routing.log`). **Rev 20 (2026-10-06: Automation #5 uses the postcode register, `ADR-073`, and reads its tunable redaction rules and prompt categories from `rev_setting`, `ADR-074`) was approved 2026-10-06** (Xander Lykopoulos). His words were not the keyword `APPROVED` but an instruction to build *"as currently designed"*; lead-agent read that as approval of rev 20, and the verbatim text is in the Approval section so a reader can disagree. Residency (`IMP-1063`) is parked at the customer and does not block building; it is still not decided (§12, `A-R82`). **Rev 21 (2026-10-14, a deterministic neutral-term stage) was returned for revision on 2026-10-16 and is superseded by rev 22.** **Rev 22 (2026-10-16: Automation #5 simplified to about 80 actions — the extractor labels, one prompt rewrites, a second corrects spelling, three fixed checks decide the write, `ADR-075`; `ADR-071` to `ADR-074` superseded in part) was **approved 2026-10-16** (Xander Lykopoulos, verbatim *"Approved Design revision 22"*, relayed by lead-agent).** **Rev 23 (2026-10-16: the rewrite rules Emily may change move into four `rev_setting` rows, the single source of the prompt's rules and of checks P2 and P3, `ADR-076`; `ADR-075` items 3 and 8 amended) was **approved 2026-10-16** (Xander Lykopoulos, verbatim *"Approved for revision 23"*, relayed by lead-agent).** Hosting in Switzerland is settled by the client's legal office (2026-10-16); where a prompt is processed is stated separately in `ADR-075`. **Rev 16 (2026-10-05: §5.8 rewritten to the Create Envelope design the 3–4 October DEV hotfixes settled, `ADR-069`; the referee's name and address columns, `ADR-070`, superseding `ADR-043`) was **approved 2026-10-05** (Xander Lykopoulos, verbatim *"Approved for development"*, logged in `logs/routing.log`); the approval amendment below records his answers.** **Rev 24 (2026-10-19: applicant-then-referee signing order restored, `ADR-077`; `p_type` removal applied to §5.8) **approved 2026-10-19 (the reviewer), with the flow-side order check dropped and `ADR-077` Accepted.** **Rev 25 (2026-10-19: Automation #5 — every scrubbed application is released by the process owner and `RedactionAutoRelease` is retired, `ADR-078`; Dev Summary Iteration 11 recorded in `ADR-075` items 2 and 7 and in `ADR-076`'s `RedactionNameRules` seed) was **approved 2026-10-19** (Xander Lykopoulos, verbatim *"1. Approved"*, relayed by lead-agent).** **Rev 26 (2026-10-19: Automation #2 — five auto-reject rules, every one tunable in `rev_setting`, every reason that fired written for Emily, `ADR-079`; SDD Amendment A-10 rev 2) was **approved 2026-10-19** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent), including `ADR-079` item 6 (the four existing FR-017 rows become create-only) and the carried SOFT warning C-DOM-005.** Independent of rev 25 (Automation #5). **Rev 27 (2026-10-20: Automation #6 — Finalise Decisions is started by the process owner from the review list in the Grant Administration app, one run per selected review, `ADR-080`; flow #8's trigger wording corrected; the reviewer's answers on three business rules recorded) was **approved 2026-10-20** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent, including the carried SOFT warning C-DOM-005).** **Rev 28 (2026-10-20: `REV | Finance | Capture Payment` authorised as `wbs:8.6` and designed against FR-107 to FR-111, `ADR-081`; SDD Amendment A-12, change order `CO-010`) was **approved 2026-10-20** (Xander Lykopoulos, verbatim *"APPROVED"* after three numbered answers, relayed by lead-agent); the approval folds in his answers: `A-R100` accepted, `rev_FinanceAlertUpn` is the process owner (Janine in test), and a final payment must carry a date and is marked Issued by the flow. It is independent of the rev 27 entry above, which belongs to a separate dispatch (Automation #6).** **Rev 28, amendment b (2026-10-20: the same flow also moves the grant's own status, `rev_grant.rev_status`, from Acceptance Signed (3) to Paid (4), and back on reversal; `ADR-081` items 3 and 9 amended, FR-113) is recorded as approved by the reviewer** (verbatim *"Obviously the final payment should change the grant status as well."*, relayed by lead-agent); it adds no component and no revision number, so it does not collide with other revisions. **Rev 28, amendment c (2026-10-20: the payment's Issued mark and the date-required rule move out of the flow into ONE table-scope business rule on `rev_payment`; `ADR-081` items 6 to 8 rewritten, `A-CP-8` withdrawn, `A-CP-9` reworked, `A-CP-7` narrowed, `A-R102` closed by design pending verification, `A-R104` added) is recorded as approved by the reviewer** (verbatim *"4"*, his choice of option 4 after build 20261020-4 was blocked by the `NoTriggerLoop` check, relayed by lead-agent); it adds no component class and no revision number: the form business rule of item 8 was already counted as the one new workflow component, and its scope changes from one form to the table. **Rev 28, amendment d (2026-10-20: small edits to the exported payment rule are allowed, closed by a DEV import and the affected `A-CP-9` checks; the as-authored `Rev-Payment-Issued` accepted with its differences; `ADR-081` item 8) is recorded as approved by the reviewer** (verbatim *"Amend-ADR-081: Yes, that is allowed."*, relayed by lead-agent); no component, no revision number. **Rev 29 (2026-10-20: Automation #5 — a GP practice the extractor misses is labelled `[GP PRACTICE]` before the rewrite, `ADR-075` amended; `ADR-076` line-1 erratum) was **approved 2026-10-20** (Xander Lykopoulos, verbatim *"LAbel the name and approved for development"*, relayed by lead-agent, including the carried SOFT warning C-DOM-005).** **Rev 30 (2026-10-21: Automation #5 — one extractor call per batch of columns, one prompt that rewrites and corrects spelling, the action ceiling raised to 125, `ADR-082`; `ADR-075` amended by note) was **approved 2026-10-21** (Xander Lykopoulos, verbatim *"Approved"*, relayed by lead-agent).** **Rev 31 (2026-10-22: the volume figure becomes about 1,000 applications a year, `A-R16` gains the credit purchase routes and §6.3's Azure-subscription statement is reconciled with §12; two retention jobs are designed, a 6-year paid-grant job and a 30-day `msdyn_aievent` job in PRD only, `ADR-083`) was **approved 2026-10-22** (Xander Lykopoulos, verbatim *"2. Approved"*, relayed by lead-agent, re-accepting the carried SOFT warning C-DOM-005; the `aiEvents` cadence confirmed, verbatim *"1. Yes, daily."*). `ADR-083` is `Accepted`.** **Rev 32 (2026-10-22: SDD Amendment A-14 — trustees read benefit status, benefit provider and employment status through a new read-only column security profile, `REV_TrusteeFinancialEligibility`; the design lives in `docs/architecture/trustee-portal-design-2-architecture.md` Revision 4, `ADR-084` to `ADR-087`) was **approved 2026-10-22** (Xander Lykopoulos, verbatim *"Approved."*, relayed by lead-agent, accepting the SOFT warning C-DOM-005). It is independent of rev 31.** **Rev 33 (2026-10-22: a subject access request is answered by §5.12 mode 3 of the Retention & Erasure helper — one trigger by the process owner, the flow running as the service identity gathers every reachable store, payments, bank details, QuickBooks and audit included, into one extract in the secured SAR folder; the exposure is a reviewer-accepted risk, `A-R108`; `ADR-088`; QuickBooks is out of erasure until Finance deletes it after six years, outside this solution; `A-R22` closed by design) was **approved 2026-10-22** (Xander Lykopoulos, verbatim *"Approved."*, relayed by lead-agent), with delivery decided as option B, verbatim *"Option B. the file is saved in the SAR folder and send protected email. If protected email is not possible then Option A."* `ADR-088` is `Accepted`. In the same reply the reviewer accepted `A-NS-45` (c) as a risk (`A-R109`) and placed the website's Gravity Forms copy outside this solution (`A-R107` closed for this solution).** **Rev 34 (2026-10-22: helper modes 1 and 2 and the retention evidence log designed to the same level as mode 3, so change order `CO-011` can be sized for the whole Retention & Erasure helper; `ADR-089`) was **approved 2026-10-22** (Xander Lykopoulos, relayed by lead-agent, verbatim *"Approved."*, with D1 to D5 answered). `ADR-089` is `Accepted`; the helper is `wbs:0.13` under `CO-011`, approved unbilled.** **Rev 35 (2026-10-23: the settings table gains a Category column on a new global choice set, the settings list is sorted by it, and the seed script writes description and category on create-only rows without touching their value, `ADR-090`; `wbs:2.2`, change order `CO-012` closed with no change order) was **approved 2026-10-23** (Xander Lykopoulos, relayed by lead-agent, verbatim *"Option A. GroupBy is available in the table view. So the Process Owner can select this."* and *"Approved."*). `ADR-090` is `Accepted`; decision (A) taken as recommended; (B) and (C) were not separately answered (Approval).** **Rev 36 (2026-10-30: editorial, the §3.1 entry for `rev_retentionlog` is the architect's own; no design change) was **approved 2026-10-30** (Xander Lykopoulos, verbatim *"Approved Revision 36"*, relayed by lead-agent). Rev 37 (2026-10-30: the protected-email mechanism for SAR delivery option B, `ADR-091`; `wbs:0.13`, `CO-011`) was **approved 2026-10-30** (verbatim *"Revision 37 approved"*); `ADR-091` is `Accepted`; its decisions A (accept `A-R112`) and B (dedicated mailbox) were not separately answered and are taken as recommended (Approval). Amended at that approval, same day, no new revision number: the retention log's built differences are settled by the reviewer (`rev_signedpdfpath` and `rev_detail` 2000 characters, no required column, global choice sets), `rev_outcome` gains *Retained (audit)*, and one open assumption, `A-SAR-14`, records where Exchange may keep a copy of the sent extract. **Second amendment, same day:** the option B email also carries every signed PDF copy, all or nothing, with a size gate (`SarEmailMaxAttachmentMB`, `A-SAR-15`, `ADR-091` item 5), verbatim *"Also attach the signed pdf's off course"*.** Two earlier drafts the same day were corrected by the reviewer: the first withdrew mode 3 (verbatim *"So, not withdrawn from the design."*), the second left payments, bank details, QuickBooks and audit to two other people (verbatim *"Have two people handle one request is ridiculous."*). **Rev 38 (2026-11-04: mode 3 of the SAR extract holds content only in actions that can be secured and gathers loop output with `result()`, because no variable action can be secured (`IMP-1267`); `ADR-092`, `ADR-091` item 6 amended, §5.12.2 step 5 corrected; `wbs:0.13`, `CO-011`) was **approved 2026-11-04** (Xander Lykopoulos, verbatim *"Decision A: Agreed."* and *"Decision B: Agreed, keep as is and inform Process Owner to send manual."*, relayed by lead-agent). `ADR-092` is `Accepted`. The rebuild still waits for the DEV probe `A-SAR-16`.** **Rev 39 (2026-11-13: SDD Amendment A-15, stress-test feedback part 1 — the process owner sends each acceptance envelope from the grant, `ADR-093`; the trustee list holds released applications with an open review, release needs Eligible for Panel, the verdict button shows only to a trustee on the review, `ADR-094`; the application form shows *Not asked* and keeps Total Cost equal to its lines, `ADR-095`; the anonymised statistics record every application, with the fields FR-126 lists, and All time is read from them, `ADR-096`; the REV Admin role creates, edits and deletes reviews but cannot change a trustee's verdict or notes or Finalised On, FR-127; trustees and Finance lose read on the anonymised table; NFR-021 re-checked at about 2,000 a year, with scrubbing on the Eligible-for-Panel share) is **APPROVED 2026-11-18** (fifth draft; reviewer verbatim *"Approved on docs/architecture/revitalise-grant-automation-architecture.md"*); fourth draft the same day, after the reviewer's answers to D1 to D4, OQ-069, PD-1 to PD-4 and the round-warning recipients; fifth draft 2026-11-15, after OQ-070 (money-average rule on This round only) and D5 (protection in the admin app).**
 **Revision:** rev 1 — 2026-08-10. Reviewer decisions applied to ADR-003 (Code App confirmed), ADR-006
 (three environments: DEV, TST/ACC, PRD), §6.1 (group-team pattern confirmed), §6.5 (audit retention
 confirmed at 6 years), role-membership review cadence (confirmed at 6 months), and §4.2 (SAR mechanism
@@ -872,6 +872,81 @@ Consequence 5, action count), §12.11 (`A-SAR-4` extended, `A-SAR-15` added), Ap
 send step, the size sum and gate, the attachment array, the `SarEmailMaxAttachmentMB` seed in all three settings files, the
 runbook, the Dev Summary §7 row, the flow tests. *Previously read: "the extract attached".*
 
+**Revision:** rev 38 — 2026-11-04. **Mode 3 holds content only in actions that can be secured.** (`ADR-092`;
+`wbs:0.13`, `CO-011`, unbilled.) Raised as `ARCH_GAP` by development-agent after the reviewer's DEV turn-on of the SAR
+extract flow was refused: `SecureDataPropertyNotSupported` on an `AppendToArrayVariable` (`IMP-1267`, V4). No variable
+action can be secured (Microsoft Learn, E2). Rev 37 itself had prescribed variables for secured content twice. An
+amendment in place, because §5.12 already specifies the area.
+
+1. **Pattern.** No variable carries content. Each store's section is one Compose with secure inputs. The "not read"
+   line is picked when the extract is assembled. Loops are flat, and their output is read back with `result()` on the
+   loop itself into secured Filter and Select actions. The attachment array is one secured Compose. File sizes come from
+   one unsecured Select that projects numbers only. A failed signed-PDF copy now also sends nothing (option A).
+2. **Behaviour kept:** the eleven sections; the all-or-nothing size gate against `SarEmailMaxAttachmentMB`; fail-closed
+   to option A; one attachment array holding the extract and every signed PDF (`ADR-091`); the per-address mailbox read
+   (`A-SAR-12` unchanged). No reviewer decision is reversed.
+3. **Open:** `A-SAR-16`, a DEV probe of about 10 minutes, blocks the rebuild. Unsecured variables (run-history exposure)
+   are not chosen. They are offered to the reviewer only if the probe fails.
+4. **Sections changed:** status line, this entry, §5.12 mode 3 (*Run history*, *Size*), §5.12.2 step 5, §5.12.4 (one
+   row, the total), `ADR-091` (an amendment note on item 6), `ADR-092` (new), §12.11 (`A-SAR-16` added).
+
+**Revision:** rev 39 — 2026-11-13 (fourth draft, the same day). **SDD Amendment A-15: stress-test feedback part 1**
+(FR-120 to FR-127; FR-038, FR-041, FR-047, FR-055, FR-057, FR-080, FR-116 and NFR-021 amended; feedback hours under the
+current WBS by reviewer ruling; `wbs:2.7,3.5,4.5,5.6,6.8,6.10`, each item's task is commercial-agent's to attribute).
+**APPROVED 2026-11-18** (fifth draft; Xander Lykopoulos, relayed by lead-agent, verbatim *"Approved on docs/architecture/revitalise-grant-automation-architecture.md"*). Amended in place, because every area already has an approved section. The
+first draft went to the reviewer the same day; his answers, relayed by lead-agent and written into the SDD by plan-agent,
+are applied here from the SDD text: OQ-065 *"Yes"*; OQ-068 *"No, its always the sum of its cost lines."*; FR-122's
+correction *"or selecting multiple grants at the same time and sending it to the docusign workflow."*; D1 *"An open review
+in combination with the round field match, this closes when a review is closed with outcome: approved."* (OQ-069 left
+open); D2 *"yes"*; D3 *"yes, REV-admin role can create a review and add trustees. but not change their verdict and their
+notes. Other fields the process owner can edit"* (FR-127); D4 *"Go for option a"*; the five demographic and
+special-category fields *"All of them can be stored. Without names, addresses it becomes very difficult to assess who is
+who."*; credits *"not all applications will be processed for Narrative Scrubbing. Some of them are rejected."*; **third draft, same day:**
+OQ-069 answered (FR-124 rewritten: any finalised review closes; no or two open rounds list nothing and warn); PD-1 and
+PD-2, verbatim *"Emily can't edit finalised on. That is set by the finalise decisions workflow. it has a padlock. She is
+allowed to delete reviews. …"* (FR-127 amended); PD-4 *"agreed with suggested recommendation"*. **Fourth draft, same
+day:** the round warning is sent to the REV Admin role holders (*"that should be send with people who have the rev admin
+role."*); PD-3 rejected (*"No, remove that rule for all statistics. …"*), OQ-070 open on the money rules; the portal's
+statistics are published by the service-account flow (*"Trustees can't access the anonymised table directly. …"*); draft
+3's verdict profiles withdrawn because they fail `no-trustee-in-column-security-profile` (`IMP-1289`); nineteen, not
+twenty, Received-row columns (`IMP-1290`). **Fifth draft, 2026-11-15:** OQ-070, verbatim *"OQ-070: what I meant is to keep
+the rule for round statistics but not for all time statistics."* (FR-126 amended by plan-agent); D5, verbatim *"D5: the
+verdict and notes fields have to be protected for the Rev-admin role. Trustees need to be able to write."* and
+*"Protection in the admin app."* (FR-127 unchanged).
+
+1. **The acceptance envelope is sent by the process owner** (`ADR-093`; FR-122, FR-041, FR-047): from one open grant or
+   several selected grants, one run per grant, each checked for an existing envelope and the referee's name and email,
+   each answered in Teams. Creating a grant sends nothing.
+2. **The trustee list, the release safeguard and the verdict button** (`ADR-094`; FR-123 to FR-125; `wbs:6.8`, started
+   early). Listed = released, with an open (not finalised) review whose Round matches the open round; it leaves the list
+   when the review is finalised, whatever the outcome; no or two open rounds: empty list and a warning. Release is refused
+   unless the status is Eligible for Panel.
+   Found while measuring: the old list had no bound and would have passed its 500-row cap.
+3. **"Not asked" and Total Cost on the application form** (`ADR-095`; FR-120, FR-121).
+4. **All time statistics** (`ADR-096`; FR-126, FR-055, FR-080): a Received row per application at intake with the fields
+   FR-126 lists (nineteen new columns on `rev_anonymisedstatistic`), outcome rows as today, a child flow of aggregate
+   reads published by the service identity. No small-group hiding (PD-3 rejected). Money averages: withheld below five on
+   This round only; All time shows every one (OQ-070), FR-060 per break type (draft 5 corrects the document shape). Register
+   entries for the Article 9 columns are owed by the
+   register's owner before the build (constraint check below).
+5. **`REV Admin` on Review, to FR-127 as amended** (§6.2): create, update, delete, append; verdicts, notes and *Finalised
+   On* locked on the admin form, no Excel import, all audited; no column security on `rev_review` (draft 3's profiles
+   fail the trustee-profile gate). **D5 answered: protection in the admin app** (in-app reading, FR-127's scope
+   unchanged); the Web API, her own flow and the maker portal's table editor stay open to a process owner, an accepted
+   limitation (`A-R118`), every change audited. Trustee and Finance
+   read on the anonymised table removed (PD-4, `ADR-096` item 9).
+6. **NFR-021** (§7, `A-R16`): scrubbing runs only on applications that reach Eligible for Panel; from the client's own
+   Round 4 pack, about 25 percent (range 20 to 35, `A-ST-9`), so about 3,000 AI Builder credits a month, inside the 5,000
+   seeded at the central figure.
+7. **Open:** `A-ST-1` to `A-ST-12` (§12.13); `A-R113` to `A-R117` (§11); `A-R118` accepted. OQ-070 and D5 answered.
+8. **Sections changed:** status line, this entry, §3 (Entities, Anonymised Statistic row), §3.1 (`rev_eligibleforround`
+   row, `rev_anonymisedstatistic`, `rev_roundstatisticsresult`), §5 inventory (rows 1, 7, 8; row 14 added), §5.5 (one
+   sentence), §5.7 step 4, §5.8 (trigger), §5.13 (item 4), §6.2 (`REV Admin` row and build correction), §7 (NFR-018,
+   NFR-021), §10 (`ADR-093` to `ADR-096`), §11 (`A-R16`, `A-R18`, `A-R76`; `A-R113` to `A-R117`), §12 (six rows),
+   §12.13 (new), Appendix A (ten rows), Approval. **Fifth draft:** status line, this entry (items 4, 5, 7, 8), §6.2
+   build correction item 2, `ADR-096` (status, items 5, 7, 8, 9, 10, 11, Consequence 8, Data protection), §11 (`A-R118`),
+   Appendix A (FR-126, FR-127), Approval.
+
 ---
 
 > **Source:** adopted from `docs/Import/Revitalise-Solution-Architecture-v0.4.docx` on 2026-08-10 by architect-agent (intake mode).
@@ -1126,7 +1201,7 @@ UK GDPR tier used by SDD §7.1, the Security Model §3 and the Data Governance F
 | Provider | `rev_provider` | Reusable holiday providers | **Not classified in any source** | **Tier 2 — Internal (DERIVED — see §3.2)** | Reference data; retained while active, reviewed annually. No personal-data clock. |
 | Bank Account | `rev_bankaccount` | Every account paid into, held once; finance role only | Personal — financial | **Tier 4 — Restricted** | Cascade with Applicant. Earlier purge after payment reconciliation is an open decision (§3.4) |
 | Payment | `rev_payment` | Disbursements; the duplicate check matches these rows | Personal — financial | **Tier 4 — Restricted** | Cascade with Grant. The QuickBooks financial record is retained separately under the finance policy (FR-050) |
-| Anonymised Statistic | `rev_anonymisedstatistic` | Non-personal outcome snapshot, no identifiers, never linked back | Anonymised — not personal data | **Tier 2 — Internal** | Indefinite (FR-055) |
+| Anonymised Statistic | `rev_anonymisedstatistic` | Non-personal outcome snapshot, no identifiers, never linked back. **Rev 39 (`ADR-096`):** also one *Received* row per application, written by the intake, so the table records every application | Anonymised — not personal data | **Tier 2 — Internal** | Indefinite (FR-055) |
 | Error Log | `rev_errorlog` | Operational failure capture across all flows | Operational — non-personal | **Tier 2 — Internal** | 90 days (DERIVED — source says only "short operational retention") |
 | AI Event *(platform table, not in the solution; rev 31)* | `msdyn_aievent` | Written by AI Builder, not by this solution: one row per extractor or prompt call, holding the call's input text in `msdyn_datainfo` (the raw narrative columns sent to the extractor; the labelled text and rule rows sent to the prompt) and its credit consumption (§5.5, `ADR-083`) | Special category + personal (a copy of the raw narrative) | **Tier 4 — Restricted** | **PRD: 30 days**, daily bulk delete (`ADR-083`, reviewer decision D-1, 2026-10-22). DEV and TST/ACC: none, because they hold synthetic test text only |
 | Retention Evidence Log **(rev 34)** | `rev_retentionlog` | One row per record a retention sweep, an erasure or a SAR extract acted on: reference, data type, rule, dates, outcome (FR-054, `ADR-089`) | Operational — references only (the data subject is never named) | **Tier 2 — Internal** | Indefinite, decision D5 (NFR-016: durable) |
@@ -1182,7 +1257,7 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_breakstart`, `rev_breakend`, `rev_amountrequested`, `rev_costs` | Date / Currency | Tier 3 | Trustee-visible (FR-028, FR-034) |
 | `rev_duplicateflag`, `rev_priorgrantref`, `rev_priorgrantdate`, `rev_priorgrantamount`, `rev_duplicatecheckedon` | Bool / Text / Date / Currency / DateTime | Tier 3 | FR-023, FR-024, FR-025. Visible to Finance on the record (US-015 AC-3). **Rev 17: not built; pending a change order (`commercial-agent`, raised 2026-10-05, `TD-007`). Built if approved; removed from this row if declined** |
 | `rev_decisiondate` | Date | Tier 2 | Drives the 12-month rejected clock |
-| `rev_eligibleforround`, `rev_reviewround` | Bool / Text | Tier 2 | Scopes trustee visibility to the current round (FR-038) |
+| `rev_eligibleforround`, `rev_reviewround` | Bool / Text | Tier 2 | Scopes trustee visibility to the current round (FR-038). **Rev 39 (`ADR-094`):** an application is listed to trustees when `rev_eligibleforround` is true **and** it has an open review (`rev_finalisedon` empty) whose `rev_round` matches the open round (FR-124, `ADR-094`); it can be set true only at *Eligible for Panel* (FR-123). `rev_reviewround` scopes the round statistics, not the list |
 | `rev_sourcesubmissionid` | Text, alternate key | Tier 2 | **Idempotency guard on intake** — a replayed webhook cannot create a second row (§5.1) |
 | `rev_caresupportdescriptionredacted`, `rev_careprovidedexampleredacted`, `rev_othercareprovidedtyperedacted` | Multiline text | Tier 3 | **Trustee Portal Visual Refresh (delta TAD, ADR-027 amended, WBS 6.3).** Redacted counterparts of the three secured columns immediately below; trustee-visible once `rev_redactionreleased` is true. `IsSecured=0` — same class as `rev_narrativeredacted`. Written by `REV \| Narrative \| Scrub Free-Text` once extended (Automation #5, deferred); empty on every row until then |
 | `rev_careprovidedexample`, `rev_caresupportdescription`, `rev_othercareprovidedtype` | Multiline text | **Tier 4** | Column security: `REV_TrusteeRestricted` — Admin + Service only. Unchanged by the redacted counterparts above — the source free text stays secured (ADR-027) |
@@ -1283,6 +1358,14 @@ Cleared · Cancelled — **added to this narrative in rev 5; the column has exis
 foreign key or a stored reference number would make it pseudonymised rather than anonymised, and it would
 then inherit the parent's retention clock instead of being retained indefinitely (Data Governance
 Framework §3; SDD §7.1).
+**Rev 39 (`ADR-096`):** `rev_outcome`'s choice set rev_statisticoutcome gains **Received (3)**; the intake writes one
+Received row per new application. A Received row carries `rev_decisionmonth` (now "the month of the event this row
+records"), `rev_agerange`, `rev_locationarea`, `rev_conditionareas` and nineteen new columns, filled on Received rows only,
+copied as received, none secured: `rev_breaktype`, `rev_amountrequested`, `rev_exceptionalamountrequested`,
+`rev_totalcost`, `rev_gender`, `rev_ethnicgroup`, `rev_applicanttype`, `rev_exceptionalcircumstance`,
+`rev_wellbeinganswer1`, `rev_wellbeinganswer2`, `rev_wellbeinganswer3`, `rev_wellbeinganswer4`, `rev_wellbeinganswer5`, `rev_wellbeinganswer6`, `rev_wellbeinganswer7`, `rev_wellbeinganswer8`, `rev_wellbeinganswer9`, `rev_wellbeinganswer10`, `rev_feelingscaleanswer` (reviewer ruling, SDD §7.1 *Anonymised* row).
+Ethnic group, the exceptional category and condition areas are Article 9 content held anonymised: register entries owed
+(`ADR-096`, Data protection).
 
 **`rev_errorlog` — Tier 2:** `rev_name` (`ERR-...`), `rev_flowname`, `rev_runid`, `rev_errormessage`,
 `rev_recordreference` (text, **not a lookup**), `rev_occurredon`, `rev_severity`, `rev_resolved`,
@@ -1336,7 +1419,7 @@ REV Trustee.xml).
 
 **`rev_roundstatisticsrequest` — Tier 2 (Trustee Portal Visual Refresh, delta TAD Revision 5, ADR-038, section 3.9, WBS 6.9):** From Revision 5 the whole request is `rev_name` (fixed key `CURRENT`, alternate key so a second row is impossible) and `rev_triggeredon` (written by the trustee's "Refresh figures" control; the column the Dataverse row trigger fires on) — both **trustee-visible (Read and Write)**, held by `REV Trustee` at Global (`prvReadrev_roundstatisticsrequest`, `prvWriterev_roundstatisticsrequest`, Roles/REV Trustee/REV Trustee.xml). `rev_status`, `rev_resultjson` and `rev_computedon` are UNUSED from Revision 5 and retained in source with superseding descriptions rather than deleted (delta TAD section 3.9.2) — the live columns of these names moved to the new result table below, written by nothing and read by nothing here. No column secured. No relationship to any other table.
 
-**`rev_roundstatisticsresult` — Tier 2 (Trustee Portal Visual Refresh, delta TAD Revision 5, ADR-038, section 3.9, WBS 6.9):** `rev_name` (fixed key `CURRENT`, alternate key so a second row is impossible), `rev_status` (the flow's own verdict, reusing the existing global option set rev_roundstatisticsrequeststatus rather than a new one — a cosmetic naming mismatch the TAD accepts, delta TAD section 3.9.2), `rev_resultjson` (the JSON document delta TAD section 3.3 specifies; not audited — a re-derivable snapshot regenerated on every trigger) and `rev_computedon` (written by the flow the instant it finishes; the only input to the freshness decision) are all **trustee-visible (Read only)**, held by `REV Trustee` at Global (`prvReadrev_roundstatisticsresult`, Roles/REV Trustee/REV Trustee.xml) — a trustee can request a computation and can never author one. No column secured. No relationship to any other table.
+**`rev_roundstatisticsresult` — Tier 2 (Trustee Portal Visual Refresh, delta TAD Revision 5, ADR-038, section 3.9, WBS 6.9):** `rev_name` (fixed key `CURRENT`, alternate key so a second row is impossible), `rev_status` (the flow's own verdict, reusing the existing global option set rev_roundstatisticsrequeststatus rather than a new one — a cosmetic naming mismatch the TAD accepts, delta TAD section 3.9.2), `rev_resultjson` (the JSON document delta TAD section 3.3 specifies; not audited — a re-derivable snapshot regenerated on every trigger) and `rev_computedon` (written by the flow the instant it finishes; the only input to the freshness decision) are all **trustee-visible (Read only)**, held by `REV Trustee` at Global (`prvReadrev_roundstatisticsresult`, Roles/REV Trustee/REV Trustee.xml) — a trustee can request a computation and can never author one. No column secured. No relationship to any other table. **Rev 39 (`ADR-096`):** adds `rev_alltimejson` (Memo 100,000, not audited, trustee-visible Read only through the same table privilege): the All time document, written by the same flow; `rev_resultjson` is unchanged.
 
 **`rev_localauthorityregister` — Tier 2 (Postcode Lookup, `docs/architecture/postcode-lookup-architecture.md` §3, `wbs:0.11`; folded in here, `IMP-0862`):** One row per UK postcode outward code, holding the resolved local authority name or a flagged non-resolution state (FR-200–FR-203). Columns: `rev_name` (outward code, max 4, primary name), `rev_localauthorityname` (max 100, populated only when resolved), `rev_ladcode`, `rev_ladnamesource`, `rev_resolutionstatus` (global option set rev_localauthorityresolutionstatus: Resolved / Multi-Authority / NI Pending Licence / Out of UK LA Scope) and `rev_lastseeninsource`. Public geographic reference data, not personal data (NFR-202): **no column secured**, no data subject, out of scope of erasure (FR-051) and subject access (FR-053). Audited at table level. No relationship to any other table. Written only by the seed script and read by `REV Service Automation`.
 
@@ -1738,18 +1821,19 @@ alongside `entityName` (and `recordId` for an update). It never writes them as a
 
 | # | Flow | Automation | Trigger | Requirements served |
 |---|---|---|---|---|
-| 1 | `REV \| Intake \| WordPress to Dataverse` | #4 | HTTP webhook (fallback: scheduled REST pull / email) | FR-007, FR-008, FR-009, FR-010 |
+| 1 | `REV \| Intake \| WordPress to Dataverse` | #4 | HTTP webhook (fallback: scheduled REST pull / email) | FR-007, FR-008, FR-009, FR-010. **Rev 39 (`ADR-096`):** also writes one *Received* anonymised row per new application (FR-055, FR-126) |
 | 2 | `REV \| Scoring \| Calculate & Flag` | #2 | Dataverse row created — Application | FR-011–FR-016, FR-019, FR-020, FR-022 |
 | 3 | `REV \| Scoring \| Daily Summary` | #2 | Scheduled, daily | FR-021 |
 | 4 | `REV \| Duplicate \| QBO Check` | #7 | Child flow — called from #1. **Rev 28:** the second call site (before payment issue) is not built by flow 11 and not by `wbs:8.6`; it stays with `wbs:8.5` / FR-023 | FR-023, FR-024, FR-025 |
 | 5 | `REV \| Narrative \| Scrub Free-Text` | #5 | Dataverse row updated — status becomes Eligible for Panel | FR-026–FR-031 |
 | 6 | `REV \| Narrative \| Trustee Pack` **(DERIVED)** | #5 | Scheduled ahead of the board meeting **+** manual | FR-032, FR-033 |
 | 7 | `REV \| Portal \| Finalise Decisions` | #6 | Dataverse *When a row is selected* — `rev_review`. The process owner selects decided reviews in `REV Grant Administration` (Reviews → Awaiting Finalisation) and starts it from the **Flow** menu after the trustees' verdicts; one run per selected review (rev 27, `ADR-080`) | FR-037, FR-040, FR-047, FR-055 |
-| 8 | `REV \| Acceptance \| Create Envelope` | #3 | Dataverse row created — `rev_grant`, organisation scope (rev 27: corrected from "status becomes Approved"; source trigger `When_a_grant_is_created`, message 1). Grant rows are created only by flow #7, for approved reviews | FR-041, FR-042 |
+| 8 | `REV \| Acceptance \| Create Envelope` | #3 | **Rev 39 (`ADR-093`):** Dataverse *When a row is selected* — `rev_grant`; the process owner runs it from the **Flow** menu on the grant, one run per grant, shared run-only. *Previously read:* Dataverse row created — `rev_grant`, organisation scope (rev 27: corrected from "status becomes Approved"; source trigger `When_a_grant_is_created`, message 1). Grant rows are created only by flow #7, for approved reviews | FR-041, FR-042 |
 | 9 | `REV \| Acceptance \| Reminders & Escalation` | #3 | Scheduled daily + DocuSign event | FR-043, FR-044 |
 | 10 | `REV \| Acceptance \| Completion` | #3 | DocuSign envelope completed | FR-045 |
 | 11 | `REV \| Finance \| Capture Payment` | #8 | Dataverse row added or modified — `rev_payment` (message 4), flow owner | **AUTHORISED rev 28, `wbs:8.6`, `ADR-081`:** FR-107, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113. *Previously read (rev 6): UNBUILT — open, deferred by reviewer decision, no FR. The form half of #8 is `wbs:8.3` (FR-150–FR-154)* |
 | 12 | `REV \| Retention \| Retention & Erasure Helper` | cross-cutting | Scheduled monthly (after the bulk-delete jobs) + manual on demand (erasure, mode 2) + **manual by the process owner, *When a row is selected* on `rev_applicant` (SAR extract, mode 3; rev 33, `ADR-088`)**. One design shipped as more than one flow definition, one per trigger, plus a shared locate child flow (§5.12). **Not built** | FR-049–FR-055 |
+| 14 | `REV \| Portal \| All-Time Statistics` **(rev 39, `ADR-096`)** | #6 | Child flow — called from the Round Statistics flow on each refresh | FR-126, FR-080 (D2) |
 | 13 | `REV \| Ops \| Failure Alert` | cross-cutting | Child flow — called from the error path of flows 1–12 | FR-010, NFR-012, NFR-016 |
 
 ### 5.1 `REV | Intake | WordPress to Dataverse`
@@ -1985,8 +2069,11 @@ is read by this flow and by the Admin role only, and it never reaches a trustee 
 > (`ADR-083` items 2 and 4). The DPIA and RoPA must name it as a store before PRD use (§12). *Previously read (rev 30):
 > "Who can read that table, how long it keeps rows and whether PRD needs a bulk-delete are **undecided**."*
 
-Trustee visibility is still the conjunction `rev_eligibleforround = true` **and** `rev_redactionreleased = true`. The
-default state of a new narrative is *withheld*, and any failure of any stage fails closed (NFR-018).
+**Rev 39 (`ADR-094`), corrected:** an application is **listed** to trustees when `rev_eligibleforround = true` and it has a
+open review in the open round; `rev_redactionreleased = true` decides only whether its redacted text shows or reads *withheld*.
+The default state of a new narrative is *withheld*, and any failure of any stage fails closed (NFR-018). *Previously
+read:* "Trustee visibility is still the conjunction `rev_eligibleforround = true` **and** `rev_redactionreleased = true`",
+which the built list never applied.
 
 **What a person sees** (`IMP-0511`). **Rev 25 (`ADR-078`):** **every** scrubbed application shows in the process
 owner's review list and reaches her as a Teams card, with any reason codes as hints, and none reaches a trustee until she
@@ -2101,9 +2188,10 @@ row again itself, as every Dataverse-triggered flow here does.
    `rev_outcome` on the review form; the next press then finalises it on that outcome. Non-Qualifying (4) is left
    open, as built (`A-FD-1`).
 4. **Approved:** find an existing Grant for the application (entity key `rev_grant_applicationid`); create one if none
-   exists; set the application to Approved; write the snapshot. **Creating the Grant is the hand-off to acceptance:**
-   flow #8 triggers on a `rev_grant` row being created, so each approved review starts its own envelope (applicant
-   first, referee second, order set in the template, `ADR-077`). This flow has no DocuSign action.
+   exists; set the application to Approved; write the snapshot. **Rev 39 (`ADR-093`): creating the Grant starts nothing.**
+   The process owner sends the envelope from the grant when its referee details are in (flow #8). This flow has no
+   DocuSign action. *Previously read:* "Creating the Grant is the hand-off to acceptance: flow #8 triggers on a `rev_grant`
+   row being created, so each approved review starts its own envelope".
 5. **Rejected:** set the application to Rejected; write the snapshot.
 6. **Deferred:** change nothing on the application and **write no snapshot** (reviewer answer to `Q-FD-3`, below).
 7. Stamp `rev_finalisedon` **last**. A run that fails before this step leaves the review on the view for another try.
@@ -2149,6 +2237,9 @@ the Review row: a second run over an already-finalised round is a no-op."
 
 ### 5.8–5.10 Acceptance flows (#3)
 
+**Rev 39 (`ADR-093`): Create Envelope is run by the process owner from the Flow menu on one grant**, reads the grant
+again by id, and before any DocuSign call stops with a Teams message when the grant already has an envelope or the referee
+has no name or email; the steps below are otherwise unchanged. *Previously read:*
 **Create Envelope** — when a Grant row is created (rev 27: the source trigger is `rev_grant` create, not a status change; flow #7 creates Grant rows only for approved reviews), builds the DocuSign envelope from the template, pre-populated with
 applicant name, grant amount, provider, dates and conditions, and sends it for **two signatures in
 sequence, the applicant first and the referee or GP second** (FR-041, FR-042; **rev 24, `ADR-077`: the customer
@@ -2656,10 +2747,10 @@ flowchart TD
 | **Trigger** | Dataverse *When a row is selected* on `rev_applicant`, started by the process owner from the **Flow** menu of the Grant Administration app, one run per applicant. **The one trigger of a request.** The same trigger type as flow #7 (`ADR-080`), already in source. Identity is confirmed **before** the run (§4.2 item 5) |
 | **Runs as** | The service identity (`svc-grantautomation`) through the solution's connection references, so the extract can hold what the process owner cannot read (`REV_FinanceOnly`, audit); the process owner sees only the Teams message (§4.2 item 2) |
 | **Reads** | Through the locate child flow: the applicant and every application, review, grant, payment and bank account linked to it, every column (no column list, so a column added later is gathered without a change to the flow) except the review columns naming the trustee; each located row's audit records (`A-SAR-11`); each payment's QuickBooks transaction (`A-SAR-10`); the service mailbox's messages to or from the applicant and referee (`A-SAR-12`); each grant's signed PDF from the library, or the envelope's combined document from DocuSign where no library copy exists yet (`A-SAR-6`, `A-DS-9`) |
-| **Writes** | Only: one extract file and the PDF copies in the SAR folder, path from the new environment variable `rev_SpoSarFolderUrl` (`A-SAR-7`, `A-SAR-9`); one evidence-log row (§4.2 item 9; the actor from the trigger, `A-SAR-8`); one Teams message to the process owner with the reference and file name only; **under delivery option B** (§4.2 item 8, `ADR-091`), one email from the protected sender `rev_SarProtectedSender` (every message from it encrypted by the tenant's rule) to the requester's email on record with **the extract and every signed PDF copy written in this run attached** (amended at approval 2026-10-30, `ADR-091` item 5), sent with no human review (`A-R108`); when the setting is empty, the send fails, or the set's total size exceeds the `rev_setting` key `SarEmailMaxAttachmentMB` (default 15), no email at all (never a part of the set) and a second Teams message naming option A. **No delete action and no update of any business table** |
-| **Run history** | Every action that carries row, audit, mailbox, QuickBooks or file content has secure inputs and outputs, so the run history holds no copy of the extract (`C-DOM-004`) |
+| **Writes** | Only: one extract file and the PDF copies in the SAR folder, path from the new environment variable `rev_SpoSarFolderUrl` (`A-SAR-7`, `A-SAR-9`); one evidence-log row (§4.2 item 9; the actor from the trigger, `A-SAR-8`); one Teams message to the process owner with the reference and file name only; **under delivery option B** (§4.2 item 8, `ADR-091`), one email from the protected sender `rev_SarProtectedSender` (every message from it encrypted by the tenant's rule) to the requester's email on record with **the extract and every signed PDF copy written in this run attached** (amended at approval 2026-10-30, `ADR-091` item 5), sent with no human review (`A-R108`); when the setting is empty, the send fails, or the set's total size exceeds the `rev_setting` key `SarEmailMaxAttachmentMB` (default 15), no email at all (never a part of the set) and a second Teams message naming option A and, **from rev 38 (`ADR-092` item 7), the reason (the signed-document copy failed, when it did)**. **No delete action and no update of any business table** |
+| **Run history** | **Property:** a run's history holds no character of row, audit, mailbox, QuickBooks or file content (`C-DOM-004`). **Mechanism (rev 38, `ADR-092`):** content lives only in actions that can be secured: connector actions, Select, Filter array and Table secured both ways, Compose secured on inputs (which also hides its outputs). No variable carries content, because no variable action can be secured (`IMP-1267`). Each store's section is one secured Compose. The "not read" line is chosen when the extract is assembled. Loops are flat, and their output is read back after the loop with `result()` on the loop, into secured Filter and Select actions (`A-SAR-16`, which blocks the rebuild). The one unsecured action over content is a Select that projects file sizes only. *Previously read: "Every action that carries row, audit, mailbox, QuickBooks or file content has secure inputs and outputs"*: that wording was met in the build by variable actions, which the platform cannot secure |
 | **Failure** | One scope per store, so one unreachable store (for example QuickBooks before `wbs:7.1`) writes a "not read, and why" line in its section instead of failing the run; a failure of the run itself calls the Failure Alert child flow (record reference only) and sends no "extract ready" message, so a partial file is never treated as an extract |
-| **Size** | About 42 actions in mode 3 (two of them the option B send) plus about 8 in the locate child. **Rev 37:** the built definition has 76; `ADR-091` adds about 5 (one condition, the send, two Teams fallbacks, one evidence-detail write), about 81 in all, each a branch the never-unencrypted rule requires; the size gate and attachment array add about 3, about 84. Over the size limit the send action does not run. **Judgement:** proportionate for nine stores gathered once per request, each in its own scope; the alternative is a second and third person per request, which the reviewer rejected |
+| **Size** | **Rev 38 (`ADR-092`): about 92 actions in mode 3** (101 built). Fourteen variable and append actions go. Added: a Filter and a Select after each of the two loops, one Compose per section, a second document loop with two list filters, the attachments Compose and the size Select. Development-agent records the exact count. **Judgement:** proportionate for nine stores, each still in its own scope; the rise over 84 is the cost of having no accumulator, and every added action secures something or picks a fixed line. Plus about 8 in the locate child (17 built). *Previously read:* About 42 actions in mode 3 (two of them the option B send) plus about 8 in the locate child. **Rev 37:** the built definition has 76; `ADR-091` adds about 5 (one condition, the send, two Teams fallbacks, one evidence-detail write), about 81 in all, each a branch the never-unencrypted rule requires; the size gate and attachment array add about 3, about 84. Over the size limit the send action does not run. **Judgement:** proportionate for nine stores gathered once per request, each in its own scope; the alternative is a second and third person per request, which the reviewer rejected |
 | **Depends on** | The helper's evidence-log store (FR-054): **designed in rev 34**, `rev_retentionlog` (§5.12.3); not in source yet (measured: not among the 15 tables). *Previously read: "designed with the helper's build"*; the QuickBooks connection (`wbs:7.1`) for the QuickBooks step only; the audit-read privilege on `REV Service Automation` (§12) |
 
 #### 5.12.1 Mode 1, specified (rev 34, `ADR-089` items 2 to 4)
@@ -2703,7 +2794,7 @@ slip of the menu.
 | **2. Hold rule** (decision D2, approved: *"It only erases when final payment is checked."*) | **A case with a grant is erased only when every grant has its final payment recorded (`rev_finalpaymentdate` set); otherwise the run stops.** A case with no grant is unaffected. On a stop the run logs one row, outcome *Retained (hold)*, emails the requester from the service mailbox (fixed runbook wording: the request is held until the grant's final payment is recorded, and why) and tells the process owner, who runs mode 2 again after the final payment. *As presented: stop only if a grant had a signed acceptance and no final payment date.* Nothing is deleted. No other hold is evaluated by the flow; a legal claim or dispute is the process owner's judgement before the trigger (runbook) |
 | **3. Snapshot** | The snapshot child, for each application (§5.12.4) |
 | **4. Log, before deleting** | One `rev_retentionlog` row per record: run type *Erasure*, reference, data type, rule *Erasure request*, outcome *Scheduled*. Written first, so a run that fails half-way leaves evidence of what it was doing |
-| **5. Capture the reply address** | The applicant's `rev_email` into a variable with secure inputs and outputs, because the row is about to go |
+| **5. Capture the reply address** | The applicant's `rev_email` into a Compose with secure inputs (`Compose_reply_address`), because the row is about to go. A Compose secured on its inputs also hides its outputs, and that is the only securing a Compose accepts (check 18). *Previously read (rev 34 to rev 37): "into a variable with secure inputs and outputs"*. That is impossible: no variable action can be secured (`IMP-1267`, `ADR-092` item 8). The built flow 1015 already uses the Compose and has no variable action (measured 2026-11-04) |
 | **6. Delete the copies outside Dataverse** | Each grant's signed PDF (`rev_signedpdfurl`, SharePoint *Delete file*, `A-ERA-3`); every service-mailbox message to or from the applicant's address, and every message to or from the referee's address whose subject carries this application's reference (Outlook search, `A-SAR-12`; Outlook *Delete email*, `A-ERA-4`) |
 | **7. Delete the case** | One Dataverse *Delete a row* on `rev_applicant`; the parental cascades remove applications, reviews, grants, payments and bank accounts (§3.3). Needs delete privileges on `REV Service Automation` that it does not hold today (measured 2026-10-22: it deletes only `rev_provider`), `A-ERA-2` |
 | **8. Outcomes** | Each log row to *Deleted*; a QuickBooks row per paid grant, outcome *Retained (finance)*, `rev_retaineduntil` = final payment date + 6 years; an *Audit history* row per decision D3, outcome *Retained (audit)*, `rev_retaineduntil` = the erasure date + 6 years |
@@ -2754,10 +2845,10 @@ before any record is deleted".* About 7 actions.
 |---|---|---|---|
 | Mode 1 (sweep) | Recurrence, weekly | 33 | yes |
 | Mode 2 (erasure) | *When a row is selected* + typed reference | 40 | yes |
-| Mode 3 (SAR extract) | *When a row is selected* | 42 | no (rev 33) |
+| Mode 3 (SAR extract) | *When a row is selected* | 92 (rev 38, `ADR-092`; was 42) | no (rev 33) |
 | Locate child | Child flow | 8 | no (rev 33) |
 | Snapshot child | Child flow | 7 | yes |
-| **Helper total** | | **about 130** | 80 new in rev 34 |
+| **Helper total** | | **about 180** (rev 38: mode 3 only re-counted; was about 130) | 80 new in rev 34 |
 
 Other components the helper adds, all environments: table `rev_retentionlog` (12 columns, 4 global choices, §12.1
 prerequisite path, `C-TECH-050`); privileges on `REV Service Automation` — create/read/update `rev_retentionlog`,
@@ -2783,6 +2874,9 @@ personal data. Derived assignment:
    application whose last review was Deferred, and which was never decided again, is counted: it has no snapshot, so
    the helper writes one **Not Granted** snapshot before deletion. Specified here for the helper's design (still
    unbuilt); flow #7 does not do it.
+4. **Rev 39 (`ADR-096`):** `REV | Intake | WordPress to Dataverse` writes one **Received** row for every new application,
+   so the table records every application (reviewer, 2026-11-13). Decisions keep their own outcome row; no row is updated.
+
 The snapshot carries no lookup and no reference number (§3.1), so it is genuinely anonymised and is not
 touched by erasure.
 
@@ -2891,10 +2985,56 @@ and grant it to the service account.
 
 | Role | Holder | Table privileges | Notes |
 |---|---|---|---|
-| `REV Admin` | Emily (process owner) | Full CRUD on Applicant, Application, Review, Grant, Provider, Anonymised Statistic, Setting, Error Log (read). **No Bank Account, no Payment.** Reads Tier 4 columns including the raw narrative | Owns views and configuration. **Not** a Dataverse System Administrator (§6.5) |
-| `REV Finance` | Finance staff | Bank Account and Payment: create, read, update. **Provider: create, read, update** — ✅ *correction CONFIRMED by the reviewer 2026-09-09 (proposed rev 5, was "read")*. **Grant: read + AppendTo** — ✅ *addition CONFIRMED by the reviewer 2026-09-09 (proposed rev 5)*. Anonymised Statistic: read. Signed-PDF library: read | The only role that sees bank details (NFR-002). No Applicant or Application privilege. **Does not exist in source — `wbs:8.2`. See §6.2.1 for the two rev-5 corrections and the full build specification** |
-| `REV Trustee` | Trustees (tenant users) | Read on Application, Review, Grant — **filtered by `REV_TrusteeRestricted`**, of which the trustee team is never a member; ⚠️ **rev 32 (proposed):** the team is a member of `REV_TrusteeFinancialEligibility`, which releases benefit status, benefit provider and employment status read only. Write verdict + notes on Review. Read Anonymised Statistic | No direct table access; reaches data through the app only. No export-to-Excel privilege — the offline route is the anonymised pack (FR-032/FR-039) |
+| `REV Admin` | Emily (process owner) | Full CRUD on Applicant, Application, Review, Grant, Provider, Anonymised Statistic, Setting, Error Log (read). **Rev 39: measured 2026-11-13, the built role grants Read only on Review** (`Roles/REV Admin/REV Admin.xml`, the `prvReadrev_review` line, with a comment saying the process owner never records a verdict); FR-127 replaces "Full CRUD" on Review: see the build correction below the table. **No Bank Account, no Payment.** Reads Tier 4 columns including the raw narrative | Owns views and configuration. **Not** a Dataverse System Administrator (§6.5) |
+| `REV Finance` | Finance staff | Bank Account and Payment: create, read, update. **Provider: create, read, update** — ✅ *correction CONFIRMED by the reviewer 2026-09-09 (proposed rev 5, was "read")*. **Grant: read + AppendTo** — ✅ *addition CONFIRMED by the reviewer 2026-09-09 (proposed rev 5)*. ~~Anonymised Statistic: read~~ **rev 39 (`ADR-096` item 9): no access to Anonymised Statistic**. Signed-PDF library: read | The only role that sees bank details (NFR-002). No Applicant or Application privilege. **Does not exist in source — `wbs:8.2`. See §6.2.1 for the two rev-5 corrections and the full build specification** |
+| `REV Trustee` | Trustees (tenant users) | Read on Application, Review, Grant — **filtered by `REV_TrusteeRestricted`**, of which the trustee team is never a member; ⚠️ **rev 32 (proposed):** the team is a member of `REV_TrusteeFinancialEligibility`, which releases benefit status, benefit provider and employment status read only. Write verdict + notes on Review. ~~Read Anonymised Statistic~~ **rev 39 (`ADR-096` item 9, reviewer *"agreed with suggested recommendation"*): no access to Anonymised Statistic** | No direct table access; reaches data through the app only. No export-to-Excel privilege — the offline route is the anonymised pack (FR-032/FR-039) |
 | `REV Service Automation` **(DERIVED)** | `svc-grantautomation` only | Everything `REV Admin` has, **plus** Bank Account and Payment (flow runtime), plus write on Anonymised Statistic and Error Log | Exists so the source's own access matrix is expressible. Assigned only to the service account, via group team |
+
+> **Rev 39 build correction for `REV Admin` on `rev_review`, to FR-127 as amended** (reviewer D3, verbatim *"yes, REV-admin
+> role can create a review and add trustees. but not change their verdict and their notes. Other fields the process owner
+> can edit"*; and on PD-1/PD-2, verbatim *"Emily can't edit finalised on. That is set by the finalise decisions workflow.
+> it has a padlock. She is allowed to delete reviews. Maybe she creates a wrong one and wants to delete it. she needs to
+> have that freedom as a administrator of the solution."*).
+> 1. **Role:** add `prvCreaterev_review`, `prvWriterev_review`, `prvDeleterev_review`, `prvAppendrev_review` and
+>    `prvAppendTorev_review`, all Global, beside the existing `prvReadrev_review`; no Assign or Share. Every `rev_review`
+>    column is audited, so a deleted review's history stays in the audit log. Setting the two trustee lookups may also need
+>    a user privilege the role lacks (`A-ST-8`).
+> 2. **No `rev_review` column is column-secured (draft 4; draft 3's three profiles are withdrawn).** Draft 3 put the
+>    verdict, notes and *Finalised On* columns behind three profiles, one of them giving the trustee team Read and Update.
+>    The build gate `no-trustee-in-column-security-profile` allows a trustee team only in the one read-only release profile
+>    (`config/trustee-release-profile.json`), and it failed on a scratch run (`IMP-1289`). **No column-security design
+>    passes that gate while trustees write their own verdict**: a secured column a trustee writes needs the trustee team in
+>    a profile with Update. So FR-127 is met where FR-127 scopes it, *"WHEN she works on reviews in the grant
+>    administration app"*:
+>    - **Form.** `rev_verdict1`, `rev_verdict2`, `rev_notes1`, `rev_notes2` are locked on the admin review form, beside
+>      *Finalised On*, which already is (measured: main form, `disabled="true"`). The bulk-edit dialog in the app renders
+>      from the same form; `A-ST-11` confirms the locks hold there, and if they do not, the Reviews views lose bulk edit.
+>    - **Excel import.** `REV Admin` holds no import privilege (measured: no `prvImport…` in its role file), so the
+>      app's *Import from Excel* cannot write these columns.
+>    - **Audit.** Every `rev_review` column is audited, so a change by any other route names who made it.
+>    **D5 answered 2026-11-15 (draft 5): the protection is in the admin app.** Reviewer, verbatim, in two messages the same
+>    day: *"D5: the verdict and notes fields have to be protected for the Rev-admin role. Trustees need to be able to
+>    write."* and *"Protection in the admin app."* **Reading taken: in-app only.** The protection holds in `REV Grant
+>    Administration`, which is where FR-127 scopes it (*"WHEN she works on reviews in the grant administration app"*), so
+>    FR-127's scope does not change. Why: the reviewer named the app; *Trustees need to be able to write* rules out any
+>    design that makes the fields read-only for everyone; and the every-route alternatives either need a trustee in a
+>    column-security profile (the gate above) or a new verdict table, which the reviewer did not take. *Finalised On*
+>    stays workflow-only in the same way: locked on the form (the padlock), written only by *Finalise Decisions*.
+>    **Accepted limitation: what a `REV Admin` user can still do outside the app** (`A-R118`). The role holds table-level
+>    Write on `rev_review` at Global, and Dataverse applies a form lock only on that form. So a process owner could still
+>    change a verdict, notes or *Finalised On* by:
+>    - the Web API, or a tool built on it (Postman, XrmToolBox);
+>    - a Power Automate flow of her own, running on her Dataverse connection;
+>    - the table data editor in the Power Apps maker portal, if she is ever given maker access to the environment.
+>    **Closed for her:** *Import from Excel* and *Edit in Excel* write back through import, and `REV Admin` holds no import
+>    privilege (measured: no `prvImport…` in its role file). The app's bulk edit renders from the locked form; `A-ST-11`
+>    confirms that in DEV, and if it fails, the Reviews views lose bulk edit. Advanced Find opens records in the same form.
+>    **Every route leaves a trace:** every `rev_review` column is audited, so any change names who made it and when.
+>    **Unchanged from before rev 39:** a trustee can write *Finalised On* or the other trustee's slot through the API,
+>    because the trustee role's table Write is not column-scoped (`A-R118`). **Register rows: none are needed for
+>    `rev_review`**, because no `rev_review` column becomes secured.
+> 3. **Every other field stays editable** by the process owner: Review Reference, Application, Panel Date, Round, Staff
+>    Recommendation, Outcome, Non-Qualification Reason (FR-127), and the two trustee lookups.
 
 Roles are **copies, never modified out-of-box roles** (C-TECH-046, development-agent scope) and ship as
 solution components. **Documented deviation from `knowledge/technology/security-model.md`:** that file
@@ -3102,10 +3242,10 @@ and what input is still needed.
 | NFR-015 | App-access logging enabled; trustee portal opens are recorded with user and timestamp | Security Model §8 |
 | NFR-016 | Retention/erasure evidence log holds record reference, data type, date and rule only; bulk-delete runs additionally recorded as Dataverse system jobs | Durable evidence with no second copy of personal data (FR-054) |
 | NFR-017 | Redaction confidence threshold is a `rev_setting` row (`RedactionConfidenceThreshold`, initial 85%), read at run time. **Rev 19:** it is compared with **extractor** scores only. A generative prompt returns no score (E1), so a prompt stage is released only through `RedactionPromptCalibrated` (`ADR-072` item 8), and no record is released at all until `RedactionAutoRelease` = `true` (`ADR-071` item 8). **Rev 25 (`ADR-078`):** `RedactionAutoRelease` is retired; no flow releases a record; the threshold now only flags records for the process owner's attention, and is seeded create-only at `0.85` | Adjustable after launch with no redesign and no solution import (NFR-019) |
-| NFR-018 | Trustee visibility requires `rev_eligibleforround = true` **and** `rev_redactionreleased = true`; both default false, so the flow **fails closed**. **Rev 19:** every stage failure, every residue-check hit, and every absent Automation #5 setting also leaves `released = false` (§5.5). **Rev 25 (`ADR-078`):** the scrub flow never writes `rev_redactionreleased`, so every narrative stays withheld until the process owner releases it | 100% of scrubbed narratives (rev 25) and of Borderline outcomes reach a human because the default state is *withheld*, not *shown*. *Previously read:* "100% of low-confidence redactions and Borderline outcomes" |
+| NFR-018 | **Rev 39 (`ADR-094`), corrected:** listing needs `rev_eligibleforround = true` and a open review in the open round; `rev_redactionreleased = true` decides only whether the redacted text shows. *Previously read:* Trustee visibility requires `rev_eligibleforround = true` **and** `rev_redactionreleased = true`; both default false, so the flow **fails closed**. **Rev 19:** every stage failure, every residue-check hit, and every absent Automation #5 setting also leaves `released = false` (§5.5). **Rev 25 (`ADR-078`):** the scrub flow never writes `rev_redactionreleased`, so every narrative stays withheld until the process owner releases it | 100% of scrubbed narratives (rev 25) and of Borderline outcomes reach a human because the default state is *withheld*, not *shown*. *Previously read:* "100% of low-confidence redactions and Borderline outcomes" |
 | NFR-019 | All tunables in the `rev_setting` table (process-owner editable through the MDA); only per-environment values in environment variables (`rev_SignedDocLibrary`, `rev_ServiceMailbox`, `rev_DefaultThreshold`). **Rev 20:** Automation #5's word lists and prompt categories are tunables too (`ADR-074`). A setting can add to a word list, never remove from the tested built-in list; the phone and postcode shapes stay in the flow because they are the specification | Environment variables need maker-portal access and a solution context; a Dataverse table row does not. ADR-010 |
 | NFR-020 | Reading-age ~12 applies to the WordPress form (built by Alex to the supplied specification) and to every applicant-facing message a flow sends. The specification handed to Alex must carry it as an acceptance criterion | The applicant-facing surface is out-of-palette, so the requirement travels as a specification obligation, not a build task (§8) |
-| NFR-021 | **About 1,000 applications a year (about 90 a month), headroom to at least 1,250 a year; the solution holds every record for its full retention period (6 years paid, 12 months rejected, 6 months withdrawn or incomplete), with a planning ceiling of 7,500 records** (SDD Amendment A-13, OQ-061 answered 2026-10-22, reviewer verbatim *"Yes, recod it that way."*; rev 33). About 730 records at 2026-10-22, none before 2026-02-16. *Rev 31:* the reviewer's live count, 730 from 2026-02-16 to 2026-10-21; *"Change to 1000"*, 2026-10-22; the SDD figure (about 200 a year, headroom to 250) is superseded. **Re-checked at the new figure:** (1) **Dataverse capacity — still far inside.** The retained set is paid applications for six years after final payment plus at most a year of the rest, sized against the 7,500-record planning ceiling (rev 33; *previously read: "a few thousand application rows"*); the one table that would grow without limit, `msdyn_aievent`, is held to 30 days in PRD (`ADR-083`). Confirm at the `A-R18` capacity check, which sizes against 7,500 records. (2) **AI Builder credits — this is where the volume bites.** About 6,300 credits a month after `ADR-082`, an estimate from DEV's measured per-call rates (`A-NS-44` and the `wbs:5.7` run confirm it), against 5,000 a month seeded by one Power Automate Premium licence; see `A-R16` for the purchase routes. (3) **Teams cards — about 90 a month** to the process owner, one per scrubbed application (`ADR-078`), about four a working day: workload, not a platform limit. (4) **DocuSign — one envelope per approved grant**; the plan's envelope allowance is a procurement check (§12), and the per-minute limit depends on how many reviews are finalised at once, not on the year (`A-R76`). (5) **Flow runs — inside the service account's limits:** the scrub flow is about 109 actions per application, about 10,000 actions a month. *Previously read: "~200 applications/year with headroom to 250 and 300+ cumulative grants is **far** inside Dataverse limits; the constraint is licence seats and AI Builder credits, not platform capacity"* | Scale risk is still commercial, not technical: the platform holds the volume, and the credit cost grows with it (SDD OQ-017) |
+| NFR-021 | **About 2,000 applications a year (about 170 a month), headroom to at least 2,500 a year; every record held for its full retention period, with a planning ceiling of 15,000 records** (SDD A-15 Finding 7; reviewer at approval, verbatim *"There are 1500 applications.. the earlier number was my estimate."*). **Re-checked at the new figure (rev 39), each an estimate scaled from the rev 31 figures at about 90 a month:** (1) **Dataverse capacity:** sized against 15,000 records; at roughly 50 KB per application across its rows (not measured) that is under 1 GB, plus the anonymised table, which now gains one Received row per application and one outcome row per decision, a few thousand small rows a year kept for ever. Confirm at the `A-R18` check from DEV's per-table storage. (2) **AI Builder credits, on the scrubbed subset only** (reviewer, verbatim *"not all applications will be processed for Narrative Scrubbing. Some of them are rejected."*; the scrub flow starts only when an application's status becomes Eligible for Panel, §5 row 5). **Share reaching Eligible for Panel: about 25 percent, range 20 to 35 (`A-ST-9`).** Source: the client's Round 4 panel pack (`docs/Import/3. Round 4 - Individual Applications.pdf`, 63 individual applications) against the 283 received between the Round 3 deck (434 received) and the Round 4 deck (717 received), about 22 percent; the Round 5 group pack (12 applications) suggests a few points more. Per scrubbed application about 70 credits (rev 31's 6,300 a month over 90). So about 43 scrubbed a month and **about 3,000 credits a month** (range 2,400 to 4,200; about 5,100 at the 2,500 headroom and the high share), against 5,000 seeded; see `A-R16`. (3) **Teams scrub cards:** one per scrubbed application (`ADR-078`), about 43 a month (range 34 to 60), two or three a working day. (4) **Scrub flow:** 109 actions per scrubbed application in source, about 4,700 a month (range 3,700 to 6,500); with intake (142) and scoring (74) on every application, about 220 top-level actions per application plus 109 for each scrubbed one, about 8,000 on a heavy day of 30, inside Power Automate Premium's published 40,000 requests a day for the service account (not re-read in this revision; loop iterations add to the count, measured at the `wbs:5.7` run). (5) **DocuSign:** one envelope per approved grant, each now sent by the process owner (`ADR-093`), so the per-minute limit applies only to a large selection (`A-R76`). (6) **Trustee list:** bounded by open reviews (`ADR-094`); before rev 39 it grew with every release and would have passed its 500-row cap within about a year. *Previously read (rev 33):* **About 1,000 applications a year (about 90 a month), headroom to at least 1,250 a year; the solution holds every record for its full retention period (6 years paid, 12 months rejected, 6 months withdrawn or incomplete), with a planning ceiling of 7,500 records** (SDD Amendment A-13, OQ-061 answered 2026-10-22, reviewer verbatim *"Yes, recod it that way."*; rev 33). About 730 records at 2026-10-22, none before 2026-02-16. *Rev 31:* the reviewer's live count, 730 from 2026-02-16 to 2026-10-21; *"Change to 1000"*, 2026-10-22; the SDD figure (about 200 a year, headroom to 250) is superseded. **Re-checked at the new figure:** (1) **Dataverse capacity — still far inside.** The retained set is paid applications for six years after final payment plus at most a year of the rest, sized against the 7,500-record planning ceiling (rev 33; *previously read: "a few thousand application rows"*); the one table that would grow without limit, `msdyn_aievent`, is held to 30 days in PRD (`ADR-083`). Confirm at the `A-R18` capacity check, which sizes against 7,500 records. (2) **AI Builder credits — this is where the volume bites.** About 6,300 credits a month after `ADR-082`, an estimate from DEV's measured per-call rates (`A-NS-44` and the `wbs:5.7` run confirm it), against 5,000 a month seeded by one Power Automate Premium licence; see `A-R16` for the purchase routes. (3) **Teams cards — about 90 a month** to the process owner, one per scrubbed application (`ADR-078`), about four a working day: workload, not a platform limit. (4) **DocuSign — one envelope per approved grant**; the plan's envelope allowance is a procurement check (§12), and the per-minute limit depends on how many reviews are finalised at once, not on the year (`A-R76`). (5) **Flow runs — inside the service account's limits:** the scrub flow is about 109 actions per application, about 10,000 actions a month. *Previously read: "~200 applications/year with headroom to 250 and 300+ cumulative grants is **far** inside Dataverse limits; the constraint is licence seats and AI Builder credits, not platform capacity"* | Scale risk is still commercial, not technical: the platform holds the volume, and the credit cost grows with it (SDD OQ-017) |
 | NFR-022 | **No performance threshold exists in any source (SDD OQ-020).** Architecture position: intake is event-driven so an application exists within seconds of submission; scoring is a single-row flow; the only long-running operations are the narrative flow (AI Builder call per record) and the batch envelope run, both asynchronous with no user waiting. **No measurable target is committed — a threshold is needed before the test-agent can test it** | Recording the gap rather than inventing a number |
 | NFR-023 | **No availability target exists (SDD OQ-021).** Architecture position: availability is the Power Platform SLA; the design's own resilience is the documented fallback per integration (§4) and the fail-closed narrative flow. The reviewer should confirm whether the board-cycle week and the application round are periods where downtime is unacceptable | Recording the gap |
 | NFR-024 | **No accessibility standard is named in any source (SDD OQ-022).** Derived: **WCAG 2.1 AA** as the baseline (`skills/accessibility-checklist.md`), with **WCAG 2.2 AA recommended** for the applicant-facing form. See §8 and ADR-020 | The applicant population is disabled people and unpaid carers with ~age-12 average reading level; this is the least defensible gap in the source set |
@@ -7540,6 +7680,604 @@ never-unencrypted rule requires.
 **Work-item clauses this overrides:** none found (no work item names the protected email or `A-SAR-4`; grepped
 `logs/work-items.jsonl`, 2026-10-30).
 
+**Amended by `ADR-092` (rev 38, 2026-11-04):** item 6's *"initialise, append per file, pass the array"* is a platform
+impossibility once the array carries file content (a variable action cannot be secured, `IMP-1267`). The array is now
+one secured Compose built from a Select; it is still one array, passed whole. Every reviewer decision in this ADR is
+kept.
+
+### ADR-092: Mode 3 holds content only in actions that can be secured, and gathers loop output with `result()`
+
+**Status:** `Accepted` (rev 38, approved 2026-11-04 by Xander Lykopoulos, verbatim *"Decision A: Agreed."* and *"Decision B: Agreed, keep as is and inform Process Owner to send manual."*). `wbs:0.13`, `CO-011` (approved unbilled). Raised as `ARCH_GAP` by
+development-agent after `IMP-1267`. Amends `ADR-091` item 6 (how the attachment array is built), the §5.12 mode 3
+*Run history* and *Size* rows, and §5.12.2 step 5's wording.
+
+**Context.** On 2026-11-04 the reviewer tried to turn on the built mode 3 flow in DEV. The designer refused it
+(`SecureDataPropertyNotSupported`, on an `AppendToArrayVariable`). That is a V4 measurement. The V3 import had accepted the
+same definition. Microsoft Learn (*Secure access and data in Azure Logic Apps*, section *Secure data in run history by
+using obfuscation*, read 2026-11-04, E2) says the following:
+
+- No variable action can secure its inputs or outputs.
+- `For each`, `If`, `Scope`, `Switch`, `Until` and `Terminate` cannot secure their inputs or outputs either.
+- `Compose`, `Parse JSON` and `Response` can secure their inputs only, and doing so also hides their outputs.
+- When an action explicitly uses secured outputs as its inputs, the platform hides those inputs. The one exception is
+  outputs hidden by a Compose, Parse JSON or Response: these are **not** hidden in the next action.
+
+The built flow kept the extract text and the attachment array in variables, because a variable is the expression
+language's only accumulator. As a result, seven actions that carry content could not be secured. This TAD had
+prescribed that shape itself, twice: §5.12.2 step 5 (*"into a variable with secure inputs and outputs"*) and `ADR-091`
+item 6 (*"initialise, append per file, pass the array"*). This ADR does not rest on any held dependency.
+
+**What it protects (the property).** The run history of a mode 3 run contains no character of row, audit, mailbox,
+QuickBooks or file content. Put as a closed set: content can appear only in (a) the inputs or outputs of an action that
+secures them, or (b) inputs the platform hides because they explicitly use secured outputs. An action whose type cannot
+be secured receives content only through (b). The steps below are one way to meet this property.
+
+**Decision** (numbered; the Consequences follow the same order).
+1. **No variable carries content.** Variables remain only for numbers and fixed tokens (`attachmentBytes`,
+   `attachmentCheck`). The `extract`, `attachments` and `attachmentFiles` variables are removed, together with every
+   `AppendToStringVariable` and `AppendToArrayVariable`. The type half of this rule is enforced by `IMP-1267`'s proposed
+   check: a variable action carrying `secureData` fails the build.
+2. **Each store's section is one Compose with secure inputs.** It is `Compose_<store>_section`, the last action in the
+   store's scope. For the stores with no loop (Dataverse rows, audit, QuickBooks and the statements), it joins the scope's
+   secured `Table` outputs and fixed headings.
+3. **The "not read" line is chosen at assembly time.** `Compose_extract_document` has secure inputs and runs after every
+   store scope, whatever state that scope ended in. For each store it takes
+   `coalesce(actions('Compose_<store>_section')?['outputs'], '<that store's fixed "not read" text>')`. If a store scope
+   failed, its section Compose never ran, so the fixed text is used. The four `Append_*_not_read` actions are removed.
+   `actions('…')?['status']` is already used on these scopes, in any state, by `Compose_stores_read`.
+4. **Loops are flat, and loop output is read back with `result()` on the loop itself.** Every action that carries content
+   inside a `For each` is a first-level child of that loop, with no `If` around it. After the loop, a Filter array (secure
+   inputs and outputs) over `result('<For each>')` keeps the record of the one child that holds each iteration's content.
+   A Select (secure inputs and outputs) then projects that child's per-iteration outputs. `result()` on a `For each` is
+   documented to return the inputs and outputs of its first-level actions for every iteration (E2, *Reference guide to
+   workflow expression functions*, `result`, read 2026-11-04). It is not a reference into the loop, so check 12
+   (`IMP-1098`) still holds.
+   - **Store 9, the mailbox:** the loop is already flat. After `For_each_mailbox_address`, the Filter keeps
+     `Create_mailbox_table` and `Compose_mailbox_section` joins the tables. **The read itself does not change:** two
+     `GetEmailsV3` calls per address, so `A-SAR-12` is unchanged.
+   - **Store 10, the signed documents:** today this is one loop with two nested `If`s. It becomes two loops over two lists,
+     each list made beforehand by a Filter array (secure inputs and outputs):
+     - grants that have a library copy (`rev_signedpdfurl` set);
+     - grants that have no library copy but do have an envelope id.
+
+     Each loop body has three first-level actions: get the content, save the copy (`CreateFile`), and one Compose (secure
+     inputs) holding `{Name, ContentBytes, Size}`. A grant with neither gets its line from a Select over the grant list.
+     The section's lines are built from the two lists, not from loop output, so the lines carry references only.
+5. **The attachment array is one secured Compose.** `Compose_the_attachments` (secure inputs) unites the extract's
+   `{Name, ContentBytes: base64(extract)}` with a Select (secure inputs and outputs) of `{Name, ContentBytes}` over both
+   loops' records. The send passes `outputs('Compose_the_attachments')`. `SendEmailV2` already secures its inputs and
+   outputs, so the one place where the platform would not hide a Compose's output is covered.
+6. **Sizes come from one deliberately unsecured Select.** That Select projects `Size` only, from the same records plus the
+   extract's own create-file response. The existing measure loop adds the sizes with `IncrementVariable`. It is the only
+   action reading secured content that stays unsecured on purpose. A number cannot carry a row (the same argument as the
+   `ADR-039` template in `flow-reads-no-trigger-body`), and leaving it visible keeps `A-SAR-15` (a) readable in run
+   history.
+7. **"One message or none" also covers a failed copy.** The route reaches `send` only when `Copy_signed_documents` also
+   ended `Succeeded`. If the copy step failed, nothing is emailed and option A applies. In the built flow, a failure part
+   way through the loop could have sent the extract with only some of the PDFs. This item applies `ADR-091` item 5 as the
+   reviewer approved it; it is not a new decision. **Decision (B), settled 2026-11-04: keep as is** (no partial email). **Whether the process owner is told:** yes, and the current design already does it. The route that does not reach `send` ends in the option A Teams message (item 7's consequence, `ADR-091` item 5), and a failed copy takes that route, so no new action is needed. What the approval adds is the wording: the message to the process owner says to use option A and send the extract manually, and **says why: the signed-document copy failed** (the same message names the other reasons: setting empty, send failed, set too large). The reason text is a fixed token chosen with `actions('Copy_signed_documents')?['status']`, so it carries no content and the Size row is unchanged. `rev_detail` records the same reason.
+8. **§5.12.2 step 5 now matches what flow 1015 built:** the reply address goes into a Compose with secure inputs
+   (`Compose_reply_address`). Flow 1015 has no variable action at all (measured from source, 2026-11-04), so mode 2
+   needs no change.
+9. **Probe first, then rebuild.** `A-SAR-16` (§12.11) is the only platform contract this ADR adds. If it passes,
+   development-agent rebuilds against the result shape the probe recorded. If it fails, nothing is rebuilt and the design
+   comes back to the architect. Only then is the unsecured-variable option put to the reviewer, with its risk stated.
+
+**Rejected.**
+- **(a) Write each iteration's content to the SAR folder, then assemble from a folder listing.** A listing returns
+  metadata only. Reading the content back takes a loop again, so this moves the aggregation without removing it, and it
+  adds more files to a folder whose contents are the deliverable.
+- **(b) A child flow per iteration.** Its response still arrives inside the parent's loop, so the problem is unchanged,
+  and it would add a sixth definition.
+- **(c) One `searchQuery` for the mailbox.** It removes only the mailbox loop; the document loop still needs gathering.
+  It also replaces `A-SAR-12` with an unverified search contract (which folders and fields it matches, and how many
+  results it returns), which is a behaviour change the reviewer would have to decide on.
+- **(d) Remove `secureData` from the variables.** The run history would then hold the whole extract and every PDF for
+  as long as run history is kept, which breaks `C-DOM-004`. This is held back as a reviewer decision, offered only if
+  `A-SAR-16` fails.
+- **(f) Outside guidance on loop output (a general Power Automate answer, brought in by the reviewer, 2026-11-04).** It
+  names three ways to use loop output downstream; none fits. An array variable is the `IMP-1267` defect. A Select cannot
+  replace loops that make a connector call per item. A by-name reference to the in-loop action returns only the last
+  iteration, and check 12 of `verify-flow-definition-language.py` forbids it (`IMP-1098`); that is rejected option (e).
+- **(e) Read `outputs('<child>')` from outside the loop.** That is a reference into the loop: check 12 forbids it, and the
+  platform allows it only at one level of nesting (`IMP-1098`). `result()` on the loop is the documented form.
+
+**Verification level.**
+- Which action types can be secured: E2, plus V4 for `AppendToArrayVariable` (`IMP-1267`).
+- That `result()` on a `For each` returns each first-level child's per-iteration inputs and outputs: E2.
+- **That it does so when those outputs are secured: no evidence at any level.** The same Learn page says the run-history
+  API "doesn't return secured outputs", and that sentence fits either answer.
+- That `actions('<not-run action>')?['outputs']` is null without an error: E4.
+- That a `For each` over a secured action's output hides each iteration's input: E2 (the downstream rule), never
+  observed here.
+
+All of these are `A-SAR-16`. No live write route exists in this session (Auto Mode, and `pac` has no verb to create or
+run a flow), so the probe is a reviewer action.
+
+**Consequences** (same order).
+1. *User sees:* nothing. Run history shows the variable actions holding numbers and tokens only.
+2. *User sees:* the same extract, section by section.
+3. *User sees:* a store that could not be read still gets its "Not read" line. *Traced:* the audit scope fails →
+   `Compose_audit_section` does not run → `actions(…)?['outputs']` is null → `coalesce` returns the fixed text → the
+   extract carries the line, and `Compose_stores_read` says *audit NOT read*, as it does today.
+4. *User sees:* the same mailbox section and the same PDF copies in the SAR folder. If the probe finds that `result()`
+   strips secured outputs, the section would come out empty, which is a functional failure and not a leak. The probe
+   exists to catch that before the rebuild, not after it.
+5. *User sees:* the requester gets the same single encrypted email.
+6. *User sees:* nothing. The DEV check can read the total size in run history.
+7. *User sees:* if a signed-PDF copy fails, the process owner gets the option A Teams message (use option A and send
+   manually; the reason given is that the signed-document copy failed) instead of a partial email. *Traced:* the copy loop fails → `Copy_signed_documents` is Failed → the route is not `send` → no `SendEmailV2`
+   runs.
+8. *User sees:* nothing. The wording now matches the build.
+9. *User sees:* nothing until the probe has run. The probe is about 10 minutes of the reviewer's time in DEV.
+
+**Gate interactions** (from `config/revitalise-grant-automation-build.yml` `steps:` and `src/tests/`):
+- `flow-definition-language` (`scripts/verify-flow-definition-language.py`):
+  - check 12 passes, because `result()` and `actions()` name the loop or a scope, never an action inside a loop;
+  - check 18 passes, because every Compose secures `inputs` only;
+  - check 11 is unaffected;
+  - `IMP-1267`'s proposed variable check passes by construction.
+- `flow-reads-no-trigger-body`: unaffected, because it targets flow 1005 only.
+- `verify-source-parses`: ordinary actions.
+- `src/tests/solutions/retention_helper/test_retention_helper_flows.py` needs rewriting by development-agent:
+  - `CONTENT_SOURCES` names `variables('extract')` and `variables('attachments')`;
+  - the send test asserts `@variables('attachments')`;
+  - the attachment-check and attached-and-measured tests read `attachmentFiles`;
+  - `must_secure` will flag the Size Select of item 6 unless it is allowed by an anchored template (a projection whose
+    only value is `Size`), never by adding a function name.
+- `src/tests/narrative/wdl_sim.py` and `src/tests/solutions/_harness/WdlExpression.psm1`: their `result()` records hold
+  name, status and error only. They must gain per-iteration inputs and outputs in the shape `A-SAR-16` measures, not
+  the shape Learn shows (knowledge note: every platform throw lands in both evaluators).
+
+**Retired wording**, searched across the repository on 2026-11-04 (*"variable with secure"*, *"append per file"*,
+`variables('attachments')`, `variables('extract')`):
+- rewritten here: §5.12.2 step 5, `ADR-091` item 6;
+- rewrite, development-agent's: the `REVRetentionSarExtract` definition and notes, the flow tests above, and
+  `docs/development/retention-erasure-helper-dev-summary.md` (`A-RH-3`, §7 row 1);
+- history, kept: the rev 37 entry.
+
+**Action count:** about 92 in mode 3, against 101 built and about 84 designed. Fourteen accumulator actions go. The
+additions are:
+- a Filter and a Select after each loop;
+- one Compose per section;
+- a second document loop and two list filters;
+- the attachments Compose;
+- the Size Select.
+
+Development-agent records the exact count. **Judgement:** proportionate for nine stores, each still in its own scope.
+The rise over 84 is the cost of having no accumulator, and every added action secures something or picks a fixed line.
+
+**Work-item clauses this overrides:** none. The dispatch carried `WI-0121`, whose four clauses are about the `ADR-079`
+settings seed and name no part of mode 3 (`python3 scripts/work-items.py export --scope WI-0121`, 2026-11-04).
+
+---
+
+### ADR-093: The process owner sends each acceptance envelope from the grant, one grant per run; creating a grant sends nothing
+
+**Status:** `Accepted` (rev 39, approved 2026-11-18). **SDD:** FR-122; FR-041 and FR-047 as amended by Amendment A-15. **WBS:** `wbs:3.5`
+(feedback hours under the current WBS by reviewer ruling; the task each item is booked to is commercial-agent's).
+
+**Context, measured 2026-11-13 in source.** `REV | Acceptance | Create Envelope` starts on `rev_grant` **create**
+(`When_a_grant_is_created`, `SubscribeWebhookTrigger`, message 1), and *Finalise Decisions* creates the grant before the
+process owner has entered the referee details (A-15 Finding 3). The built flow already refuses to send with no referee name
+or email (§5.8 step 4), but it reports that as a failure alert and ends `Failed`. It has no check for a grant that already
+has an envelope, because a create trigger fires once per grant. The flow has 107 actions (recursive count of the source
+definition) and reads twenty values off its trigger body (`rev_name` ten times, `rev_amountawarded`, `rev_holidaystart`,
+`rev_holidayend` and `_rev_providerid_value` twice each, `rev_grantid` and `_rev_applicationid_value` once each).
+
+**Decision.**
+
+1. **Trigger.** Dataverse *When a row is selected*, table `rev_grant` (entity set `rev_grants`), `splitOn` over the
+   selected rows. The shape is copied from the built *Finalise Decisions* trigger (`RecordSelected`, itself taken from a DEV
+   export, `A-FD-10`), declaring `rev_grantid` and `rev_name` only. **Two paths, one trigger** (reviewer, 2026-11-13,
+   verbatim *"or selecting multiple grants at the same time and sending it to the docusign workflow."*): the Flow menu on
+   one open grant, or the Flow menu on the Grants list with several grants selected. The platform starts one run per
+   selected grant (`splitOn`), so every grant gets its own checks (item 3) and its own answer (item 5); one grant that
+   cannot be sent does not stop the others. A selection of more than about 40 rows may fail to start (§5.7, E2).
+2. **Read the grant again by id** (`Get_the_grant`, new, first action in the scope) and take every value that came off the
+   trigger body from it instead, plus `rev_docusignenvelopeid`. The twenty trigger-body references become reads of
+   `outputs('Get_the_grant')`. This is the rule every other Dataverse-triggered flow here already follows (§5.7).
+3. **Can it be sent?** `Check_the_grant_can_be_sent` (new), after `Get_the_application` and before any DocuSign call. The
+   first condition that holds is the reason, in this order: the grant has an envelope id → *this grant already has an
+   envelope*; no referee name (the §5.8 step 8 rule: first and last name when either is set, else `rev_refereename`) →
+   *no referee name*; no referee email → *no referee email*. With a reason, the run posts the message of item 5 and ends
+   `Succeeded`. Nothing reaches DocuSign and no failure alert is raised: this is an expected answer, not a fault.
+4. **§5.8 step 4 stays** for what cannot be fixed on the grant: the two email settings, the applicant's email and first
+   name, the referee's phone. Those still alert the process owner and end `Failed`, as built. Its referee-name and
+   referee-email lines become unreachable and stay as a second guard.
+5. **The result message.** Teams, Flow bot chat, to the person who ran the flow (the trigger's user email, `A-ST-3`; if it
+   is absent, `rev_ProcessOwnerUpn`, the address the failure alert uses). Three texts, each naming the grant reference and
+   nothing personal: *GR-… Sent*; *GR-… Not sent: <reason>*; *GR-… Not sent: the send failed, and the failure alert has the
+   details*. The third runs on the failure path beside `Alert_on_failure`. Connection reference `rev_SharedTeams`, already
+   in the solution.
+6. **Who can run it.** Shared run-only with the process owner's group in each environment, every connection set to *Use
+   this connection* (the service account), never *Provided by run-only user*: the same two controls §5.7 describes for
+   *Finalise Decisions*, relying on the run-only share. Per-environment state, so a §12 row.
+7. **Finalise Decisions is unchanged in source.** Only §5.7 step 4's text changes: creating the grant no longer starts
+   anything.
+
+**Size.** About 7 actions added (the grant read; the check as an If, the reason, the message and the stop; the sent message;
+the failed message): about 114. **Judgement:** proportionate. Every added action is the read the trigger change forces or
+one of FR-122's three answers.
+
+**Consequences, numbered as the Decision.**
+
+1. Nothing goes to an applicant or a referee until the process owner presses the flow on that grant.
+2. No visible change.
+3. Emily opens GR-00031, which has no referee email, and runs **Flow → REV | Acceptance | Create Envelope**: Teams says
+   *GR-00031 Not sent: no referee email*. She fills it in and runs it again: *GR-00031 Sent*, and the grant moves to
+   Acceptance Sent as today. A third run: *GR-00031 Not sent: this grant already has an envelope*. After a board meeting she
+   selects five approved grants on the Grants list and runs the flow once: five messages, for example four *Sent* and one
+   *Not sent: no referee email*.
+4. A missing email setting still raises a failure alert to the process owner, as today.
+5. Whoever pressed it gets the answer, in Teams.
+6. Trustees and Finance never see the flow in the menu.
+7. *Finalise Decisions* behaves as before; Emily now sends each approved grant herself. pm-agent's knock-on: the
+   `wbs:3.7` bulk test becomes five sends, one per grant (or one selection of five grants).
+
+**Residual.** Two presses on the same grant before the first run has written its envelope id (it is written last, after
+about 14 DocuSign calls) both pass the check and send two envelopes (`A-R113`).
+
+**Gate interactions** (`config/revitalise-grant-automation-build.yml` steps over flows: `flow-definition-language`,
+`flow-reads-no-trigger-body` (Round Statistics only, so not this flow), `forms-and-views-reachable`; and the suites under
+`src/tests/`): `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1` feeds `body/rev_name`, `body/rev_amountawarded`
+and the holiday dates as trigger values: **rewrite** to `Get_the_grant` outputs. `src/tests/solutions/FinaliseDecisions.Tests.ps1`
+asserts *"flow #8 triggers on a created rev_grant (message 1)"*: **rewrite** to assert the `RecordSelected` trigger on
+`rev_grants`. Retired-words search (`git grep -n --recurse-submodules -E "When_a_grant_is_created|row being created|flow #8 triggers"`,
+2026-11-13): this TAD rev 27 entry item 2 *(history, kept)*, §5 inventory row 8 *(rewrite, this revision)*, §5.7 step 4
+*(rewrite, this revision)*, `ADR-080` context bullet *(history, kept)*; the flow source and its `.notes.md` *(rewrite,
+development-agent)*; `REVPortalFinaliseDecisions….notes.md` "Creating the Grant row is the only hand-off" *(rewrite,
+development-agent)*; Dev Summary `A-DS-3` and its two narrative lines *(history, kept; development-agent closes `A-DS-3` as
+superseded)*.
+
+**Reviewer decisions in the superseded text, each kept or reversed.** `ADR-080` (the run-only share, `Q-FD-1`, `Q-FD-3`,
+`Q-FD-8`): kept. `ADR-077` (signing order in the template only): kept. `ADR-068` (named referee, access code): kept.
+§5.7's *FR-047 reading* (one action by Emily over fifteen reviews): **reversed by the SDD** (A-15 amends FR-047), not by this
+ADR.
+
+**Rejected.** (a) Keep the create trigger and wait for the referee details: still sends without the process owner deciding,
+which is what the reviewer removed. (b) Write the result to a new column on the grant: a new column, and she must reload the
+form to see it; Teams reaches her as the failure alert already does. (c) A button flow taking a typed grant reference: the
+flow menu already supplies the grant.
+
+**Work-item clauses this overrides:** none found. `python3 scripts/work-items.py export --format json --scope 2.7,3.5,4.5,5.6,6.8,6.10`
+returned no items on 2026-11-13 (pm-agent's intake was running in parallel).
+
+---
+
+### ADR-094: The trustee list holds released applications with an open review in the open round; release needs Eligible for Panel; the verdict button shows only to a trustee on the review
+
+**Status:** `Accepted` (rev 39, approved 2026-11-18). **SDD:** FR-123, FR-124 (as amended by gate decision D1), FR-125; FR-038 and
+FR-116 as amended by A-15. **OQ-065 answered** (*"Yes"*: no review, no listing). **D1 answered**, reviewer 2026-11-13,
+verbatim: *"An open review in combination with the round field match, this closes when a review is closed with outcome:
+approved."* **OQ-069 answered the same day** and FR-124
+rewritten from it: a review is open while *Finalised On* is empty and closed when it is set, whatever the outcome; with
+no round or two rounds open the list is empty and warns. **WBS:** `wbs:6.8`, started early by reviewer decision.
+
+**Context, measured 2026-11-13.**
+
+- The list reads applications with `rev_eligibleforround eq true` and nothing else (`ELIGIBLE_FILTER` in
+  `src/code-apps/trustee-review-portal/src/dataverse/repository.ts`), re-asserted client-side in `domain/visibility.ts`.
+  **No flow writes `rev_eligibleforround`** (all 18 flow definitions grepped: zero references), so a released application
+  stays released for ever and the list grows with every round, towards the app's 500-row cap (`MAX_ROWS`,
+  `dataverse/client.ts`), which throws instead of listing.
+- A review has a free-text `rev_round`, a `rev_outcome` (Approved 1, Deferred 2, Rejected 3, Non-Qualifying 4) and
+  `rev_finalisedon`. *Finalise Decisions* stamps the outcome and `rev_finalisedon` together; the process owner may set
+  `rev_outcome` by hand before finalising (§5.7 step 3, FR-127). The open round is the `rev_roundfinance` row with
+  `rev_isopen` true; the portal already reads it with `top 2` (`getOpenRound`).
+- `ApplicationsTable` draws *Record verdict* for every row whose own-verdict state is `none`, and when the verdict index is
+  absent. Nothing stops *Eligible for Round* being set at any status.
+
+**Decision.**
+
+1. **FR-124. Property:** a trustee's list holds exactly the applications that are released (*Eligible for Round* = Yes)
+   **and** have an **open** review (`rev_finalisedon` empty) whose `rev_round` equals the open round's key. A review closes
+   when `rev_finalisedon` is set, which only *Finalise Decisions* can do (§6.2 build correction item 2), and the
+   application then leaves the list at once, whatever the outcome. **With no round, or more than one, marked open**, the
+   list shows no applications and says *No applications are shown: exactly one round must be marked open.* **The warning is
+   sent to everyone who holds the REV Admin role** (reviewer, verbatim *"that should be send with people who have the rev
+   admin role."*):
+   - **Who detects it:** the Round Statistics flow, which already ends in `no-open-round` or `ambiguous-round` for exactly
+     these cases (measured in its source) and runs as the service identity whenever the landing screen refreshes.
+   - **Recipients:** the members of the Dataverse group team that carries `REV Admin` in that environment (team name from
+     the deployment settings, as the run-only shares already are), read from `teammembership`, each a Teams Flow-bot chat
+     through `rev_SharedTeams`; plus `rev_ProcessOwnerUpn` if absent from that list. A group team's membership is filled
+     as members use the environment (`A-ST-12`).
+   - **No repeats:** before it overwrites the result row, the flow reads the row's previous `rev_status`, and sends only
+     when the new status is a warning state **different from** the previous one. A round that stays unopened through ten
+     refreshes sends one warning; correcting the rounds (status `ok`) re-arms it. No new column. About 6 actions.
+   - **Text:** *Trustee portal: no round is marked open* or *Trustee portal: N rounds are marked open*, then *exactly one
+     round must be open; trustees see no applications until it is.* No application data.
+
+   **Mechanism, one way of meeting it:** (i) read the open round (`getOpenRound`, unchanged; zero or two rows → the
+   warning, no further read); (ii) read reviews with `rev_round eq '<open round key>' and rev_finalisedon eq null` (the
+   existing `REVIEW_COLUMNS`; bounded by one round's open work); (iii) keep those reviews; (iv) read the applications for the remaining reviews' distinct application ids in chunks of
+   `REVIEW_INDEX_CHUNK_SIZE`, filtered `rev_eligibleforround eq true and (rev_applicationid eq … or …)`, the chunked read
+   `ADR-086` already uses (`A-TR-19`); (v) re-assert the whole predicate client-side in `visibility.ts`. The same predicate
+   gates `getApplication` (a detail opened by id) and every list built from the application list, groups and group members
+   included. The comparison of `rev_round` with the round key is exact: Dataverse compares text without regard to case,
+   and leading or trailing spaces count (`A-ST-10`).
+2. **FR-123. Property:** on every write path, *Eligible for Round* cannot change to Yes unless the application's status is
+   *Eligible for Panel* (6) at that moment; nothing else is refused. **Mechanism:** one synchronous (real-time) classic
+   workflow on `rev_application`. Starts on create, and on change of `rev_eligibleforround` **only**; runs after the
+   operation, inside its transaction, as the calling user. Condition: Eligible for Round = Yes **and** Status ≠ Eligible
+   for Panel. Action: Stop workflow, status *Canceled*, message *Only an application at Eligible for Panel can be released
+   to trustees*. Authored in DEV's classic designer and exported to source, never hand-written as XAML (the
+   `Rev-Payment-Issued` route, `ADR-081` item 8).
+3. **FR-125.** A row draws a verdict button only when the signed-in user's own-verdict state is `awaiting` or `decided`
+   (`domain/ownVerdict.ts`, unchanged). State `none`, or a verdict index that did not load: no button; the row still
+   opens. Applies to the applications list and to a group's member list. The group-level verdict control is unchanged.
+4. **The wording is corrected** in §5.5, NFR-018 and the `rev_eligibleforround` row of §3.1: listing is released plus a
+   review in the open round; narrative release decides only whether the redacted text shows or reads *withheld*.
+
+**Consequences, numbered as the Decision.**
+
+1. Open round *2026-12*: an application released with a *2026-12* review not yet finalised is listed; one whose review
+   says *2026-11* is not; when *Finalise Decisions* finalises its *2026-12* review, as Approved or Deferred, it leaves the
+   list at once. Two round records both marked open: the list is empty and shows the warning. A review whose Round is
+   mistyped hides its application (`A-R117`). The list is bounded by one round's open reviews, which removes the 500-row
+   problem. FR-124 is a presentation scope, as FR-038's filter always was: the access control is the trustee role and
+   column security.
+2. Emily ticks *Eligible for Round* on a Borderline application and saves: a dialog shows the message and nothing is
+   saved. In a bulk edit of ten, the two not at Eligible for Panel are refused and the eight others save (`A-ST-6`).
+   Changing the status of a released application later is never refused.
+3. Emily, signed in as administrator and on no review, sees no verdict button.
+4. Documentation only.
+
+**Why a classic workflow for FR-123.** A business rule cannot tell which column changed, so a rule on both columns would
+also refuse *Finalise Decisions* moving a released application to Approved. A form script is bypassed by bulk edit and the
+API. Cost: a component class this solution has not shipped (a real-time workflow), in a designer Microsoft calls classic.
+
+**Rejected.** The first draft read "in the open round" as "a review not yet finalised" with no Round match (replaced by
+D1); the second kept a review closed as Deferred, Rejected or Non-Qualifying listed until the round changed (overruled
+by OQ-069: any finalised review closes). Filtering the list by application status: it would withdraw a released application whose status
+changes, which FR-123 rules out.
+
+**Gate interactions:** the portal's unit tests (`visibility.test.ts`, `ApplicationsTable.test.tsx`, `GroupsTable.test.tsx`,
+the repository tests) are **rewritten** for the new predicate, the open-round warning and the `none` state; no
+build-config step reads the portal's list query. The workflow is a second `.xaml` under `Workflows/`; development-agent
+confirms `source-parses` and the flow suites accept it, against the `Rev-Payment-Issued` precedent.
+
+---
+
+### ADR-095: One form script on the application form shows "Not asked" and keeps Total Cost equal to its three lines
+
+**Status:** `Accepted` (rev 39, approved 2026-11-18). **SDD:** FR-120, FR-121 (OQ-064 answered; **OQ-068 answered 2026-11-13**, reviewer
+verbatim *"No, its always the sum of its cost lines."*, so the total is always calculated and never typed). **WBS:** `wbs:4.5` as
+suggested by the triage plan (commercial-agent attributes).
+
+**Context, measured.** `rev_costs` is a plain money column (`Entity.xml`), written once by the intake as the sum of the
+present cost lines (Appendix C, `total_estimated_cost` row) and read by the trustee portal and the round-statistics flow.
+The three lines are editable on the Grant Administration form; the total is locked. FR-084 forbids writing a default into
+an unanswered question. The applicant type is on `rev_applicant`, not on the application.
+
+**Decision.** One JavaScript web resource, `rev_/grantadmin/application.form.js`, on the Grant Administration main form of
+`rev_application` (`{6a6004bd-bba9-498b-8ca4-fafdd254bded}`), registered on load and on change of the columns below. The
+script is source; the form's event registration is done in DEV's form designer and exported (`A-ST-5`).
+
+1. **FR-120. Property:** the script never sets a value on any column it labels; it changes only a control's label. When
+   a route condition holds and the column is empty, the label becomes *<label> — Not asked (<reason>)*; when the
+   condition stops holding, the label is restored. An answer that was given is always shown with its normal label.
+
+   | Route | Condition | Columns labelled when empty | Reason shown |
+   |---|---|---|---|
+   | Not a carer | the applicant's `rev_applicanttype` = 1 (*A disabled person*), read once on load with `Xrm.WebApi.retrieveRecord` (REV Admin reads `rev_applicant`) | person supported: `rev_supportrecipienthasequalityactdisability`, `rev_supportrecipientconditionprofile`, `rev_supportrecipientdisabilityimpactdescription`; type of care: `rev_careprovidedtype`, `rev_careprovidedexample`, `rev_carehoursperweek` | *not a carer* |
+   | No Yes to care support | `rev_needscaresupportpersonally` is not Yes | `rev_caresupportdescription` | *no Yes to care support* |
+   | Means-tested benefits | `rev_receivesbenefits` = Yes | `rev_employmentstatus`, `rev_incomeband`, `rev_significantcarecosts`, `rev_savingsover6000` | *receives means-tested benefits* |
+
+   A column the form does not show is skipped. An applicant type that is empty labels nothing (an empty field then reads
+   as a missing answer, as today). The column list is the web form's conditional logic as Appendix C and A-15 record it;
+   `A-ST-7` confirms it against one test application per route (the anonymised test applications of the triage plan's
+   ST-16 can carry this).
+2. **FR-121.** On change of `rev_accommodationcost`, `rev_travelcost` or `rev_othercost`, the script sets `rev_costs` to the
+   sum of the lines that are filled in, or empty when all three are empty. `rev_costs` stays read-only (OQ-068 answered:
+   always the sum); the script sets the column's submit mode to *always*, so a value set on a read-only control is saved
+   (`A-ST-5`). The intake's own write is unchanged: it already writes the same sum.
+
+**Consequences, numbered as the Decision.**
+
+1. A disabled person applying for themselves shows *Type of care and support provided — Not asked (not a carer)*; a carer
+   who left it blank shows it empty. Benefits Yes shows *Income band — Not asked (receives means-tested benefits)*, and the
+   same for working status, significant costs and savings. Nothing is stored.
+2. Lines £400, £120 and empty show £520; Emily changes travel to £90 and the total reads £490 before she saves, and that is
+   what is saved. A line changed anywhere other than this form (an import, a bulk edit, the API) does not recalculate
+   (`A-R114`); nobody does that today. A row saved before this ships keeps its total until a line next changes:
+   development-agent lists rows in DEV and ACC whose total differs from the sum (a read-only query) for the process owner.
+
+**Why a form script, and the cost.** FR-120 can only be met on the form: no server mechanism shows text beside a field
+without storing something. Once a form script exists, FR-121 in the same file is ten lines. The cost is a component
+class this solution has not shipped (a web resource and a form library registration), outside the `component-shape`
+gate's reference set. Hence the DEV-designer registration and `A-ST-5`.
+
+**Rejected.** A calculated or formula column: `rev_costs` cannot change type (`C-TECH-080`), so it would be a new column and
+every reader repointed (portal, statistics flow, intake). A business rule: a formula takes two operands, so a sum of three
+rests on chained set-value behaviour nobody here has measured, and a rule cannot set a label for FR-120. A flow on change
+of the lines: covers every write path, but the form shows the old total after save until it is reloaded, and FR-120 still
+needs a form script.
+
+**Gate interactions:** none of the build config's flow steps reads a web resource; `forms-and-views-reachable` reads the
+form and must accept the form-library registration (development-agent confirms on the first pack).
+
+---
+
+### ADR-096: The anonymised statistics record every application: a Received row at intake, carrying the fields FR-126 lists, and an outcome row at decision; All time is read from that table alone
+
+**Status:** `Accepted` (rev 39 fifth draft, approved 2026-11-18). **SDD:** FR-126 as amended 2026-11-15 (OQ-070), FR-080 and FR-055 as amended 2026-11-13; §7.1 *Anonymised*
+row; §7.6; FR-057 as amended by A-15. **Reviewer, 2026-11-13, verbatim:** OQ-066 *"The anonymised statistic needs to keep
+record of all applications."*; D4 *"Go for option a"*; D2 *"yes"*; on the five demographic and special-category fields
+*"All of them can be stored. Without names, addresses it becomes very difficult to assess who is who."* **One part is
+Rejected by the reviewer:** hiding small All time groups (item 8). **OQ-070, answered 2026-11-15**, verbatim *"OQ-070: what
+I meant is to keep the rule for round statistics but not for all time statistics."*: money averages keep the
+five-application rule on This round and show without a minimum on All time (items 7, 8, 10).
+**WBS:** feedback hours; the triage plan suggests `wbs:6.8`, and `wbs:6.10` (`CO-005`) for FR-080 and the earlier-applications
+seed (commercial-agent attributes). The round-statistics design this extends is the visual-refresh delta TAD (`ADR-038`,
+its §3.3, §3.9.3, §5.1).
+
+**Context, measured 2026-11-13.**
+
+- `rev_anonymisedstatistic` holds `rev_agerange`, `rev_locationarea`, `rev_conditionareas` (multi-select, 7 values),
+  `rev_outcome` (*Granted*, *Not Granted*), `rev_amountawarded`, `rev_decisionmonth`, `rev_snapshotdate`. It has no lookup
+  and no reference, so a row can never be found again to be updated. `REV Trustee` and `REV Finance` hold Read on it at
+  Global (their role files); the portal's source never reads it (grepped).
+- `REV | Portal | Round Statistics` has 268 actions and writes one JSON document to `rev_roundstatisticsresult.rev_resultjson`.
+  FR-080's month history is recomputed from live application rows, so it would fall once retention deletes.
+- The application columns FR-126 names exist on `rev_application` (`rev_breaktype`, `rev_amountrequested`,
+  `rev_additionalamountrequested`, `rev_costs`, `rev_exceptionalcircumstance`, `rev_wellbeinganswer1` to
+  `rev_wellbeinganswer11`, `rev_feelingscaleanswer`) and on `rev_applicant` (`rev_gender`, `rev_ethnicgroup`,
+  `rev_applicanttype`), all known to the intake at create time.
+
+**Decision.**
+
+1. **Privacy property.** What trustees receive is aggregates over **one** attribute at a time (by month, by outcome, or by
+   one category), never a cross of two, so no combination of fields can be read from the document. **The rows themselves
+   now hold the combination** (gender, ethnic group, age range, region, condition areas, month), by the reviewer's ruling;
+   the property therefore also needs the rows to be readable only by the service identity and the process owner (item 9).
+2. **Two kinds of row, each written once, never updated, never linked.** `rev_statisticoutcome` gains **Received (3)**.
+   - **Received row**, written by `REV | Intake | WordPress to Dataverse` when it creates a **new** application (a
+     resubmission that updates an existing application, `ADR-054`, writes none). It carries: `rev_decisionmonth` = the month
+     received (the column's description becomes "the month of the event this row records"); `rev_agerange`,
+     `rev_locationarea`, `rev_conditionareas`; and the new columns of item 3. The write sits in its own scope: if it fails,
+     the application is still saved and the failure alert names the step (`A-R116`). About 4 actions on the intake.
+   - **Outcome row** (*Granted*, *Not Granted*), written as today by *Finalise Decisions* and by the retention helper for a
+     deferred application deleted undecided (§5.13). It carries what it carries today; the new columns stay empty on it.
+   Received figures read only Received rows; decided figures read only outcome rows.
+3. **Nineteen new columns on `rev_anonymisedstatistic`, filled on Received rows only, copied as received** (a later FR-121
+   correction is not carried): `rev_breaktype`, `rev_amountrequested`, `rev_exceptionalamountrequested` (from
+   `rev_additionalamountrequested`), `rev_totalcost` (from `rev_costs`), `rev_gender`, `rev_ethnicgroup`,
+   `rev_applicanttype`, `rev_exceptionalcircumstance`, `rev_wellbeinganswer1` to `rev_wellbeinganswer10` and
+   `rev_feelingscaleanswer`. **Count from source:** `rev_application` holds ten wellbeing columns,
+   `rev_wellbeinganswer1` to `rev_wellbeinganswer10` (its `Entity.xml` records that `rev_wellbeinganswer11` was removed),
+   plus `rev_feelingscaleanswer`; so eight + ten + one = nineteen. Draft 3 said twenty, naming a column that no longer
+   exists (`IMP-1290`). Each choice column reuses the source column's global choice set, so values match by
+   construction. None is secured; every one is audited at table level like the rest of the table. **Hours of care is not
+   named by the ruling and is not added**, so FR-062's high-hours-care proportion reads *Not available for all time*.
+4. **Backfill, once per environment.** Applications already held get a Received row each, built the same way from the
+   live rows, by an idempotent `post_deploy` script that does nothing once any Received row exists. Applications before the
+   tracking start date stay in `RoundStatisticsHistoryPriorApplicationCount` (FR-082). In PRD it runs before the first
+   retention deletion (`A-R116`).
+5. **New child flow 14, `REV | Portal | All-Time Statistics`**, one text output, run as the service identity. FetchXML
+   aggregate reads of `rev_anonymisedstatistic`: by month of `rev_decisionmonth` for Received counts and for outcome counts
+   and amount awarded; over all Received rows, one grouped count per category column (break type, gender, ethnic group,
+   applicant type, exceptional category and each wellbeing answer, an *Apply to each* over the column names); for break
+   type the same grouped read also returns, per break type, the sum and the non-empty count of each of the three money
+   columns (draft 5: FR-060's All time table is per break type, and draft 4's single all-rows money total could not
+   produce it); over outcome rows, grouped counts by age range and location area, and per
+   condition-area value (an *Apply to each* over the seven values, since a multi-select column cannot be grouped). The
+   seven values and the column-name list are format specifications of this table, not tunable vocabulary: no setting or
+   reference table holds them. About 30 actions. **No minimum population is applied anywhere in the child** (OQ-070): it
+   does not read `RoundStatisticsMoneyMeasureMinimumPopulation`.
+6. **Parent.** The built Round Statistics flow calls the child after the round figures, in its own scope, and writes the
+   child's text to the new column `rev_roundstatisticsresult.rev_alltimejson`; on a child failure it writes
+   `{"status":"error"}` there. `rev_resultjson` is unchanged, so a failure of All time never blanks This round. About 4
+   actions: 268 to about 272. **Judgement:** the child keeps about thirty actions of a different purpose out of the largest
+   flow in the solution.
+7. **Document.** `{"status":"ok","computedOn":…,"priorCount":n|null,
+   "months":[{"m":"YYYY-MM","received":n,"granted":n,"notGranted":n,"awarded":n}],
+   "received":{"breakType":{"<value>":{"n":n,"requested":[sum,count],"exceptional":[sum,count],"totalCost":[sum,count]},…},
+   "gender":{…},"ethnicGroup":{…},"applicantType":{…},"exceptional":{…},"wellbeing":{"1":{…},…}},
+   "decided":{"age":{…},"area":{…},"cond":{…}}}`, keys being option values (`"none"` for rows with no break type), zero
+   counts omitted, `count` being the rows where that money column is not empty. **Draft 5 changes (OQ-070):** draft 4's
+   `moneyMinimumPopulation` key is removed, because All time applies no minimum; the separate all-rows `money` block is
+   folded into `breakType`, whose entries sum to it. The app computes each average as sum ÷ count, the total row by
+   adding the break-type entries, FR-060's percentage as (requested + exceptional) ÷ total cost, and FR-059's average
+   exceptional amount from the `exceptional` pairs, with the same definitions as This round's measures (delta TAD
+   `ADR-038`, §3.9.3). Distributions are over all
+   time, not by month: the months series carries only the four counts. That keeps the document to a few hundred characters
+   a month (`A-R115`), and it keeps month-sized slices of a category, which would be small, out of what trustees receive.
+8. **No small-group hiding** (PD-3, reviewer verbatim *"No, remove that rule for all statistics. that was for
+   application in the round because it was possible to deduct applicants from such a small group."*). Every category count
+   is written as it is; there is no setting for it. **Money averages, OQ-070 answered 2026-11-15:** This round keeps its
+   five-application rule unchanged (FR-059, FR-060; the built Round Statistics flow writes `null` below
+   `RoundStatisticsMoneyMeasureMinimumPopulation`, seeded 5); **All time shows every money average whatever the group
+   size**, including amount awarded. Reviewer decisions quoted in draft 4's item 8, each marked: PD-3 (no small-group
+   hiding) **kept**; the 2026-08-28 five-application rule on This round **kept**; draft 4's *withheld below five on All
+   time* was the SDD's own wording, not a reviewer decision, and is **removed** as the reviewer's answer directs. The
+   setting keeps exactly one reader, the This round flow.
+9. **Who can read the rows: the process owner and the service identity only** (PD-4, reviewer verbatim *"agreed with
+   suggested recommendation"*). Remove `prvReadrev_anonymisedstatistic` from `REV Trustee` and `REV Finance`. Nothing
+   they use reads the table; the portal reads only the result row, which the service identity writes. With the rows
+   holding the combination of item 1, direct read by every trustee was the one path that let a reader cross attributes.
+   **The portal's statistics still show** (reviewer, verbatim *"Trustees can't access the anonymised table directly. The
+   statistics shown in the trustee portal should still be visible if we change the statistics workflow to point at the
+   anonymised stastics table"*): the Round Statistics flow and its All-Time child run as the service identity, read
+   `rev_anonymisedstatistic`, and publish the figures to `rev_roundstatisticsresult`, which trustees already read. No
+   trustee session ever queries `rev_anonymisedstatistic` (grepped: the portal source names it nowhere).
+   **This departs from the client's Security Model**, whose access matrix (`docs/Import/Revitalise-Security-Model-v0.1.docx`,
+   §6 *Access matrix*, row *Anonymised Statistic*: Admin Full, Finance Read, Trustee Read, Service account Writes) needs
+   Finance and Trustee changed to *None*; and its row *Review table* (Admin *Full*) needs *Full; in the grant
+   administration app, Verdict, Notes and Finalised On are read only* (FR-127; draft 5, D5 *"Protection in the admin
+   app."*). Draft 4 proposed *Full, except Verdict, Notes and Finalised On: read*, which reads as a role-level control the
+   design does not provide (§6.2 item 2 lists the routes that stay open). Listed here, not edited: the .docx is the
+   client's document.
+10. **Portal.** A two-choice control, *This round* and *All time*, opening on This round. All time shows: applications
+    received (prior count plus Received rows) and the month chart; the FR-059, FR-060, FR-061 and FR-062 figures over every
+    application received, FR-060 per break type with a total row; decided by the panel, by outcome; amount awarded (total
+    and average, no minimum: OQ-070);
+    the age-range, region and condition-area distributions of decided applications. FR-062's high-hours-care figure reads
+    *Not available for all time*; the finance panel (FR-063) shows on This round only.
+11. **Defaults, by what the reader sees.** Prior count not seeded: received counts Received rows only and says *since
+    records began*. `status` is `error`, or the document fails the app's type guard: All time says its figures could not be
+    computed, and This round is unaffected. No rows yet: counts read 0 and averages read *No applications yet*. A
+    group with a money count of 0 (every value empty) shows no average for that cell; a count of 1 or more shows the
+    average, so a break type with one application shows that application's figure, on All time only.
+12. **FR-080 (D2, answered *"yes"*).** FR-080's month history counts Received rows by month instead of live applications.
+
+**Consequences, numbered as the Decision.**
+
+1. Trustees receive one-attribute aggregates only, and can no longer open an anonymised row.
+2. Every new application adds one Received row the day it arrives; a decided application has two rows, one per event.
+3. A Received row is a snapshot: correcting a cost line later does not change it.
+4. After the backfill, the received count covers every application the environment holds; DEV and ACC include test
+   applications.
+5. and 6. A trustee choosing All time sees, for example, *1,520 applications received*, the break-type table and the
+   gender, ethnic-group and wellbeing charts over all 1,520, and *420 decided by the panel: 330 Granted, 90 Not Granted*. A
+   failure of All time leaves This round as it was.
+7. The document grows by a few hundred characters a month.
+8. A category with three people shows 3. A break type with three applications reads *average cost withheld* on This
+   round and the average of those three on All time (the SDD's FR-126 example).
+9. Only the process owner and the service identity can open an anonymised row; Finance loses a read it never used.
+10. and 11. As described.
+12. FR-080's month chart keeps its height after records are deleted.
+
+**Data protection and constraints.** The SDD §7.1 *Anonymised* row records ethnic group and the exceptional-circumstance
+category as Article 9 content and the wellbeing answers as health-related, held in anonymised form on the reviewer's ruling.
+`constraints/domain/special-category-register.yml` lists Article 9 columns by table and name, and has no entry for
+`rev_anonymisedstatistic` at all, including the condition areas it already holds. **Register entries are owed before these
+columns are built** (C-DOM-030, C-DOM-031), each `secured: exception` with the reason "anonymised; no identifier on the
+row", for `rev_anonymisedstatistic.rev_ethnicgroup`, `.rev_exceptionalcircumstance` and `.rev_conditionareas`; the
+wellbeing columns follow whatever the owner records for their `rev_application` sources, which the register does not list
+today. The register is the Domain Owner's file: the reviewer writes the entries, or improvement-agent behind
+`APPROVE IMPROVEMENTS`. No agent edits it in this dispatch. **Measured 2026-11-15 (draft 5):** the register now holds
+`rev_anonymisedstatistic.rev_conditionareas` (`secured: exception`, improvement review 2026-11-13 approved); the
+`rev_ethnicgroup` and `rev_exceptionalcircumstance` rows are recorded there as PENDING, to land with the build that adds
+the columns. **Draft 5 adds no column and secures none:** OQ-070 changes
+only what the app shows, and D5 keeps the data model. One disclosure consequence of OQ-070 is stated so it is seen: on
+All time, a break type with one Received row shows that application's requested amount and total cost as received. The
+row carries no identifier, the document reaches trustees only, and the reviewer's answer accepts it.
+
+**Rejected.** A monthly count table frozen by a weekly flow (the first draft): replaced by the reviewer's OQ-066 answer.
+One row per application written at decision or deletion (D4 option (b)): rejected by the reviewer. Per-month distributions:
+month-sized slices of a category are small and add nothing FR-126 asks for. Counting in the app: the 500-row cap, and
+trustees would read every row.
+
+**Gate interactions.** `flow-reads-no-trigger-body` runs over the Round Statistics flow: the child's output is a single
+string, not a list read. **Add the child to that step's file list** (development-agent, build config), because a trustee's
+refresh starts it. `flow-definition-language` covers the child and the intake's new scope. The intake's suites gain the
+Received-row write. `domain-invariants` and `column-security-membership` read the register and will need the entries above.
+The `fetchXml` parameter on *List rows* appears in no flow in this solution: `A-ST-1`, `A-ST-2`.
+
+**Work-item clauses this revision overrides** (`python3 scripts/work-items.py export --scope WI-0157,WI-0158,WI-0161,WI-0163`,
+2026-11-13), for pm-agent to amend in one batch:
+
+| Item | Clause | TAD row |
+|---|---|---|
+| WI-0158 | "the REV Admin role grants create, read, update and delete on rev_review" | §6.2 build correction: delete granted; verdicts, notes and *Finalised On* locked in the app (FR-127) |
+| WI-0161 | "a review in the round open for review; default pending OQ-065" | `ADR-094` item 1: an open review whose Round matches the open round; leaves when finalised; OQ-065 and OQ-069 answered |
+| WI-0163 | "applications decided by outcome … each also by decision month" | `ADR-096` items 2, 7 and 10: Received rows and the ruled fields; distributions over all time, months carry counts only |
+| WI-0163 | "scope of All time pending OQ-066" | OQ-066 answered; FR-126 amended |
+| WI-0163 | "amount awarded (total, and average withheld below five applications)" | **Draft 5**, `ADR-096` items 8 and 10: on All time every money average shows, amount awarded included (OQ-070) |
+| WI-0157 | "default pending OQ-068" | OQ-068 answered: always the sum (`ADR-095` item 2) |
+
 ---
 
 ## 11. Risks & Mitigations
@@ -7564,9 +8302,9 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R13** **WBS 0.3 — service account + scoped CA exception — outstanding with Wanstor.** Every unattended automation depends on it | **High — already late** | High | Carried as the one blocking §12 dependency. Escalate now; it gates Phase 1, not Phase 3 (SDD OQ-018) |
 | **A-R14** Intake endpoint secret has no approved store in the source design | Medium | High | Key Vault-backed secret environment variable, or switch to the REST-pull intake and remove the secret entirely (§6.3, ADR-011). **Azure subscription is unevidenced**. **Rev 31: CLOSED by `ADR-011` (rev 14)** — no intake secret exists, so no store is needed; an Azure subscription is now relevant only to pay-as-you-go billing (§6.3 note, §12) |
 | **A-R15** ~~With a two-environment topology, the first managed import lands in PROD and the test-agent has no environment for the managed artefact~~ **CLOSED** | — | — | ✅ **Closed 2026-08-10.** ADR-006 confirmed **three environments (DEV, TST/ACC, PRD)**, so the first managed import lands in TST/ACC and the test-agent gates the managed artefact there (§9, §9.1) |
-| **A-R16** AI Builder credit coverage unconfirmed ahead of the **1 Nov 2026** seeded-credit change | Medium | Medium | Confirm before Automation #5 goes live (SDD OQ-017); the degraded path is 100% manual redaction, which restores 3–4 h per cycle of manual work but does not breach anything. **Rev 30, measured (`IMP-1189`, `ADR-082`):** the extractor is billed **20 credits per started 1,000 characters, per call**, and was about three quarters of the flow's credits while called once per column; one call per batch cuts it. The prompts are billed per token (rewrite 4, spelling 3 per column, DEV 2026-10-19 and 2026-10-20), and the merged prompt removes the spelling call. Size the monthly figure against the live run (`wbs:5.2`). *Previously read (rev 19):* "the extractor is billed per 5,000-character window, so a long narrative costs many calls". **Rev 31, at about 1,000 applications a year (NFR-021):** about 6,300 credits a month after `ADR-082`, an estimate from DEV's measured rates (confirmed by `A-NS-44` and the `wbs:5.7` run), against 5,000 a month seeded by one Power Automate Premium licence. **Three purchase routes**, read against the Copilot Studio Licensing Guide (October 2026) and Microsoft Learn on 2026-10-21: (a) **pay-as-you-go**, a meter per credit, which needs an Azure subscription linked to the environment by a Power Platform billing policy (§12); (b) a **capacity pack of 25,000 credits a month**, billed annually, unused credits not carried over; (c) **Copilot Credit P3**, a one-year prepay whose smallest tier is 300,000 credits, unused credits expiring. No nonprofit pricing for Copilot Credits is listed; (a) and (c) are not Azure Prepayment eligible. **Fit at the estimate:** (a) pays for what is used; (b) is about four times the need every month; (c) is about four years of need, expiring after one. The choice is Revitalise's (§12); the architecture works with any of them, and the degraded path above is unchanged |
+| **A-R16** AI Builder credit coverage unconfirmed ahead of the **1 Nov 2026** seeded-credit change | Medium | Medium | Confirm before Automation #5 goes live (SDD OQ-017); the degraded path is 100% manual redaction, which restores 3–4 h per cycle of manual work but does not breach anything. **Rev 30, measured (`IMP-1189`, `ADR-082`):** the extractor is billed **20 credits per started 1,000 characters, per call**, and was about three quarters of the flow's credits while called once per column; one call per batch cuts it. The prompts are billed per token (rewrite 4, spelling 3 per column, DEV 2026-10-19 and 2026-10-20), and the merged prompt removes the spelling call. Size the monthly figure against the live run (`wbs:5.2`). *Previously read (rev 19):* "the extractor is billed per 5,000-character window, so a long narrative costs many calls". **Rev 31, at about 1,000 applications a year (NFR-021):** about 6,300 credits a month after `ADR-082`, an estimate from DEV's measured rates (confirmed by `A-NS-44` and the `wbs:5.7` run), against 5,000 a month seeded by one Power Automate Premium licence. **Three purchase routes**, read against the Copilot Studio Licensing Guide (October 2026) and Microsoft Learn on 2026-10-21: (a) **pay-as-you-go**, a meter per credit, which needs an Azure subscription linked to the environment by a Power Platform billing policy (§12); (b) a **capacity pack of 25,000 credits a month**, billed annually, unused credits not carried over; (c) **Copilot Credit P3**, a one-year prepay whose smallest tier is 300,000 credits, unused credits expiring. No nonprofit pricing for Copilot Credits is listed; (a) and (c) are not Azure Prepayment eligible. **Fit at the estimate:** (a) pays for what is used; (b) is about four times the need every month; (c) is about four years of need, expiring after one. The choice is Revitalise's (§12); the architecture works with any of them, and the degraded path above is unchanged **Rev 39, at about 2,000 a year (NFR-021), scrubbing only the share that reaches Eligible for Panel (about 25 percent, range 20 to 35, `A-ST-9`):** about 3,000 credits a month (range 2,400 to 4,200; about 5,100 at the headroom and the high share), against 5,000 seeded. *Rev 31's figure assumed every application was scrubbed, which overstated it about fourfold.* Fit: the seeded 5,000 covers the central estimate; (a) pay-as-you-go covers a high month; (b) and (c) are many times the need. The choice stays Revitalise's |
 | **A-R17** ~~If Canvas App is chosen for the portal, the component leaves this system's build palette~~ **CLOSED** | — | — | ✅ **Closed 2026-08-10.** ADR-003 confirmed **Code App**; Canvas App descoped and rejected. Residual, tracked at development: the Code App is developer-maintained and the source's 14–20 h estimate assumed a low-code app |
-| **A-R18** The third environment (TST/ACC) consumes chargeable Dataverse capacity a charity may not have | Medium | Low | Confirm database capacity at WBS 0.2 **before provisioning TST/ACC**; three environments is the lowest-cost topology that still keeps a real managed-import test gate (ADR-006). **Rev 33:** the capacity check sizes PRD against the NFR-021 planning ceiling of **7,500 records** held for their full retention period (OQ-061, answered 2026-10-22) |
+| **A-R18** The third environment (TST/ACC) consumes chargeable Dataverse capacity a charity may not have | Medium | Low | Confirm database capacity at WBS 0.2 **before provisioning TST/ACC**; three environments is the lowest-cost topology that still keeps a real managed-import test gate (ADR-006). **Rev 33:** the capacity check sizes PRD against the NFR-021 planning ceiling of **7,500 records** held for their full retention period (OQ-061, answered 2026-10-22) **Rev 39:** the planning ceiling is **15,000 records** (SDD A-15, NFR-021) |
 | **A-R19** UK residency of DocuSign and QuickBooks Online is **asserted but not evidenced** in any source | Medium | High | Verification is a §12 `APPROVE TENANT` gate item with written evidence retained; DPIA action A5. **Rev 19:** the Power Platform half is now measured and is not the UK (`A-R82`) |
 | **A-R20** Trustee adoption — some trustees may resist moving off email attachments | Medium | Medium | Offline anonymised pack (FR-032) and print route (FR-039) exist so partial adoption excludes no one; one round of trustee feedback budgeted (SDD OQ-013, OQ-024) |
 | **A-R21** DPIA and RoPA are **concept drafts, not signed off**, and the DPIA sign-off table is empty | **High** | High | Art. 35 requires completion before go-live (SDD OQ-030). Build may start on approved requirements, but **not** on the field-level-security and 6-year-retention basis until OQ-004/005/006 are recorded |
@@ -7589,7 +8327,7 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R73** **A designer save on a solution flow between deploys rewrites its live definition** (`IMP-1010`). Measured in DEV on 2026-10-02: one save emptied both nested `CreateRecord` actions, removed the trigger's secure outputs, renamed parameters and stripped `inputs.authentication`. The next run succeeded and wrote an empty application | High (if anyone opens the designer) | High | §5 write-shape rule (flat `item/<column>`). No designer saves on solution flows. `verify-live-flow-definitions.py --env dev` before any test run and before any build is put on top of DEV, not only after a deploy (`IMP-1010` proposed change 3) |
 | **A-R74** **A failed run leaves an orphaned DocuSign draft holding personal data** (rev 15, `ADR-067`). Any action after the draft is created (§5.8 steps 7–14) can fail; a draft cannot be voided, and the connector has no delete-draft action. A re-run makes a second draft | Medium | Low | The failure alert carries the draft's envelope id; the process owner deletes it in DocuSign. The retention helper's envelope purge (FR-049) is the backstop. Nobody outside Revitalise is ever emailed by a draft |
 | **A-R75** **The template is edited by hand and a mistake reaches every environment** (rev 15; **reworded 2026-10-19: there is ONE DocuSign account and template for all Power Platform environments**, so it cannot differ between them). `rev_DocuSignAcceptanceTemplateId` is a per-environment setting that names that same template. Required flags, tab labels and the reassignment setting are hand-configured on it | Medium | Medium | §12.5 T2 and M4 run once, and again whenever the template is edited. A label mismatch is caught at run time by `ADR-067` step 4 (alert, no send); a missing *Required* flag is not caught by anything in the flow |
-| **A-R76** **A large approved batch exceeds DocuSign's 250 calls per minute per connection** (rev 15). 14 DocuSign calls per envelope on the happy path and 17 with all three spelling fallbacks (rev 16, `ADR-069`); around 20 grants finalised within one minute can exceed it | Low | Low | Every DocuSign action keeps the existing exponential retry (4). The `wbs:3.7` bulk test (five at once) measures it; a trigger concurrency limit is added only if that test shows failures. **Rev 31:** at about 1,000 applications a year a single finalisation could carry more than 20 approved reviews, so five at once may not reach the limit; run the bulk test with at least 20 if the panel's batch is that large |
+| **A-R76** **A large approved batch exceeds DocuSign's 250 calls per minute per connection** (rev 15). 14 DocuSign calls per envelope on the happy path and 17 with all three spelling fallbacks (rev 16, `ADR-069`); around 20 grants finalised within one minute can exceed it | Low | Low | Every DocuSign action keeps the existing exponential retry (4). The `wbs:3.7` bulk test (five at once) measures it; a trigger concurrency limit is added only if that test shows failures. **Rev 31:** at about 1,000 applications a year a single finalisation could carry more than 20 approved reviews, so five at once may not reach the limit; run the bulk test with at least 20 if the panel's batch is that large **Rev 39 (`ADR-093`):** no batch starts envelopes any more; the limit is reachable only if the process owner selects about 20 grants at once on the Grants list |
 | **A-R77** **An applicant supplies their own contact details as the referee's** (rev 15, `ADR-068`). Every factor the system can check — email, phone — comes from the applicant, who therefore also knows the access code. The access code stops a forwarded email being opened by someone who does not know the number; it does not stop a fabricated referee | Low | High | A process control, not a system one: the process owner checks the referee's number is plausibly theirs before approving. Only ID Verification binds to a named real person, and it was rejected as disproportionate |
 | **A-R78** **The access code is guessable when the referee's number is public** (rev 15, `ADR-068` item 4; **replaces** the phone-authentication UK-delivery risk, which no longer applies because nothing is sent to the phone). The code is the last six digits of a number; an organisation's published number (a GP practice switchboard) makes it public knowledge | Medium | Medium | The process owner records the referee's direct or mobile number in preference to a switchboard. If a stronger factor is ever wanted, DocuSign phone authentication (one-time code to the phone) is the upgrade, with its cost and UK delivery to be confirmed first |
 | **A-R79** **The referee's phone is missing or has fewer than six digits, so no envelope goes out** (rev 15, `ADR-068` item 4). Nothing in Phase 1 writes `rev_refereephone`; the process owner types it | Medium | Low | Step 1 normalises it to digits and alerts and stops below six, naming the field. The grant stays at Awarded until it is corrected |
@@ -7626,6 +8364,12 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R110** **SETTLED 2026-10-22 by D4 (reviewer: *"Process owner will deal with it via the monthly list."*); no FR-048 change.** **An application that stops moving is never deleted** (rev 34). The three application jobs cover statuses 8 to 11 only; an application left at statuses 1 to 7 (Submitted to Approved, including a deferral never re-decided and an approved grant never paid) has no clock in FR-048, so it is kept indefinitely | Medium | High | Mode 1's monthly stale-case list (decision D4); the process owner closes the case, which starts a job's clock. If D4 is declined, a seventh job needs a retention rule plan-agent adds to FR-048 |
 | **A-R111** **Erasure removes the case but the unattended identity can now delete five Tier 4 tables** (rev 34, `ADR-089` item 7) | Low | High | Delete granted to `REV Service Automation` only; mode 2 is the only definition with a delete on `rev_applicant` (a source check); started only by a person from the Flow menu with a typed reference; every run logged (FR-054) |
 | **A-R112** **OPEN for the reviewer — the encryption rule can be switched off after it was verified, and the flow would not notice** (rev 37, `ADR-091`). The flow sends from the protected sender; if a tenant administrator disables or edits the rule, or adds a higher-priority rule that removes encryption, the next extract goes out unencrypted | Low | High | Rule named for what it guards (*REV SAR extract — encrypt, do not disable*); listed in the tenant handover and the SAR runbook; the residual is accepted or option A is kept permanently (reviewer decision A at the rev 37 gate) |
+| **A-R113** **Two presses on the same grant send two envelopes** (rev 39, `ADR-093`). The envelope id is written last, after about 14 DocuSign calls, so a second run started before then passes the check | Low | Medium | The Teams answer arrives within about a minute and the handbook says to wait for it; a duplicate is voided by the process owner in DocuSign. A claim written before the first DocuSign call is the fix if it happens |
+| **A-R114** **A cost line changed outside the application form does not recalculate Total Cost** (rev 39, `ADR-095`) | Low | Low | Nobody edits cost lines by import, bulk edit or the API today; the intake writes the sum itself. A flow on change of the lines is the server-side alternative if that changes |
+| **A-R115** **The All time document grows by about 250 characters a month** (rev 39, `ADR-096`), against a 100,000-character column | Low | Low | About 30 years of headroom; the child can fold years older than ten into one entry when it nears the limit |
+| **A-R117** **A mistyped Round on a review hides its application from trustees** (rev 39, `ADR-094`, FR-124's own example) | Medium | Low | The process owner's review views show Round beside the application; the handbook section on creating a review (triage ST-06) says to copy the round key exactly. Fails closed: nothing wrong is shown |
+| **A-R118** **Verdicts, notes and *Finalised On* can be written outside the app** (rev 39 draft 4, §6.2 item 2): a process owner by the Web API, her own flow, or the maker portal's table editor if given maker access; and, as before rev 39, a trustee by the API (the trustee role's table Write is not column-scoped) | Low | Medium | **Accepted limitation, D5 answered 2026-11-15** (reviewer, verbatim *"Protection in the admin app."*). Audit names the writer; FR-127 is scoped to the app; no import privilege closes Excel; `A-ST-11` covers bulk edit |
+| **A-R116** **The received count misses applications** (rev 39, `ADR-096`): (a) a Received row whose write failed at intake; (b) applications deleted before the one-off backfill ran | Low | Medium | (a) the failure alert names the step, and the process owner can ask for the row to be added; (b) the backfill runs in PRD before PRD's first retention deletion, a `post_deploy` ordering pipeline-agent applies |
 
 ---
 
@@ -7653,7 +8397,7 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | **UK residency verification** for the environments, AI Builder, DocuSign and QuickBooks — written evidence retained. **Rev 19: environments measured as `crm17` (Switzerland), NOT the UK** (`IMP-1063`, `A-R82`); decision outstanding. **Rev 20 approval (2026-10-06):** the residency question is parked at the customer, who owns it. It does not block building: the reviewer's ruling is that its outcome changes where the environments are located, not what is built. **No residency decision is recorded**, so every hold that waits for one still applies | Compliance verification | Manual, evidenced | tenant | `APPROVE TENANT` (NFR-009, DPIA A5) |
 | **Generative AI features → *Move data across regions*: on in every environment; *Allow flex routing*: disabled at tenant level** (reviewer, 2026-10-16, verbatim: *"Ah, the flex routing option is disabled on tenant level. Only EU handling"*; *previously read: "off unless accepted"*). **Rev 22: superseded** by the client legal office's residency ruling (2026-10-16) and the reviewer's statement, verbatim: *"the move data accross regions options is on in both dev and acc. This is standard."* So: on in DEV and TST/ACC (stated, not agent-measured), and on in PRD (reviewer, verbatim: *"the move accross regions is on in prd as well."*; stated, not agent-measured). *Previously read: "PRD to be read and recorded before the first PRD deploy".* Prompts are processed in the EU Data Boundary; NFR-009 is being amended by plan-agent to permit that (**pending**). *Previously read (rev 19): "record each environment's current state, and keep it UNTICKED until the residency decision allows otherwise"* | Environment setting | Power Platform admin center, read by the reviewer | per-env | `APPROVE TENANT` (NFR-009, pending amendment) |
 | Environment DLP connector policy (business / blocked groups per §6.4, **including Request/HTTP and Word Online**) | DLP policy | Power Platform Admin PowerShell | tenant, applied per-env | `APPROVE TENANT` |
-| AI Builder credit / capacity assignment to the PROD environment. **Rev 31:** about 6,300 credits a month at about 1,000 applications a year (estimate, `A-R16`); buy by one of `A-R16`'s three routes, pay-as-you-go recommended on fit, which needs the Azure row above | Capacity allocation | Power Platform admin centre | per-env | `APPROVE TENANT` (SDD OQ-017) |
+| AI Builder credit / capacity assignment to the PROD environment. **Rev 39:** about 3,000 credits a month at about 2,000 applications a year, scrubbing the Eligible-for-Panel share only (estimate, `A-R16`, `A-ST-9`; rev 31 said about 6,300 at about 1,000, assuming every application scrubbed); buy by one of `A-R16`'s three routes, pay-as-you-go recommended on fit, which needs the Azure row above | Capacity allocation | Power Platform admin centre | per-env | `APPROVE TENANT` (SDD OQ-017) |
 | SharePoint site `/sites/grants` + "Signed Acceptances" document library; **Trustee role denied** | SPO site collection + library | `provisioning/sharepoint/` — PnP.PowerShell | tenant (site collection) | `APPROVE TENANT` |
 | **Rev 14 (`ADR-011`): RETAINED only as the source of the `x-rev-client-id` header value; the token route is retired, and the client secret issued to Alex is to be revoked (reviewer/Wanstor). The "Allowed users" use below no longer applies.** `rev-wordpress-intake` app registration + service principal + `Microsoft Flow Service` `User` permission and admin consent — NEW 2026-08-12, closes test-agent defect D-001 (C-TECH-006 HARD).** The OAuth client-credentials identity Alex's WordPress site presents to the intake endpoint. Two identifiers come out of it and they are **not interchangeable**: the application (client) id → the `rev_IntakeAllowedClientId` environment variable (the flow's *second* gate); the **service principal object id** → the trigger's Allowed users list (the *primary* gate). The permission exists so Entra will issue a token for `https://service.flow.microsoft.com//.default`; without it the endpoint is unreachable, not merely unauthenticated. ⚠ The caller's own certificate/secret is **deliberately outside this pipeline** — issued interactively and handed to Alex out of band, because a pipeline that mints a credential prints one (C-TECH-001). ⚠ ADR-011 remains **open**: this is the default implementation, not the settled channel | Entra app registration + SP + admin consent | `provisioning/entra/ensure-intake-client.ps1` (per settings file) + `grant-admin-consent.ps1` | tenant | `APPROVE TENANT` |
 | ~~SUPERSEDED rev 14~~ **(`ADR-011`): the trigger mode is now *Anyone*, declared in source as `inputs.triggerAuthenticationType: "All"`, which was measured live in DEV on 2026-10-02. The claim below that no workflow-definition property exists is refuted. This `post_deploy` item is retired. `verify-intake-endpoint-auth.ps1` is rewritten to the two rejection probes in `ADR-011` rev 14 (gate interactions).** Intake trigger authentication parameter on `REV \| Intake \| WordPress to Dataverse` — NEW 2026-08-12, the primary control D-001 found unassigned (NFR-008, C-TECH-006 HARD).** Set the trigger's *"Who can trigger the flow?"* parameter to **"Specific users in my tenant"** with **Allowed users = the `rev-wordpress-intake` service principal object id**. This is a **trigger setting, not a solution component** — Microsoft documents it at [`/power-automate/oauth-authentication`](https://learn.microsoft.com/en-us/power-automate/oauth-authentication) and publishes no workflow-definition property for it, so it cannot ship in the managed solution and cannot be asserted by reading the flow JSON. **Owner: Wanstor (tenant administration); value supplied by the maker from the `ensure-intake-client.ps1` output.** Apply it **before** the flow is turned on. ⚠ A blank Allowed users list silently means *any user in the tenant*; read the field back after saving. ⚠ Whether the setting survives a solution import is **unverified** (no environment exists), so it is configured **and** verified on every deployment rather than assumed | Power Automate trigger setting | Manual in the designer, then **verified** by `provisioning/entra/verify-intake-endpoint-auth.ps1` as a smoke test on TST/ACC and PRD | per-env | `post_deploy` + `smoke_tests` (C-TECH-006 `Verify By`) |
@@ -7693,6 +8437,12 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | **Rev 34 — DocuSign document retention** (decision D1, `A-ERA-5`): completed, declined and voided envelopes purged 30 days after they close, on the one account every environment uses | External SaaS setting | Manual — Revitalise's DocuSign administrator | external | Before PRD use (D1 approved 2026-10-22: *"Will be a platform setting on Docusign"*) |
 | **WordPress / Gravity Forms**: **rev 9 — supplies its native entry payload (`ADR-051`, Appendix C); the seven `ADR-011` confirmations are Alex's to answer.** Form built to the field-by-field specification (incl. WCAG + reading-age acceptance criteria), webhook or REST credential issued | External, **OUT-OF-PALETTE** | Alex, website designer | external | Reviewer (SDD OQ-014, ADR-020) |
 | Licences: Power Apps Premium ×2 (maker/service + Emily), Power Apps pay-as-you-go (trustees), Power Automate Premium (service account) | Licensing | Manual — Revitalise procures | tenant | Reviewer (SDD OQ-017, OQ-025) |
+| **Rev 39 — Create Envelope shared run-only with the process owner's group** (`ADR-093` item 6), every connection *Use this connection*, as §12.8 does for *Finalise Decisions*. Teams connection reference `rev_SharedTeams` bound in the flow | Flow sharing | Manual or scripted once per environment | per-env | `post_deploy` |
+| **Rev 39 — choice value Received (3) on rev_statisticoutcome and column `rev_roundstatisticsresult.rev_alltimejson`** (`ADR-096`): neither is created by import, so both go through the §12.1 prerequisite path in DEV, TST/ACC and PRD (`C-TECH-050`) | Dataverse choice value + column | `provisioning/dataverse/ensure-schema.ps1` | per-env | prerequisite |
+| **Rev 39 — one-off Received-row backfill** (`ADR-096` item 4): idempotent, does nothing once any Received row exists; in PRD it runs before the first retention deletion (`A-R116`) | Reference data | `provisioning/dataverse/` script, development-agent | per-env | `post_deploy` |
+| **Rev 39 — `REV Admin` privileges on `rev_review` (create, update, delete, append), and `prvReadrev_anonymisedstatistic` removed from `REV Trustee` and `REV Finance`** (§6.2, `ADR-096` item 9): role changes the import may not apply to an existing role (`C-TECH-050`) | Security role | `provisioning/dataverse/ensure-schema.ps1` role path | per-env | prerequisite |
+| **Rev 39 — `REV Admin` group team name in the deployment settings** (`ADR-094` item 1, the round warning's recipients), the same key the run-only shares read | Deployment settings | settings files | per-env | `post_deploy` |
+| **Rev 39 — nineteen new `rev_anonymisedstatistic` columns** (`ADR-096` item 3) | Dataverse columns | `ensure-schema.ps1` | per-env | prerequisite; **after** the register entries exist |
 
 ---
 
@@ -8063,6 +8813,7 @@ combined document with its certificate of completion), still OPEN in the Dev Sum
 | `A-SAR-14` | **(rev 37 amendment, `ADR-091` item 7; lead-agent's concern, not a reviewer question)** A message sent with *From (Send as)* = `rev_SarProtectedSender` may leave a copy, attachment included, in a Sent Items folder: the connection owner's mailbox, the dedicated mailbox, or both; where it lands and how long it is kept are not known, and mode 2's mailbox deletion searches only the service mailbox | OPEN (E4, nothing verified) | DEV, in the `A-SAR-4` run: after the test send, look in Sent Items of the connection owner's mailbox and of the dedicated mailbox (the tenant administrator may need to search the latter) and record, per mailbox, whether a copy exists, whether it carries the attachment and any retention that applies. Until recorded, `rev_SarProtectedSender` stays empty (option A). A copy found: back to the reviewer before the setting is filled (`ADR-091` item 7 (c)) |
 | `A-SAR-13` | **(rev 37, `ADR-091` item 5)** `SendEmailV2`'s *From (Send as)* (`emailMessage/From`) sends as the dedicated mailbox when the connection owner has Send As on it, and **fails** (no message sent) when the permission is missing. No flow in source sets it (grepped, 2026-10-30) | OPEN (E2) | DEV: run once before Send As is granted (expect a failed send and the option A Teams message), then after (expect `A-SAR-4` check 1). If the order cannot be arranged, the first half is read from the run history of any failed send |
 | `A-SAR-15` | **(rev 37 amendment, `ADR-091` item 5; open, unverified)** (a) The create-file response carries `Size` in bytes for each file written to the SAR folder; (b) one `SendEmailV2` message with the extract and several PDFs under 15 MB of raw files is accepted by Exchange and the encryption rule at its encrypted-message limit (25 MB, E2 only); (c) several attachments in one `SendEmailV2` arrive intact when built as one array (the connector page warns they may not) | OPEN (E2 for the limits, E4 for (a) to (c)) | DEV, with the `A-SAR-4` run: (a) read the `Size` outputs in run history (not secure-masked for a number; if masked, take the size from a get-file-metadata read instead, one action); (b) send a set near 15 MB, then, with the reviewer's agreement, one near 20 MB to find where it fails, and record the ceiling; if 15 is too high or low, change the seed default (no rebuild); (c) open every attachment. Any of (a) to (c) fails: `rev_SarProtectedSender` stays empty (option A) and the design returns to the architect |
+| `A-SAR-16` | **(rev 38, `ADR-092` item 9; blocks the mode 3 rebuild)** In a cloud flow: **(1)** the designer saves and turns on a flow whose only aggregation across a `For each` is `result('<For each>')` read after the loop; **(2)** `result()` returns, per iteration, the outputs of a first-level child that secures them (a Compose with secure inputs; a Dataverse *List rows* with secure inputs and outputs), not null or redacted; **(3)** the Filter array consuming it, secured both ways, shows nothing in run history, and the `For each` record shows no child content; **(4)** `actions('<action that did not run>')?['outputs']` is null without an error, and for a secured Compose that ran it is the value; **(5)** a `For each` over a secured action's output does not show its items in run history. The shape returned (Learn's example: one record per child with an `outputs` array, one entry per iteration) is recorded as measured | OPEN (E2 for the shape and the downstream rule; nothing for secured outputs inside `result()`; E4 for (4)) | **Reviewer, DEV, about 10 minutes, before development-agent rebuilds.** A throwaway flow outside the solution named `ZZ PROBE A-SAR-16 delete me`, manual trigger, no personal data: `Compose_items` = `["a","b"]`; `For each` over it with two first-level children, `Compose_secret` (secure inputs) = `concat('secret-', item())` and `List_rows` on `rev_settings` (top 1, `$select` `rev_name`, secure inputs and outputs); after the loop a Filter array (secure both ways) over `result('Apply_to_each')`; then four `If`s, whose branch taken is visible even when inputs are hidden: `contains(string(result('Apply_to_each')), 'secret-b')`, `contains(string(result('Apply_to_each')), '"rev_name":')`, `equals(first(result('Apply_to_each'))?['name'], 'Compose_secret')` (shape), and, beside an `If(false)` whose true branch holds `Compose_never`, `equals(coalesce(actions('Compose_never')?['outputs'], 'not run'), 'not run')`; a second `For each` over `body('List_rows_outside')` (a secured List rows outside the loop). Save, turn on, run once. **Pass:** saved and on (1); the first three `If`s true (2, shape); Filter and `Compose_secret` show hidden (3); the fourth `If` true (4); the second loop's iteration inputs hidden (5). Record each in the Dev Summary §10 with the date, then delete the flow. **Any of (1), (2) or (4) fails:** no rebuild; `CASCADE: ARCH_GAP` to architect-agent with the measured shape; only then is `ADR-092` rejected option (d) put to the reviewer. **(3) or (5) fails:** the same, because the property is broken whatever the mechanism |
 
 ### 12.12 Verification plan — helper modes 1 and 2 (rev 34) (`wbs:0.13`, `CO-011`)
 
@@ -8076,6 +8827,26 @@ an `A-ERA-n` marker at its point of use (`C-TECH-052`). No source flow exercises
 | `A-ERA-3` | SharePoint *Delete file* by server-relative path deletes the signed PDF, and a second call for a file already gone can be told apart from a real failure | OPEN | DEV: delete a test PDF twice |
 | `A-ERA-4` | The Outlook connection can delete a found message from the service mailbox, running as the service identity | OPEN | DEV: two test messages, mode 2, confirm both gone. If not, the process owner deletes by hand and architect-agent is told |
 | `A-ERA-5` | Revitalise's DocuSign plan offers account-level document retention for completed, declined and voided envelopes | OPEN | Revitalise's DocuSign administrator confirms in account settings (D1) |
+
+### 12.13 Verification plan — Amendment A-15 (rev 39) (`wbs:3.5`, `4.5`, `6.8`)
+
+Each goes into the Dev Summary §10 register with an `A-ST-n` marker at its point of use (`C-TECH-052`). Grepped across
+both documents on 2026-11-13: no `A-ST-` id existed.
+
+| Id | Assumption | Level | How to close it |
+|---|---|---|---|
+| `A-ST-1` | Dataverse *List rows* with a `fetchXml` aggregate query (count, sum, `groupby` with `dategrouping` year and month) returns one row per group with the aliases as properties | OPEN | DEV: run the child against ten seeded anonymised rows and read the raw output |
+| `A-ST-2` | A `contain-values` condition on the multi-select `rev_conditionareas` works inside an aggregate fetch | OPEN | Same DEV run, one option known to match two rows |
+| `A-ST-3` | The *When a row is selected* trigger on `rev_grant` exposes the running user's email for the result message | OPEN | DEV: run once and read the trigger outputs; if absent, the message goes to `rev_ProcessOwnerUpn` |
+| `A-ST-4` | The flow appears in the Flow menu of a grant's form and list for a run-only member of the process owner's group (as `A-FD-9` for reviews) | OPEN | DEV: sign in as a run-only user |
+| `A-ST-5` | A form library registered in DEV's designer and exported packs and imports, and `setSubmitMode("always")` saves a value set on a read-only control | OPEN | DEV: change a cost line, save, reopen |
+| `A-ST-6` | The synchronous workflow's *Canceled* stop refuses the save with its message on the form and per record in a bulk edit, and does not fire on a status change | OPEN | DEV: tick on a Borderline application; bulk edit two at different statuses; run *Finalise Decisions* on a released application |
+| `A-ST-7` | The labelled columns of `ADR-095` match the web form's conditional routes | OPEN | One test application per route through the web form (the triage plan's ST-16 records can do this) |
+| `A-ST-8` | `REV Admin` can set `rev_trustee1` and `rev_trustee2` with the privileges of §6.2 (a user privilege may be missing) | OPEN | DEV: the process owner creates a review with both trustees |
+| `A-ST-9` | About 25 percent of applications reach Eligible for Panel (range 20 to 35), from one round's pack against two decks' received counts | OPEN, an estimate | The first live month: count status changes to Eligible for Panel against applications received |
+| `A-ST-11` | The bulk-edit dialog in the Grant Administration app keeps the review form's locked columns locked | OPEN | DEV: as the process owner, select two reviews, Edit, try the verdict and *Finalised On* fields |
+| `A-ST-12` | The `REV Admin` group team's `teammembership` lists the role holders who have used the environment, and is readable by the service identity | OPEN | DEV: list it after a new admin's first sign-in |
+| `A-ST-10` | `rev_round eq '<key>'` through the portal's connector compares as Dataverse does (case-insensitive, spaces significant) | OPEN | DEV: reviews with *2026-12*, *2026-12 * and *2026-11* |
 
 ## Appendix A — Requirement Traceability (SDD → TAD)
 
@@ -8147,6 +8918,16 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | FR-112 (a final, Pending payment becomes Issued; Issued or Cleared left alone; Cancelled stays and is reported; unticking does not revert; OQ-059) | §5.11 payment-status table and payment rule; `ADR-081` items 7 and 8 (the rule, not the flow, sets Issued: amendment c); `A-CP-9`, `A-R104`. **OQ-059 is open at its default (stays Issued), which the design implements. A "yes, revert" answer would need the old value, which neither the flow nor a rule sees, and would be a new decision on how** |
 | FR-113 (the grant's own status Signed to Paid with the date; Paid back to Signed on reversal; other statuses left and reported; OQ-060) | §5.11 "The grant's own status" and its table; `ADR-081` items 3 and 9; `A-R103`, `A-R100`. US-026 AC-16 to AC-19. **OQ-060 stands at its default** |
 | Out of scope in the SDD: duplicate re-check, retention job | Not built here; `ADR-081` items 9 and 10 |
+| FR-120 (*Not asked* beside an empty answer the web form did not ask; nothing stored) | `ADR-095` item 1; `A-ST-7` |
+| FR-121 (Total Cost is the sum of its lines; OQ-068 answered: always) | `ADR-095` item 2; `A-R114` |
+| FR-122 (the process owner sends from the flow menu on one grant or on several selected grants, one run per grant; not without referee name and email, not twice) | §5.8; `ADR-093`; §12 run-only row; `A-ST-3`, `A-ST-4`; `A-R113` |
+| FR-123 (release only at Eligible for Panel) | `ADR-094` item 2; `A-ST-6` |
+| FR-124 (listed only with an open review in the open round; leaves when finalised, any outcome; no or two open rounds: empty, and a warning sent to REV Admin holders; D1, OQ-069) | `ADR-094` item 1; §5.5; `A-R117`, `A-ST-10`, `A-ST-12` |
+| FR-125 (verdict button only for a trustee who can record or has recorded) | `ADR-094` item 3 |
+| FR-126 (This round or All time from the anonymised records only; Received and outcome rows; the fields of the ruling; no small-group hiding; money averages withheld below five on This round only, OQ-070) | `ADR-096`; §3.1; §5.13 item 4; `A-ST-1`, `A-ST-2`; items 7 and 10 (money by break type, no minimum on All time); item 8 (no small-group hiding; OQ-070 answered); item 9 (published by the service identity) |
+| FR-127 (the process owner creates, edits and deletes reviews; never verdicts, notes or Finalised On, in the admin app) | §6.2 build correction items 1 to 3 (form locks, no import, audit; D5 answered: protection in the admin app); `A-ST-8`, `A-ST-11`; `A-R118` (accepted limitation) |
+| FR-080 (month history from Received rows; D2), FR-055 (every application recorded) | `ADR-096` items 2 and 12 |
+| FR-038, FR-041, FR-047, FR-057, FR-116, NFR-021 (amended, A-15) | `ADR-094` (FR-038, FR-116); `ADR-093` (FR-041, FR-047); `ADR-096` (FR-057); §7 (NFR-021) |
 
 ---
 
@@ -8806,3 +9587,11 @@ mode 2 stops and tells the requester and the process owner (mode 2 about 40 acti
 - **`Build Retained (audit)`** (verbatim): `rev_outcome` gains value 8; §5.12.2 step 8's audit-history row uses it with `rev_retaineduntil` = erasure date + 6 years (D3). It settles development-agent's open *Not due* judgement.
 - **Second amendment (verbatim *"Also attach the signed pdf's off course"*, `IMP-1261`):** option B attaches the extract and every signed PDF copy of the run; over `SarEmailMaxAttachmentMB` (default 15) nothing is sent and option A applies; `A-SAR-15` OPEN.
 - **`A-SAR-4` and `A-SAR-13` stay OPEN until the DEV check. New `A-SAR-14` (the sent copy) is OPEN and unverified;** it was raised by lead-agent after the revision was presented and was not put to the reviewer as a question. No SOFT warning carried beyond C-DOM-005 (met by design); none new raised.
+
+**Rev 38 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-11-04  **Response:** `APPROVED` (relayed by lead-agent, `logs/routing.log`). `ADR-092` is `Accepted`.
+
+- **Decision A:** verbatim *"Decision A: Agreed."*
+- **Decision B (a failed signed-document copy sends nothing, no partial email):** verbatim *"Decision B: Agreed, keep as is and inform Process Owner to send manual."* The process owner gets the option A Teams message with the reason (the signed-document copy failed); already sent on this path by the design, the wording made explicit in `ADR-092` item 7 and §5.12 mode 3 *Writes*.
+- **`A-SAR-16` stays OPEN and still blocks the rebuild.** No SOFT warning carried beyond C-DOM-005; none new raised.
+
+**Rev 39 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-11-18  **Response:** `APPROVED` (fifth draft, relayed by lead-agent; verbatim *"Approved on docs/architecture/revitalise-grant-automation-architecture.md"*). `ADR-093` to `ADR-096` are `Accepted`; OQ-070 and D5 were answered before approval (verbatim in the rev 39 entry); `A-R118` stays a reviewer-accepted limitation. **Carried state:** the constraint check is BLOCKED (provisional) on C-DOM-030/C-DOM-031 for `rev_anonymisedstatistic.rev_ethnicgroup` and `.rev_exceptionalcircumstance`; it clears when improvement-agent applies review row 4 after development writes the columns, before the build.

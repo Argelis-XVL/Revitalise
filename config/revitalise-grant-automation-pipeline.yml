@@ -1611,7 +1611,7 @@ environments:
           wrote; after a one-time passcode EVERY attachment opens and matches its SAR folder file (A-SAR-4, A-SAR-15
           (c), A-RH-3); the Detail ends "delivery: option B ... fits: <n> MB of files against a limit of 15 MB"; keep a
           screenshot and the tenant administrator's message trace showing the rule fired (A-SAR-4). In the run
-          history, read the Size each Add_the_*_file action recorded (A-SAR-15 (a); not secured). (c2) Size gate
+          history, read the sizes Select_attachment_sizes recorded (A-SAR-15 (a); not secured, ADR-092 item 6). (c2) Size gate
           (ADR-091 item 5, A-SAR-4 (1b)): set the SarEmailMaxAttachmentMB setting to 1 and run on an applicant whose
           set is larger: NO email, the option A message naming every file and "too large", the Detail "delivery:
           option A, not emailed, too large: <n> MB ..."; then set it to empty and run once more: the same, with "not

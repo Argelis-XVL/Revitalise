@@ -108,6 +108,17 @@
       "expires": "2026-12-31",
       "expiry_rationale": "Same horizon as EX-008 to EX-012: covers Phase 3 and the closing invoice.",
       "_risk_acceptance_note": "Commercial-agent is not blocked by code. This entry and commercial-events CE-0023 are the record commercial-agent reads; the control is that record, not a gate."
+    },
+    {
+      "id": "EX-014",
+      "gate": "wbs-ready-set (blocked_by_predecessor)",
+      "matches": "blocked_by_predecessor - task 6.8 unmet_dependencies=['6.7']",
+      "reason": "Re-run 2026-11-13 (python3 scripts/wbs-ready-set.py --json): task 6.8 (Process feedback + rework) has derived_status manual_only and unmet_dependencies=['6.7'] (Demo to trustees + feedback), so the predecessor gate is firing for it today. Reviewer, Xander Lykopoulos, 2026-11-13, asked 'Can the three portal fixes start before the trustee walkthrough?' and answered verbatim: 'Yes they can start now as part of rework'. The three fixes are ST-08+ST-10 and ST-09 in docs/plans/stress-test-feedback-2026-11-plan.md (FR-123, FR-124, FR-125), work items in logs/work-items.jsonl under wbs 6.8. The early start covers those items only. Task 6.7 stays owed and the walkthrough feedback it collects is still rework under 6.8. EXTENDED 2026-11-13 to include WI-0163 (ST-11, the This round / All time statistics switch, FR-126), also under 6.8. Question put to the reviewer: 'may WI-0163 (the This round / All time statistics switch) start now with the portal fixes?' Reviewer, Xander Lykopoulos, verbatim answer: 'Yes, go ahead with WI-1063'. Interpretation: the reviewer typed WI-1063; no such item exists in logs/work-items.jsonl (grep count 0) and the question named WI-0163, so it is read as WI-0163. Re-run 2026-11-13: task 6.8 still shows blocked_by_predecessor with unmet_dependencies=['6.7']. Separate from this exception: WI-0163 still cannot be built until TAD rev 39's revision for the reviewer's D4 answer is approved. That is a design dependency, not a predecessor gate, and this exception does not waive it.",
+      "finding": "none",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "Task 6.7 (trustee walkthrough) is held and evidenced, at which point 6.8's predecessor is met and this entry has nothing left to waive. Remove it then.",
+      "expires": "2026-11-27",
+      "expiry_rationale": "Phase 3 is contractually due 2026-11-27 (contract/wbs.json), the same date EX-001 and EX-003 use."
     }
   ],
   "_closed_exceptions": [

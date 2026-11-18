@@ -33,24 +33,24 @@ A document that restates a baseline figure goes stale silently and is inherited 
 
 | Where | Says |
 |---|---|
-| `docs/plans/revitalise-grant-automation-plan.md:632` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:632` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:632` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:632` | 35–50 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:632` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:632` | 50–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:645` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2249` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2249` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:2614` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3262` | 10–19 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3262` | 20–34 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3262` | 35–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3262` | 35–50 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3262` | 50–59 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3312` | 106–160 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3344` | 133–208 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:3369` | 106–160 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:633` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:633` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:633` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:633` | 35–50 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:633` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:633` | 50–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:646` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2413` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2413` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:2788` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3436` | 10–19 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3436` | 20–34 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3436` | 35–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3436` | 35–50 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3436` | 50–59 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3502` | 106–160 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3534` | 133–208 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:3559` | 106–160 hours |
 
 ## 4. D-3 compliance — fee and rate figures
 

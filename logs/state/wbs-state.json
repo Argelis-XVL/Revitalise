@@ -7,10 +7,11 @@
     "tasks": 61
   },
   "derived_counts": {
-    "complete": 31,
+    "complete": 30,
     "complete_pending_manual": 6,
     "manual_only": 20,
-    "not_started": 4
+    "not_started": 4,
+    "partial": 1
   },
   "tasks_without_a_rule": [],
   "unrecognised_claim_values": [],
@@ -243,16 +244,17 @@
       "task": "Build finance security role",
       "phase": "Phase 4",
       "claimed": null,
-      "derived": "complete",
+      "derived": "partial",
       "verdict": "UNDERCLAIM",
-      "missing": [],
+      "missing": [
+        "grep (?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\": no match in 1 file(s)"
+      ],
       "found": [
         "path src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml: present",
         "grep <RolePrivilege\\s+name=\"prvReadrev_bankaccount\": matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
         "grep <RolePrivilege\\s+name=\"prvReadrev_payment\": matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
         "grep <FieldSecurityProfile name=\"REV_FinanceOnly\": matched in src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
-        "grep \"name\":\\s*\"REV_FinanceOnly\": matched in provisioning/deploymentSettings/test-settings.json",
-        "grep (?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\": matched in provisioning/deploymentSettings/test-settings.json"
+        "grep \"name\":\\s*\"REV_FinanceOnly\": matched in provisioning/deploymentSettings/test-settings.json"
       ]
     },
     {
@@ -1018,9 +1020,9 @@
         "2.4",
         "2.5"
       ],
-      "claimed_status": "Done",
+      "claimed_status": null,
       "derived_status": "manual_only",
-      "verdict": "unverifiable",
+      "verdict": "agrees",
       "evidence_present": 0,
       "evidence_absent": 0,
       "evidence_manual": 1,
@@ -2100,10 +2102,10 @@
         "0.5"
       ],
       "claimed_status": null,
-      "derived_status": "complete",
+      "derived_status": "partial",
       "verdict": "UNDERCLAIM",
-      "evidence_present": 6,
-      "evidence_absent": 0,
+      "evidence_present": 5,
+      "evidence_absent": 1,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -2159,8 +2161,8 @@
             "pattern": "(?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\"",
             "_note": "ADDED 2026-09-15 (IMP-0734), same rewrite. Proximity-bounded so this cannot pass on some unrelated later mention of the string 'REV Finance' elsewhere in the file — it only matches inside the REV_FinanceOnly profile's own memberTeams array. Confirmed live 2026-09-15: this dev environment's actual Dataverse team name is 'REV-PP-GrantApplications-Finance-DEV' (not 'REV Finance' — the architecture's short-name convention was never applied when the group teams were created), so this rule proves the SETTINGS declare the finance team as a member, which is the repo-checkable half of the deliverable; the live per-environment name mapping is an operational fact this file cannot see and is not what this rule claims."
           },
-          "ok": true,
-          "note": "grep (?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\": matched in provisioning/deploymentSettings/test-settings.json"
+          "ok": false,
+          "note": "grep (?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\": no match in 1 file(s)"
         }
       ]
     },
